@@ -40,6 +40,19 @@ let private startedRun seed = update (StartRun seed) initialModel |> fst
 let private roomOfType kind (model: Model) =
     model.Floor.Rooms |> Map.toList |> List.find (fun (_, room) -> room.RoomType = kind) |> fst
 
+/// M11: `DescendFloor` is guarded by the state it depicts, so reaching the next floor means doing
+/// what a player must do — beat the floor's boss, which is what leaves the trapdoor fixture behind,
+/// enter that room through the production seam, and stand on the trapdoor. Every scenario below that
+/// descends stages it this way rather than descending out of a trapdoor-less room.
+let private standOnTrapdoor (model: Model) =
+    let bossId = roomOfType Boss model
+    { model with Floor = FloorGeneration.clearBoss bossId model.Floor }
+    |> update (EnterM5Room bossId)
+    |> fst
+    |> fun staged -> { staged with PlayerPosition = trapdoorCenter }
+
+let private descendThroughTrapdoor model = model |> standOnTrapdoor |> update DescendFloor |> fst
+
 /// Fixture item ids and shop prices reachable in one floor, in deterministic room order.
 let private floorFixtureContents (model: Model) =
     model.Floor.Rooms
@@ -106,7 +119,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
           Expect.notEqual slow.DropRng fast.DropRng "the slow run really did draw more from DropRng"
           Expect.equal slow.LayoutRng fast.LayoutRng "combat never advances the layout stream"
 
-          let descend model = update DescendFloor model |> fst
+          let descend model = descendThroughTrapdoor model
           let fastFloor = (descend fast).Floor
           let slowFloor = (descend slow).Floor
           Expect.equal (Replay.floorBytes slowFloor) (Replay.floorBytes fastFloor) "the floor layout and enemy placement are identical across both runs"
@@ -313,7 +326,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
               let mutable contents = floorFixtureContents model
 
               for _ in 1..4 do
-                  model <- update DescendFloor model |> fst
+                  model <- descendThroughTrapdoor model
                   contents <- contents @ floorFixtureContents model
 
               model, contents
@@ -509,8 +522,9 @@ let private scenarios: (int * string * (unit -> unit)) list =
                   Bombs = [ { Id = 1; Position = zero; FuseTicks = 5 } ]
                   ShopSlots = [ { Id = 1; Item = { Id = "x"; Modifiers = [] }; Cost = CoinCost 1 } ]
                   Obstacles = [ { X = 1.0; Y = 1.0; Width = 2.0; Height = 2.0 } ] }
-              |> update (EnterM5Room(roomOfType Combat started))
-              |> fst
+              // M11: descend from the room that actually depicts a trapdoor — the cleared boss room —
+              // standing on it, which is now the only state `DescendFloor` accepts.
+              |> standOnTrapdoor
 
           let descended = update DescendFloor loaded |> fst
           Expect.equal descended.FloorIndex 2 "FloorIndex increments"

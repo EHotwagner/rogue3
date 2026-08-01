@@ -30,6 +30,10 @@
          guarded so the list must stay at exactly 24) plus the §13 canonical-encoding and
          seed-plus-input-log replay obligations. -->
     <Compile Include="M10AcceptanceDeterminismTests.fs" />
+    <!-- M11: playability and visual legibility. Every claim about what a player can do is driven from
+         the production input route — `KeyChanged` and `Tick` — because M10 proved the door reducers
+         correct while nothing dispatched them. -->
+    <Compile Include="M11PlayabilityLegibilityTests.fs" />
     <!-- Issue #1002 (child of #991): release-lane BEHAVIOUR coverage for the generic game shell.
          Drives GameShell.fs's pure `update` + host-free seams (router, Esc routing, rebind capture,
          display->window-behaviour mapping, keymap persistence). Additive — it adds shell tests beside

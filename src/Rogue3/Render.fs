@@ -257,6 +257,178 @@ let bossToken model (boss: BossActor) =
         Health=max 0.0 (min 1.0 (boss.HitPoints/definition.BaseHitPoints))
         Threat=1.0; Speed=1 }
 
+// ------------------------------------------------------------------------------------------------
+// M11 room shell: walls and doors.
+//
+// ONE DOOR MODEL. Everything below reads `Floor.Rooms.[CurrentRoom].Doors` — the floor graph — for a
+// door's existence, its `Direction` and its `DoorState`. `M5Room.Doors` contributes only the derived
+// combat lock, index-aligned with the graph list by `loadM5Room`. Before M11 the renderer drew the
+// cosmetic list alone, as an indexed strip at a fixed screen position, so doors neither sat on their
+// walls nor distinguished `LockedKey` from `HiddenWall` — and a room whose cosmetic list was empty
+// drew no exit at all, however many the floor graph gave it.
+// ------------------------------------------------------------------------------------------------
+
+let wallThickness = 24.0
+
+let private stone = color 62uy 52uy 70uy 255uy
+let private stoneEdge = color 92uy 80uy 104uy 255uy
+
+/// The opening a door occupies in the wall its `Direction` names.
+let doorwayRect direction : Rect =
+    match direction with
+    | FloorGeneration.North -> { X=playfieldWidth/2.0-doorwayHalfSpan; Y=0.0; Width=doorwayHalfSpan*2.0; Height=wallThickness }
+    | FloorGeneration.South -> { X=playfieldWidth/2.0-doorwayHalfSpan; Y=playfieldHeight-wallThickness; Width=doorwayHalfSpan*2.0; Height=wallThickness }
+    | FloorGeneration.West -> { X=0.0; Y=playfieldHeight/2.0-doorwayHalfSpan; Width=wallThickness; Height=doorwayHalfSpan*2.0 }
+    | FloorGeneration.East -> { X=playfieldWidth-wallThickness; Y=playfieldHeight/2.0-doorwayHalfSpan; Width=wallThickness; Height=doorwayHalfSpan*2.0 }
+
+/// The doors of the room the player is currently standing in, paired with the derived combat lock.
+let currentRoomDoors model : (FloorGeneration.Door * DoorState) list =
+    match Map.tryFind model.Floor.CurrentRoom model.Floor.Rooms with
+    | None -> []
+    | Some room ->
+        room.Doors
+        |> List.mapi (fun index door ->
+            door, (model.M5Room.Doors |> List.tryItem index |> Option.defaultValue DoorState.Open))
+
+/// The four room walls, with a gap wherever the current room has a door. A door cannot be drawn "at
+/// its own wall" while no wall is drawn, and before M11 the room rendered as an unbounded void.
+let roomWallsScene model =
+    let directions = currentRoomDoors model |> List.map (fun (door, _) -> door.Direction) |> Set.ofList
+    let hasDoor direction = Set.contains direction directions
+    let slabs =
+        [ if hasDoor FloorGeneration.North then
+              yield { X=0.0;Y=0.0;Width=playfieldWidth/2.0-doorwayHalfSpan;Height=wallThickness }
+              yield { X=playfieldWidth/2.0+doorwayHalfSpan;Y=0.0;Width=playfieldWidth/2.0-doorwayHalfSpan;Height=wallThickness }
+          else yield { X=0.0;Y=0.0;Width=playfieldWidth;Height=wallThickness }
+          if hasDoor FloorGeneration.South then
+              yield { X=0.0;Y=playfieldHeight-wallThickness;Width=playfieldWidth/2.0-doorwayHalfSpan;Height=wallThickness }
+              yield { X=playfieldWidth/2.0+doorwayHalfSpan;Y=playfieldHeight-wallThickness;Width=playfieldWidth/2.0-doorwayHalfSpan;Height=wallThickness }
+          else yield { X=0.0;Y=playfieldHeight-wallThickness;Width=playfieldWidth;Height=wallThickness }
+          if hasDoor FloorGeneration.West then
+              yield { X=0.0;Y=0.0;Width=wallThickness;Height=playfieldHeight/2.0-doorwayHalfSpan }
+              yield { X=0.0;Y=playfieldHeight/2.0+doorwayHalfSpan;Width=wallThickness;Height=playfieldHeight/2.0-doorwayHalfSpan }
+          else yield { X=0.0;Y=0.0;Width=wallThickness;Height=playfieldHeight }
+          if hasDoor FloorGeneration.East then
+              yield { X=playfieldWidth-wallThickness;Y=0.0;Width=wallThickness;Height=playfieldHeight/2.0-doorwayHalfSpan }
+              yield { X=playfieldWidth-wallThickness;Y=playfieldHeight/2.0+doorwayHalfSpan;Width=wallThickness;Height=playfieldHeight/2.0-doorwayHalfSpan }
+          else yield { X=playfieldWidth-wallThickness;Y=0.0;Width=wallThickness;Height=playfieldHeight } ]
+    Scene.group
+        ((slabs |> List.map (fun slab -> Scene.filledRectangle slab stone))
+         @ [ Scene.rectangleWithPaint
+                 { X=wallThickness/2.0;Y=wallThickness/2.0
+                   Width=playfieldWidth-wallThickness;Height=playfieldHeight-wallThickness }
+                 (Paint.stroke stoneEdge 2.0) ])
+
+/// The element id and handle a door presents, given the floor-graph state and the derived combat
+/// lock. `HiddenWall` wins over the lock — a wall does not become a sealed door when enemies are
+/// alive — and the lock wins over `Open`, because a sealed room really has no usable exit.
+let doorPresentation (graphState: FloorGeneration.DoorState) (lock: DoorState) =
+    match graphState, lock with
+    | FloorGeneration.HiddenWall, _ -> "DoorHiddenWall", "scene/door/hidden-wall"
+    | _, DoorState.BossSealed -> "DoorBossSealed", "scene/door/boss-sealed"
+    | _, DoorState.LockedClear -> "DoorLockedClear", "scene/door/locked-clear"
+    | FloorGeneration.LockedKey, _ -> "DoorLockedKey", "scene/door/locked-key"
+    | FloorGeneration.BossDoor, _ -> "DoorBossDoor", "scene/door/boss-door"
+    | FloorGeneration.Open, _ -> "DoorOpen", "scene/door/open"
+
+/// How far past the wall, into the room, a door's threshold is drawn. The door then reads as a
+/// frame you walk through rather than a stripe painted on the very edge of the screen.
+let doorApron = 18.0
+
+let private doorScene elementId direction =
+    let opening = doorwayRect direction
+    let horizontal = opening.Width > opening.Height
+    // Wall-local frame: `along` runs across the doorway, `inward` runs into the room. Every door is
+    // drawn in these terms, so one description serves all four walls.
+    let sign =
+        match direction with
+        | FloorGeneration.North
+        | FloorGeneration.West -> 1.0
+        | _ -> -1.0
+    let faceAlong = (if horizontal then opening.X + opening.Width/2.0 else opening.Y + opening.Height/2.0)
+    let faceAcross =
+        match direction with
+        | FloorGeneration.North -> 0.0
+        | FloorGeneration.South -> playfieldHeight
+        | FloorGeneration.West -> 0.0
+        | FloorGeneration.East -> playfieldWidth
+    let at along inward : Point =
+        if horizontal then { X=faceAlong+along; Y=faceAcross+sign*inward }
+        else { X=faceAcross+sign*inward; Y=faceAlong+along }
+    /// A rectangle in wall-local terms: centred on the doorway, spanning `halfAlong` either side and
+    /// running from `fromInward` to `toInward` into the room.
+    let slab halfAlong fromInward toInward : Rect =
+        let a0, a1 = faceAlong - halfAlong, faceAlong + halfAlong
+        let c0 = faceAcross + sign * (min fromInward toInward)
+        let c1 = faceAcross + sign * (max fromInward toInward)
+        let lo, hi = min c0 c1, max c0 c1
+        if horizontal then { X=a0; Y=lo; Width=a1-a0; Height=hi-lo }
+        else { X=lo; Y=a0; Width=hi-lo; Height=a1-a0 }
+    let panel = slab doorwayHalfSpan 0.0 (wallThickness + doorApron)
+    let span = doorwayHalfSpan
+    match elementId with
+    | "DoorOpen" ->
+        // An opening you can walk through: a dark threshold punched past the wall, flanked by lit
+        // jambs, with a chevron pointing OUT through the gap.
+        Scene.group
+            [ Scene.filledRectangle panel (color 16uy 11uy 20uy 255uy)
+              Scene.filledRectangle (slab span 0.0 6.0) (color 75uy 196uy 122uy 255uy)
+              Scene.filledRectangle (slab (span - 6.0) (wallThickness + doorApron - 5.0) (wallThickness + doorApron)) (color 52uy 132uy 88uy 255uy)
+              Scene.line (at (-span + 3.0) 4.0) (at (-span + 3.0) (wallThickness + doorApron)) (Paint.stroke (color 96uy 220uy 146uy 255uy) 5.0)
+              Scene.line (at (span - 3.0) 4.0) (at (span - 3.0) (wallThickness + doorApron)) (Paint.stroke (color 96uy 220uy 146uy 255uy) 5.0)
+              Scene.line (at (-18.0) 26.0) (at 0.0 8.0) (Paint.stroke (color 150uy 255uy 190uy 255uy) 5.0)
+              Scene.line (at 18.0 26.0) (at 0.0 8.0) (Paint.stroke (color 150uy 255uy 190uy 255uy) 5.0) ]
+    | "DoorLockedKey" ->
+        // A key door: a brass plate filling the whole doorway, with a keyhole in the middle of it.
+        Scene.group
+            [ Scene.filledRectangle panel (color 201uy 148uy 54uy 255uy)
+              Scene.rectangleWithPaint panel (Paint.stroke (color 255uy 232uy 160uy 255uy) 4.0)
+              Scene.circle (at 0.0 20.0) 9.0 (color 32uy 22uy 12uy 255uy)
+              Scene.line (at 0.0 24.0) (at 0.0 36.0) (Paint.stroke (color 32uy 22uy 12uy 255uy) 7.0)
+              Scene.line (at (-span + 10.0) 21.0) (at (-24.0) 21.0) (Paint.stroke (color 140uy 98uy 30uy 255uy) 4.0)
+              Scene.line (at 24.0 21.0) (at (span - 10.0) 21.0) (Paint.stroke (color 140uy 98uy 30uy 255uy) 4.0) ]
+    | "DoorBossDoor" ->
+        // A boss doorway: enterable, and unmistakably the wrong way to wander in by accident.
+        Scene.group
+            [ Scene.filledRectangle panel (color 158uy 40uy 50uy 255uy)
+              Scene.rectangleWithPaint panel (Paint.stroke (color 255uy 128uy 128uy 255uy) 4.0)
+              Scene.circle (at 0.0 20.0) 11.0 (color 26uy 8uy 10uy 255uy)
+              Scene.line (at (-26.0) 8.0) (at (-10.0) 34.0) (Paint.stroke (color 255uy 206uy 128uy 255uy) 5.0)
+              Scene.line (at 26.0 8.0) (at 10.0 34.0) (Paint.stroke (color 255uy 206uy 128uy 255uy) 5.0) ]
+    | "DoorHiddenWall" ->
+        // A cracked wall. It reads as WALL, not door — but the seam tells a player where to bomb.
+        Scene.group
+            [ Scene.filledRectangle (slab doorwayHalfSpan 0.0 wallThickness) stone
+              Scene.line (at (-34.0) 4.0) (at (-12.0) 14.0) (Paint.stroke (color 138uy 124uy 152uy 255uy) 3.0)
+              Scene.line (at (-12.0) 14.0) (at 6.0 5.0) (Paint.stroke (color 138uy 124uy 152uy 255uy) 3.0)
+              Scene.line (at 6.0 5.0) (at 30.0 17.0) (Paint.stroke (color 138uy 124uy 152uy 255uy) 3.0)
+              Scene.line (at (-4.0) 9.0) (at 2.0 22.0) (Paint.stroke (color 138uy 124uy 152uy 255uy) 2.0) ]
+    | "DoorLockedClear" ->
+        // Sealed by combat: iron bars across the opening while anything in the room is still alive.
+        Scene.group
+            ([ Scene.filledRectangle panel (color 74uy 78uy 96uy 255uy)
+               Scene.rectangleWithPaint panel (Paint.stroke (color 150uy 158uy 184uy 255uy) 3.0) ]
+             @ [ for offset in [ -36.0; -12.0; 12.0; 36.0 ] ->
+                    Scene.line (at offset 3.0) (at offset (wallThickness + doorApron - 3.0)) (Paint.stroke (color 196uy 204uy 226uy 255uy) 7.0) ])
+    | _ ->
+        // Sealed by the boss fight.
+        Scene.group
+            [ Scene.filledRectangle panel (color 104uy 22uy 30uy 255uy)
+              Scene.rectangleWithPaint panel (Paint.stroke (color 210uy 70uy 78uy 255uy) 3.0)
+              Scene.line (at (-span + 10.0) 6.0) (at (span - 10.0) (wallThickness + doorApron - 6.0)) (Paint.stroke (color 255uy 96uy 96uy 255uy) 7.0)
+              Scene.line (at (-span + 10.0) (wallThickness + doorApron - 6.0)) (at (span - 10.0) 6.0) (Paint.stroke (color 255uy 96uy 96uy 255uy) 7.0) ]
+
+/// The trapdoor, drawn where the guard tests for it: the centre of the room.
+let trapdoorScene () =
+    let bounds =
+        { X=trapdoorCenter.Vx-trapdoorHalfWidth; Y=trapdoorCenter.Vy-trapdoorHalfHeight
+          Width=trapdoorHalfWidth*2.0; Height=trapdoorHalfHeight*2.0 }
+    Scene.group
+        [ Scene.filledRectangle bounds (color 20uy 13uy 24uy 255uy)
+          Scene.rectangleWithPaint bounds (Paint.stroke (color 168uy 128uy 74uy 255uy) 4.0)
+          Scene.line { X=bounds.X+14.0;Y=trapdoorCenter.Vy-8.0 } { X=trapdoorCenter.Vx;Y=trapdoorCenter.Vy+10.0 } (Paint.stroke (color 168uy 128uy 74uy 255uy) 3.0)
+          Scene.line { X=bounds.X+bounds.Width-14.0;Y=trapdoorCenter.Vy-8.0 } { X=trapdoorCenter.Vx;Y=trapdoorCenter.Vy+10.0 } (Paint.stroke (color 168uy 128uy 74uy 255uy) 3.0) ]
+
 type RenderedElement =
     { ElementId: string
       Handle: string
@@ -289,14 +461,11 @@ let renderedElementsIn grammar model : RenderedElement list =
           yield rendered "ShopItem" "scene/shop-item" RenderLayer.Pickups
                     (Scene.filledRectangle { X=520.0+float index*90.0;Y=160.0;Width=width;Height=20.0 } (color 166uy 116uy 232uy 255uy))
 
-      for index, door in model.M5Room.Doors |> List.indexed do
-          let elementId, handle, fill, width =
-              match door with
-              | DoorState.Open -> "DoorOpen", "scene/door/open", color 75uy 196uy 122uy 255uy, 10.0
-              | DoorState.LockedClear -> "DoorLockedClear", "scene/door/locked-clear", color 219uy 166uy 66uy 255uy, 18.0
-              | DoorState.BossSealed -> "DoorBossSealed", "scene/door/boss-sealed", color 220uy 66uy 79uy 255uy, 26.0
-          yield rendered elementId handle RenderLayer.Obstacles
-                    (Scene.filledRectangle { X=590.0+float index*46.0;Y=48.0;Width=width;Height=16.0 } fill)
+      yield rendered "RoomWalls" "scene/room-walls" RenderLayer.FloorDecals (roomWallsScene model)
+
+      for door, lock in currentRoomDoors model do
+          let elementId, handle = doorPresentation door.State lock
+          yield rendered elementId handle RenderLayer.Obstacles (doorScene elementId door.Direction)
 
       match model.M5Room.Drop with
       | Some pickup ->
@@ -314,8 +483,7 @@ let renderedElementsIn grammar model : RenderedElement list =
       | None -> ()
 
       if model.M5Room.Trapdoor then
-          yield rendered "Trapdoor" "scene/trapdoor" RenderLayer.Pickups
-                    (Scene.filledEllipse { X=606.0;Y=510.0;Width=68.0;Height=34.0 } (color 58uy 39uy 68uy 255uy))
+          yield rendered "Trapdoor" "scene/trapdoor" RenderLayer.FloorDecals (trapdoorScene ())
 
       let shadowPositions =
           model.PlayerPosition

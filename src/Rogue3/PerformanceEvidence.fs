@@ -17,6 +17,29 @@ open Rogue3.Model
 open Rogue3.Geometry
 open Rogue3.View
 
+// ------------------------------------------------------------------------------------------------
+// M11: the product's own player-action vocabulary for production journeys.
+//
+// `JourneyEvent` is a closed nine-case DU owned by FS.GG.Game.Harness, so a `CrossDoor` case cannot
+// be added to it. Its action slot is the `'menu` TYPE PARAMETER, which this product used to
+// instantiate with `unit` — a type inhabited by exactly one value, and therefore a vocabulary that
+// can express nothing. That is why the missing door wiring was inexpressible: no journey event could
+// name "cross a door", so no `JourneyDispatch.Unbound` row could ever report it.
+//
+// Naming an action here does NOT wire it. A scenario that does not bind an action returns
+// `JourneyDispatch.Unbound`, and the runner turns that into a failed receipt naming the action.
+// ------------------------------------------------------------------------------------------------
+[<RequireQualifiedAccess>]
+type PlayerAction =
+    /// Walk through the doorway on the named wall of the current room.
+    | CrossDoor of FloorGeneration.DoorDirection
+    /// Spend a key on the `LockedKey` door on the named wall of the current room.
+    | UnlockKeyDoor of FloorGeneration.DoorDirection
+    /// Use the trapdoor the current room depicts.
+    | UseTrapdoor
+    /// The M6 particle burst the maximum-content fixture drives.
+    | BurstParticles
+
 type WorkloadClass =
     | NormalPlay
     | Stress
@@ -39,7 +62,7 @@ let private performanceIntentSeed: PerformanceIntentDeclaration =
       TargetFps = 60
       WorkloadIds = []
       WorkloadDefinitionDigests = []
-      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 736 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition, and all five pre-M6 visuals"
+      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 736 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition, four directional doorways per room with one room-wall shell and eight doorway-sensor examinations per frame, and all five pre-M6 visuals"
       MaxP95Ms = 16.67m
       MaxP99Ms = 25.0m
       MaxCatchUpFrames = 0
@@ -149,9 +172,20 @@ let private m6AdditionalVisualCostDrivers =
           Disposition=NonPerformance "one live boss kind per room; covered by production raster/catalog evidence" }
       required "scene.boss-maw" "BossMaw"
       required "scene.shop-item" "ShopItem"
+      required "scene.room-walls" "RoomWalls"
       required "scene.door-open" "DoorOpen"
-      required "scene.door-locked-clear" "DoorLockedClear"
-      required "scene.door-boss-sealed" "DoorBossSealed"
+      required "scene.door-locked-key" "DoorLockedKey"
+      required "scene.door-boss-door" "DoorBossDoor"
+      required "scene.door-hidden-wall" "DoorHiddenWall"
+      // M11: a room's COMBAT LOCK applies to every doorway at once, so a sealed presentation cannot
+      // co-exist with an open one in a single frame — a room has four walls and the maximum-content
+      // fixture already spends all four on the four floor-graph states. Their structural cost is
+      // identical to the measured `DoorOpen`; their appearance is covered by production raster and
+      // catalog evidence. Same treatment as the two non-representative boss kinds above.
+      { required "scene.door-locked-clear" "DoorLockedClear" with
+          Disposition=NonPerformance "the combat lock seals every doorway at once and cannot co-exist with an open door in one frame; covered by production raster/catalog evidence" }
+      { required "scene.door-boss-sealed" "DoorBossSealed" with
+          Disposition=NonPerformance "the boss lock seals every doorway at once and cannot co-exist with an open door in one frame; covered by production raster/catalog evidence" }
       required "scene.room-drop" "RoomDrop"
       required "scene.room-reward" "RoomReward"
       required "scene.trapdoor" "Trapdoor"
@@ -399,6 +433,14 @@ let performanceCostDrivers =
         MaximumExpected = 1
         VisualElement = None
         Disposition = RequiredIn [ "secret-reveal" ] }
+      // M11: the doorway sensor scan is the one M11 addition on the fixed-step hot path, so its cost
+      // is measured rather than argued. A room grid is orthogonal, so a room has at most four doors.
+      { Id = "simulation.door-sensor-candidates"
+        Category = Simulation
+        ScaleSource = "Model.TotalDoorSensorQueries delta: doorway sensors the fixed-step door scan examines across one sampled production frame — two 120 Hz steps against the at-most four walls of a room"
+        MaximumExpected = 8
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "state.pending-secrets"
         Category = Simulation
         ScaleSource = "Floor.PendingSecrets live count on the representative production floor; §4.8 places one hidden room on floors 1-2 and two from floor 3, each reachable from its orthogonal neighbours"
@@ -826,6 +868,7 @@ let private observeCostScale visualCounts driverId routed beforeModel afterModel
         | "boss.m5-pattern-emissions", _, _ -> afterModel.M5BossPatternEmissions - beforeModel.M5BossPatternEmissions
         | "collision.combat-candidates", _, _ -> afterModel.TotalCombatCandidates - beforeModel.TotalCombatCandidates
         | "simulation.secret-reveal-candidates", _, _ -> afterModel.TotalSecretRevealCandidates - beforeModel.TotalSecretRevealCandidates
+        | "simulation.door-sensor-candidates", _, _ -> afterModel.TotalDoorSensorQueries - beforeModel.TotalDoorSensorQueries
         | "state.pending-secrets", _, _ -> afterModel.Floor.PendingSecrets.Count
         | "state.placed-bombs", _, _ -> max afterModel.Bombs.Length beforeModel.Bombs.Length
         | "effects.pooled-particles", _, _ -> afterModel.M6Particles.Length
@@ -997,51 +1040,105 @@ let private normalBudget =
 /// Bind every M2 performance workload to a runner-issued receipt over the shipped composition:
 /// boot `initialModel`, map timestamp-free events to production `Msg`, call production `update`,
 /// and reach a real fixed step. The measured workload below remains the longer update+view sample.
-let private performanceJourneyReceipt scenarioId boot terminalSteps script =
+/// The door of the current room on the wall `direction` names, if the floor graph has one.
+let private doorTowards direction (model: Model) =
+    Map.tryFind model.Floor.CurrentRoom model.Floor.Rooms
+    |> Option.bind (fun room -> room.Doors |> List.tryFind (fun door -> door.Direction = direction))
+
+let private actionName =
+    function
+    | PlayerAction.CrossDoor direction -> $"cross-door-{string direction |> fun value -> value.ToLowerInvariant()}"
+    | PlayerAction.UnlockKeyDoor direction -> $"unlock-key-door-{string direction |> fun value -> value.ToLowerInvariant()}"
+    | PlayerAction.UseTrapdoor -> "use-trapdoor"
+    | PlayerAction.BurstParticles -> "burst-particles"
+
+/// The shipped production-journey adapter. Public so the M11 suite can prove that a player action
+/// nobody wired reports `JourneyDispatch.Unbound` naming it, rather than being inexpressible.
+let journeyAdapterWith maxSteps scenarioId boot terminalSteps : ProductionJourney<Model, ViewerKey, Vec2 * bool option, PlayerAction, unit, Msg, string> =
+    { RouteId = "rogue3-m3-combat-health-currency-update-view"
+      ScenarioId = scenarioId
+      TestId = $"performance-{scenarioId}"
+      MaxSteps = maxSteps
+      Boot = boot
+      MapEvent =
+        fun event model ->
+            match event with
+            | JourneyEvent.Start -> JourneyDispatch.Mapped [ Started ]
+            | JourneyEvent.KeyInput(key, pressed) -> JourneyDispatch.Mapped [ KeyChanged(keyName key, pressed) ]
+            | JourneyEvent.FixedTick -> JourneyDispatch.Mapped [ Tick fixedDt ]
+            | JourneyEvent.PointerInput(position, primaryDown) -> JourneyDispatch.Mapped [ PointerChanged(position, primaryDown) ]
+            | JourneyEvent.MenuAction PlayerAction.BurstParticles when scenarioId = "maximum-content" ->
+                JourneyDispatch.Mapped [ SpawnM6Particles(650, vec2 640.0 360.0, ParticleTint.Explosion) ]
+            // A displayed door action resolves against the LIVE floor graph. If the current room has
+            // no such door, the action is unbound rather than silently a no-op.
+            | JourneyEvent.MenuAction(PlayerAction.CrossDoor direction as action) ->
+                match doorTowards direction model with
+                | Some door -> JourneyDispatch.Mapped [ TraverseDoor door.ToRoom ]
+                | None -> JourneyDispatch.Unbound(actionName action)
+            | JourneyEvent.MenuAction(PlayerAction.UnlockKeyDoor direction as action) ->
+                match doorTowards direction model with
+                | Some door -> JourneyDispatch.Mapped [ UnlockDoor door.ToRoom ]
+                | None -> JourneyDispatch.Unbound(actionName action)
+            | JourneyEvent.MenuAction PlayerAction.UseTrapdoor ->
+                JourneyDispatch.Mapped [ KeyChanged(keyName (Letter 'E'), true); Tick fixedDt ]
+            | JourneyEvent.MenuAction action -> JourneyDispatch.Unbound(actionName action)
+            | JourneyEvent.Interact when scenarioId = "maximum-content" ->
+                JourneyDispatch.Mapped [ BeginM6RoomTransition RoomSlideDirection.East ]
+            // M11: interact is the INTERACT KEY, not a direct descent. `DescendFloor` is guarded, so
+            // the only way this reaches a new floor is by the player standing on a real trapdoor.
+            | JourneyEvent.Interact -> JourneyDispatch.Mapped [ KeyChanged(keyName (Letter 'E'), true) ]
+            | JourneyEvent.Pause -> JourneyDispatch.Unbound "pause"
+            | JourneyEvent.Resume -> JourneyDispatch.Unbound "resume"
+            | JourneyEvent.EffectResult _ -> JourneyDispatch.Unbound "effect result"
+      Update = fun message model -> update message model |> fst
+      FixedTick = fun model -> update (Tick fixedDt) model |> fst
+      ApplyEffectResult = fun _ model -> model
+      IsTerminal = fun model -> if scenarioId = "floor-generation" then model.FloorIndex >= terminalSteps else model.SimStepCount >= terminalSteps
+      // The opaque runner receipt binds the complete closed Model, including every M3 population,
+      // resource, timer and cost counter; the same structural closure authorship digests use.
+      Fingerprint = modelDefinitionFingerprint
+      EncodeEvent = string
+      EncodeFingerprint = id }
+
+let journeyAdapter scenarioId boot terminalSteps = journeyAdapterWith 4 scenarioId boot terminalSteps
+
+/// Lift a model into a journey boot function OWNED BY THIS ASSEMBLY. The runner refuses an adapter
+/// whose composition functions do not share one assembly authority — correctly, because a
+/// caller-assembled composition is not the shipped one. `NoInlining` is load-bearing: without it the
+/// F# optimizer may copy this closure into the caller's assembly and reintroduce the split.
+let private journeyBoots = System.Collections.Concurrent.ConcurrentDictionary<int, Model>()
+let private journeyBootIds = ref 0
+
+let journeyBootOf (model: Model) : unit -> Model =
+    // The table indirection is not decoration: it makes this function side-effecting, which is what
+    // stops the optimizer copying the closure into the caller and re-splitting the authority.
+    let id = System.Threading.Interlocked.Increment journeyBootIds
+    journeyBoots[id] <- model
+    fun () -> journeyBoots[id]
+
+/// Run a production-journey script through the shipped adapter and return the whole run. `maxSteps`
+/// bounds the runner; a boot-to-cross-a-door-and-return script needs far more than a workload's four.
+let runPlayerJourneyWith maxSteps scenarioId boot terminalSteps script =
     let terminalPredicateIdentity =
         if scenarioId = "floor-generation" then
             $"model.FloorIndex>={terminalSteps}"
         else
             $"model.SimStepCount>={terminalSteps}"
 
-    let adapter: ProductionJourney<Model, ViewerKey, Vec2 * bool option, unit, unit, Msg, string> =
-        { RouteId = "rogue3-m3-combat-health-currency-update-view"
-          ScenarioId = scenarioId
-          TestId = $"performance-{scenarioId}"
-          MaxSteps = 4
-          Boot = boot
-          MapEvent =
-            fun event _ ->
-                match event with
-                | JourneyEvent.Start -> JourneyDispatch.Mapped [ Started ]
-                | JourneyEvent.KeyInput(key, pressed) -> JourneyDispatch.Mapped [ KeyChanged(keyName key, pressed) ]
-                | JourneyEvent.FixedTick -> JourneyDispatch.Mapped [ Tick fixedDt ]
-                | JourneyEvent.PointerInput(position, primaryDown) -> JourneyDispatch.Mapped [ PointerChanged(position, primaryDown) ]
-                | JourneyEvent.MenuAction _ when scenarioId = "maximum-content" ->
-                    JourneyDispatch.Mapped [ SpawnM6Particles(650, vec2 640.0 360.0, ParticleTint.Explosion) ]
-                | JourneyEvent.MenuAction _ -> JourneyDispatch.Unbound "menu action"
-                | JourneyEvent.Interact when scenarioId = "maximum-content" ->
-                    JourneyDispatch.Mapped [ BeginM6RoomTransition RoomSlideDirection.East ]
-                | JourneyEvent.Interact -> JourneyDispatch.Mapped [ DescendFloor ]
-                | JourneyEvent.Pause -> JourneyDispatch.Unbound "pause"
-                | JourneyEvent.Resume -> JourneyDispatch.Unbound "resume"
-                | JourneyEvent.EffectResult _ -> JourneyDispatch.Unbound "effect result"
-          Update = fun message model -> update message model |> fst
-          FixedTick = fun model -> update (Tick fixedDt) model |> fst
-          ApplyEffectResult = fun _ model -> model
-          IsTerminal = fun model -> if scenarioId = "floor-generation" then model.FloorIndex >= terminalSteps else model.SimStepCount >= terminalSteps
-          // The opaque runner receipt binds the complete closed Model, including every M3 population,
-          // resource, timer and cost counter; the same structural closure authorship digests use.
-          Fingerprint = modelDefinitionFingerprint
-          EncodeEvent = string
-          EncodeFingerprint = id }
-
     Journey.runScriptWithIdentity
         $"{scenarioId}-one-fixed-step"
         terminalPredicateIdentity
-        adapter
+        (journeyAdapterWith maxSteps scenarioId boot terminalSteps)
         script
-    |> fun run -> run.Receipt
+
+let runPlayerJourney scenarioId boot terminalSteps script =
+    runPlayerJourneyWith 4 scenarioId boot terminalSteps script
+
+/// Bind every M2 performance workload to a runner-issued receipt over the shipped composition:
+/// boot `initialModel`, map timestamp-free events to production `Msg`, call production `update`,
+/// and reach a real fixed step. The measured workload below remains the longer update+view sample.
+let private performanceJourneyReceipt scenarioId boot terminalSteps script =
+    (runPlayerJourney scenarioId boot terminalSteps script).Receipt
 
 let private movementAimInput =
     { emptyInputSnapshot with
@@ -1104,6 +1201,7 @@ let private maximumM5ShopSlots =
 
 let private maximumContentModel () =
     let maw = Rogue3.Entities.spawnBoss 9999 Rogue3.Entities.BossKind.Maw (vec2 1000. 600.)
+    let maximumFloor = initialModel.Floor
     let fixture =
         { withInput maximumGamepadInput with
             ShotSpawns = maximumShotHistory
@@ -1124,9 +1222,25 @@ let private maximumContentModel () =
                   Rogue3.Entities.PickupKind.Bomb; Rogue3.Entities.PickupKind.SoulHeart ]
             M5Boss = Some {maw with HitPoints=100.0;Phase=3;PatternTicksLeft=1}
             M6CameraTransition = Some { Direction=RoomSlideDirection.East; ElapsedTicks=0 }
+            // M11: the maximum a SINGLE room can present. A room grid is orthogonal, so a room has at
+            // most four doorways, and the four floor-graph door states each take one wall. The
+            // combat-lock presentations are deliberately absent: a lock seals every doorway at once,
+            // so it cannot co-exist with an open door in one frame (see the cost-driver dispositions).
+            Floor =
+                { maximumFloor with
+                    Rooms =
+                        Map.add
+                            maximumFloor.CurrentRoom
+                            { maximumFloor.Rooms.[maximumFloor.CurrentRoom] with
+                                Doors =
+                                    [ { ToRoom=901; Direction=FloorGeneration.North; State=FloorGeneration.Open }
+                                      { ToRoom=902; Direction=FloorGeneration.East; State=FloorGeneration.LockedKey }
+                                      { ToRoom=903; Direction=FloorGeneration.South; State=FloorGeneration.BossDoor }
+                                      { ToRoom=904; Direction=FloorGeneration.West; State=FloorGeneration.HiddenWall } ] }
+                            maximumFloor.Rooms }
             M5Room =
                 { IsBoss=true; Cleared=false
-                  Doors=[Rogue3.Entities.DoorState.Open;Rogue3.Entities.DoorState.LockedClear;Rogue3.Entities.DoorState.BossSealed]
+                  Doors=List.replicate 4 Rogue3.Entities.DoorState.Open
                   LiveEnemyIds=maximumM5Enemies |> List.map _.Id |> Set.ofList
                   Drop=Some Rogue3.Entities.PickupKind.Key
                   Reward=Some Rogue3.Entities.baseItems.Head
@@ -1140,7 +1254,49 @@ let private maximumContentModel () =
 let private maximumContentJourneyBoot () = maximumContentModel ()
 
 // Canonical representative generation boot shared by the timed workload and its runner receipt.
-let private floorGenerationModel () = { initialModel with FloorIndex = 8 }
+//
+// M11: `DescendFloor` is now guarded by the state it depicts, so the boot STAGES THE ROUTE A PLAYER
+// TAKES — the floor's boss room is cleared, which is what creates the trapdoor fixture, the room is
+// entered through the production seam, and the player stands on the trapdoor. The measured workload
+// then descends exactly the way a run descends.
+let private bossRoomOf (floor: FloorGeneration.Floor) =
+    floor.Rooms
+    |> Map.toList
+    |> List.tryPick (fun (id, room) -> if room.RoomType = FloorGeneration.Boss then Some id else None)
+
+let private standOnTrapdoorOfBossRoom (model: Model) =
+    match bossRoomOf model.Floor with
+    | Some bossId ->
+        { model with Floor = FloorGeneration.clearBoss bossId model.Floor }
+        |> loadM5Room bossId
+        |> fun staged -> { staged with PlayerPosition = trapdoorCenter }
+    | None -> model
+
+/// Boss-room ids of the floors the generation workload descends through, precomputed OUTSIDE the
+/// sampled window. Room ids and room types come from the layout walk, which is a function of the run
+/// seed and floor index alone — the item pool only threads the fixture draws — so a fresh `generate`
+/// names the same boss room the workload's pooled descent will.
+let private floorGenerationBossRooms =
+    [| for floorIndex in 9 .. 80 ->
+         (FloorGeneration.generate initialModel.RunSeed floorIndex).Floor
+         |> bossRoomOf
+         |> Option.defaultValue 0 |]
+
+let private floorGenerationModel () =
+    let staged = standOnTrapdoorOfBossRoom { initialModel with FloorIndex = 8 }
+    // This workload cannot use `WarmupFrames` — `MessagesAt` is frame-indexed and both phases start
+    // at frame 0 over one carried model, so a warmup would offset the staged boss-room ids from the
+    // floors actually reached. Warm the descent path here instead, on a DISCARDED copy: `InitialState`
+    // is evaluated before the stopwatch, so this is warmup in the ordinary sense and the returned
+    // model is the pristine staged one.
+    let mutable warm = staged
+    for frame in 0..3 do
+        let bossRoom = floorGenerationBossRooms.[frame]
+        warm <- update DescendFloor warm |> fst
+        warm <- update (BossCleared bossRoom) warm |> fst
+        warm <- update (EnterM5Room bossRoom) warm |> fst
+    view warm |> ignore
+    staged
 
 // M10 §14.14 representative state. The player stands in the room that borders a hidden secret, and
 // the fuses are staggered 1..N so EXACTLY ONE bomb detonates per fixed step: every sampled step
@@ -1200,7 +1356,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "c0da99941034c8be30da16bb42e63210175531f23366648cad68113440802e2c" }
+        Authorship = Authored "f6b4dfcaad3a35bb316efeac1a3521dc030f416f46503bf13cd75cecd28fdc7d" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -1233,7 +1389,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "ef33d19e9c9bac379b4db43d0dfd5a13567279430b2af317ed75d38e93453bde" }
+        Authorship = Authored "4c68efeaed12fd76f29e0eb6bf8d685017c5509345d29b6ed64936965ebf36bf" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -1269,7 +1425,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "fde6e58b9e3437c517cf6c4971417dc54844d70879652285d37a61826f2bbd44" }
+        Authorship = Authored "e2ee9a32a081e955a839277443f9fa30326957d401b2f3e75f1ae551e25ba54e" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -1292,24 +1448,37 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "93df79749f3bbae502d999c05403116307630d8684fa3e10e35feb15ff07b177" }
+        Authorship = Authored "bd63d9f43aea827e139c9879278015ccd455d3915967808424a1c04a6238d4ca" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN floor-generation
       { Id = "floor-generation"
-        Definition = "M4 maximum bounded floor generation: production DescendFloor repeatedly derives MapGen.floorSeed, executes bounded room placement with 20-room cap, assigns templates/threat/specials/fixtures, and replaces room-local state"
+        Definition = "M4 maximum bounded floor generation through the guarded trapdoor route: production DescendFloor derives MapGen.floorSeed, executes bounded room placement with 20-room cap, assigns templates/threat/specials/fixtures and replaces room-local state, then the next floor's boss room is cleared and entered so the player again stands on a real trapdoor"
         Classification = NormalPlay
-        WarmupFrames = 4
+        // Warmup is zero deliberately. `MessagesAt` is frame-indexed and the warmup and sample phases
+        // both start at frame 0 over ONE carried model, so a non-zero warmup would offset the staged
+        // boss-room ids from the floors actually reached and silently stop descending. `update` and
+        // `view` are already warm here: four workloads run before this one.
+        WarmupFrames = 0
         SampleFrames = 40
         EventsPerFrame = 0
         PointerEventsPerFrame = 0
         InitialState = floorGenerationModel
-        MessagesAt = (fun _ -> [ DescendFloor ])
-        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "floor-generation" floorGenerationModel 9 [ JourneyEvent.Interact ])
+        MessagesAt =
+            (fun frame ->
+                let bossRoom = floorGenerationBossRooms.[min frame (floorGenerationBossRooms.Length - 1)]
+                [ DescendFloor; BossCleared bossRoom; EnterM5Room bossRoom ])
+        Provenance =
+            RunnerIssuedJourney(
+                performanceJourneyReceipt
+                    "floor-generation"
+                    floorGenerationModel
+                    9
+                    [ JourneyEvent.Interact; JourneyEvent.FixedTick ])
         Composition = CompleteComposition
         CostDriverIds = [ "generation.floor-room-budget"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "15aa98b75b93393a1940594867fe0f2501613bf843da66e1e05724f6d89633ae" }
+        Authorship = Authored "a3859c77305eedcf0262f5c4e1a85d99d7c43ce939955bc8b70fbad1602cd2bb" }
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
@@ -1331,7 +1500,7 @@ let expectedWorkloads =
                     "maximum-content"
                     maximumContentJourneyBoot
                     1
-                    [ JourneyEvent.MenuAction ()
+                    [ JourneyEvent.MenuAction PlayerAction.BurstParticles
                       JourneyEvent.Interact
                       JourneyEvent.KeyInput(ArrowRight, true)
                       JourneyEvent.FixedTick ])
@@ -1367,9 +1536,12 @@ let expectedWorkloads =
               "scene.pickup-soul-heart"
               "scene.boss-maw"
               "scene.shop-item"
+              "simulation.door-sensor-candidates"
+              "scene.room-walls"
               "scene.door-open"
-              "scene.door-locked-clear"
-              "scene.door-boss-sealed"
+              "scene.door-locked-key"
+              "scene.door-boss-door"
+              "scene.door-hidden-wall"
               "scene.room-drop"
               "scene.room-reward"
               "scene.trapdoor"
@@ -1394,7 +1566,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "540fd20ae0403f481c143a60fce91d6d0e1f086cef583e571192e64afd0956b0" }
+        Authorship = Authored "d4e0081bd3ad8435094d1ec773bbbd9c0beef1584c212fda05a211f02c0cd9da" }
       // WORKLOAD-SOURCE-END maximum-content
       // WORKLOAD-SOURCE-BEGIN secret-reveal
       { Id = "secret-reveal"
@@ -1417,7 +1589,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "e4c08b579dd01166cd72264dff2489334c7d5dbd279a02f0b50fc5a72c109786" }
+        Authorship = Authored "ad8a357073adabc0e84751a995c278798ff39bf770636c5fb4e4b91534158fed" }
       // WORKLOAD-SOURCE-END secret-reveal
       ]
 

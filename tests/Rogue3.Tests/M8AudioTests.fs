@@ -79,14 +79,18 @@ let audioTests =
             Expect.contains (audioFromHost hitEffects) (PlaySfx(SoundId "shot-hit", 0.7)) "boss damage requests the shot-hit cue"
             let phasedBoss, phaseEffects = host.Update (Tick fixedDt) damagedBoss
             Expect.contains (audioFromHost phaseEffects) (PlaySfx(SoundId "boss-phase", 0.9)) "the production phase transition requests its sting"
-            let _, deathEffects = host.Update (DamageM5Boss 10000.0) phasedBoss
+            let clearedBoss, deathEffects = host.Update (DamageM5Boss 10000.0) phasedBoss
             Expect.contains (audioFromHost deathEffects) (PlaySfx(SoundId "boss-death", 1.0)) "boss death requests the specified cue"
             Expect.contains (audioFromHost deathEffects) (PlaySfx(SoundId "door-unlock", 0.7)) "boss clear unlocks the room"
 
             let _, stableEffects = host.Update NoOp boss
             Expect.isEmpty (audioFromHost stableEffects |> musicOnly) "a stable boss context never duplicates its loop"
 
-            let descended, descendEffects = host.Update DescendFloor boss
+            // M11: descend the way a player must — out of the CLEARED boss room, standing on the
+            // trapdoor its defeat left behind. `DescendFloor` refuses anything else, and a refused
+            // descent is silent.
+            let atTrapdoor = { clearedBoss with PlayerPosition = trapdoorCenter }
+            let descended, descendEffects = host.Update DescendFloor atTrapdoor
             Expect.equal descended.FloorIndex 2 "production descent advanced the floor"
             Expect.equal
                 (audioFromHost descendEffects |> musicOnly)

@@ -207,7 +207,9 @@ let private directEventCues msg previous next =
       | DamageM5Boss _ when next.M5Boss <> previous.M5Boss -> yield sfx "shot-hit" 0.7
       | RecordCoinsCollected count when count > 0 -> yield sfx "pickup-coin" 0.7
       | RecordItemFound -> yield sfx "item-pickup" 0.85
-      | DescendFloor -> yield sfx "floor-descend" 0.8
+      // M11: `DescendFloor` is guarded, so a refused descent must be SILENT. Cue on the transition
+      // actually happening, not on the message being dispatched.
+      | DescendFloor when next.FloorIndex <> previous.FloorIndex -> yield sfx "floor-descend" 0.8
       | _ -> () ]
 
 /// What this rogue3 asks to hear when `msg` takes it from `previous` to `next`.
