@@ -113,6 +113,7 @@ type CostDriverCategory =
 
 type CostDriverDisposition =
     | RequiredIn of workloadIds: string list
+    | MeasuredInUi of routeIds: string list
     | NonPerformance of reason: string
 
 type PerformanceCostDriver =
@@ -292,6 +293,18 @@ let performanceCostDrivers =
         MaximumExpected = 1
         VisualElement = Some "HudScore"
         Disposition = RequiredIn [ "firing"; "maximum-content" ] }
+      { Id = "ui.run-result-overlay"
+        Category = UiControl
+        ScaleSource = "GameplayVisualInventory.RunResultOverlay production terminal renderer binding"
+        MaximumExpected = 1
+        VisualElement = Some "RunResultOverlay"
+        Disposition = MeasuredInUi [ "run-result" ] }
+      { Id = "persistence.meta-profile"
+        Category = PersistenceEffectResult
+        ScaleSource = "ProfileStore.Store debounces profile mutations and performs one sibling-temp atomic replacement"
+        MaximumExpected = 1
+        VisualElement = None
+        Disposition = NonPerformance "end-run/settings host I/O is event-driven rather than per-frame; real-file debounce and atomic-rename tests cover it" }
       { Id = "scene.floor-background"
         Category = SceneRender
         ScaleSource = "GameplayVisualInventory.FloorBackground production renderer binding"
@@ -1079,7 +1092,8 @@ let private maximumContentModel () =
                   Drop=Some Rogue3.Entities.PickupKind.Key
                   Reward=Some Rogue3.Entities.baseItems.Head
                   Trapdoor=true } }
-    update (SpawnM6Particles(650, vec2 640.0 360.0, ParticleTint.Explosion)) fixture |> fst
+    let populated=update (SpawnM6Particles(650, vec2 640.0 360.0, ParticleTint.Explosion)) fixture |> fst
+    {populated with M6Particles=populated.M6Particles|>List.map(fun particle->{particle with LifetimeTicks=10000})}
 
 // Product-owned canonical representative factory at the journey boot seam. It is not the ordinary
 // player boot; its role is to make maximum authored content reachable through the same production
@@ -1111,7 +1125,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "5cdcfb37e5a229da709650a183ff836b6cb9d26f22a9703ed4cd15c361ba51be" }
+        Authorship = Authored "cbd226feafeafe318cd6e965ba21cedd9e1169b92156e981d7aa993a4efdf1b8" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -1144,7 +1158,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "509502626853124d3c17f802f96ba90a375113637f6c8aab881fec0d174e9a28" }
+        Authorship = Authored "21f40b9a18f53ff53ef1a326721de6b88062a14d001f056823da94d7b2fb372f" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -1180,7 +1194,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "05aac55ef760a757a6199a9a3de4de012cbe5f7444652b6b676cda7b773c6529" }
+        Authorship = Authored "c5f250cfb9973920f3dae69270a590887df6f0ae35ffb9c719cce9411543c3db" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -1203,7 +1217,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "e2e4daba46db6e1158243ffac353e2e00e6087654e4e6cbce8266507ff0894c9" }
+        Authorship = Authored "3c7a53726bcaace75002da08550cab09d5e09dc55d4835394ca8d8c31b63c279" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN floor-generation
       { Id = "floor-generation"
@@ -1220,21 +1234,20 @@ let expectedWorkloads =
         CostDriverIds = [ "generation.floor-room-budget"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "d97307044c9be6a051113e1503b0dd7ee72234a3a5e3791ef3ea49cc1e54c320" }
+        Authorship = Authored "18a9ad58eceacb79e5509033968073a6ccede22df6a25e1802bfa5ebd879efa6" }
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
-        Definition = "M6 canonical maximum fixture through production journey/update/view: inherited M5 maximum combat plus eight live enemy symbols, exactly 600 retained particles, eleven ordered render layers, and one active 0.35-second room camera transition"
+        Definition = "M6 canonical maximum fixture through production journey/update/view: inherited M5 maximum combat plus eight live enemy symbols, exactly 600 long-lived retained particles, eleven ordered render layers, and one active 0.35-second room camera transition"
         Classification = NormalPlay
         WarmupFrames = 20
-        SampleFrames = 120
+        SampleFrames = 720
         EventsPerFrame = 1
         PointerEventsPerFrame = 0
         InitialState = maximumContentModel
         MessagesAt =
             (fun _ ->
                 [ BeginM6RoomTransition RoomSlideDirection.East
-                  SpawnM6Particles(650, vec2 640.0 360.0, ParticleTint.Explosion)
                   KeyChanged(keyName ArrowRight, true)
                   Tick(1.0 / 60.0) ])
         Provenance =
@@ -1306,7 +1319,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "12bad14b055ee7502cf05fa84e0b48a1bf7d9c4dfed1fcc8bc41eaf0e2da27e6" }
+        Authorship = Authored "20155a1f0111399d50c673b1b78ba13a533423ab35bf092fed0bc636f3350671" }
       // WORKLOAD-SOURCE-END maximum-content
       ]
 
@@ -1325,7 +1338,40 @@ let private duplicateValues values =
 let private requiredNormalWorkloadIds =
     [ "idle"; "movement-aiming"; "firing"; "effects-fog"; "floor-generation"; "maximum-content" ]
 
-let private costDriverProblems (results: WorkloadResult list) =
+let uiEvidenceProblems (path:string) =
+    if not(File.Exists path) then [ $"measured UI route artifact is missing: {path}" ],"missing"
+    else
+        let bytes=File.ReadAllBytes path
+        let digest=SHA256.HashData bytes|>Convert.ToHexString|>_.ToLowerInvariant()
+        try
+            use document=JsonDocument.Parse bytes
+            let routes=
+                document.RootElement.GetProperty("routes").EnumerateArray()
+                |> Seq.map(fun route->route.GetProperty("id").GetString(),route.Clone())
+                |> Map.ofSeq
+            let problems=
+                [ for driver in performanceCostDrivers do
+                    match driver.Disposition with
+                    | MeasuredInUi routeIds ->
+                        for routeId in routeIds do
+                            match Map.tryFind routeId routes with
+                            | None -> $"cost driver '{driver.Id}' names missing measured UI route '{routeId}'"
+                            | Some route ->
+                                if not(route.GetProperty("passed").GetBoolean()) then
+                                    $"cost driver '{driver.Id}' measured UI route '{routeId}' did not pass"
+                                if routeId="run-result" then
+                                    let scale=route.GetProperty("observedScale")
+                                    let actions=scale.GetProperty("boundActionIds").EnumerateArray()|>Seq.map _.GetString()|>Set.ofSeq
+                                    if scale.GetProperty("controlNodes").GetInt32()<>9
+                                       || scale.GetProperty("boundControls").GetInt32()<>3
+                                       || scale.GetProperty("summaryTextFields").GetInt32()<>5
+                                       || actions<>Set["result-new-run";"result-retry-seed";"result-title"] then
+                                        $"cost driver '{driver.Id}' measured UI route '{routeId}' has stale or under-scale production output"
+                    | _ -> () ]
+            problems,digest
+        with error -> [ $"measured UI route artifact is unreadable: {error.Message}" ],digest
+
+let private costDriverProblems (results: WorkloadResult list) uiProblems =
     let workloadById = expectedWorkloads |> List.map (fun workload -> workload.Id, workload) |> Map.ofList
     let resultById = results |> List.map (fun result -> result.Workload.Id, result) |> Map.ofList
     let driverById = performanceCostDrivers |> List.map (fun driver -> driver.Id, driver) |> Map.ofList
@@ -1342,7 +1388,8 @@ let private costDriverProblems (results: WorkloadResult list) =
     let shippedVisualText = String.concat "," shippedVisuals
     let inventoryVisualText = String.concat "," inventoryVisuals
 
-    [ if not (List.isEmpty duplicateDriverIds) then
+    [ yield! uiProblems
+      if not (List.isEmpty duplicateDriverIds) then
           $"duplicate performance cost-driver ids: {duplicateDriverText}"
       if inventoryVisuals <> (List.distinct inventoryVisuals) then
           "duplicate visual-element bindings in the performance cost-driver inventory"
@@ -1356,6 +1403,9 @@ let private costDriverProblems (results: WorkloadResult list) =
           | NonPerformance reason when String.IsNullOrWhiteSpace reason ->
               $"cost driver '{driver.Id}' has an empty non-performance disposition"
           | NonPerformance _ -> ()
+          | MeasuredInUi routeIds when List.isEmpty routeIds ->
+              $"cost driver '{driver.Id}' has no measured UI route binding"
+          | MeasuredInUi _ -> ()
           | RequiredIn workloadIds ->
               if List.isEmpty workloadIds then
                   $"cost driver '{driver.Id}' has no required workload binding"
@@ -1387,7 +1437,7 @@ let private capabilityMetricToken =
     | Observed value -> $"observed:{value}"
     | Unsupported reason -> $"unsupported:{reason}"
 
-let private criticInputDigest (results: WorkloadResult list) coverageProblems =
+let private criticInputDigest (results: WorkloadResult list) coverageProblems uiEvidenceDigest =
     let intent =
         performanceIntentDeclaration.WorkloadDefinitionDigests
         |> String.concat ","
@@ -1404,6 +1454,9 @@ let private criticInputDigest (results: WorkloadResult list) coverageProblems =
                     let workloadIds = String.concat "," ids
                     $"required:{workloadIds}"
                 | NonPerformance reason -> $"non-performance:{reason}"
+                | MeasuredInUi ids ->
+                    let routeIds = String.concat "," ids
+                    $"measured-ui:{routeIds}"
             $"{driver.Id}|{driver.Category}|{driver.ScaleSource}|{driver.MaximumExpected}|{driver.VisualElement}|{disposition}")
         |> String.concat ";"
     let measuredEvidence =
@@ -1427,7 +1480,7 @@ let private criticInputDigest (results: WorkloadResult list) coverageProblems =
     let capability =
         $"{performanceIntentDeclaration.RequiredCapability}|live={performanceIntentDeclaration.LiveCompositorRequired}|bounded-headless-update-and-scene-route|not-authoritative=live-compositor,swapchain,vblank,vsync"
     sha256Text
-        $"performance-representativeness-v1|{intent}|{provenance}|{drivers}|{measuredEvidence}|coverage={coverageVerdict}|packages={packages}|host={host}|capability={capability}"
+        $"performance-representativeness-v1|{intent}|{provenance}|{drivers}|{measuredEvidence}|uiEvidence={uiEvidenceDigest}|coverage={coverageVerdict}|packages={packages}|host={host}|capability={capability}"
 
 let private declarationProblems () =
     let duplicateIds = expectedWorkloads |> List.map _.Id |> duplicateValues
@@ -1529,9 +1582,13 @@ let private writeIntentJson (json: Utf8JsonWriter) =
 
 let writeExpectedWorkloadEvidence (path: string) =
     let results = expectedWorkloads |> List.map runWorkload
-    let coverageProblems = costDriverProblems results
-    let criticDigest = criticInputDigest results coverageProblems
     let directory = Path.GetDirectoryName path
+    let uiEvidencePath =
+        if String.IsNullOrWhiteSpace directory then "m7-ui-performance.json"
+        else Path.Combine(directory,"m7-ui-performance.json")
+    let uiProblems,uiEvidenceDigest=uiEvidenceProblems uiEvidencePath
+    let coverageProblems = costDriverProblems results uiProblems
+    let criticDigest = criticInputDigest results coverageProblems uiEvidenceDigest
 
     if not (String.IsNullOrWhiteSpace directory) then
         Directory.CreateDirectory directory |> ignore
@@ -1549,6 +1606,10 @@ let writeExpectedWorkloadEvidence (path: string) =
     writeIntentJson json
     json.WriteString("measurementCapability", "bounded-headless-update-and-scene-route")
     json.WriteString("notAuthoritativeFor", "live-compositor,swapchain,vblank,vsync")
+    json.WriteStartObject("uiRouteEvidence")
+    json.WriteString("artifact",uiEvidencePath)
+    json.WriteString("artifactDigest",$"sha256:{uiEvidenceDigest}")
+    json.WriteEndObject()
 
     json.WriteString(
         "hostProfile",
@@ -1581,6 +1642,11 @@ let writeExpectedWorkloadEvidence (path: string) =
         | NonPerformance reason ->
             json.WriteString("disposition", "non-performance")
             json.WriteString("reason", reason)
+        | MeasuredInUi routeIds ->
+            json.WriteString("disposition", "measured-in-ui-routes")
+            json.WriteStartArray("requiredUiRouteIds")
+            routeIds |> List.iter json.WriteStringValue
+            json.WriteEndArray()
         json.WriteEndObject()
     json.WriteEndArray()
     json.WriteStartArray("workloads")

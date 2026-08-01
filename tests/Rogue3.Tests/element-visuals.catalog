@@ -36,3 +36,4 @@ EnemyBullet	shown	scene/enemy-bullet
 PlacedBomb	shown	scene/placed-bomb
 Particle	shown	effects/particle
 HudScore	shown	scene/hud-score
+RunResultOverlay	shown	scene/run-result

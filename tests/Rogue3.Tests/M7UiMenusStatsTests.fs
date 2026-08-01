@@ -148,7 +148,9 @@ let m7UiMenusStatsTests =
             let stats = {initialModel.RunStats with DepthReached=7;KillsByType=Map.ofList [Entities.EnemyKind.Fly,3]}
             let model = {initialModel with RunStats=stats;RunActive=true}
             let updated = model |> update RecordItemFound |> fst |> update (RecordCoinsCollected 6) |> fst |> update (CompleteRunStats(false,Some DeathCause.Trap)) |> fst
-            Expect.equal (updated.RunStats.ItemsFound,updated.RunStats.CoinsCollected,updated.RunStats.DeathCause) (1,6,Some DeathCause.Trap) "run counters and cause are recorded"
+            let completed=updated.LastRunSummary.Value.Stats
+            Expect.equal (completed.ItemsFound,completed.CoinsCollected,completed.DeathCause) (1,6,Some DeathCause.Trap) "run counters and cause are snapshotted before permadeath discards active state"
+            Expect.equal updated.RunStats emptyRunStats "the terminal transition does not retain active run statistics"
             Expect.equal (updated.Profile.Lifetime.RunsPlayed,updated.Profile.Lifetime.DeepestFloor,updated.Profile.Lifetime.TotalKills) (1,7,3) "lifetime totals fold the completed run"
             Expect.equal updated.Profile.Lifetime.DeathsByCause[DeathCause.Trap] 1 "death cause is counted"
         }
@@ -234,5 +236,31 @@ let m7UiMenusStatsTests =
             Expect.equal paused.Shell.Screen Rogue3.GameShell.Paused "Esc pauses"
             let resumed = host.Update escape paused |> fst
             Expect.equal resumed.Shell.Screen Rogue3.GameShell.Playing "Esc resumes through the same generic shell"
+        }
+
+
+        test "actual result controls retry the seed, start a new seed, and return to title" {
+            let host = EvidenceCommands.interactiveHost
+            let menu = host.Init() |> fst
+            let playing = host.Update (EvidenceCommands.StartFreshRun 404UL) menu |> fst
+            let terminal = host.Update (EvidenceCommands.PlayDispatch (CompleteRunStats(false,Some DeathCause.Trap))) playing |> fst
+            let size = EvidenceCommands.shellConfig.InitialDisplay.Resolution
+            let terminalScene = host.View size terminal |> Control.renderTree host.Theme size |> _.Scene
+            let terminalText = Rogue3BehaviorTests.sceneText (Group [terminalScene])
+            Expect.stringContains terminalText "GAME OVER" "the production host composes the result summary with its controls"
+            Expect.stringContains terminalText (string terminal.Play.LastRunSummary.Value.Score) "the production host visibly includes the score"
+            let retryProof, retried = click "result-retry-seed" terminal
+            Expect.equal retryProof.Verdict Responsive "Retry Seed is an actual result-screen binding"
+            Expect.equal retried.Play.RunSeed 404UL "retry preserves the completed seed"
+            Expect.isTrue retried.Play.RunActive "retry starts a playable run"
+            let terminalAgain = host.Update (EvidenceCommands.PlayDispatch (CompleteRunStats(false,Some DeathCause.Trap))) retried |> fst
+            let newProof, fresh = click "result-new-run" terminalAgain
+            Expect.equal newProof.Verdict Responsive "New Run is an actual result-screen binding"
+            Expect.equal fresh.Play.RunSeed 405UL "new run advances from the completed seed"
+            let finalTerminal = host.Update (EvidenceCommands.PlayDispatch (CompleteRunStats(false,Some DeathCause.Trap))) fresh |> fst
+            let titleProof, title = click "result-title" finalTerminal
+            Expect.equal titleProof.Verdict Responsive "Title is an actual result-screen binding"
+            Expect.equal title.Shell.Screen Rogue3.GameShell.MainMenu "Title returns to the main menu"
+            Expect.isFalse title.Play.RunActive "the terminal run remains non-resumable"
         }
     ]

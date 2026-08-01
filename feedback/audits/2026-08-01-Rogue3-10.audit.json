@@ -1,0 +1,25 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-01-Rogue3-10.md",
+  "reportSha256": "fa3c401e1fba82bce60eeafc56bfb4ef15d4a9ebd8840f360b2608d09c9f643f",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:src/Rogue3/ProfileStore.fs", "result": "verified", "sha256": "2795a61f5dc3bcf32a2a79182f5b14d2c298cf009f6033ebf99aa56a059527d4" },
+        { "locator": "file:src/Rogue3/EvidenceCommands.fs", "result": "verified", "sha256": "a442d54963784216462f229e28aa7e9798f2282810940ac197c521545671dee1" },
+        { "locator": "file:tests/Rogue3.Tests/M9WinLossPermadeathTests.fs", "result": "verified", "sha256": "a5c77bbd3e910d570347f00c780c4ad40d5bc1eef553ee0545f23302f293b6bb" },
+        { "locator": "command:dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release --no-restore --filter M9", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "Deterministic flush proves latest-pending-value coalescing, not timer-expiry timing.",
+        "Same-directory move and temp cleanup are observed; crash or power-loss atomicity is not exercised.",
+        "Reload occurs in-process under a unique system temporary directory; process restart, user app-data, permissions, and filesystem failures are unexercised."
+      ]
+    }
+  ]
+}

@@ -442,7 +442,7 @@ let pointerInteractionToMsg interaction =
 // `Playing` (the play `view`, carried through the render path by a `canvas` control). `generatedHost`
 // above is retained for the headless evidence commands — the keyboard host is not removed, it is the
 // per-profile evidence host, mirroring the `app` family (feature 086, FR-006).
-let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
+let private interactiveHostCore: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
     { Init =
         fun () ->
             let shell = loadShellSettings (Rogue3.GameShell.init shellConfig)
@@ -569,7 +569,11 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
                     let applyPlay (play, effects) msg =
                         let nextPlay, _ = Rogue3.Model.update msg play
                         let cues = Rogue3.AudioCues.forTransition msg play nextPlay
-                        nextPlay, (if List.isEmpty cues then effects else effects @ [ PlayAudio cues ])
+                        let persistence=Rogue3.Model.profilePersistenceRequestsForTransition msg play nextPlay
+                        nextPlay,
+                            effects
+                            @ (if List.isEmpty persistence then [] else [Persist persistence])
+                            @ (if List.isEmpty cues then [] else [ PlayAudio cues ])
 
                     let afterHeld, heldEffects =
                         model.HeldKeys
@@ -587,6 +591,8 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
         fun size model ->
             let actions: Rogue3.M7Ui.Actions<ShellHostMsg> =
                 { NewRun = StartFreshRun (model.Play.RunSeed + 1UL)
+                  RetryRun = StartFreshRun model.Play.RunSeed
+                  ReturnTitle = AbandonRun
                   ContinueRun = ContinueRun
                   DailySeed = StartFreshRun 0xD4115EEDUL
                   OpenStats = OpenStats
@@ -619,6 +625,27 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
       MapKeyChord = fun _ _ -> None
       OnFrameMetrics = ignore
       Diagnostics = Viewer.defaultDiagnostics }
+
+let interactiveHost = interactiveHostCore
+
+/// Production shell boundary: boot-load the profile and realize debounced save requests in the
+/// product-owned backend. The Controls pointer host has no persistence-aware launcher, so this
+/// wrapper interprets Persist before the retained host returns effects to that launcher.
+let createInteractiveHost (store:Rogue3.ProfileStore.Store) : InteractiveAppHost<ShellHostModel,ShellHostMsg> =
+    { interactiveHostCore with
+        Init = fun () ->
+            let model,effects=interactiveHostCore.Init()
+            let play=
+                match store.Load() with
+                | Rogue3.ProfileStore.Loaded profile -> Rogue3.Model.update (ProfileLoaded profile) model.Play|>fst
+                | Rogue3.ProfileStore.Absent
+                | Rogue3.ProfileStore.Unreadable _ -> model.Play
+            let audio=Rogue3.AudioCues.forTransition Started play play
+            {model with Play=play},(effects|>List.filter(function PlayAudio _->false|_->true))@[PlayAudio audio]
+        Update = fun msg model ->
+            let next,effects=interactiveHostCore.Update msg model
+            if effects|>List.exists(function Persist _->true|_->false) then store.Request next.Play.Profile
+            next,effects|>List.filter(function Persist _->false|_->true) }
 
 let defaultCommand = "dotnet run --project src/Rogue3/Rogue3.fsproj"
 
@@ -1310,6 +1337,7 @@ let m7UiPerformanceEvidence (path:string) =
     let menu : ShellHostModel =
         { Shell=Rogue3.GameShell.init shellConfig;Play=initialModel;StatsOpen=false;HeldKeys=Set.empty }
     let playing = host.Update (StartFreshRun 901UL) menu |> fst
+    let runResult = host.Update (PlayDispatch (CompleteRunStats(false,Some DeathCause.Trap))) playing |> fst
     let statsPlay =
         { initialModel with
             RunStats={initialModel.RunStats with DepthReached=8;DamageByFloor=Map.ofList[1,(24.0,7.0);2,(41.0,10.0);3,(37.0,8.0);4,(44.0,12.0)]}
@@ -1333,11 +1361,13 @@ let m7UiPerformanceEvidence (path:string) =
         Map.ofList
             [ "main-menu", "M7 menu route; 1280x720; exactly 9 retained controls and 7 bound controls"
               "hud-playing", "M7 gameplay HUD route; 1280x720 and 1920x1080; exactly hearts/currency/active-charge/minimap/floor-name regions and 0 bound controls"
+              "run-result", "M9 terminal result route; 1280x720; exactly 9 retained controls, 3 bound actions, visible outcome/score/stat/unlock summary"
               "stats-charts", "M7 stats route; 1280x720; exactly 19 retained controls, 3 bound controls, deepest/runs/win-rate/kills KPI tiles, 5 depth buckets, and 2 damage series" ]
     let sourceFiles =
         Map.ofList
             [ "main-menu", ["src/Rogue3/GameShell.fs";"src/Rogue3/M7Ui.fs"]
               "hud-playing", ["src/Rogue3/Render.fs";"src/Rogue3/Model.fs"]
+              "run-result", ["src/Rogue3/M7Ui.fs";"src/Rogue3/Model.fs"]
               "stats-charts", ["src/Rogue3/M7Ui.fs";"src/Rogue3/Model.fs"] ]
     let digest name =
         let bytes =
@@ -1347,10 +1377,18 @@ let m7UiPerformanceEvidence (path:string) =
         SHA256.HashData bytes |> Convert.ToHexString |> fun value -> value.ToLowerInvariant()
     let declared =
         Map.ofList
-            [ "main-menu", "13de109dbf6efa7ad540e5835f11bf858c66cf2a21bc81b408b3680b6885274c"
-              "hud-playing", "ee87e8f62d8410327eb17a104f898a8742557dd59b3658feec83a9cb765082d1"
-              "stats-charts", "9660d11af9c68ffc9866df9f062c1e89627e9e9bdd22968a6343e79b56903ac1" ]
-    let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "stats-charts" stats]
+            [ "main-menu", "89c6080c3acf3bd3a15975455de7e1a4ba5504c8befb2acb3588ed5d3908e174"
+              "hud-playing", "a61e69a73ca2375c500b6bc25c1fa442a1aff1ec0fd6d713c5f4429ba9d749d7"
+              "run-result", "4fb5d3386b621f4b1e29e098cac96b07103e026ee77842d3b3ffb1a129b93d80"
+              "stats-charts", "3ce62714d04372049e5d634c9f466e929e06639db1e07dcceaa897edfc13e9be" ]
+    let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
+    let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
+    let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]
+    let runResultTextFields =
+        runResultFrame.Scene
+        |> Scene.describe
+        |> List.sumBy(function TextElement|TextRunElement|SizedTextElement|GlyphRunElement->1|_->0)
+        |> fun renderedTextFields->renderedTextFields-runResultFrame.BoundIds.Count
     let outputs = [ {Width=1280;Height=720};{Width=1920;Height=1080} ]
     let hudSceneElements = outputs |> List.map (fun output -> Rogue3.Render.hudSceneForSize output playing.Play |> Scene.describe |> List.length)
     let hudRegions = outputs |> List.map (fun output -> output, Rogue3.Render.hudRegionsForSize output)
@@ -1367,6 +1405,9 @@ let m7UiPerformanceEvidence (path:string) =
             nodes=19 && bound=3 && (kpis |> List.map fst)=expectedKpis
             && (Rogue3.Model.depthHistogram statsPlay.Profile.Lifetime.DepthHistory).Length=5
             && (Rogue3.M7Ui.statsSeries statsPlay |> snd |> List.length)=2
+        | "run-result" ->
+            nodes=9 && bound=3 && runResultFrame.BoundIds=expectedResultActions
+            && runResultTextFields=5 && runResult.Play.LastRunSummary.IsSome
         | _ -> false
     use stream=File.Create path
     use json=new Utf8JsonWriter(stream,JsonWriterOptions(Indented=true))
@@ -1405,12 +1446,29 @@ let m7UiPerformanceEvidence (path:string) =
             json.WriteStartArray("kpiTiles")
             kpis |> List.iter (fst >> json.WriteStringValue)
             json.WriteEndArray();json.WriteNumber("depthBuckets",5);json.WriteNumber("damageSeries",2)
+        elif name="run-result" then
+            json.WriteNumber("summaryTextFields",runResultTextFields)
+            json.WriteStartArray("boundActionIds")
+            expectedResultActions |> Set.iter json.WriteStringValue
+            json.WriteEndArray()
         json.WriteEndObject()
         json.WriteBoolean("scalePassed",scalePassed name nodes bound);json.WriteBoolean("passed",passed);json.WriteEndObject()
     json.WriteEndArray();json.WriteEndObject();json.Flush()
     let passed=routes|>List.forall(fun(name,p95,p99,nodes,bound)->p95<=16.67&&p99<=25.0&&nodes<=4096&&scalePassed name nodes bound&&digest name=declared[name])
     printfn "status=%s m7-ui-performance routes=%d artifact=%s" (if passed then "ok" else "failed") routes.Length path
     if passed then 0 else 1
+
+let private performanceEvidenceWithCurrentUi (path:string) =
+    let directory=Path.GetDirectoryName path
+    let uiPath=if String.IsNullOrWhiteSpace directory then "m7-ui-performance.json" else Path.Combine(directory,"m7-ui-performance.json")
+    let uiExit=m7UiPerformanceEvidence uiPath
+    if uiExit<>0 then uiExit else Rogue3.PerformanceEvidence.writeExpectedWorkloadEvidence path
+
+let private performanceCriticRequestWithCurrentUi (path:string) =
+    let directory=Path.GetDirectoryName path
+    let uiPath=if String.IsNullOrWhiteSpace directory then "m7-ui-performance.json" else Path.Combine(directory,"m7-ui-performance.json")
+    let uiExit=m7UiPerformanceEvidence uiPath
+    if uiExit<>0 then uiExit else Rogue3.PerformanceEvidence.writePerformanceCriticRequest path
 
 let tryRunEvidenceCommand args =
     match args with
@@ -1444,12 +1502,12 @@ let tryRunEvidenceCommand args =
     | "--view-image" :: _ -> Some(viewImage "readiness/view-image.png")
     | "--screenshot-evidence" :: path :: _ -> Some(screenshotEvidence path)
     | "--screenshot-evidence" :: _ -> Some(screenshotEvidence "readiness/game-screenshot-evidence.txt")
-    | "--performance-evidence" :: path :: _ -> Some(Rogue3.PerformanceEvidence.writeExpectedWorkloadEvidence path)
-    | "--performance-evidence" :: _ -> Some(Rogue3.PerformanceEvidence.writeExpectedWorkloadEvidence "readiness/performance-evidence.json")
+    | "--performance-evidence" :: path :: _ -> Some(performanceEvidenceWithCurrentUi path)
+    | "--performance-evidence" :: _ -> Some(performanceEvidenceWithCurrentUi "readiness/performance-evidence.json")
     | "--performance-critic-request" :: path :: _ ->
-        Some(Rogue3.PerformanceEvidence.writePerformanceCriticRequest path)
+        Some(performanceCriticRequestWithCurrentUi path)
     | "--performance-critic-request" :: _ ->
-        Some(Rogue3.PerformanceEvidence.writePerformanceCriticRequest "readiness/performance-critic-request.json")
+        Some(performanceCriticRequestWithCurrentUi "readiness/performance-critic-request.json")
     | "--performance-intent" :: path :: _ -> Some(Rogue3.PerformanceEvidence.writePerformanceIntentDeclaration path)
     | "--performance-intent" :: _ -> Some(Rogue3.PerformanceEvidence.writePerformanceIntentDeclaration "readiness/performance-intent.yml")
     | "--m6-visual-evidence" :: path :: _ -> Some(m6VisualEvidence path)

@@ -17,7 +17,7 @@ type GameplayVisualElement =
     | EnemyCharger | EnemyTurret | EnemyCaster | EnemyBrute
     | BossGnawer | BossHollowChoir | BossMaw
     | ShopItem | DoorOpen | DoorLockedClear | DoorBossSealed
-    | RoomDrop | RoomReward | Trapdoor | Shadow | Player | PlayerShot | EnemyBullet | PlacedBomb | Particle | HudScore
+    | RoomDrop | RoomReward | Trapdoor | Shadow | Player | PlayerShot | EnemyBullet | PlacedBomb | Particle | HudScore | RunResultOverlay
 
 let all =
     FSharpType.GetUnionCases typeof<GameplayVisualElement>
@@ -64,6 +64,7 @@ let handle = function
     | PlacedBomb -> "scene/placed-bomb"
     | Particle -> "effects/particle"
     | HudScore -> "scene/hud-score"
+    | RunResultOverlay -> "scene/run-result"
 
 type VisualBinding =
     { Element: GameplayVisualElement
@@ -138,6 +139,8 @@ let private evidenceModel element =
             { initialModel with Bombs=[ {Id=1;Position=vec2 700.0 390.0;FuseTicks=bombFuseTicks} ] }
         | Particle -> update (SpawnM6Particles(1, vec2 640.0 360.0, ParticleTint.Explosion)) initialModel |> fst
         | HudScore -> { initialModel with LeftScore=7;RightScore=3 }
+        | RunResultOverlay ->
+            finishRun false (Some DeathCause.Trap) { initialModel with RunActive=true;RunStats={emptyRunStats with DepthReached=3} }
         | FloorBackground | Shadow | Player -> initialModel
         | _ -> invalidOp $"unhandled visual fixture {element}"
 

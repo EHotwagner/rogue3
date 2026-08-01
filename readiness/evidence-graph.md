@@ -6,7 +6,7 @@ Absent OPTIONAL artifacts (interactive launch/image/window/…, profile-dependen
 failures. The required headless baseline (layout + scene evidence) MUST be present, however —
 its absence is a product-evidence defect (evidence-output-contract.md §EvidenceGraph).
 
-- readiness files present: 33
+- readiness files present: 34
 - recognized evidence nodes: 2
 
 ## Sensed readiness files
@@ -20,14 +20,14 @@ its absence is a product-evidence defect (evidence-output-contract.md §Evidence
 - `readiness/006-m5-entities-bosses-rooms/ship-verdict.json`
 - `readiness/007-m6-rendering-enemy-symbology/ship-verdict.json`
 - `readiness/008-m7-ui-menus-stats/ship-verdict.json`
-- `readiness/009-m8-audio/analysis.json`
-- `readiness/009-m8-audio/governance-handoff.json`
 - `readiness/009-m8-audio/ship-verdict.json`
-- `readiness/009-m8-audio/ship.json`
-- `readiness/009-m8-audio/test-results/m8-focused.trx`
 - `readiness/009-m8-audio/test-results/m8-full.trx`
-- `readiness/009-m8-audio/verify.json`
-- `readiness/009-m8-audio/work-model.json`
+- `readiness/010-m9-win-loss-permadeath/analysis.json`
+- `readiness/010-m9-win-loss-permadeath/governance-handoff.json`
+- `readiness/010-m9-win-loss-permadeath/ship-verdict.json`
+- `readiness/010-m9-win-loss-permadeath/ship.json`
+- `readiness/010-m9-win-loss-permadeath/verify.json`
+- `readiness/010-m9-win-loss-permadeath/work-model.json`
 - `readiness/evidence-audit.md`
 - `readiness/evidence-graph.md`
 - `readiness/headless-scene-evidence.txt`
@@ -35,6 +35,7 @@ its absence is a product-evidence defect (evidence-output-contract.md §Evidence
 - `readiness/logs/Dev.txt`
 - `readiness/logs/GeneratedGuidanceCheck.txt`
 - `readiness/logs/M7UiPerformanceEvidence.txt`
+- `readiness/logs/PerformanceCriticRequest.txt`
 - `readiness/logs/PerformanceEvidence.txt`
 - `readiness/logs/PerformanceIntent.txt`
 - `readiness/logs/TemplateDrift.txt`

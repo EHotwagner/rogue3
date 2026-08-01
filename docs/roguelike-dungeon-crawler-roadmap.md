@@ -92,10 +92,12 @@ Evidence (2026-08-01): full Release 140/140 and focused M7 12/12; six governed b
 Evidence (2026-08-01): focused M8 5/5 and full Release/Verify 145/145; all 18 §10 cue IDs/volumes, ordered stop-before-loop replacements through the production shell, and clamp/mute requests are asserted at `AudioEvidence.Requested`; six unchanged-scale governed workloads pass, with maximum-content p95 15.9476 ms and p99 18.4669 ms; exact implementation SHA `b92e48e754368b4eafe57b3bb13e21235f956fe6` was accepted by independent functional and performance critics; SDD verdict `readiness/009-m8-audio/ship-verdict.json` is `shipReady` with 12/12 supported and observed obligations and zero synthetic/deferred/stale/missing evidence. Delivery is local-only because this checkout has no configured remote; device/speaker playback is not claimed.
 
 ### M9 — Win/loss & permadeath
-- 🟥 Final-boss (Floor 6) defeat → `Victory` screen + unlock (§11)
-- 🟥 Permadeath at `0` half-hearts → `GameOver`, run discarded (§11) — AC #7
-- 🟥 Run-score tally + end-of-run meta-progression unlock evaluation (§11, §4.10)
-- 🟥 `MetaProfile` JSON persistence: debounced, atomic temp-file+rename, load on boot (§13, §7.5)
+- 🟩 Final-boss (Floor 6) defeat → `Victory` screen + unlock (§11)
+- 🟩 Permadeath at `0` half-hearts → `GameOver`, run discarded (§11) — AC #7
+- 🟩 Run-score tally + end-of-run meta-progression unlock evaluation (§11, §4.10)
+- 🟩 `MetaProfile` JSON persistence: debounced, atomic temp-file+rename, load on boot (§13, §7.5)
+
+Evidence (2026-08-01): focused M9/result-action Release 8/8 and full Release/Verify 153/153; an actual fixed-step player projectile defeats the floor-6 boss, fixed-step lethal health resolves GameOver, fixed-step draining stops at the first terminal step, and the production result tree visibly composes its score/stat/unlock summary with three bound actions to start a new run, retry the seed, or return to title. Both outcomes resolve once, discard transient run state, evaluate milestone unlocks, request terminal audio, and persist best-by-seed/lifetime profile facts. A unique system temporary directory proves latest-value debounce, sibling-temp atomic rename, cleanup, boot load, and safe malformed/version fallback without touching user data. Six governed workloads and four UI routes pass; batched production particles and a 720-frame maximum-content sample produce p95 13.9648 ms/p99 17.5014 ms, with three additional consecutive repetitions green, while the result route measures p95 0.3369 ms/p99 0.5735 ms at exactly 9 controls/3 actions/5 production-derived fields. UI evidence is regenerated, fail-closed, and hashed into critic input; event-driven persistence has an explicit non-frame disposition. SDD verdict `readiness/010-m9-win-loss-permadeath/ship-verdict.json` is `shipReady` with 9/9 observed obligations backed by a committed 153-pass TRX plus raw/BOM-stripped digest sidecar. Cycle feedback is `feedback/2026-08-01-Rogue3-10.md`. The accepted branch is published as PR #1 with an Actions-native Release-test gate; merge remains subject to exact-head critic confirmation and host acceptance.
 
 ### M10 — Acceptance & determinism
 - 🟥 All 24 acceptance scenarios green (§14)
