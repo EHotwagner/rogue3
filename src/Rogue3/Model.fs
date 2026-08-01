@@ -332,6 +332,9 @@ type Model =
       TotalWallQueries: int
       TotalHomingQueries: int
       TotalCombatCandidates: int
+      /// Pending secret/adjacent pairs examined by the §14.14 blast scan. A deterministic cost
+      /// counter for the `secret-reveal` performance workload, not gameplay state.
+      TotalSecretRevealCandidates: int
       BlackHeartBursts: int
       EdgeActionCount: int
       M6Particles: M6Particle list
@@ -377,6 +380,12 @@ type Msg =
     | InputChanged of InputSnapshot
     | InteractShop of slotId: int
     | RevealSecret of adjacentRoom: int * secretRoom: int
+    /// §14.16: spend exactly one key to open a `LockedKey` door from the current room, or change
+    /// nothing. Never charges twice, because an already-open door is not `LockedKey`.
+    | UnlockDoor of roomId: int
+    /// §14.15: cross an open (or boss) doorway from the current room and land at the reciprocal
+    /// doorway of the destination. The departed room keeps its cleared/fixture state.
+    | TraverseDoor of roomId: int
     | BossCleared of roomId: int
     | DescendFloor
     | EnterM5Room of roomId:int
@@ -443,6 +452,16 @@ let hitFlashTicks = int (ceil (0.06 / fixedDt))
 let bombFuseTicks = int (1.50 / fixedDt + 0.5)
 let bombRadius = 90.0
 let spatialCellSize = 64.0
+
+/// Midpoint of the room wall a door in `direction` is carved through, in logical room coordinates.
+/// A blast reaches that wall when its radius covers this point, which is the §14.14 trigger and the
+/// landing point a traversal arrives at from the opposite side.
+let wallMidpoint direction =
+    match direction with
+    | FloorGeneration.North -> vec2 (playfieldWidth / 2.0) 0.0
+    | FloorGeneration.East -> vec2 playfieldWidth (playfieldHeight / 2.0)
+    | FloorGeneration.South -> vec2 (playfieldWidth / 2.0) playfieldHeight
+    | FloorGeneration.West -> vec2 0.0 (playfieldHeight / 2.0)
 
 let basePlayerStats =
     { Damage = 3.5
@@ -710,6 +729,7 @@ let initialModelForSeed seed =
       TotalWallQueries = 0
       TotalHomingQueries = 0
       TotalCombatCandidates = 0
+      TotalSecretRevealCandidates = 0
       BlackHeartBursts = 0
       EdgeActionCount = 0
       M6Particles = []
@@ -1181,12 +1201,30 @@ let private resolveBombs model =
                     { enemy with HitPoints = max 0.0 (enemy.HitPoints - 40.0); HitFlashTicks = hitFlashTicks }
                 else enemy)
         result <- { result with Enemies = enemies } |> takePlayerHit 2 bomb.Position
+        // §14.14: a blast that reaches the wall shared with a hidden secret carves its door inside
+        // THIS step. `revealSecret` moves the door records, the hidden flag, the graph adjacency and
+        // the pending set as one value, so no observer can see a door without its adjacency.
+        let candidates = FloorGeneration.pendingSecretsFrom result.Floor.CurrentRoom result.Floor
+        let revealedFloor =
+            candidates
+            |> List.fold
+                (fun floor (adjacent, secret) ->
+                    match FloorGeneration.roomDirection adjacent secret floor with
+                    | Some direction when magnitude (sub bomb.Position (wallMidpoint direction)) <= bombRadius ->
+                        FloorGeneration.revealSecret adjacent secret floor
+                    | _ -> floor)
+                result.Floor
+        result <-
+            { result with
+                Floor = revealedFloor
+                TotalSecretRevealCandidates = result.TotalSecretRevealCandidates + candidates.Length }
         for obstacle in result.M5Obstacles do
             if circlesOverlap bomb.Position bombRadius obstacle.Position 20.0 then
                 let remaining,drop,rng=Rogue3.Entities.destroyObstacle 40 result.DropRng obstacle
                 let typed=result.M5Obstacles|>List.filter(fun value->value.Id<>obstacle.Id)|>fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
                 let blocking=typed|>List.filter(fun value->Rogue3.Entities.blocksMovement Rogue3.Entities.MovementClass.Grounded value.Kind)|>List.map(fun value->toSimRect value.Position 40.0 40.0)
-                result <- {result with M5Obstacles=typed;Obstacles=blocking;DropRng=rng;M5ObstacleDrops=drop|>Option.map(fun value->result.M5ObstacleDrops@[value])|>Option.defaultValue result.M5ObstacleDrops}
+                let floor=if remaining.IsNone then FloorGeneration.recordDestroyedObstacle result.Floor.CurrentRoom obstacle.Id result.Floor else result.Floor
+                result <- {result with M5Obstacles=typed;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->result.M5ObstacleDrops@[value])|>Option.defaultValue result.M5ObstacleDrops}
     { result with
         Bombs = aged |> List.filter (fun bomb -> not (Set.contains bomb.Id exploded))
         AudioEvents = result.AudioEvents @ List.replicate exploded.Count AudioEvent.BombExploded }
@@ -1282,12 +1320,14 @@ let loadM5Room roomId model =
         let scaleActor (actor:Rogue3.Entities.EnemyActor) =
             let normal=Rogue3.Entities.hpScale model.FloorIndex
             {actor with HitPoints=actor.HitPoints/normal*difficultyHpMultiplier model.FloorIndex scaling}
+        // A cleared room stays cleared: nothing repopulates it, so its clear drop cannot be rolled a
+        // second time and returning through a door finds the room as it was left (§14.15).
         let enemies =
-            room.Interior.EnemyAnchors
+            (if room.Cleared then [] else room.Interior.EnemyAnchors)
             |> List.mapi(fun index anchor -> Rogue3.Entities.spawn model.FloorIndex (roomId*100+index+1) (m5Kind anchor.Kind) (roomPoint anchor.Cell))
             |> List.map scaleActor
             |> fun baseEnemies ->
-                if room.RoomType=FloorGeneration.Combat && scaling.ExtraElitePerCombatRoom>0 then
+                if room.RoomType=FloorGeneration.Combat && not room.Cleared && scaling.ExtraElitePerCombatRoom>0 then
                     [for index in 1..scaling.ExtraElitePerCombatRoom ->
                         Rogue3.Entities.spawn model.FloorIndex (roomId*100+80+index) Rogue3.Entities.EnemyKind.Brute (vec2 (900.+float index*32.) 320.) |> scaleActor]
                     @ baseEnemies
@@ -1297,7 +1337,9 @@ let loadM5Room roomId model =
         let typedObstacles =
             obstacleKinds
             |> Array.toList
-            |> List.mapi(fun index kind ->
+            |> List.mapi(fun index kind -> index, kind)
+            |> List.filter(fun (index, _) -> not (Set.contains (roomId*100+index) room.DestroyedObstacles))
+            |> List.map(fun (index, kind) ->
                 let position =
                     room.Interior.Obstacles
                     |> List.tryItem index
@@ -1317,7 +1359,7 @@ let loadM5Room roomId model =
             elif model.FloorIndex=2 then Rogue3.Entities.BossKind.HollowChoir
             else Rogue3.Entities.BossKind.Maw
         let choirMembers =
-            if isBoss && bossKind=Rogue3.Entities.BossKind.HollowChoir then
+            if isBoss && not room.Cleared && bossKind=Rogue3.Entities.BossKind.HollowChoir then
                 [ for index in 0..2 ->
                     Rogue3.Entities.spawn model.FloorIndex (roomId*100+50+index) Rogue3.Entities.EnemyKind.Caster (vec2 (520.+float index*120.) 400.) |> scaleActor ]
             else []
@@ -1332,7 +1374,7 @@ let loadM5Room roomId model =
               Rogue3.Entities.CombatRoom.Trapdoor=false }
             |> Rogue3.Entities.enterRoom (allEnemies|>List.map _.Id)
         let boss =
-            if isBoss then
+            if isBoss && not room.Cleared then
                 let value=Rogue3.Entities.spawnBoss (roomId*100) bossKind (vec2 640. 280.)
                 Some{value with HitPoints=value.HitPoints*difficultyHpMultiplier model.FloorIndex scaling}
             else None
@@ -1368,7 +1410,12 @@ let damageM5Enemy enemyId damage model =
         let stats = addFloorDamage model.FloorIndex (max 0.0 (min actor.HitPoints damage)) 0.0 model.RunStats
         {model with M5Enemies=survivors@children;Enemies=(model.Enemies|>List.filter(fun e->e.Id<>enemyId))@(children|>List.map legacyEnemy)
                     M5Boss=(if choirDefeated then None else boss);M5ChoirMemberIds=Set.remove enemyId model.M5ChoirMemberIds
-                    M5Room=room;Floor=(if choirDefeated then FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor else model.Floor)
+                    M5Room=room
+                    // Room-clear is durable floor state, so a later visit rebuilds the room already
+                    // cleared and never rolls its clear drop again (§14.5, §14.15).
+                    Floor=
+                        (if choirDefeated then FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor else model.Floor)
+                        |> fun floor -> if room.Cleared then FloorGeneration.recordRoomCleared model.Floor.CurrentRoom floor else floor
                     DropRng=rng;M5NextEntityId=model.M5NextEntityId+children.Length
                     RunStats={stats with KillsByType=kills}}
 
@@ -1390,13 +1437,21 @@ let damageM5Obstacle obstacleId damage model =
         let remaining,drop,rng=Rogue3.Entities.destroyObstacle damage model.DropRng obstacle
         let obstacles=model.M5Obstacles|>List.filter(fun value->value.Id<>obstacleId) |> fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
         let blocking=obstacles|>List.filter(fun value->Rogue3.Entities.blocksMovement Rogue3.Entities.MovementClass.Grounded value.Kind)|>List.map(fun value->toSimRect value.Position 40.0 40.0)
-        {model with M5Obstacles=obstacles;Obstacles=blocking;DropRng=rng;M5ObstacleDrops=drop|>Option.map(fun value->model.M5ObstacleDrops@[value])|>Option.defaultValue model.M5ObstacleDrops}
+        let floor=if remaining.IsNone then FloorGeneration.recordDestroyedObstacle model.Floor.CurrentRoom obstacleId model.Floor else model.Floor
+        {model with M5Obstacles=obstacles;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->model.M5ObstacleDrops@[value])|>Option.defaultValue model.M5ObstacleDrops}
 
 let private stepM5Entities model =
+    // §14.21 — "a dead actor emits no later attack". Resolve deaths from the ACTOR list rather than
+    // from the legacy `Enemies` projection: shot resolution drops zero-hit-point entries from
+    // `Enemies` at the start of the next step, so an actor that reached zero could survive in
+    // `M5Enemies` unseen by this cleanup and keep taking turns. Sorted by id so the drop-stream draw
+    // order for simultaneous deaths is unchanged.
     let model =
-        model.Enemies
-        |> List.filter(fun enemy->enemy.HitPoints<=0.0 && model.M5Enemies|>List.exists(fun actor->actor.Id=enemy.Id))
-        |> List.fold(fun current enemy->damageM5Enemy enemy.Id Double.MaxValue current) model
+        model.M5Enemies
+        |> List.filter(fun actor->actor.HitPoints<=0.0)
+        |> List.map _.Id
+        |> List.sort
+        |> List.fold(fun current enemyId->damageM5Enemy enemyId Double.MaxValue current) model
     let hpById=model.Enemies|>List.map(fun enemy->enemy.Id,enemy.HitPoints)|>Map.ofList
     let model={model with M5Enemies=model.M5Enemies|>List.map(fun actor->match Map.tryFind actor.Id hpById with Some hp->{actor with HitPoints=hp}|None->actor)}
     let mutable rng = model.DropRng
@@ -1814,6 +1869,49 @@ let update msg model : Model * AdapterCommand<Msg> =
     | InteractShop slotId -> purchaseShopSlot slotId model |> fst, Cmd.none
     | RevealSecret(adjacentRoom, secretRoom) ->
         { model with Floor = FloorGeneration.revealSecret adjacentRoom secretRoom model.Floor }, Cmd.none
+    | UnlockDoor roomId ->
+        // The key is spent only when the reciprocal pair actually transitioned, so pressing Interact
+        // at an already-open door, at a non-key door, or with no key leaves currency untouched.
+        if model.PlayerCurrency.Keys <= 0 then model, Cmd.none
+        else
+            let floor, unlocked = FloorGeneration.tryUnlockDoor model.Floor.CurrentRoom roomId model.Floor
+            if unlocked then
+                { model with
+                    Floor = floor
+                    PlayerCurrency = { model.PlayerCurrency with Keys = model.PlayerCurrency.Keys - 1 } }, Cmd.none
+            else model, Cmd.none
+    | TraverseDoor roomId ->
+        let floor, travelled = FloorGeneration.tryTraverseDoor roomId model.Floor
+        match travelled with
+        | None -> model, Cmd.none
+        | Some direction ->
+            // Land just inside the RECIPROCAL doorway: leaving east arrives at the destination's
+            // west wall, one player radius clear of it so the arrival cannot re-trigger the crossing.
+            let opposite =
+                match direction with
+                | FloorGeneration.North -> FloorGeneration.South
+                | FloorGeneration.East -> FloorGeneration.West
+                | FloorGeneration.South -> FloorGeneration.North
+                | FloorGeneration.West -> FloorGeneration.East
+            let wall = wallMidpoint opposite
+            let inward =
+                match opposite with
+                | FloorGeneration.North -> vec2 0.0 (playerRadius + 4.0)
+                | FloorGeneration.East -> vec2 -(playerRadius + 4.0) 0.0
+                | FloorGeneration.South -> vec2 0.0 -(playerRadius + 4.0)
+                | FloorGeneration.West -> vec2 (playerRadius + 4.0) 0.0
+            let slide =
+                match direction with
+                | FloorGeneration.North -> RoomSlideDirection.North
+                | FloorGeneration.East -> RoomSlideDirection.East
+                | FloorGeneration.South -> RoomSlideDirection.South
+                | FloorGeneration.West -> RoomSlideDirection.West
+            loadM5Room
+                roomId
+                { model with
+                    Floor = floor
+                    PlayerPosition = add wall inward
+                    M6CameraTransition = Some { Direction = slide; ElapsedTicks = 0 } }, Cmd.none
     | BossCleared roomId ->
         { model with Floor = FloorGeneration.clearBoss roomId model.Floor }, Cmd.none
     | DescendFloor ->

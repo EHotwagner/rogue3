@@ -26,6 +26,10 @@
     <Compile Include="M7UiMenusStatsTests.fs" />
     <Compile Include="M8AudioTests.fs" />
     <Compile Include="M9WinLossPermadeathTests.fs" />
+    <!-- M10: the source specification's §14 acceptance sweep (one named test per numbered scenario,
+         guarded so the list must stay at exactly 24) plus the §13 canonical-encoding and
+         seed-plus-input-log replay obligations. -->
+    <Compile Include="M10AcceptanceDeterminismTests.fs" />
     <!-- Issue #1002 (child of #991): release-lane BEHAVIOUR coverage for the generic game shell.
          Drives GameShell.fs's pure `update` + host-free seams (router, Esc routing, rebind capture,
          display->window-behaviour mapping, keymap persistence). Additive — it adds shell tests beside

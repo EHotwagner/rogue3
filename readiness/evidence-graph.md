@@ -6,7 +6,7 @@ Absent OPTIONAL artifacts (interactive launch/image/window/…, profile-dependen
 failures. The required headless baseline (layout + scene evidence) MUST be present, however —
 its absence is a product-evidence defect (evidence-output-contract.md §EvidenceGraph).
 
-- readiness files present: 34
+- readiness files present: 33
 - recognized evidence nodes: 2
 
 ## Sensed readiness files
@@ -22,20 +22,19 @@ its absence is a product-evidence defect (evidence-output-contract.md §Evidence
 - `readiness/008-m7-ui-menus-stats/ship-verdict.json`
 - `readiness/009-m8-audio/ship-verdict.json`
 - `readiness/009-m8-audio/test-results/m8-full.trx`
-- `readiness/010-m9-win-loss-permadeath/analysis.json`
-- `readiness/010-m9-win-loss-permadeath/governance-handoff.json`
 - `readiness/010-m9-win-loss-permadeath/ship-verdict.json`
-- `readiness/010-m9-win-loss-permadeath/ship.json`
-- `readiness/010-m9-win-loss-permadeath/verify.json`
-- `readiness/010-m9-win-loss-permadeath/work-model.json`
+- `readiness/011-m10-acceptance-determinism/analysis.json`
+- `readiness/011-m10-acceptance-determinism/governance-handoff.json`
+- `readiness/011-m10-acceptance-determinism/ship-verdict.json`
+- `readiness/011-m10-acceptance-determinism/ship.json`
+- `readiness/011-m10-acceptance-determinism/verify.json`
+- `readiness/011-m10-acceptance-determinism/work-model.json`
 - `readiness/evidence-audit.md`
 - `readiness/evidence-graph.md`
 - `readiness/headless-scene-evidence.txt`
 - `readiness/layout-evidence.txt`
 - `readiness/logs/Dev.txt`
 - `readiness/logs/GeneratedGuidanceCheck.txt`
-- `readiness/logs/M7UiPerformanceEvidence.txt`
-- `readiness/logs/PerformanceCriticRequest.txt`
 - `readiness/logs/PerformanceEvidence.txt`
 - `readiness/logs/PerformanceIntent.txt`
 - `readiness/logs/TemplateDrift.txt`
