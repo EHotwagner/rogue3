@@ -343,7 +343,7 @@ let renderedElementsIn grammar model : RenderedElement list =
                           Scene.textAt {X=390.0;Y=330.0} (sprintf "Floors %d   Bosses %d   Kills %d" summary.FloorsCleared summary.BossKills summary.EnemyKills) (color 195uy 194uy 183uy 255uy)
                           Scene.textAt {X=390.0;Y=375.0} (sprintf "Coins %d   Items %d   No-hit floors %d" summary.CoinsCollected summary.ItemsCollected summary.NoHitFloors) (color 195uy 194uy 183uy 255uy)
                           Scene.textAt {X=390.0;Y=425.0} unlocks (color 126uy 227uy 255uy 255uy)
-                          Scene.textAt {X=440.0;Y=500.0} "New Run · Retry Seed · Title" (color 255uy 255uy 255uy 255uy) ])
+                          Scene.textAt {X=455.0;Y=500.0} "Choose an action below" (color 255uy 255uy 255uy 255uy) ])
       | _ -> () ]
 
 let renderedElements model = renderedElementsIn Grammar.Token model

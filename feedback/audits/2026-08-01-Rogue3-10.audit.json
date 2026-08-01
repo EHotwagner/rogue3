@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-01-Rogue3-10.md",
-  "reportSha256": "3000e5f65e6a9d8f8088149622f2182f888566008992dee19ab819dd186e96ff",
+  "reportSha256": "04d89fa84e48d635042302c25ba043c82dde0f7fe1c2ab4295a8de65e86c7370",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -11,8 +11,8 @@
       "missingFacts": [],
       "checkedEvidence": [
         { "locator": "file:src/Rogue3/ProfileStore.fs", "result": "verified", "sha256": "2795a61f5dc3bcf32a2a79182f5b14d2c298cf009f6033ebf99aa56a059527d4" },
-        { "locator": "file:src/Rogue3/EvidenceCommands.fs", "result": "verified", "sha256": "b203f6d89f72f33ab3f96a606a167e6e302cd9b9f9b1aa724f545e75f97e9ff6" },
-        { "locator": "file:tests/Rogue3.Tests/M9WinLossPermadeathTests.fs", "result": "verified", "sha256": "1823382c8e3c7fcd7731dacb72bef83f5ca933b96f9140cf2d0821e80b90b537" },
+        { "locator": "file:src/Rogue3/EvidenceCommands.fs", "result": "verified", "sha256": "d2a6fb7591d73009722633239ad87456c88acc40b14aa791a2e7b69d5269dbde" },
+        { "locator": "file:tests/Rogue3.Tests/M9WinLossPermadeathTests.fs", "result": "verified", "sha256": "4215ab30f416758e5d171e7f58db1946ddaa9c36bab08359a93931485eef4623" },
         { "locator": "command:dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release --no-restore --filter M9", "result": "verified" }
       ],
       "confidenceLimits": [

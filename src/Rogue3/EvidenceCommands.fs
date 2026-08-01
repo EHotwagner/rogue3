@@ -591,6 +591,8 @@ let private interactiveHostCore: InteractiveAppHost<ShellHostModel, ShellHostMsg
         fun size model ->
             let actions: Rogue3.M7Ui.Actions<ShellHostMsg> =
                 { NewRun = StartFreshRun (model.Play.RunSeed + 1UL)
+                  RetryRun = StartFreshRun model.Play.RunSeed
+                  ReturnTitle = AbandonRun
                   ContinueRun = ContinueRun
                   DailySeed = StartFreshRun 0xD4115EEDUL
                   OpenStats = OpenStats
@@ -1372,9 +1374,9 @@ let m7UiPerformanceEvidence (path:string) =
         SHA256.HashData bytes |> Convert.ToHexString |> fun value -> value.ToLowerInvariant()
     let declared =
         Map.ofList
-            [ "main-menu", "1d3cc11cefdbbef210140a17bef2665d511a1b3fc223a041cc35adcdedd918d9"
-              "hud-playing", "81787204d03efcce495d65a2907ff428a7fb96814447f3e57fbf7d75964b005d"
-              "stats-charts", "e51137fa26510724884cc233f31e00c165be3eb871cf028f72694ac779373adb" ]
+            [ "main-menu", "610ada4fba999067db51fe47af7813b65b9cb0053467c1e778db67233fad9cdc"
+              "hud-playing", "1ae320b60d76e29220d69aca7cb2fd8c2333bd51af5a3b2c30c70eda5706c2f6"
+              "stats-charts", "555bb17549cb9603880b8ebd29bb0dd17f9a53b5ba61ee353aabc1bdc805b9b2" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "stats-charts" stats]
     let outputs = [ {Width=1280;Height=720};{Width=1920;Height=1080} ]
     let hudSceneElements = outputs |> List.map (fun output -> Rogue3.Render.hudSceneForSize output playing.Play |> Scene.describe |> List.length)

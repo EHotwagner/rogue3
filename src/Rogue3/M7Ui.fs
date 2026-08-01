@@ -16,6 +16,8 @@ module CustomControl = FS.GG.UI.Controls.Typed.CustomControl
 
 type Actions<'msg> =
     { NewRun: 'msg
+      RetryRun: 'msg
+      ReturnTitle: 'msg
       ContinueRun: 'msg
       DailySeed: 'msg
       OpenStats: 'msg
@@ -83,6 +85,10 @@ let shellView shellDispatch config (shell:Rogue3.GameShell.Model) (model:Model) 
             [ button "stats-pause" "Stats & charts" ButtonIntent.Secondary actions.OpenStats
               button "abandon-run" "Abandon Run" ButtonIntent.Danger actions.AbandonRun ]
         | Rogue3.GameShell.Settings -> settingsRows actions model
+        | Rogue3.GameShell.Playing when model.RunOutcome.IsSome ->
+            [ button "result-new-run" "New Run" ButtonIntent.Primary actions.NewRun
+              button "result-retry-seed" "Retry Seed" ButtonIntent.Secondary actions.RetryRun
+              button "result-title" "Title" ButtonIntent.Secondary actions.ReturnTitle ]
         | Rogue3.GameShell.Playing -> []
     Rogue3.GameShell.viewWithRows shellDispatch config shell extras
 

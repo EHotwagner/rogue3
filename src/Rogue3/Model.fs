@@ -1074,6 +1074,23 @@ type DescentCarry =
 let descentCarry model =
     { Items = model.PlayerItems; Stats = model.PlayerStats; Health = model.PlayerHealth; Currency = model.PlayerCurrency }
 
+let damageM5Boss damage model =
+    match model.M5Boss with
+    | None -> model
+    | Some boss when boss.Kind=Rogue3.Entities.BossKind.HollowChoir -> model
+    | Some boss when boss.HitPoints-damage>0.0 ->
+        {model with M5Boss=Some{boss with HitPoints=boss.HitPoints-damage};RunStats=addFloorDamage model.FloorIndex (max 0.0 damage) 0.0 model.RunStats}
+    | Some boss ->
+        let room=Rogue3.Entities.bossCleared model.M5Room.Reward model.M5Room
+        let health=
+            if (activeScaling model).PostBossHeal then
+                {model.PlayerHealth with RedHalfHearts=min (model.PlayerHealth.RedContainers*2) (model.PlayerHealth.RedHalfHearts+2)}
+            else model.PlayerHealth
+        {model with M5Boss=None;M5Room=room;Floor=FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor
+                    PlayerHealth=health
+                    RunStats={addFloorDamage model.FloorIndex (max 0.0 (min boss.HitPoints damage)) 0.0 model.RunStats with
+                                BossKills=model.RunStats.BossKills+1;FloorsCleared=max model.RunStats.FloorsCleared model.FloorIndex}}
+
 let private resolveShotCombat model =
     let liveEnemies = model.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0)
     let maxRadius = liveEnemies |> List.map (fun enemy -> max 0.0 enemy.Radius) |> List.fold max 0.0
@@ -1082,6 +1099,7 @@ let private resolveShotCombat model =
     let mutable candidates = 0
     let mutable dealt = 0.0
     let mutable hitCount = 0
+    let mutable bossModel = model
     let shots =
         model.ShotSpawns
         |> List.choose (fun shot ->
@@ -1108,12 +1126,26 @@ let private resolveShotCombat model =
                             HitFlashTicks = hitFlashTicks } enemies
                 | _ -> ()
             let hitIds = (shot.HitEnemyIds, hits) ||> List.fold (fun ids enemy -> Set.add enemy.Id ids)
-            let remaining = shot.HitsRemaining - hits.Length
+            let remainingAfterEnemies = shot.HitsRemaining - hits.Length
+            let bossHit =
+                match bossModel.M5Boss with
+                | Some boss when remainingAfterEnemies > 0
+                                 && not (Set.contains boss.Id shot.HitEnemyIds)
+                                 && circlesOverlap shot.Position shot.Radius boss.Position 44.0
+                                 && boss.Kind <> Rogue3.Entities.BossKind.HollowChoir ->
+                    bossModel <- damageM5Boss shot.Damage bossModel
+                    hitCount <- hitCount + 1
+                    true
+                | _ -> false
+            let hitIds =
+                match bossHit, model.M5Boss with
+                | true, Some boss -> Set.add boss.Id hitIds
+                | _ -> hitIds
+            let remaining = remainingAfterEnemies - (if bossHit then 1 else 0)
             if remaining <= 0 then None
             else Some { shot with HitsRemaining = remaining; HitEnemyIds = hitIds })
-    let stats = addFloorDamage model.FloorIndex dealt 0.0 model.RunStats
     let hpById = enemies |> Map.map (fun _ enemy -> enemy.HitPoints)
-    { model with
+    { bossModel with
         Enemies = enemies |> Map.toList |> List.map snd
         M5Enemies =
             model.M5Enemies
@@ -1122,7 +1154,7 @@ let private resolveShotCombat model =
                 | Some hp -> {actor with HitPoints=hp}
                 | None -> actor)
         ShotSpawns = shots
-        RunStats=stats
+        RunStats=addFloorDamage model.FloorIndex dealt 0.0 bossModel.RunStats
         TotalCombatCandidates = model.TotalCombatCandidates + candidates
         AudioEvents = model.AudioEvents @ List.replicate hitCount AudioEvent.ShotHit }
 
@@ -1339,23 +1371,6 @@ let damageM5Enemy enemyId damage model =
                     M5Room=room;Floor=(if choirDefeated then FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor else model.Floor)
                     DropRng=rng;M5NextEntityId=model.M5NextEntityId+children.Length
                     RunStats={stats with KillsByType=kills}}
-
-let damageM5Boss damage model =
-    match model.M5Boss with
-    | None -> model
-    | Some boss when boss.Kind=Rogue3.Entities.BossKind.HollowChoir -> model
-    | Some boss when boss.HitPoints-damage>0.0 ->
-        {model with M5Boss=Some{boss with HitPoints=boss.HitPoints-damage};RunStats=addFloorDamage model.FloorIndex (max 0.0 damage) 0.0 model.RunStats}
-    | Some boss ->
-        let room=Rogue3.Entities.bossCleared model.M5Room.Reward model.M5Room
-        let health=
-            if (activeScaling model).PostBossHeal then
-                {model.PlayerHealth with RedHalfHearts=min (model.PlayerHealth.RedContainers*2) (model.PlayerHealth.RedHalfHearts+2)}
-            else model.PlayerHealth
-        {model with M5Boss=None;M5Room=room;Floor=FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor
-                    PlayerHealth=health
-                    RunStats={addFloorDamage model.FloorIndex (max 0.0 (min boss.HitPoints damage)) 0.0 model.RunStats with
-                                BossKills=model.RunStats.BossKills+1;FloorsCleared=max model.RunStats.FloorsCleared model.FloorIndex}}
 
 let purchaseM5ShopSlot slotId model =
     match model.M5ShopSlots|>List.tryFind(fun slot->slot.Id=slotId) with
@@ -1759,7 +1774,14 @@ let update msg model : Model * AdapterCommand<Msg> =
     // `initialModel` already did. Its whole job is to give the cue seam a transition to look at, so
     // keep this a no-op and put what you want to happen at startup in `AudioCues.forTransition`.
     | Started -> model, Cmd.none
-    | Tick dtSeconds -> advanceSim dtSeconds model |> finishDeathIfNeeded, Cmd.none
+    | Tick _ when model.RunOutcome.IsSome -> model, Cmd.none
+    | Tick dtSeconds ->
+        let advanced=advanceSim dtSeconds model |> finishDeathIfNeeded
+        let terminal=
+            if advanced.RunActive && model.FloorIndex=6 && model.M5Boss.IsSome && advanced.M5Boss.IsNone then
+                finishRun true None advanced
+            else advanced
+        terminal,Cmd.none
     | MovePaddle(side, direction) -> movePaddle side direction model, Cmd.none
     | ViewerInput(key, isDown) ->
         let moved =

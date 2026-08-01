@@ -237,4 +237,25 @@ let m7UiMenusStatsTests =
             let resumed = host.Update escape paused |> fst
             Expect.equal resumed.Shell.Screen Rogue3.GameShell.Playing "Esc resumes through the same generic shell"
         }
+
+
+        test "actual result controls retry the seed, start a new seed, and return to title" {
+            let host = EvidenceCommands.interactiveHost
+            let menu = host.Init() |> fst
+            let playing = host.Update (EvidenceCommands.StartFreshRun 404UL) menu |> fst
+            let terminal = host.Update (EvidenceCommands.PlayDispatch (CompleteRunStats(false,Some DeathCause.Trap))) playing |> fst
+            let retryProof, retried = click "result-retry-seed" terminal
+            Expect.equal retryProof.Verdict Responsive "Retry Seed is an actual result-screen binding"
+            Expect.equal retried.Play.RunSeed 404UL "retry preserves the completed seed"
+            Expect.isTrue retried.Play.RunActive "retry starts a playable run"
+            let terminalAgain = host.Update (EvidenceCommands.PlayDispatch (CompleteRunStats(false,Some DeathCause.Trap))) retried |> fst
+            let newProof, fresh = click "result-new-run" terminalAgain
+            Expect.equal newProof.Verdict Responsive "New Run is an actual result-screen binding"
+            Expect.equal fresh.Play.RunSeed 405UL "new run advances from the completed seed"
+            let finalTerminal = host.Update (EvidenceCommands.PlayDispatch (CompleteRunStats(false,Some DeathCause.Trap))) fresh |> fst
+            let titleProof, title = click "result-title" finalTerminal
+            Expect.equal titleProof.Verdict Responsive "Title is an actual result-screen binding"
+            Expect.equal title.Shell.Screen Rogue3.GameShell.MainMenu "Title returns to the main menu"
+            Expect.isFalse title.Play.RunActive "the terminal run remains non-resumable"
+        }
     ]
