@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-01-Rogue3-10.md",
-  "reportSha256": "1096d20d1e4e2746ccb3b5f4b52df53eaa8729d587c337adb7b85ced2c1350ce",
+  "reportSha256": "ff888ec6d01684c9773806e15185d4e6f891c2f6feafede15546c363af1963a6",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -18,8 +18,7 @@
       "confidenceLimits": [
         "Deterministic flush proves latest-pending-value coalescing, not timer-expiry timing.",
         "Same-directory move and temp cleanup are observed; crash or power-loss atomicity is not exercised.",
-        "Reload occurs in-process under a unique system temporary directory; process restart, user app-data, permissions, and filesystem failures are unexercised.",
-        "Remote issue recurrence could not be checked because no remote is configured."
+        "Reload occurs in-process under a unique system temporary directory; process restart, user app-data, permissions, and filesystem failures are unexercised."
       ]
     }
   ]
