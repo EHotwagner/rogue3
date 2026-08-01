@@ -24,3 +24,9 @@
 
 - Added all seven omitted interactable/state elements to production rendering, typed inventory, catalog, representative observations, maximum-content cost drivers, and the same-frame raster fixture (37 production elements total).
 - Regenerated the final Release TRX, then ran `refresh → analyze → evidence --sync-observed-run → verify → ship`. A second sync reports `noChange`; verify is clean with 20/20 ready obligations and ship is `shipReady`.
+
+## Candidate 7dad196a55f7ec360470d7df84f775a84c5fe77e — round 3
+
+- Visual critic: supported the exact candidate. It verified the 37-element production-derived inventory and catalog, the hard-content Token/Badge/Ring frames, raster receipts, live facing and identity channels, and the accepted Size-only warning.
+- Performance critic: supported the exact candidate. It verified all 37 cost dispositions, production particle-cap and token-scale routes, matching intent/evidence digests, exact maximum scale, retained p95 14.125 ms and p99 15.544 ms, and current SDD receipts.
+- Correctness critic: supported the exact candidate. It verified the eleven-layer order, enemy mapping, legibility result, deterministic particle lifetime/cap behavior, 42-tick camera transition, Release tests, and SDD Verify result.

@@ -1,0 +1,90 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-01-Rogue3-7.md",
+  "reportSha256": "4ca0868bc4af3be142ff53d633233f12ed589fcc8f62cf81b612a71c5f1c579b",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:feedback/2026-08-01-Rogue3-7-assets/critic-history.md", "result": "verified", "sha256": "5e1c0161bc1a09eac3d2983d0d209c8e1d2714c460b7fc98d9a1e4e2e77075cf" },
+        { "locator": "file:src/Rogue3/GameplayVisualInventory.fs", "result": "verified", "sha256": "c6dd3e831ed8024556afb34512820a1a8ce815c1c8f5ecdb898f9917e410e971" },
+        { "locator": "file:src/Rogue3/Render.fs", "result": "verified", "sha256": "46a9b988e4c08101a3f7e0f82cc084231a5db2879919e9c91ed1f532d4fc1843" },
+        { "locator": "file:tests/Rogue3.Tests/CoverageGateTests.fs", "result": "verified", "sha256": "1ff47b9a7224b794cab83451e4af1dab6ab19893f1579b9dd252aafe03196098" },
+        { "locator": "file:tests/Rogue3.Tests/element-visuals.catalog", "result": "verified", "sha256": "02746cf6eef041b691a8b3a955e88e0dd36c293f881753c2cf7245dd053069b9" },
+        { "locator": "command:dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release --no-restore", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "Current source and tests prove the repaired 37-element state; critic history and the candidate sequence corroborate the rejected intermediate defects.",
+        "This was a Rogue3 production-boundary defect, not a Symbology package defect.",
+        "No package changed, so latest-package re-verification was not applicable or performed."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:src/Rogue3/PerformanceEvidence.fs", "result": "verified", "sha256": "eef6e90ec857130b67fd2fe0ec820150acb5aa806a454a666213eb23fe3670e8" },
+        { "locator": "file:readiness/performance-intent.yml", "result": "verified", "sha256": "46b68bb6bf32acdf558a037814366359211a2ec461ea63fbaf0071ba5c41080c" },
+        { "locator": "file:readiness/performance-evidence.json", "result": "verified", "sha256": "3da97ac4eff3250dee8cd16f40db4a0d4bdbbdbefb2a90eefafec6f277ecedbd" }
+      ],
+      "confidenceLimits": [
+        "The retained maximum observes 600 capped particles, eight rendered symbol encodings, eleven layers, and one active transition, with every applicable visual cost exact-gated.",
+        "Retained p95/p99 are 14.125/15.544 ms with zero catch-up frames, below the declared 16.67/25 ms budgets.",
+        "Timings are host/run-specific bounded-headless evidence; live compositor and latest public release were not reverified."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:src/Rogue3/EvidenceCommands.fs", "result": "verified", "sha256": "c7a7ebfc45e89c07968952fe3154effe1151c561347aae996ef2fa831660a787" },
+        { "locator": "file:feedback/2026-08-01-Rogue3-7-assets/manifest.txt", "result": "verified", "sha256": "538cd1475103efaa792bddb258183398e408ab9e5faddfd0b257432630007135" },
+        { "locator": "file:feedback/2026-08-01-Rogue3-7-assets/eye-check.md", "result": "verified", "sha256": "400ea89a54dc21f09748cfed7153ab330f7e053bebb4b87314bee1001703c103" },
+        { "locator": "file:feedback/2026-08-01-Rogue3-7-assets/legibility.txt", "result": "verified", "sha256": "ed0108385922fa5f28e09487fcc3285bd6fb807ff313a7608c434f0b52b1ec56" },
+        { "locator": "file:feedback/2026-08-01-Rogue3-7-assets/contact-sheet/reference-evidence.md", "result": "verified", "sha256": "57cab2f5a4980245bd0889bbc93beb2842e3010e13adc92319d26e3ef94aaf35" },
+        { "locator": "file:tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs", "result": "verified", "sha256": "853176103f49696cf3eb66daa350c01040aae6230c49674e490b7ac3fb19e5b0" }
+      ],
+      "confidenceLimits": [
+        "One shared hard-content model and visual inspection support same-content alignment across the three grammar frames.",
+        "The committed linter output has exactly one Size warning and zero errors.",
+        "No automated proof asserts byte-equivalence of non-symbol layers; eye-check conclusions remain visual judgment."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "command:git remote -v", "result": "verified" },
+        { "locator": "file:readiness/007-m6-rendering-enemy-symbology/ship-verdict.json", "result": "verified", "sha256": "8715758ae6f2b3a289910c523731e3c34c74bb4dee8a1301fa78ab2423799ee6" }
+      ],
+      "confidenceLimits": [
+        "git remote -v exited successfully with empty output at implementation boundary 7dad196.",
+        "The retained M6 verdict is shipReady with no blocking IDs.",
+        "This proves only that this checkout has no configured remote; an external host or integration path cannot be inferred."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:.agents/skills/work-roadmap/SKILL.md", "result": "verified", "sha256": "7eb9f056104bdbcfdcbd6a73cc82199f481b46864f762a8f0f041d6757529c4f" },
+        { "locator": "file:.agents/skills/pnext-item/SKILL.md", "result": "verified", "sha256": "16e8d7dbba2fe65a341984ab14473c4ba62d2522f4a90573d3a13eb38dcc5916" },
+        { "locator": "file:.agents/skills/pnext-item/references/independent-review.md", "result": "verified", "sha256": "945c40e6a2b5100317ef485a232f0079ace47ccdc97b444638e042b9b3e6468b" },
+        { "locator": "file:feedback/2026-08-01-Rogue3-6.md", "result": "verified", "sha256": "fad1f8efd100baddc157b6f32335afcaa2eeceb9d96a2bf581ce604f357b46b5" }
+      ],
+      "confidenceLimits": [
+        "Installed work-roadmap guidance delegates to pnext-item without stating a review-limit override.",
+        "Installed pnext-item guidance caps the same critic at three repair rounds and forbids round four.",
+        "The files prove the installed-guidance mismatch only; this finding makes no claim about unrecorded current-run authority."
+      ]
+    }
+  ]
+}

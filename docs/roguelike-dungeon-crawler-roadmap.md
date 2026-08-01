@@ -69,10 +69,12 @@ Evidence (2026-08-01): focused Release M4 6/6 and full Release/Verify 105/105; s
 Evidence (2026-08-01): full Release and Verify 123/123; six runner-issued bounded-headless workloads retain all prior exact gates and add 30 live M5 actors spanning eight kinds, 60 AI decisions/frame, five typed obstacles, three shop slots, one phase-three Maw emission, and eight source-specific boss projectiles; SDD verdict `readiness/006-m5-entities-bosses-rooms/ship-verdict.json` is `shipReady` with 13 observed non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3-6.md`. Delivery is local-only because this checkout has no configured remote.
 
 ### M6 — Rendering & enemy symbology
-- 🟥 Back-to-front layer draw order (background → HUD → overlays) (§8)
-- 🟥 `Enemy → Token` ChannelMap in `FS.GG.Game.Render`, `Symbology.token` grammar (§8.1)
-- 🟥 Legibility linter assertion pinned to the accepted `Size` channel (§8.1)
-- 🟥 Pooled particles (cap `600`) + room-transition camera slide `0.35 s` (§8)
+- 🟩 Back-to-front layer draw order (background → HUD → overlays) (§8)
+- 🟩 `Enemy → Token` ChannelMap in `FS.GG.Game.Render`, `Symbology.token` grammar (§8.1)
+- 🟩 Legibility linter assertion pinned to the accepted `Size` channel (§8.1)
+- 🟩 Pooled particles (cap `600`) + room-transition camera slide `0.35 s` (§8)
+
+Evidence (2026-08-01): full Release 128/128; six runner-issued bounded-headless workloads green; the production-derived 37-element visual inventory and same-frame Token/Badge/Ring raster evidence are complete; the accepted linter result has exactly one `Warning Size` and zero errors; maximum-content evidence retains 600 particles, eight token encodings, eleven layers, and an active camera transition with p95 14.125 ms and p99 15.544 ms below budget; SDD verdict `readiness/007-m6-rendering-enemy-symbology/ship-verdict.json` is `shipReady` with 10 supported observed declarations and 20/20 ready obligations; cycle feedback is `feedback/2026-08-01-Rogue3-7.md`. Delivery is local-only because this checkout has no configured remote.
 
 ### M7 — UI, menus & stats
 - 🟥 HUD: hearts row, currency, active-item charge meter, minimap, floor name (§9)
