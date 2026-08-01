@@ -36,6 +36,7 @@
          can wire it, and Exists-guarded so deleting it keeps the build green (Rogue3.fsproj stays
          "durable"). See the fs-gg-game-shell skill for the host wiring. -->
     <Compile Include="GameShell.fs" Condition="Exists('GameShell.fs')" />
+    <Compile Include="Entities.fs" />
     <Compile Include="FloorGeneration.fs" />
     <Compile Include="Model.fs" />
     <!-- Rendering#1071: the independent, runtime-owned gameplay-visual inventory and handle

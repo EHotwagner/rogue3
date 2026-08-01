@@ -5,7 +5,7 @@ open FS.GG.Game.Core
 type RoomType = Combat | Treasure | Shop | Boss | Secret | SuperSecret | Start
 type DoorState = Open | LockedKey | BossDoor | HiddenWall
 type DoorDirection = North | East | South | West
-type EnemySpawnKind = Grub | Maggot | Spitter | Charger | Turret | Caster | Brute
+type EnemySpawnKind = Grub | Maggot | Spitter | Fly | Charger | Turret | Caster | Brute
 
 type Door =
     { ToRoom: int
@@ -26,6 +26,10 @@ type Interior =
 
 type Fixture =
     | Trapdoor
+    | ItemPedestal of Rogue3.Entities.ItemDefinition
+    | BossReward of Rogue3.Entities.ItemDefinition
+    | ShopStock of Rogue3.Entities.ShopSlot list
+    | ConsumableReward of Rogue3.Entities.PickupKind
 
 type FloorRoom =
     { Id: int
@@ -50,7 +54,8 @@ type Floor =
 
 type GenerationResult =
     { Floor: Floor
-      LayoutRng: Rng }
+      LayoutRng: Rng
+      ItemPool: Rogue3.Entities.ItemPool }
 
 let private cardinal = [ { Col = 0; Row = -1 }; { Col = 1; Row = 0 }; { Col = 0; Row = 1 }; { Col = -1; Row = 0 } ]
 let private addCell a b = { Col = a.Col + b.Col; Row = a.Row + b.Row }
@@ -70,10 +75,10 @@ let private roomType (kind: RoomKind) =
     | RoomKind.Normal -> Combat
 
 let private threatCost = function
-    | Grub | Maggot -> 1 | Spitter -> 2 | Charger | Turret -> 3 | Caster -> 4 | Brute -> 6
+    | Grub | Maggot | Fly -> 1 | Spitter -> 2 | Charger | Turret -> 3 | Caster -> 4 | Brute -> 6
 
 let private roster floorIndex =
-    [ Grub; Maggot; Spitter ]
+    [ Grub; Maggot; Spitter; Fly ]
     @ (if floorIndex >= 2 then [ Charger; Turret ] else [])
     @ (if floorIndex >= 3 then [ Caster ] else [])
     @ (if floorIndex >= 4 then [ Brute ] else [])
@@ -119,10 +124,11 @@ let private bestSecretCell exactlyOne occupied =
     |> Seq.tryHead
     |> Option.map fst
 
-let generate runSeed floorIndex =
+let generateWithPool runSeed floorIndex initialItemPool =
     let floorIndex = max 1 floorIndex
     let seed = MapGen.floorSeed runSeed floorIndex
     let mutable rng = Rng.ofSeed seed
+    let mutable itemPool = initialItemPool
     let struct (noise, afterBudget) = Rng.nextInt 0 2 rng
     rng <- afterBudget
     let budget = int (System.Math.Round(7.0 + 1.6 * float floorIndex + float noise)) |> max 8 |> min 20
@@ -196,10 +202,32 @@ let generate runSeed floorIndex =
         |> List.choose (fun d -> Map.tryFind (cellKey (addCell cell d)) cells)
         |> List.iter (fun (adjacentId,_,_,_) -> pending <- Map.add (struct (adjacentId, secretId)) secretId pending)
     let mutable rooms = Map.empty
+    let fallbackReward () =
+        let choices = [| Rogue3.Entities.PickupKind.Coin3; Rogue3.Entities.PickupKind.Key; Rogue3.Entities.PickupKind.Bomb; Rogue3.Entities.PickupKind.SoulHeart |]
+        let struct(index,next)=Rng.nextInt 0 (choices.Length-1) rng
+        rng<-next
+        ConsumableReward choices.[index]
     for KeyValue(id, (cell, kind, templateId)) in byId do
         let interior, afterInterior = populateInterior floorIndex kind templateId rng
         rng <- afterInterior
-        let fixtures = []
+        let fixtures =
+            match kind with
+            | Treasure ->
+                let item, next, pool = Rogue3.Entities.drawItem "treasure" rng itemPool
+                rng <- next
+                itemPool <- pool
+                [ item |> Option.map ItemPedestal |> Option.defaultWith fallbackReward ]
+            | Boss ->
+                let item, next, pool = Rogue3.Entities.drawItem "boss" rng itemPool
+                rng <- next
+                itemPool <- pool
+                [ item |> Option.map BossReward |> Option.defaultWith fallbackReward ]
+            | Shop ->
+                let slots, next, pool = Rogue3.Entities.generateShop rng itemPool
+                rng <- next
+                itemPool <- pool
+                [ ShopStock slots ]
+            | _ -> []
         let doors =
             graph.[id]
             |> List.map (fun other ->
@@ -208,7 +236,10 @@ let generate runSeed floorIndex =
                 { ToRoom = other; Direction = direction cell otherCell; State = state })
         rooms <- Map.add id { Id=id; Cell=cell; RoomType=kind; Cleared=(kind=Start || kind=Treasure || kind=Shop); Visited=(kind=Start); Hidden=(kind=Secret || kind=SuperSecret); Interior=interior; Doors=doors; Fixtures=fixtures } rooms
     { Floor = { Index=floorIndex; Seed=seed; Rooms=rooms; Graph=graph; CurrentRoom=0; MapRevealed=Set.singleton 0; PendingSecrets=pending; RoomBudget=budget }
-      LayoutRng = rng }
+      LayoutRng = rng
+      ItemPool = itemPool }
+
+let generate runSeed floorIndex = generateWithPool runSeed floorIndex (Rogue3.Entities.itemPool [])
 
 let revealSecret adjacentRoom secretRoom floor =
     if not (Map.containsKey (struct (adjacentRoom, secretRoom)) floor.PendingSecrets) then floor

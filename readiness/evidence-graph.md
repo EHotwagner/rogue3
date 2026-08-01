@@ -6,7 +6,7 @@ Absent OPTIONAL artifacts (interactive launch/image/window/…, profile-dependen
 failures. The required headless baseline (layout + scene evidence) MUST be present, however —
 its absence is a product-evidence defect (evidence-output-contract.md §EvidenceGraph).
 
-- readiness files present: 32
+- readiness files present: 34
 - recognized evidence nodes: 2
 
 ## Sensed readiness files
@@ -15,19 +15,21 @@ its absence is a product-evidence defect (evidence-output-contract.md §Evidence
 - `readiness/002-m1-input-twin-stick-control/ship-verdict.json`
 - `readiness/003-m2-movement-dodge-shots/ship-verdict.json`
 - `readiness/004-m3-combat-health-currency/ship-verdict.json`
-- `readiness/005-m4-procedural-floor-generation/agent-commands/claude/commands.md`
-- `readiness/005-m4-procedural-floor-generation/agent-commands/claude/guidance.json`
-- `readiness/005-m4-procedural-floor-generation/agent-commands/claude/skills.md`
-- `readiness/005-m4-procedural-floor-generation/agent-commands/codex/commands.md`
-- `readiness/005-m4-procedural-floor-generation/agent-commands/codex/guidance.json`
-- `readiness/005-m4-procedural-floor-generation/agent-commands/codex/skills.md`
-- `readiness/005-m4-procedural-floor-generation/analysis.json`
-- `readiness/005-m4-procedural-floor-generation/governance-handoff.json`
 - `readiness/005-m4-procedural-floor-generation/ship-verdict.json`
-- `readiness/005-m4-procedural-floor-generation/ship.json`
-- `readiness/005-m4-procedural-floor-generation/summary.md`
-- `readiness/005-m4-procedural-floor-generation/verify.json`
-- `readiness/005-m4-procedural-floor-generation/work-model.json`
+- `readiness/006-m5-entities-bosses-rooms/agent-commands/claude/commands.md`
+- `readiness/006-m5-entities-bosses-rooms/agent-commands/claude/guidance.json`
+- `readiness/006-m5-entities-bosses-rooms/agent-commands/claude/skills.md`
+- `readiness/006-m5-entities-bosses-rooms/agent-commands/codex/commands.md`
+- `readiness/006-m5-entities-bosses-rooms/agent-commands/codex/guidance.json`
+- `readiness/006-m5-entities-bosses-rooms/agent-commands/codex/skills.md`
+- `readiness/006-m5-entities-bosses-rooms/analysis.json`
+- `readiness/006-m5-entities-bosses-rooms/governance-handoff.json`
+- `readiness/006-m5-entities-bosses-rooms/implementation-critic-history.md`
+- `readiness/006-m5-entities-bosses-rooms/ship-verdict.json`
+- `readiness/006-m5-entities-bosses-rooms/ship.json`
+- `readiness/006-m5-entities-bosses-rooms/summary.md`
+- `readiness/006-m5-entities-bosses-rooms/verify.json`
+- `readiness/006-m5-entities-bosses-rooms/work-model.json`
 - `readiness/evidence-audit.md`
 - `readiness/evidence-graph.md`
 - `readiness/headless-scene-evidence.txt`

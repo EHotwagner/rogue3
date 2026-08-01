@@ -10,7 +10,7 @@ let private tick model = stepSim model
 let private enemy id position hp contact =
     { Id = id; Position = position; Velocity = zero; Radius = 12.0; HitPoints = hp
       ContactDamage = contact; LastContactTick = None; HitFlashTicks = 0 }
-let private bullet id position damage = { Id = id; Position = position; Radius = 5.0; Damage = damage }
+let private bullet id position damage = { Id = id; Position = position; Velocity=zero; Radius = 5.0; Damage = damage;Homing=0.0;AgeTicks=0 }
 
 [<Tests>]
 let statTests =

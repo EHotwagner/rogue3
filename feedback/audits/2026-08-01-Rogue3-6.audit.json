@@ -1,0 +1,68 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-01-Rogue3-6.md",
+  "reportSha256": "fad1f8efd100baddc157b6f32335afcaa2eeceb9d96a2bf581ce604f357b46b5",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:readiness/006-m5-entities-bosses-rooms/implementation-critic-history.md", "result": "verified", "sha256": "d6aca097b80b7b029693377dc07d28bd8e88cf937b5938227cd3572dab49a040" },
+        { "locator": "file:src/Rogue3/Model.fs", "result": "verified", "sha256": "c919d00c98d43c06d0030d597258af664ceebb2e17f43391016d534177c71302" },
+        { "locator": "file:tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs", "result": "verified", "sha256": "08e8588640b4f19dbc88df0ba86dba023ee6a6f881c56d5a7993e9552295d73c" },
+        { "locator": "command:dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "The exact cited Release command passed 123/123 against the current candidate.",
+        "Current source and tests verify the repaired production-update paths; the rejected intermediate candidates are represented by the retained critic-history synthesis rather than raw immutable snapshots.",
+        "No prior Rogue3 feedback report implemented the M5 live-content entity surface."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:src/Rogue3/PerformanceEvidence.fs", "result": "verified", "sha256": "f89b3d22f7b0121c7e491e007716db58aad8ddb789bfac12d652445dc16e326a" },
+        { "locator": "file:readiness/performance-evidence.json", "result": "verified", "sha256": "f6e74a4c250dfbbdc3ece07e2df6806eecbfed991d9626c40d366a0c272e62e4" }
+      ],
+      "confidenceLimits": [
+        "The regenerated maximum-content artifact exact-gates eight M5 boss projectiles, one boss-pattern emission, 30 M5 actors, 60 AI decisions, five typed obstacles, and three shop slots.",
+        "The retained maximum-content p95/p99 are 4.8749/7.4132 ms with zero catch-up frames, below the declared 16.67/25 ms budgets.",
+        "Evidence is bounded-headless on FS.GG.Game.Harness 0.12.0; compositor performance and the latest public release were not reverified."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "command:git remote -v", "result": "verified" },
+        { "locator": "file:readiness/006-m5-entities-bosses-rooms/ship-verdict.json", "result": "verified", "sha256": "551d3d330b185a7af8bcd8324f3447b5ea6bd4c28379d2c7709bc609b09af6ca" }
+      ],
+      "confidenceLimits": [
+        "git remote -v exited successfully with empty output.",
+        "The retained verdict is shipReady with 13 supported, observed, non-synthetic obligations.",
+        "This duplicates the no-remote boundary first recorded in Rogue3-2 §4.4 and recurring through Rogue3-5 §4.3; external PR, review, merge, and post-merge state remain unverifiable."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:.agents/skills/work-roadmap/SKILL.md", "result": "verified", "sha256": "7eb9f056104bdbcfdcbd6a73cc82199f481b46864f762a8f0f041d6757529c4f" },
+        { "locator": "file:.agents/skills/pnext-item/SKILL.md", "result": "verified", "sha256": "16e8d7dbba2fe65a341984ab14473c4ba62d2522f4a90573d3a13eb38dcc5916" }
+      ],
+      "confidenceLimits": [
+        "The installed work-roadmap skill delegates interactive/game work into pnext/item-PR discipline without stating a review-limit override.",
+        "The installed pnext-item skill explicitly caps the same critic at three numbered repair rounds and forbids round four.",
+        "The cited files verify the omission and conflicting literal interpretation; provenance of the roadmap-specific 10-cycle policy comes from the host-supplied cycle boundary rather than an embedded package version.",
+        "The one-cycle clarification cost is retained by the validated checkpoint stream, not reconstructible from the two skill files alone."
+      ]
+    }
+  ]
+}

@@ -62,7 +62,7 @@ let generationTests =
                     Obstacles = [{X=1.;Y=1.;Width=2.;Height=2.}]
                     HomingTargets = [{Id=2;Position=zero}]
                     Enemies = [{Id=1;Position=zero;Velocity=zero;Radius=1.;HitPoints=1.;ContactDamage=0;LastContactTick=None;HitFlashTicks=0}]
-                    EnemyBullets = [{Id=1;Position=zero;Radius=1.;Damage=1}]
+                    EnemyBullets = [{Id=1;Position=zero;Velocity=zero;Radius=1.;Damage=1;Homing=0.;AgeTicks=0}]
                     Bombs = [{Id=1;Position=zero;FuseTicks=1}] }
                 |> update DescendFloor |> fst
             Expect.equal carried.FloorIndex 2 "index advances"

@@ -56,15 +56,17 @@ Evidence (2026-08-01): focused Release M3 9/9 and full Release/Verify 99/99; fiv
 Evidence (2026-08-01): focused Release M4 6/6 and full Release/Verify 105/105; six runner-issued bounded-headless workloads include production `DescendFloor` generation at the exact 20-room cap with p95/p99 and catch-up budgets green; SDD verdict `readiness/005-m4-procedural-floor-generation/ship-verdict.json` is `shipReady` with 10 observed non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3-5.md`. Delivery is local-only because this checkout has no configured remote.
 
 ### M5 — Entities: enemies, bosses & rooms
-- 🟥 Enemy roster + per-enemy state machines (e.g. Charger WindUp→Dash→Recover) (§5.2)
-- 🟥 Boss phases & data-driven declarative bullet patterns (§5.3)
-- 🟥 Room-clear gating: seal doors on entry, open + drop-roll on clear (§7.3) — AC #5
-- 🟥 Weighted pickup/drop tables via `DropRng` sub-stream (§4.9)
-- 🟥 Per-floor difficulty ramp: threat budget + enemy HP/bullet scaling (§6, §12)
-- 🟥 Enemy behavior params: Brute ground-pound, bounded Grub split, Spitter/Turret/Caster/Fly patterns, enemy bullet base `180 px/s` (§5.2)
-- 🟥 Obstacles: rock/tinted-rock/pot/spikes/pit collision, destructibles + drop tables via `DropRng`, spikes hazard, pit fly-over (§5.5, §4.1, §4.9)
-- 🟥 Run item pool: treasure pedestal + boss floor-reward from `LayoutRng`, dupe-free per run (§4.11, §5.3) — AC #12
-- 🟥 Shop room: item/consumable slots, `LayoutRng` pricing, key-locked items, no in-floor restock (§4.11, §4.7) — AC #11
+- 🟩 Enemy roster + per-enemy state machines (e.g. Charger WindUp→Dash→Recover) (§5.2)
+- 🟩 Boss phases & data-driven declarative bullet patterns (§5.3)
+- 🟩 Room-clear gating: seal doors on entry, open + drop-roll on clear (§7.3) — AC #5
+- 🟩 Weighted pickup/drop tables via `DropRng` sub-stream (§4.9)
+- 🟩 Per-floor difficulty ramp: threat budget + enemy HP/bullet scaling (§6, §12)
+- 🟩 Enemy behavior params: Brute ground-pound, bounded Grub split, Spitter/Turret/Caster/Fly patterns, enemy bullet base `180 px/s` (§5.2)
+- 🟩 Obstacles: rock/tinted-rock/pot/spikes/pit collision, destructibles + drop tables via `DropRng`, spikes hazard, pit fly-over (§5.5, §4.1, §4.9)
+- 🟩 Run item pool: treasure pedestal + boss floor-reward from `LayoutRng`, dupe-free per run (§4.11, §5.3) — AC #12
+- 🟩 Shop room: item/consumable slots, `LayoutRng` pricing, key-locked items, no in-floor restock (§4.11, §4.7) — AC #11
+
+Evidence (2026-08-01): full Release and Verify 123/123; six runner-issued bounded-headless workloads retain all prior exact gates and add 30 live M5 actors spanning eight kinds, 60 AI decisions/frame, five typed obstacles, three shop slots, one phase-three Maw emission, and eight source-specific boss projectiles; SDD verdict `readiness/006-m5-entities-bosses-rooms/ship-verdict.json` is `shipReady` with 13 observed non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3-6.md`. Delivery is local-only because this checkout has no configured remote.
 
 ### M6 — Rendering & enemy symbology
 - 🟥 Back-to-front layer draw order (background → HUD → overlays) (§8)

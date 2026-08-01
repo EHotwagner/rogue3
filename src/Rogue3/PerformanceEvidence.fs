@@ -39,7 +39,7 @@ let private performanceIntentSeed: PerformanceIntentDeclaration =
       TargetFps = 60
       WorkloadIds = []
       WorkloadDefinitionDigests = []
-      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static obstacles, 30 live enemies/targets, 120 enemy bullets, 736 wall primitives, 2,400 homing considerations, multishot 3, and all five scaffold visuals"
+      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 736 wall primitives, 2,400 homing considerations, multishot 3, and all five pre-M6 visuals"
       MaxP95Ms = 16.67m
       MaxP99Ms = 25.0m
       MaxCatchUpFrames = 0
@@ -188,8 +188,44 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "state.enemy-bullets"
         Category = Simulation
-        ScaleSource = "Model.EnemyBullets exact live count"
+        ScaleSource = "Model.EnemyBullets legacy maximum baseline ids 1..120; M5 emissions are independently counted"
         MaximumExpected = 120
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "projectiles.m5-boss-emitted"
+        Category = Simulation
+        ScaleSource = "Model.M5BossBulletEmissions delta: the production phase-three Maw materializes one exact eight-projectile homing ring before its 0.8-second cadence resets"
+        MaximumExpected = 8
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "state.m5-enemies"
+        Category = AiPathfindingPerception
+        ScaleSource = "Model.M5Enemies exact live count spanning every M5 enemy kind"
+        MaximumExpected = 30
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "ai.m5-decisions"
+        Category = AiPathfindingPerception
+        ScaleSource = "Model.M5AiDecisions delta: 30 actors across two fixed steps"
+        MaximumExpected = 60
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "state.m5-obstacles"
+        Category = Simulation
+        ScaleSource = "Model.M5Obstacles exact count includes all five kinds"
+        MaximumExpected = 5
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "state.m5-shop-slots"
+        Category = Simulation
+        ScaleSource = "Model.M5ShopSlots exact generated shop inventory"
+        MaximumExpected = 3
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "boss.m5-pattern-emissions"
+        Category = AiPathfindingPerception
+        ScaleSource = "Model.M5BossPatternEmissions delta from a live phase-three Maw on the production tick route"
+        MaximumExpected = 1
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "collision.combat-candidates"
@@ -631,7 +667,13 @@ let private observeCostScale driverId routed beforeModel afterModel =
         | "state.static-obstacles", _, _ -> afterModel.Obstacles.Length
         | "state.homing-targets", _, _ -> afterModel.HomingTargets.Length
         | "state.live-enemies", _, _ -> afterModel.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.length
-        | "state.enemy-bullets", _, _ -> afterModel.EnemyBullets.Length
+        | "state.enemy-bullets", _, _ -> afterModel.EnemyBullets |> List.filter(fun bullet->bullet.Id<=120) |> List.length
+        | "projectiles.m5-boss-emitted", _, _ -> afterModel.M5BossBulletEmissions - beforeModel.M5BossBulletEmissions
+        | "state.m5-enemies", _, _ -> afterModel.M5Enemies.Length
+        | "ai.m5-decisions", _, _ -> afterModel.M5AiDecisions - beforeModel.M5AiDecisions
+        | "state.m5-obstacles", _, _ -> afterModel.M5Obstacles.Length
+        | "state.m5-shop-slots", _, _ -> afterModel.M5ShopSlots.Length
+        | "boss.m5-pattern-emissions", _, _ -> afterModel.M5BossPatternEmissions - beforeModel.M5BossPatternEmissions
         | "collision.combat-candidates", _, _ -> afterModel.TotalCombatCandidates - beforeModel.TotalCombatCandidates
         | _, Input, _ ->
             let applied =
@@ -876,9 +918,24 @@ let private maximumEnemyBullets =
     [ for index in 0 .. 119 ->
         // Exactly touching the player broadphase radius: returned by inclusive queryRadius, rejected
         // by strict circleContact, so all 120 candidates remain stable across both fixed steps.
-        { Id = index + 1; Position = add initialModel.PlayerPosition (vec2 16.0 0.0); Radius = 3.0; Damage = 1 } ]
+        { Id = index + 1; Position = add initialModel.PlayerPosition (vec2 16.0 0.0); Velocity=zero; Radius = 3.0; Damage = 1;Homing=0.;AgeTicks=0 } ]
+
+let private maximumM5Enemies =
+    [ for index in 0 .. 29 ->
+        let kind = Rogue3.Entities.roster.[index % Rogue3.Entities.roster.Length]
+        Rogue3.Entities.spawn 6 (1000+index) kind (vec2 (100.0+float(index%10)*80.0) (100.0+float(index/10)*100.0)) ]
+
+let private maximumM5Obstacles =
+    [ Rogue3.Entities.ObstacleKind.Rock; Rogue3.Entities.ObstacleKind.TintedRock
+      Rogue3.Entities.ObstacleKind.Pot; Rogue3.Entities.ObstacleKind.Spikes; Rogue3.Entities.ObstacleKind.Pit ]
+    |> List.mapi (fun index kind -> Rogue3.Entities.obstacle kind index)
+
+let private maximumM5ShopSlots =
+    let slots,_,_ = Rogue3.Entities.generateShop (FS.GG.Game.Core.Rng.ofSeed 0xA55AUL) (Rogue3.Entities.itemPool [])
+    slots
 
 let private maximumContentModel () =
+    let maw = Rogue3.Entities.spawnBoss 9999 Rogue3.Entities.BossKind.Maw (vec2 1000. 600.)
     { withInput maximumGamepadInput with
         ShotSpawns = maximumShotHistory
         TotalShotSpawns = maximumShotSpawnHistory
@@ -887,7 +944,15 @@ let private maximumContentModel () =
         Obstacles = maximumObstacles
         HomingTargets = maximumTargets
         Enemies = maximumEnemies
-        EnemyBullets = maximumEnemyBullets }
+        EnemyBullets = maximumEnemyBullets
+        M5Enemies = maximumM5Enemies
+        M5Obstacles = maximumM5Obstacles
+        M5ShopSlots = maximumM5ShopSlots
+        M5Boss = Some {maw with HitPoints=100.0;Phase=3;PatternTicksLeft=1}
+        M5Room =
+          { IsBoss=true; Cleared=false; Doors=[Rogue3.Entities.DoorState.BossSealed]
+            LiveEnemyIds=maximumM5Enemies |> List.map _.Id |> Set.ofList
+            Drop=None; Reward=None; Trapdoor=false } }
 
 // Product-owned canonical representative factory at the journey boot seam. It is not the ordinary
 // player boot; its role is to make maximum authored content reachable through the same production
@@ -919,7 +984,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "2ed65809573c84c4051c3a446b8770c36494287729c6fa4db40093cbce81c828" }
+        Authorship = Authored "0347a57aa32add17ce8bbd9189378c361fc06d98bf27d542876a6f18a73098ec" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -953,7 +1018,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "a02038b7b8145fd7f3748c2e32152cff1a35fe86b97a4922754c44012f464987" }
+        Authorship = Authored "271db2e24b6d37377f228ab148523d2de236b99e75cd1e57260a5b7f1b2ce5be" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -988,7 +1053,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "e009940dc00ac0d2e8c520564c5ecba43af1d973392e4089c546ceea27cbb93e" }
+        Authorship = Authored "864fd3f47443ae5927776af271fe29ac40e392f2773427b72000d1db63d3c19b" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -1011,7 +1076,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "b30e6ef70f4275280642272ed1705cce182364b6929e4e6827502640f1954b76" }
+        Authorship = Authored "2303b00e1b6c8ec06daa2ed0d42c40a29e779937fe4af66c45ec30593e7706fc" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN floor-generation
       { Id = "floor-generation"
@@ -1028,11 +1093,11 @@ let expectedWorkloads =
         CostDriverIds = [ "generation.floor-room-budget"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "380721f4766bcbd2eeb8d133cb99058df498768a574eb4522678faa2837a82b3" }
+        Authorship = Authored "87fe0acab01f5bad59587ba87c42aa50e3525a9f6798d125f9208d5a9a5b520b" }
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
-        Definition = "M3 canonical maximum fixture through the production journey/update/view route: 40 live homing/piercing shots, 8 static AABBs, 30 live enemies/targets, 120 bullet-player broadphase candidates, held ArrowRight keyboard aim/fire routed through production input, production Tick(1/60), and all five scaffold visuals"
+        Definition = "M5 canonical maximum fixture through production journey/update/view: previous 40-shot/8-AABB/30-target/120-bullet load plus 30 live M5 actors spanning all eight kinds and two fixed-step AI transitions (60 decisions), all five typed obstacles, one sealed boss room, three deterministic shop slots, held ArrowRight input, Tick(1/60), and all pre-M6 visuals"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
@@ -1060,6 +1125,12 @@ let expectedWorkloads =
               "state.homing-targets"
               "state.live-enemies"
               "state.enemy-bullets"
+              "projectiles.m5-boss-emitted"
+              "state.m5-enemies"
+              "ai.m5-decisions"
+              "state.m5-obstacles"
+              "state.m5-shop-slots"
+              "boss.m5-pattern-emissions"
               "collision.combat-candidates"
               "scene.ball"
               "scene.left-paddle"
@@ -1068,7 +1139,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "5e31f83fbcbd74c5c9e01b054f31de13aada5fec6d3cd2d36ee3b19bc8a3e28e" }
+        Authorship = Authored "1c2bbde56342446ce6121897ec93b7ed9c9a37930f8b4d122f2095486f6a48b6" }
       // WORKLOAD-SOURCE-END maximum-content
       ]
 
