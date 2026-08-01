@@ -1066,8 +1066,15 @@ let m6VisualEvidence (outputDirectory: string) =
                   Rogue3.Entities.PickupKind.Bomb; Rogue3.Entities.PickupKind.SoulHeart ]
             M5Boss=Some(Rogue3.Entities.spawnBoss 7000 Rogue3.Entities.BossKind.Maw (vec2 1120.0 560.0))
             M5ShopSlots=shop
+            M5Room=
+                { initialModel.M5Room with
+                    Doors=[Rogue3.Entities.DoorState.Open;Rogue3.Entities.DoorState.LockedClear;Rogue3.Entities.DoorState.BossSealed]
+                    Drop=Some Rogue3.Entities.PickupKind.Key
+                    Reward=Some Rogue3.Entities.baseItems.Head
+                    Trapdoor=true }
             ShotSpawns=[shot]
-            EnemyBullets=[enemyBullet] }
+            EnemyBullets=[enemyBullet]
+            Bombs=[ {Id=8000;Position=vec2 700.0 390.0;FuseTicks=10000} ] }
         |> fun fixture -> [1..18] |> List.fold (fun state _ -> stepSim state) fixture
 
     let tokens = Rogue3.Render.enemyTokens model

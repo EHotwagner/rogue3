@@ -14,3 +14,13 @@
 - Replaced neutral galleries with identical hard-content Token/Badge/Ring production frames and a 3840×720 same-frame contact sheet.
 - The measured maximum route now sends `SpawnM6Particles(650, ...)` through production update on every frame and exact-gates the retained 600; enemy-symbol scale derives from `Render.enemyTokens`.
 - Rebound SDD obligations to subject-specific code, TRX, raster, performance, contract, migration, and generated-view artifacts.
+
+## Candidate 4b50bb4 — round 2
+
+- Visual critic: rejected the otherwise repaired inventory because live placed bombs, three door states, room drop, room reward, and trapdoor were still omitted.
+- Performance critic: supported the production cap route, token-derived scale, 30-element cost inventory, timing, and digests, but rejected the candidate because its TRX had been regenerated after the retained SDD receipt/ship snapshot.
+
+## Repair disposition
+
+- Added all seven omitted interactable/state elements to production rendering, typed inventory, catalog, representative observations, maximum-content cost drivers, and the same-frame raster fixture (37 production elements total).
+- Regenerated the final Release TRX, then ran `refresh → analyze → evidence --sync-observed-run → verify → ship`. A second sync reports `noChange`; verify is clean with 20/20 ready obligations and ship is `shipReady`.

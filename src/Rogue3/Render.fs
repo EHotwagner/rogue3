@@ -181,6 +181,34 @@ let renderedElementsIn grammar model : RenderedElement list =
           yield rendered "ShopItem" "scene/shop-item" RenderLayer.Pickups
                     (Scene.filledRectangle { X=520.0+float index*90.0;Y=160.0;Width=width;Height=20.0 } (color 166uy 116uy 232uy 255uy))
 
+      for index, door in model.M5Room.Doors |> List.indexed do
+          let elementId, handle, fill, width =
+              match door with
+              | DoorState.Open -> "DoorOpen", "scene/door/open", color 75uy 196uy 122uy 255uy, 10.0
+              | DoorState.LockedClear -> "DoorLockedClear", "scene/door/locked-clear", color 219uy 166uy 66uy 255uy, 18.0
+              | DoorState.BossSealed -> "DoorBossSealed", "scene/door/boss-sealed", color 220uy 66uy 79uy 255uy, 26.0
+          yield rendered elementId handle RenderLayer.Obstacles
+                    (Scene.filledRectangle { X=590.0+float index*46.0;Y=48.0;Width=width;Height=16.0 } fill)
+
+      match model.M5Room.Drop with
+      | Some pickup ->
+          match pickupIdentity pickup with
+          | Some(_, _, radius, fill) ->
+              yield rendered "RoomDrop" "scene/room-drop" RenderLayer.Pickups
+                        (Scene.circle { X=640.0;Y=430.0 } (radius+2.0) fill)
+          | None -> ()
+      | None -> ()
+
+      match model.M5Room.Reward with
+      | Some reward ->
+          yield rendered "RoomReward" "scene/room-reward" RenderLayer.Pickups
+                    (Scene.filledRectangle { X=620.0;Y=450.0;Width=40.0+float reward.Quality*5.0;Height=26.0 } (color 190uy 126uy 255uy 255uy))
+      | None -> ()
+
+      if model.M5Room.Trapdoor then
+          yield rendered "Trapdoor" "scene/trapdoor" RenderLayer.Pickups
+                    (Scene.filledEllipse { X=606.0;Y=510.0;Width=68.0;Height=34.0 } (color 58uy 39uy 68uy 255uy))
+
       let shadowPositions =
           model.PlayerPosition
           :: ((model.M5Enemies |> List.map _.Position)
@@ -214,6 +242,11 @@ let renderedElementsIn grammar model : RenderedElement list =
       for bullet in model.EnemyBullets do
           yield rendered "EnemyBullet" "scene/enemy-bullet" RenderLayer.Projectiles
                     (Scene.circle (point bullet.Position) bullet.Radius (color 255uy 90uy 90uy 255uy))
+      for bomb in model.Bombs do
+          yield rendered "PlacedBomb" "scene/placed-bomb" RenderLayer.Projectiles
+                    (Scene.group
+                        [ Scene.circle (point bomb.Position) 12.0 (color 35uy 35uy 42uy 255uy)
+                          Scene.circle (point (add bomb.Position (vec2 8.0 -9.0))) 3.0 (color 255uy 150uy 48uy 255uy) ])
 
       if not model.M6Particles.IsEmpty then
           yield rendered "Particle" "effects/particle" RenderLayer.Particles

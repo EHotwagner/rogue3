@@ -11,7 +11,7 @@ sourceAnalysis: readiness/007-m6-rendering-enemy-symbology/analysis.json
 sourceSnapshots:
   - label: analysis
     path: readiness/007-m6-rendering-enemy-symbology/analysis.json
-    digest: 0bcaa4e22f94d10524bedfd52e327a5cb61a5e5aba070886f71ba327fcb6e351
+    digest: 3fbe56f3f1a50eac213bcfd08bc5c265f43da12ff00eecfe6f96f5cb542ccf7f
     schemaVersion: 1
   - label: checklist
     path: work/007-m6-rendering-enemy-symbology/checklist.md
@@ -54,7 +54,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
+      digest: "sha256:85dcef5db7324f4b8577e645fdaec88c8c11b114af4535766384c00d037a76fb"
       outcome: passed
       passed: 128
       failed: 0
@@ -80,7 +80,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
+      digest: "sha256:85dcef5db7324f4b8577e645fdaec88c8c11b114af4535766384c00d037a76fb"
       outcome: passed
       passed: 128
       failed: 0
@@ -106,7 +106,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
+      digest: "sha256:85dcef5db7324f4b8577e645fdaec88c8c11b114af4535766384c00d037a76fb"
       outcome: passed
       passed: 128
       failed: 0
@@ -132,7 +132,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
+      digest: "sha256:85dcef5db7324f4b8577e645fdaec88c8c11b114af4535766384c00d037a76fb"
       outcome: passed
       passed: 128
       failed: 0
@@ -158,7 +158,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
+      digest: "sha256:85dcef5db7324f4b8577e645fdaec88c8c11b114af4535766384c00d037a76fb"
       outcome: passed
       passed: 128
       failed: 0
@@ -184,7 +184,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
+      digest: "sha256:85dcef5db7324f4b8577e645fdaec88c8c11b114af4535766384c00d037a76fb"
       outcome: passed
       passed: 128
       failed: 0
@@ -210,7 +210,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
+      digest: "sha256:85dcef5db7324f4b8577e645fdaec88c8c11b114af4535766384c00d037a76fb"
       outcome: passed
       passed: 128
       failed: 0
@@ -236,7 +236,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
+      digest: "sha256:85dcef5db7324f4b8577e645fdaec88c8c11b114af4535766384c00d037a76fb"
       outcome: passed
       passed: 128
       failed: 0
@@ -262,7 +262,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
+      digest: "sha256:85dcef5db7324f4b8577e645fdaec88c8c11b114af4535766384c00d037a76fb"
       outcome: passed
       passed: 128
       failed: 0
@@ -288,7 +288,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
+      digest: "sha256:85dcef5db7324f4b8577e645fdaec88c8c11b114af4535766384c00d037a76fb"
       outcome: passed
       passed: 128
       failed: 0

@@ -23,9 +23,16 @@ BossGnawer	shown	token/boss/gnawer
 BossHollowChoir	shown	token/boss/hollowchoir
 BossMaw	shown	token/boss/maw
 ShopItem	shown	scene/shop-item
+DoorOpen	shown	scene/door/open
+DoorLockedClear	shown	scene/door/locked-clear
+DoorBossSealed	shown	scene/door/boss-sealed
+RoomDrop	shown	scene/room-drop
+RoomReward	shown	scene/room-reward
+Trapdoor	shown	scene/trapdoor
 Shadow	shown	scene/shadow
 Player	shown	scene/player
 PlayerShot	shown	scene/player-shot
 EnemyBullet	shown	scene/enemy-bullet
+PlacedBomb	shown	scene/placed-bomb
 Particle	shown	effects/particle
 HudScore	shown	scene/hud-score

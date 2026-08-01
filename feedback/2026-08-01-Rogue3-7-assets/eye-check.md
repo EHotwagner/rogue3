@@ -1,7 +1,7 @@
 # M6 raster eye-check
 
 - Inspected all four 1280×720 PNGs at original resolution on 2026-08-01.
-- Production frame: all eight enemies plus the Maw boss are visible, separated, unclipped, and ordered behind the player/HUD. The frame also contains all five obstacle kinds, all six visible pickup kinds, three shop offers, both projectile sides, shadows, and dispersed particles. Enemy-red faction strokes, green health arcs, silhouette classes, Ring/Bolt/Fang sigils, and speed tiers remain readable on the dark floor.
+- Production frame: all eight enemies plus the Maw boss are visible, separated, unclipped, and ordered behind the player/HUD. The frame also contains all five obstacle kinds, all six visible pickup kinds, three shop offers, open/locked/sealed doors, room drop, room reward, trapdoor, a placed bomb, both projectile sides, shadows, and dispersed particles. Enemy-red faction strokes, green health arcs, silhouette classes, Ring/Bolt/Fang sigils, and speed tiers remain readable on the dark floor.
 - Token candidate: facing and class silhouette remain immediate across the complete eight-kind roster; exact physical radius differences are visible.
 - Badge candidate: stable and readable, but its screen-aligned body weakens world-facing orientation.
 - Ring candidate: stable and readable, but radial sameness makes Scout/Mobile/Heavy discrimination less immediate.

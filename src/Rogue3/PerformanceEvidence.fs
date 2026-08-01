@@ -148,6 +148,13 @@ let private m6AdditionalVisualCostDrivers =
           Disposition=NonPerformance "one live boss kind per room; covered by production raster/catalog evidence" }
       required "scene.boss-maw" "BossMaw"
       required "scene.shop-item" "ShopItem"
+      required "scene.door-open" "DoorOpen"
+      required "scene.door-locked-clear" "DoorLockedClear"
+      required "scene.door-boss-sealed" "DoorBossSealed"
+      required "scene.room-drop" "RoomDrop"
+      required "scene.room-reward" "RoomReward"
+      required "scene.trapdoor" "Trapdoor"
+      required "scene.placed-bomb" "PlacedBomb"
       required "scene.shadow" "Shadow" ]
 
 /// Independent rogue3 inventory. It is intentionally not derived from `expectedWorkloads`: adding a
@@ -1055,6 +1062,7 @@ let private maximumContentModel () =
             HomingTargets = maximumTargets
             Enemies = maximumEnemies
             EnemyBullets = maximumEnemyBullets
+            Bombs = [ { Id=9000;Position=vec2 700.0 390.0;FuseTicks=10000 } ]
             M5Enemies = maximumM5Enemies
             M5Obstacles = maximumM5Obstacles
             M5ShopSlots = maximumM5ShopSlots
@@ -1065,9 +1073,12 @@ let private maximumContentModel () =
             M5Boss = Some {maw with HitPoints=100.0;Phase=3;PatternTicksLeft=1}
             M6CameraTransition = Some { Direction=RoomSlideDirection.East; ElapsedTicks=0 }
             M5Room =
-                { IsBoss=true; Cleared=false; Doors=[Rogue3.Entities.DoorState.BossSealed]
+                { IsBoss=true; Cleared=false
+                  Doors=[Rogue3.Entities.DoorState.Open;Rogue3.Entities.DoorState.LockedClear;Rogue3.Entities.DoorState.BossSealed]
                   LiveEnemyIds=maximumM5Enemies |> List.map _.Id |> Set.ofList
-                  Drop=None; Reward=None; Trapdoor=false } }
+                  Drop=Some Rogue3.Entities.PickupKind.Key
+                  Reward=Some Rogue3.Entities.baseItems.Head
+                  Trapdoor=true } }
     update (SpawnM6Particles(650, vec2 640.0 360.0, ParticleTint.Explosion)) fixture |> fst
 
 // Product-owned canonical representative factory at the journey boot seam. It is not the ordinary
@@ -1268,6 +1279,13 @@ let expectedWorkloads =
               "scene.pickup-soul-heart"
               "scene.boss-maw"
               "scene.shop-item"
+              "scene.door-open"
+              "scene.door-locked-clear"
+              "scene.door-boss-sealed"
+              "scene.room-drop"
+              "scene.room-reward"
+              "scene.trapdoor"
+              "scene.placed-bomb"
               "scene.shadow"
               "effects.pooled-particles"
               "scene.m6-enemy-grub"
@@ -1288,7 +1306,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "eb047c7848401ddb3983b2c7e1ea6c773c461f42bf5fcee39d25d688949421cf" }
+        Authorship = Authored "e01a2090d282af4da68983d3603bcbf38075715903a101c5c436d1418256b4c0" }
       // WORKLOAD-SOURCE-END maximum-content
       ]
 

@@ -16,7 +16,8 @@ type GameplayVisualElement =
     | EnemyGrub | EnemyMaggot | EnemySpitter | EnemyFly
     | EnemyCharger | EnemyTurret | EnemyCaster | EnemyBrute
     | BossGnawer | BossHollowChoir | BossMaw
-    | ShopItem | Shadow | Player | PlayerShot | EnemyBullet | Particle | HudScore
+    | ShopItem | DoorOpen | DoorLockedClear | DoorBossSealed
+    | RoomDrop | RoomReward | Trapdoor | Shadow | Player | PlayerShot | EnemyBullet | PlacedBomb | Particle | HudScore
 
 let all =
     FSharpType.GetUnionCases typeof<GameplayVisualElement>
@@ -50,10 +51,17 @@ let handle = function
     | BossHollowChoir -> "token/boss/hollowchoir"
     | BossMaw -> "token/boss/maw"
     | ShopItem -> "scene/shop-item"
+    | DoorOpen -> "scene/door/open"
+    | DoorLockedClear -> "scene/door/locked-clear"
+    | DoorBossSealed -> "scene/door/boss-sealed"
+    | RoomDrop -> "scene/room-drop"
+    | RoomReward -> "scene/room-reward"
+    | Trapdoor -> "scene/trapdoor"
     | Shadow -> "scene/shadow"
     | Player -> "scene/player"
     | PlayerShot -> "scene/player-shot"
     | EnemyBullet -> "scene/enemy-bullet"
+    | PlacedBomb -> "scene/placed-bomb"
     | Particle -> "effects/particle"
     | HudScore -> "scene/hud-score"
 
@@ -103,6 +111,9 @@ let private playerShot =
 let private enemyBullet =
     { Id=1;Position=vec2 760.0 360.0;Velocity=zero;Radius=4.0;Damage=1;Homing=0.0;AgeTicks=0 }
 
+let private roomWith doors drop reward trapdoor =
+    { initialModel.M5Room with Doors=doors;Drop=drop;Reward=reward;Trapdoor=trapdoor }
+
 let private evidenceModel element =
     match kindOfEnemy element, kindOfBoss element, kindOfObstacle element, kindOfPickup element with
     | Some kind, _, _, _ ->
@@ -115,8 +126,16 @@ let private evidenceModel element =
     | _ ->
         match element with
         | ShopItem -> { initialModel with M5ShopSlots=sampleShopSlots }
+        | DoorOpen -> { initialModel with M5Room=roomWith [DoorState.Open] None None false }
+        | DoorLockedClear -> { initialModel with M5Room=roomWith [DoorState.LockedClear] None None false }
+        | DoorBossSealed -> { initialModel with M5Room=roomWith [DoorState.BossSealed] None None false }
+        | RoomDrop -> { initialModel with M5Room=roomWith [] (Some PickupKind.Key) None false }
+        | RoomReward -> { initialModel with M5Room=roomWith [] None (Some baseItems.Head) false }
+        | Trapdoor -> { initialModel with M5Room=roomWith [] None None true }
         | PlayerShot -> { initialModel with ShotSpawns=[ playerShot ] }
         | EnemyBullet -> { initialModel with EnemyBullets=[ enemyBullet ] }
+        | PlacedBomb ->
+            { initialModel with Bombs=[ {Id=1;Position=vec2 700.0 390.0;FuseTicks=bombFuseTicks} ] }
         | Particle -> update (SpawnM6Particles(1, vec2 640.0 360.0, ParticleTint.Explosion)) initialModel |> fst
         | HudScore -> { initialModel with LeftScore=7;RightScore=3 }
         | FloorBackground | Shadow | Player -> initialModel
