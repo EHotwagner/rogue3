@@ -1,0 +1,83 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-01-Rogue3-8.md",
+  "reportSha256": "80d237211a9f06ce5b4d81a169ab7a0b5ed951b78717de28e2eeb88feba88fea",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:src/Rogue3/EvidenceCommands.fs", "result": "verified", "sha256": "37b034184cfbac2147b5b585806757297faa04a5f92b0859b62415279e308536" },
+        { "locator": "file:tests/Rogue3.Tests/M7UiMenusStatsTests.fs", "result": "verified", "sha256": "ecccb7db5702115b14e713663066ee00ea57a4bc34403b5219b5c50756337a3e" },
+        { "locator": "command:dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release --no-restore --filter M7", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "Current source and 12/12 focused tests prove repaired production-host behavior, not durable persistence.",
+        "The rejected-candidate chronology is corroborated by commit history but no critic transcript is retained in the report package."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:src/Rogue3/Model.fs", "result": "verified", "sha256": "4f9dba37e190799e2aa520c023221841495c7ec146bff2ab8c396716c75762dc" },
+        { "locator": "file:src/Rogue3/Entities.fs", "result": "verified", "sha256": "b03b56773b7f6c7d3938d1e07a5c7ecf272aa9330c120cfceaab674593986f6d" },
+        { "locator": "file:tests/Rogue3.Tests/M7UiMenusStatsTests.fs", "result": "verified", "sha256": "ecccb7db5702115b14e713663066ee00ea57a4bc34403b5219b5c50756337a3e" },
+        { "locator": "file:work/008-m7-ui-menus-stats/evidence.yml", "result": "verified", "sha256": "c5958b4312f5293395b3a13f77bcbdc5b3a7c2d39c899321846f4304cfa20a54" }
+      ],
+      "confidenceLimits": [
+        "Current tests cover all six declared difficulty consumers, complete profile fields, lifetime folding, projectile damage, and exactly one typed kill.",
+        "Rejected-candidate history and the double-count correction cost are not independently reconstructed by these current-state locators."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:build.fsx", "result": "verified", "sha256": "e01bfecef3158d4ed79dffbd17021d8b7bca68c9162ec2f476e83df26146a303" },
+        { "locator": "file:src/Rogue3/EvidenceCommands.fs", "result": "verified", "sha256": "37b034184cfbac2147b5b585806757297faa04a5f92b0859b62415279e308536" },
+        { "locator": "file:src/Rogue3/Render.fs", "result": "verified", "sha256": "89fd92c648483926efce2375e2f1161c28eef4c32ec9b0c62450ae2209c398ad" },
+        { "locator": "file:src/Rogue3/M7Ui.fs", "result": "verified", "sha256": "67fb9ec90059c827da5e2a147aefec1001979f1929744b7a6062cf94ebdf2500" },
+        { "locator": "file:readiness/m7-ui-performance.json", "result": "verified", "sha256": "b9ca1481e2f5531a6ecce2020b4db2c25f68526e92faced517d716d03fcbc610" },
+        { "locator": "file:readiness/performance-evidence.json", "result": "verified", "sha256": "40ed273416a0f01bb7c70d91808890450f1f56b5cb4f6d15c20a06a78c17c36a" }
+      ],
+      "confidenceLimits": [
+        "All six governed workloads and three supplemental routes pass with matching source-definition digests and derived identities.",
+        "Timings are environment-specific bounded-headless evidence, not compositor, swapchain, or vsync evidence."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:feedback/2026-08-01-Rogue3-8-assets/manifest.txt", "result": "verified", "sha256": "7845c0ec0a4d667a59ff2bd927fe1ed0eae84c3610e12af0a5c2151aa31c9949" },
+        { "locator": "file:feedback/2026-08-01-Rogue3-8-assets/stats-charts/reference-evidence.md", "result": "verified", "sha256": "7169795ff6c22bd51ef7db9bf1a6de4a073d9069890ea292273e1020feca4052" },
+        { "locator": "file:feedback/2026-08-01-Rogue3-8-assets/hud-1280x720/reference-evidence.md", "result": "verified", "sha256": "068f4346d4d9b74302173ba355728d47974af77e4fe9121ebddad7b171c5a24e" },
+        { "locator": "file:tests/Rogue3.Tests/M7UiMenusStatsTests.fs", "result": "verified", "sha256": "ecccb7db5702115b14e713663066ee00ea57a4bc34403b5219b5c50756337a3e" }
+      ],
+      "confidenceLimits": [
+        "Four current PNGs exist and direct inspection confirms four KPI tiles, distinct blue/green traces, required HUD regions, and non-overlapping 1280x720 anchors.",
+        "PNG paths are reached transitively through the cited reference/manifest files; legibility is human inspection rather than native-window usability evidence."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "command:git remote -v", "result": "verified" },
+        { "locator": "file:readiness/008-m7-ui-menus-stats/ship-verdict.json", "result": "verified", "sha256": "13bc3351a26d55ac59bb61e35b8cd174e0a1bb048a9e20dc3b8b99cb72857884" }
+      ],
+      "confidenceLimits": [
+        "The local command returned no configured remotes and the SDD verdict is shipReady with 17 supported and observed obligations.",
+        "An empty remote proves only the state of this checkout; it does not prove that no external integration path exists."
+      ]
+    }
+  ]
+}

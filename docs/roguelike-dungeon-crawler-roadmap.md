@@ -77,11 +77,13 @@ Evidence (2026-08-01): full Release and Verify 123/123; six runner-issued bounde
 Evidence (2026-08-01): full Release 128/128; six runner-issued bounded-headless workloads green; the production-derived 37-element visual inventory and same-frame Token/Badge/Ring raster evidence are complete; the accepted linter result has exactly one `Warning Size` and zero errors; maximum-content evidence retains 600 particles, eight token encodings, eleven layers, and an active camera transition with p95 14.125 ms and p99 15.544 ms below budget; SDD verdict `readiness/007-m6-rendering-enemy-symbology/ship-verdict.json` is `shipReady` with 10 supported observed declarations and 20/20 ready obligations; cycle feedback is `feedback/2026-08-01-Rogue3-7.md`. Delivery is local-only because this checkout has no configured remote.
 
 ### M7 — UI, menus & stats
-- 🟥 HUD: hearts row, currency, active-item charge meter, minimap, floor name (§9)
-- 🟥 Adopt the generic FS.GG game shell (FS-GG/FS.GG.Rendering#991): main menu (title + Start/Config/Exit), Esc pause routing, Settings with screen resolution + fullscreen, and in-game key rebinding of the §3 controls, persisted — the game provides its name + key→command map + play update/view; the shell provides the rest, no bespoke menu system (§9.1)
-- 🟥 Game-specific rows over the shell (run management, difficulty mode, volume/sound, screen shake) apply live + persist to `MetaProfile` (§9.1, §12, §13)
-- 🟥 Stats & charts screen: KPI tiles + depth histogram + damage-per-floor line (§9.2)
-- 🟥 Difficulty-mode scaling table (Easy/Normal/Hard) latched at `StartRun` (§12, §9.1) — AC #13
+- 🟩 HUD: hearts row, currency, active-item charge meter, minimap, floor name (§9)
+- 🟩 Adopt the generic FS.GG game shell (FS-GG/FS.GG.Rendering#991): main menu (title + Start/Config/Exit), Esc pause routing, Settings with screen resolution + fullscreen, and in-game key rebinding of the §3 controls, persisted — the game provides its name + key→command map + play update/view; the shell provides the rest, no bespoke menu system (§9.1)
+- 🟩 Game-specific rows over the shell (run management, difficulty mode, volume/sound, screen shake) apply live + persist to `MetaProfile` (§9.1, §12, §13)
+- 🟩 Stats & charts screen: KPI tiles + depth histogram + damage-per-floor line (§9.2)
+- 🟩 Difficulty-mode scaling table (Easy/Normal/Hard) latched at `StartRun` (§12, §9.1) — AC #13
+
+Evidence (2026-08-01): full Release 140/140 and focused M7 12/12; six governed bounded-headless workloads plus fail-closed menu/HUD/stats routes green; responsive HUD rasters at 1280×720 and 1920×1080 have non-overlapping anchors, and the stats raster shows four KPI tiles, five depth buckets, and distinct Dealt/Taken traces; exact implementation SHA `99a0c2d5458c1889e420b28b5941273359f51521` was accepted by independent functional and performance critics; SDD verdict `readiness/008-m7-ui-menus-stats/ship-verdict.json` is `shipReady` with 17/17 supported and observed obligations. Delivery is local-only because this checkout has no configured remote.
 
 ### M8 — Audio
 - 🟥 `AudioEffect` cues per event, `Audio.interpret` → `AudioEvidence.Requested` (§10)

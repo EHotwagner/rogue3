@@ -54,9 +54,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -80,9 +80,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -106,9 +106,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -132,9 +132,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -158,9 +158,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -184,9 +184,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -210,9 +210,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -236,9 +236,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -262,9 +262,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -288,9 +288,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -314,9 +314,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -340,9 +340,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -366,9 +366,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -392,9 +392,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -418,9 +418,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -444,9 +444,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
@@ -470,9 +470,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/008-m7-ui-menus-stats/test-results/m7-full.trx
-      digest: "sha256:a7cd5299c0aed76e01516f4b19f66a92af982eedda6969eaf61fa09c58a09de6"
+      digest: "sha256:04f1462f19f0657047fddb2a77604d82096146f2461f8fd49c5897b788e26667"
       outcome: passed
-      passed: 134
+      passed: 140
       failed: 0
       skipped: 0
     notes: [Evidence required before verify.]
