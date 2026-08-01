@@ -12,8 +12,8 @@
       "definitionDigest": "89c6080c3acf3bd3a15975455de7e1a4ba5504c8befb2acb3588ed5d3908e174",
       "declaredDefinitionDigest": "89c6080c3acf3bd3a15975455de7e1a4ba5504c8befb2acb3588ed5d3908e174",
       "authorshipPassed": true,
-      "p95Ms": 0.3218,
-      "p99Ms": 1.015,
+      "p95Ms": 0.4869,
+      "p99Ms": 0.8948,
       "observedScale": {
         "controlNodes": 9,
         "boundControls": 7
@@ -24,11 +24,11 @@
     {
       "id": "hud-playing",
       "definition": "M7 gameplay HUD route; 1280x720 and 1920x1080; exactly hearts/currency/active-charge/minimap/floor-name regions and 0 bound controls",
-      "definitionDigest": "e78b8185a193d9298a8253873211166666cd764e34b3851bac511f2b07273b7c",
-      "declaredDefinitionDigest": "e78b8185a193d9298a8253873211166666cd764e34b3851bac511f2b07273b7c",
+      "definitionDigest": "a61e69a73ca2375c500b6bc25c1fa442a1aff1ec0fd6d713c5f4429ba9d749d7",
+      "declaredDefinitionDigest": "a61e69a73ca2375c500b6bc25c1fa442a1aff1ec0fd6d713c5f4429ba9d749d7",
       "authorshipPassed": true,
-      "p95Ms": 0.0723,
-      "p99Ms": 0.1099,
+      "p95Ms": 0.0624,
+      "p99Ms": 0.0778,
       "observedScale": {
         "controlNodes": 1,
         "boundControls": 0,
@@ -128,8 +128,8 @@
       "definitionDigest": "4fb5d3386b621f4b1e29e098cac96b07103e026ee77842d3b3ffb1a129b93d80",
       "declaredDefinitionDigest": "4fb5d3386b621f4b1e29e098cac96b07103e026ee77842d3b3ffb1a129b93d80",
       "authorshipPassed": true,
-      "p95Ms": 0.3766,
-      "p99Ms": 0.6725,
+      "p95Ms": 0.3369,
+      "p99Ms": 0.5735,
       "observedScale": {
         "controlNodes": 9,
         "boundControls": 3,
@@ -149,8 +149,8 @@
       "definitionDigest": "3ce62714d04372049e5d634c9f466e929e06639db1e07dcceaa897edfc13e9be",
       "declaredDefinitionDigest": "3ce62714d04372049e5d634c9f466e929e06639db1e07dcceaa897edfc13e9be",
       "authorshipPassed": true,
-      "p95Ms": 1.1945,
-      "p99Ms": 1.2622,
+      "p95Ms": 1.7427,
+      "p99Ms": 2.1058,
       "observedScale": {
         "controlNodes": 19,
         "boundControls": 3,

@@ -182,6 +182,38 @@ let particleScene (particle: M6Particle) =
             { X=particle.Position.Vx-particle.Radius; Y=particle.Position.Vy-particle.Radius
               Width=particle.Radius*2.0; Height=particle.Radius*2.0 } fill
 
+let private particleFill particle =
+    let alpha = byte (Math.Round(255.0 * particleOpacity particle))
+    match particle.Tint with
+    | ParticleTint.Death -> color 232uy 66uy 79uy alpha
+    | ParticleTint.Muzzle -> color 255uy 214uy 96uy alpha
+    | ParticleTint.Explosion -> color 255uy 122uy 48uy alpha
+
+// The pool is deliberately large (600), so describe it with batched scene primitives instead of
+// allocating one scene node per particle. Point batches preserve circle radius/colour; quad batches
+// use per-vertex colours and two triangles per particle. The model still retains and steps every
+// particle independently, while the production renderer presents the same visible inventory with a
+// bounded number of draw nodes.
+let private particlesScene particles =
+    let circles =
+        particles
+        |> List.filter(fun particle->particle.Shape=ParticleShape.Circle)
+        |> List.groupBy(fun particle->particle.Radius,particleFill particle)
+        |> List.map(fun((radius,fill),values)->
+            values|>List.map(fun particle->point particle.Position)|>fun points->Scene.points points (Paint.stroke fill (radius*2.0)))
+    let quadVertices =
+        particles
+        |> List.filter(fun particle->particle.Shape=ParticleShape.Quad)
+        |> List.collect(fun particle->
+            let r=particle.Radius
+            let x,y=particle.Position.Vx,particle.Position.Vy
+            let fill=particleFill particle
+            let vertex px py = {Position={X=px;Y=py};Color=Some fill}
+            [vertex (x-r) (y-r);vertex (x+r) (y-r);vertex (x+r) (y+r)
+             vertex (x-r) (y-r);vertex (x+r) (y+r);vertex (x-r) (y+r)])
+    let quads=if List.isEmpty quadVertices then [] else [Scene.vertices VertexMode.Triangles quadVertices (Paint.fill (color 255uy 255uy 255uy 255uy))]
+    Scene.group(circles@quads)
+
 let private obstacleId = function
     | ObstacleKind.Rock -> "ObstacleRock"
     | ObstacleKind.TintedRock -> "ObstacleTintedRock"
@@ -326,7 +358,7 @@ let renderedElementsIn grammar model : RenderedElement list =
 
       if not model.M6Particles.IsEmpty then
           yield rendered "Particle" "effects/particle" RenderLayer.Particles
-                    (model.M6Particles |> List.map particleScene |> Scene.group)
+                    (particlesScene model.M6Particles)
 
       yield rendered "HudScore" "scene/hud-score" RenderLayer.Hud
                 (hudSceneForSize { Width=1280;Height=720 } model)

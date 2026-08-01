@@ -123,4 +123,20 @@ let tests =
             finally
                 if Directory.Exists directory then Directory.Delete(directory,true)
         }
+
+        test "terminal performance cost driver fails closed against measured UI evidence" {
+            let directory=tempDirectory()
+            Directory.CreateDirectory(directory)|>ignore
+            let path=Path.Combine(directory,"m7-ui-performance.json")
+            try
+                let valid="""{"routes":[{"id":"run-result","passed":true,"observedScale":{"controlNodes":9,"boundControls":3,"summaryTextFields":5,"boundActionIds":["result-new-run","result-retry-seed","result-title"]}}]}"""
+                File.WriteAllText(path,valid)
+                Expect.isEmpty (PerformanceEvidence.uiEvidenceProblems path|>fst) "the exact production result scale satisfies its measured cost driver"
+                File.WriteAllText(path,valid.Replace("\"summaryTextFields\":5","\"summaryTextFields\":4"))
+                let stale=PerformanceEvidence.uiEvidenceProblems path|>fst
+                Expect.isNonEmpty stale "a stale summary scale blocks performance coverage"
+                Expect.isNonEmpty (PerformanceEvidence.uiEvidenceProblems (path+".missing")|>fst) "a missing UI artifact blocks performance coverage"
+            finally
+                if Directory.Exists directory then Directory.Delete(directory,true)
+        }
     ]

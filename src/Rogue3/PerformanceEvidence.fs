@@ -1092,7 +1092,8 @@ let private maximumContentModel () =
                   Drop=Some Rogue3.Entities.PickupKind.Key
                   Reward=Some Rogue3.Entities.baseItems.Head
                   Trapdoor=true } }
-    update (SpawnM6Particles(650, vec2 640.0 360.0, ParticleTint.Explosion)) fixture |> fst
+    let populated=update (SpawnM6Particles(650, vec2 640.0 360.0, ParticleTint.Explosion)) fixture |> fst
+    {populated with M6Particles=populated.M6Particles|>List.map(fun particle->{particle with LifetimeTicks=10000})}
 
 // Product-owned canonical representative factory at the journey boot seam. It is not the ordinary
 // player boot; its role is to make maximum authored content reachable through the same production
@@ -1237,17 +1238,16 @@ let expectedWorkloads =
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
-        Definition = "M6 canonical maximum fixture through production journey/update/view: inherited M5 maximum combat plus eight live enemy symbols, exactly 600 retained particles, eleven ordered render layers, and one active 0.35-second room camera transition"
+        Definition = "M6 canonical maximum fixture through production journey/update/view: inherited M5 maximum combat plus eight live enemy symbols, exactly 600 long-lived retained particles, eleven ordered render layers, and one active 0.35-second room camera transition"
         Classification = NormalPlay
         WarmupFrames = 20
-        SampleFrames = 120
+        SampleFrames = 720
         EventsPerFrame = 1
         PointerEventsPerFrame = 0
         InitialState = maximumContentModel
         MessagesAt =
             (fun _ ->
                 [ BeginM6RoomTransition RoomSlideDirection.East
-                  SpawnM6Particles(650, vec2 640.0 360.0, ParticleTint.Explosion)
                   KeyChanged(keyName ArrowRight, true)
                   Tick(1.0 / 60.0) ])
         Provenance =
@@ -1319,7 +1319,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "4d97fa2b1574d4c809756a162e19183b82ff043219c527e20fbb2a4857793eb6" }
+        Authorship = Authored "20155a1f0111399d50c673b1b78ba13a533423ab35bf092fed0bc636f3350671" }
       // WORKLOAD-SOURCE-END maximum-content
       ]
 
@@ -1338,7 +1338,40 @@ let private duplicateValues values =
 let private requiredNormalWorkloadIds =
     [ "idle"; "movement-aiming"; "firing"; "effects-fog"; "floor-generation"; "maximum-content" ]
 
-let private costDriverProblems (results: WorkloadResult list) =
+let uiEvidenceProblems (path:string) =
+    if not(File.Exists path) then [ $"measured UI route artifact is missing: {path}" ],"missing"
+    else
+        let bytes=File.ReadAllBytes path
+        let digest=SHA256.HashData bytes|>Convert.ToHexString|>_.ToLowerInvariant()
+        try
+            use document=JsonDocument.Parse bytes
+            let routes=
+                document.RootElement.GetProperty("routes").EnumerateArray()
+                |> Seq.map(fun route->route.GetProperty("id").GetString(),route.Clone())
+                |> Map.ofSeq
+            let problems=
+                [ for driver in performanceCostDrivers do
+                    match driver.Disposition with
+                    | MeasuredInUi routeIds ->
+                        for routeId in routeIds do
+                            match Map.tryFind routeId routes with
+                            | None -> $"cost driver '{driver.Id}' names missing measured UI route '{routeId}'"
+                            | Some route ->
+                                if not(route.GetProperty("passed").GetBoolean()) then
+                                    $"cost driver '{driver.Id}' measured UI route '{routeId}' did not pass"
+                                if routeId="run-result" then
+                                    let scale=route.GetProperty("observedScale")
+                                    let actions=scale.GetProperty("boundActionIds").EnumerateArray()|>Seq.map _.GetString()|>Set.ofSeq
+                                    if scale.GetProperty("controlNodes").GetInt32()<>9
+                                       || scale.GetProperty("boundControls").GetInt32()<>3
+                                       || scale.GetProperty("summaryTextFields").GetInt32()<>5
+                                       || actions<>Set["result-new-run";"result-retry-seed";"result-title"] then
+                                        $"cost driver '{driver.Id}' measured UI route '{routeId}' has stale or under-scale production output"
+                    | _ -> () ]
+            problems,digest
+        with error -> [ $"measured UI route artifact is unreadable: {error.Message}" ],digest
+
+let private costDriverProblems (results: WorkloadResult list) uiProblems =
     let workloadById = expectedWorkloads |> List.map (fun workload -> workload.Id, workload) |> Map.ofList
     let resultById = results |> List.map (fun result -> result.Workload.Id, result) |> Map.ofList
     let driverById = performanceCostDrivers |> List.map (fun driver -> driver.Id, driver) |> Map.ofList
@@ -1355,7 +1388,8 @@ let private costDriverProblems (results: WorkloadResult list) =
     let shippedVisualText = String.concat "," shippedVisuals
     let inventoryVisualText = String.concat "," inventoryVisuals
 
-    [ if not (List.isEmpty duplicateDriverIds) then
+    [ yield! uiProblems
+      if not (List.isEmpty duplicateDriverIds) then
           $"duplicate performance cost-driver ids: {duplicateDriverText}"
       if inventoryVisuals <> (List.distinct inventoryVisuals) then
           "duplicate visual-element bindings in the performance cost-driver inventory"
@@ -1403,7 +1437,7 @@ let private capabilityMetricToken =
     | Observed value -> $"observed:{value}"
     | Unsupported reason -> $"unsupported:{reason}"
 
-let private criticInputDigest (results: WorkloadResult list) coverageProblems =
+let private criticInputDigest (results: WorkloadResult list) coverageProblems uiEvidenceDigest =
     let intent =
         performanceIntentDeclaration.WorkloadDefinitionDigests
         |> String.concat ","
@@ -1446,7 +1480,7 @@ let private criticInputDigest (results: WorkloadResult list) coverageProblems =
     let capability =
         $"{performanceIntentDeclaration.RequiredCapability}|live={performanceIntentDeclaration.LiveCompositorRequired}|bounded-headless-update-and-scene-route|not-authoritative=live-compositor,swapchain,vblank,vsync"
     sha256Text
-        $"performance-representativeness-v1|{intent}|{provenance}|{drivers}|{measuredEvidence}|coverage={coverageVerdict}|packages={packages}|host={host}|capability={capability}"
+        $"performance-representativeness-v1|{intent}|{provenance}|{drivers}|{measuredEvidence}|uiEvidence={uiEvidenceDigest}|coverage={coverageVerdict}|packages={packages}|host={host}|capability={capability}"
 
 let private declarationProblems () =
     let duplicateIds = expectedWorkloads |> List.map _.Id |> duplicateValues
@@ -1548,9 +1582,13 @@ let private writeIntentJson (json: Utf8JsonWriter) =
 
 let writeExpectedWorkloadEvidence (path: string) =
     let results = expectedWorkloads |> List.map runWorkload
-    let coverageProblems = costDriverProblems results
-    let criticDigest = criticInputDigest results coverageProblems
     let directory = Path.GetDirectoryName path
+    let uiEvidencePath =
+        if String.IsNullOrWhiteSpace directory then "m7-ui-performance.json"
+        else Path.Combine(directory,"m7-ui-performance.json")
+    let uiProblems,uiEvidenceDigest=uiEvidenceProblems uiEvidencePath
+    let coverageProblems = costDriverProblems results uiProblems
+    let criticDigest = criticInputDigest results coverageProblems uiEvidenceDigest
 
     if not (String.IsNullOrWhiteSpace directory) then
         Directory.CreateDirectory directory |> ignore
@@ -1568,6 +1606,10 @@ let writeExpectedWorkloadEvidence (path: string) =
     writeIntentJson json
     json.WriteString("measurementCapability", "bounded-headless-update-and-scene-route")
     json.WriteString("notAuthoritativeFor", "live-compositor,swapchain,vblank,vsync")
+    json.WriteStartObject("uiRouteEvidence")
+    json.WriteString("artifact",uiEvidencePath)
+    json.WriteString("artifactDigest",$"sha256:{uiEvidenceDigest}")
+    json.WriteEndObject()
 
     json.WriteString(
         "hostProfile",

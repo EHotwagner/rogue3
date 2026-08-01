@@ -52,9 +52,9 @@ evidence:
     synthetic: false
     observedRun:
       source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
-      digest: "sha256:66a0f859df756ac3ff498d72888b1e9fe1af08dae0ed8cd6b4c72c573ef05efa"
+      digest: "sha256:55615190011ad4a0b618ed13b977cf8b49928410b07b6ab54d5ec2dd72d9f9a2"
       outcome: passed
-      passed: 152
+      passed: 153
       failed: 0
       skipped: 0
     notes: [Production floor-6 boss damage yields Victory, and audio., discard, persistence request, rendering, score summary, unlock]
@@ -76,9 +76,9 @@ evidence:
     synthetic: false
     observedRun:
       source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
-      digest: "sha256:66a0f859df756ac3ff498d72888b1e9fe1af08dae0ed8cd6b4c72c573ef05efa"
+      digest: "sha256:55615190011ad4a0b618ed13b977cf8b49928410b07b6ab54d5ec2dd72d9f9a2"
       outcome: passed
-      passed: 152
+      passed: 153
       failed: 0
       skipped: 0
     notes: [Production fixed-step zero-health resolution yields GameOver, and terminal audio., discard, unlock evaluation]
@@ -100,9 +100,9 @@ evidence:
     synthetic: false
     observedRun:
       source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
-      digest: "sha256:66a0f859df756ac3ff498d72888b1e9fe1af08dae0ed8cd6b4c72c573ef05efa"
+      digest: "sha256:55615190011ad4a0b618ed13b977cf8b49928410b07b6ab54d5ec2dd72d9f9a2"
       outcome: passed
-      passed: 152
+      passed: 153
       failed: 0
       skipped: 0
     notes: ["Exact §11 score formula", and idempotent end-run tally are asserted., best-by-seed, score independence]
@@ -124,9 +124,9 @@ evidence:
     synthetic: false
     observedRun:
       source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
-      digest: "sha256:66a0f859df756ac3ff498d72888b1e9fe1af08dae0ed8cd6b4c72c573ef05efa"
+      digest: "sha256:55615190011ad4a0b618ed13b977cf8b49928410b07b6ab54d5ec2dd72d9f9a2"
       outcome: passed
-      passed: 152
+      passed: 153
       failed: 0
       skipped: 0
     notes: [A unique system temporary directory proves debounce, and safe fallbacks without user data., atomic rename, boot load, round-trip, sibling temp creation]
@@ -148,9 +148,9 @@ evidence:
     synthetic: false
     observedRun:
       source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
-      digest: "sha256:66a0f859df756ac3ff498d72888b1e9fe1af08dae0ed8cd6b4c72c573ef05efa"
+      digest: "sha256:55615190011ad4a0b618ed13b977cf8b49928410b07b6ab54d5ec2dd72d9f9a2"
       outcome: passed
-      passed: 152
+      passed: 153
       failed: 0
       skipped: 0
     notes: [Production overlay, and shell-side realization of profile saves are observed., terminal tracks]
@@ -172,9 +172,9 @@ evidence:
     synthetic: false
     observedRun:
       source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
-      digest: "sha256:66a0f859df756ac3ff498d72888b1e9fe1af08dae0ed8cd6b4c72c573ef05efa"
+      digest: "sha256:55615190011ad4a0b618ed13b977cf8b49928410b07b6ab54d5ec2dd72d9f9a2"
       outcome: passed
-      passed: 152
+      passed: 153
       failed: 0
       skipped: 0
     notes: [The product-owned terminal/profile contract is implemented without framework surface changes.]
@@ -190,18 +190,18 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-001, PD-002, PD-003, PD-004, PD-005]
     obligationRefs: [EV007]
-    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, tests/Rogue3.Tests/TestResults/m9-release-final.trx]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, tests/Rogue3.Tests/TestResults/m9-release-final.trx, tests/Rogue3.Tests/TestResults/m9-release-final.trx.sha256]
     sourceRefs: []
     result: pass
     synthetic: false
     observedRun:
       source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
-      digest: "sha256:66a0f859df756ac3ff498d72888b1e9fe1af08dae0ed8cd6b4c72c573ef05efa"
+      digest: "sha256:55615190011ad4a0b618ed13b977cf8b49928410b07b6ab54d5ec2dd72d9f9a2"
       outcome: passed
-      passed: 152
+      passed: 153
       failed: 0
       skipped: 0
-    notes: [Focused Release 5/5, and three UI routes pass., full Release and Verify 150/150, six workloads]
+    notes: [Focused Release 8/8, full Release and Verify 153/153, raw and SDD BOM-stripped TRX digests are committed in the sidecar, six workloads and four UI routes pass]
   - id: EV008
     kind: verification
     subject:
@@ -220,9 +220,9 @@ evidence:
     synthetic: false
     observedRun:
       source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
-      digest: "sha256:66a0f859df756ac3ff498d72888b1e9fe1af08dae0ed8cd6b4c72c573ef05efa"
+      digest: "sha256:55615190011ad4a0b618ed13b977cf8b49928410b07b6ab54d5ec2dd72d9f9a2"
       outcome: passed
-      passed: 152
+      passed: 153
       failed: 0
       skipped: 0
     notes: ["Version 1 round-trips; absent", and unsupported versions fall back explicitly without destructive migration., malformed]
@@ -244,9 +244,9 @@ evidence:
     synthetic: false
     observedRun:
       source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
-      digest: "sha256:66a0f859df756ac3ff498d72888b1e9fe1af08dae0ed8cd6b4c72c573ef05efa"
+      digest: "sha256:55615190011ad4a0b618ed13b977cf8b49928410b07b6ab54d5ec2dd72d9f9a2"
       outcome: passed
-      passed: 152
+      passed: 153
       failed: 0
       skipped: 0
     notes: [Typed performance declarations and evidence were regenerated after the model-shape change and are current and green.]

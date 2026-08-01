@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "rubricVersion": "performance-representativeness-v1",
-  "inputDigest": "53cca824aaa38910333c2030d3cd5a28662cb68a5599930ec20d57e11bfd8250",
+  "inputDigest": "4fd8a72e526651480a4dd5060969640c04287250ca9eaf81731dc853f3e6e35c",
   "evidenceArtifact": "readiness/performance-evidence.json",
-  "evidenceArtifactDigest": "sha256:a205c2d192e3847c7ad0305ad8e42b3e274b1b969830520b3cfe6a99cccd1a07",
+  "evidenceArtifactDigest": "sha256:936e7408e03aa0fa82fc307710ce50007dc672278d7441a314807c2cbb3d82c6",
   "machineExitCode": 0,
   "requiredReviewBoundary": "attributable external review at the exact landing commit",
   "representativeReady": false

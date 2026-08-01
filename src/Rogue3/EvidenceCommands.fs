@@ -1378,12 +1378,17 @@ let m7UiPerformanceEvidence (path:string) =
     let declared =
         Map.ofList
             [ "main-menu", "89c6080c3acf3bd3a15975455de7e1a4ba5504c8befb2acb3588ed5d3908e174"
-              "hud-playing", "e78b8185a193d9298a8253873211166666cd764e34b3851bac511f2b07273b7c"
+              "hud-playing", "a61e69a73ca2375c500b6bc25c1fa442a1aff1ec0fd6d713c5f4429ba9d749d7"
               "run-result", "4fb5d3386b621f4b1e29e098cac96b07103e026ee77842d3b3ffb1a129b93d80"
               "stats-charts", "3ce62714d04372049e5d634c9f466e929e06639db1e07dcceaa897edfc13e9be" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]
+    let runResultTextFields =
+        runResultFrame.Scene
+        |> Scene.describe
+        |> List.sumBy(function TextElement|TextRunElement|SizedTextElement|GlyphRunElement->1|_->0)
+        |> fun renderedTextFields->renderedTextFields-runResultFrame.BoundIds.Count
     let outputs = [ {Width=1280;Height=720};{Width=1920;Height=1080} ]
     let hudSceneElements = outputs |> List.map (fun output -> Rogue3.Render.hudSceneForSize output playing.Play |> Scene.describe |> List.length)
     let hudRegions = outputs |> List.map (fun output -> output, Rogue3.Render.hudRegionsForSize output)
@@ -1402,7 +1407,7 @@ let m7UiPerformanceEvidence (path:string) =
             && (Rogue3.M7Ui.statsSeries statsPlay |> snd |> List.length)=2
         | "run-result" ->
             nodes=9 && bound=3 && runResultFrame.BoundIds=expectedResultActions
-            && runResult.Play.LastRunSummary.IsSome
+            && runResultTextFields=5 && runResult.Play.LastRunSummary.IsSome
         | _ -> false
     use stream=File.Create path
     use json=new Utf8JsonWriter(stream,JsonWriterOptions(Indented=true))
@@ -1442,7 +1447,7 @@ let m7UiPerformanceEvidence (path:string) =
             kpis |> List.iter (fst >> json.WriteStringValue)
             json.WriteEndArray();json.WriteNumber("depthBuckets",5);json.WriteNumber("damageSeries",2)
         elif name="run-result" then
-            json.WriteNumber("summaryTextFields",5)
+            json.WriteNumber("summaryTextFields",runResultTextFields)
             json.WriteStartArray("boundActionIds")
             expectedResultActions |> Set.iter json.WriteStringValue
             json.WriteEndArray()
@@ -1452,6 +1457,18 @@ let m7UiPerformanceEvidence (path:string) =
     let passed=routes|>List.forall(fun(name,p95,p99,nodes,bound)->p95<=16.67&&p99<=25.0&&nodes<=4096&&scalePassed name nodes bound&&digest name=declared[name])
     printfn "status=%s m7-ui-performance routes=%d artifact=%s" (if passed then "ok" else "failed") routes.Length path
     if passed then 0 else 1
+
+let private performanceEvidenceWithCurrentUi (path:string) =
+    let directory=Path.GetDirectoryName path
+    let uiPath=if String.IsNullOrWhiteSpace directory then "m7-ui-performance.json" else Path.Combine(directory,"m7-ui-performance.json")
+    let uiExit=m7UiPerformanceEvidence uiPath
+    if uiExit<>0 then uiExit else Rogue3.PerformanceEvidence.writeExpectedWorkloadEvidence path
+
+let private performanceCriticRequestWithCurrentUi (path:string) =
+    let directory=Path.GetDirectoryName path
+    let uiPath=if String.IsNullOrWhiteSpace directory then "m7-ui-performance.json" else Path.Combine(directory,"m7-ui-performance.json")
+    let uiExit=m7UiPerformanceEvidence uiPath
+    if uiExit<>0 then uiExit else Rogue3.PerformanceEvidence.writePerformanceCriticRequest path
 
 let tryRunEvidenceCommand args =
     match args with
@@ -1485,12 +1502,12 @@ let tryRunEvidenceCommand args =
     | "--view-image" :: _ -> Some(viewImage "readiness/view-image.png")
     | "--screenshot-evidence" :: path :: _ -> Some(screenshotEvidence path)
     | "--screenshot-evidence" :: _ -> Some(screenshotEvidence "readiness/game-screenshot-evidence.txt")
-    | "--performance-evidence" :: path :: _ -> Some(Rogue3.PerformanceEvidence.writeExpectedWorkloadEvidence path)
-    | "--performance-evidence" :: _ -> Some(Rogue3.PerformanceEvidence.writeExpectedWorkloadEvidence "readiness/performance-evidence.json")
+    | "--performance-evidence" :: path :: _ -> Some(performanceEvidenceWithCurrentUi path)
+    | "--performance-evidence" :: _ -> Some(performanceEvidenceWithCurrentUi "readiness/performance-evidence.json")
     | "--performance-critic-request" :: path :: _ ->
-        Some(Rogue3.PerformanceEvidence.writePerformanceCriticRequest path)
+        Some(performanceCriticRequestWithCurrentUi path)
     | "--performance-critic-request" :: _ ->
-        Some(Rogue3.PerformanceEvidence.writePerformanceCriticRequest "readiness/performance-critic-request.json")
+        Some(performanceCriticRequestWithCurrentUi "readiness/performance-critic-request.json")
     | "--performance-intent" :: path :: _ -> Some(Rogue3.PerformanceEvidence.writePerformanceIntentDeclaration path)
     | "--performance-intent" :: _ -> Some(Rogue3.PerformanceEvidence.writePerformanceIntentDeclaration "readiness/performance-intent.yml")
     | "--m6-visual-evidence" :: path :: _ -> Some(m6VisualEvidence path)
