@@ -2,6 +2,8 @@ module Rogue3.EvidenceCommands
 
 open System
 open System.IO
+open System.Diagnostics
+open System.Text.Json
 open FS.GG.UI.Scene
 open Rogue3.Model
 open Rogue3.Geometry
@@ -293,6 +295,7 @@ let generatedHost =
 type ShellHostModel =
     { Shell: Rogue3.GameShell.Model
       Play: Model
+      StatsOpen: bool
       /// Raw keys retained from native down until the matching native up. Gameplay consumes this
       /// snapshot on fixed ticks; shell chrome and rebind capture still consume the same raw seam.
       HeldKeys: Set<KeyId> }
@@ -305,16 +308,34 @@ type ShellHostMsg =
     | ShellDispatch of Rogue3.GameShell.Msg
     | PlayDispatch of Msg
     | RawKeyChanged of key: KeyId * isDown: bool
+    | StartFreshRun of seed:uint64
+    | ContinueRun
+    | OpenStats
+    | CloseStats
+    | AbandonRun
+    | ChangeDifficulty of DifficultyMode
+    | ChangeVolume of float
+    | ChangeMuted of bool
+    | ChangeScreenShake of bool
+    | ChangeStatScope of StatScope
 
 /// The game's parameterization of the shell: its name (the menu title), its rebindable key->command
 /// map (the play controls), and the resolutions/modes the settings screen offers.
 let shellConfig: Rogue3.GameShell.Config =
-    { Title = "Generated Rogue3"
+    { Title = "HOLLOW DEPTHS"
       Actions =
-        [ { Command = "left-up"; Label = "Left paddle up"; Order = 10; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'W')) }
-          { Command = "left-down"; Label = "Left paddle down"; Order = 20; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'S')) }
-          { Command = "right-up"; Label = "Right paddle up"; Order = 30; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId ArrowUp) }
-          { Command = "right-down"; Label = "Right paddle down"; Order = 40; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId ArrowDown) } ]
+        [ { Command = "move-up"; Label = "Move up"; Order = 10; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'W')) }
+          { Command = "move-left"; Label = "Move left"; Order = 20; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'A')) }
+          { Command = "move-down"; Label = "Move down"; Order = 30; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'S')) }
+          { Command = "move-right"; Label = "Move right"; Order = 40; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'D')) }
+          { Command = "aim-up"; Label = "Aim up / fire"; Order = 50; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId ArrowUp) }
+          { Command = "aim-left"; Label = "Aim left / fire"; Order = 60; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId ArrowLeft) }
+          { Command = "aim-down"; Label = "Aim down / fire"; Order = 70; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId ArrowDown) }
+          { Command = "aim-right"; Label = "Aim right / fire"; Order = 80; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId ArrowRight) }
+          { Command = "dodge"; Label = "Dodge roll"; Order = 90; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId Space) }
+          { Command = "active"; Label = "Use active / interact"; Order = 100; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'E')) }
+          { Command = "bomb"; Label = "Drop bomb"; Order = 110; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'Q')) }
+          { Command = "map"; Label = "Map"; Order = 120; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'M')) } ]
       DisplayModes = [ Rogue3.GameShell.Windowed; Rogue3.GameShell.Borderless; Rogue3.GameShell.Fullscreen ]
       Resolutions = [ { Width = 1280; Height = 720 }; { Width = 1920; Height = 1080 } ]
       InitialDisplay = { Resolution = { Width = 1280; Height = 720 }; Mode = Rogue3.GameShell.Windowed } }
@@ -323,10 +344,9 @@ let shellConfig: Rogue3.GameShell.Config =
 /// shell resolves a key to a command only while `Playing`; this is the `toGame` the shell needs.
 let private playCommandToMsg (command: CommandId) : Msg option =
     match command with
-    | "left-up" -> Some(MovePaddle(LeftSide, PaddleUp))
-    | "left-down" -> Some(MovePaddle(LeftSide, PaddleDown))
-    | "right-up" -> Some(MovePaddle(RightSide, PaddleUp))
-    | "right-down" -> Some(MovePaddle(RightSide, PaddleDown))
+    | "move-up" | "move-left" | "move-down" | "move-right"
+    | "aim-up" | "aim-left" | "aim-down" | "aim-right"
+    | "dodge" | "active" | "bomb" | "map" -> Some NoOp
     | _ -> None
 
 // Runtime preferences belong beside the rogue3's other per-user state, never in `readiness/`
@@ -417,7 +437,7 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
     { Init =
         fun () ->
             let shell = loadShellSettings (Rogue3.GameShell.init shellConfig)
-            let model = { Shell = shell; Play = initialModel; HeldKeys = Set.empty }
+            let model = { Shell = shell; Play = initialModel; StatsOpen = false; HeldKeys = Set.empty }
             // Issue #458: the LOADED initial state still reaches the audio sink. `Started` announces
             // the initial play model through the SAME cue seam every transition uses. The shell host is
             // the launch host now, so it owns this the way `generatedHost` did before the move.
@@ -432,37 +452,72 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
             | ShellDispatch shellMsg ->
                 let nextShell, effects = Rogue3.GameShell.update shellMsg model.Shell
                 let held = if nextShell.Screen = Rogue3.GameShell.Playing then model.HeldKeys else Set.empty
-                { model with Shell = nextShell; HeldKeys = held }, (effects |> List.collect (applyShellEffect nextShell))
+                let play =
+                    match shellMsg, model.Shell.Screen, nextShell.Screen with
+                    | Rogue3.GameShell.Start, Rogue3.GameShell.MainMenu, Rogue3.GameShell.Playing ->
+                        Rogue3.Model.update (StartRun (model.Play.RunSeed + 1UL)) model.Play |> fst
+                    | _ -> model.Play
+                { model with Shell = nextShell; Play = play; StatsOpen = false; HeldKeys = held }, (effects |> List.collect (applyShellEffect nextShell))
+            | StartFreshRun seed ->
+                let shell, effects = Rogue3.GameShell.update Rogue3.GameShell.Start model.Shell
+                let play = Rogue3.Model.update (StartRun seed) model.Play |> fst
+                { model with Shell = shell; Play = play; StatsOpen = false; HeldKeys = Set.empty }, effects |> List.collect (applyShellEffect shell)
+            | ContinueRun ->
+                let shell, effects = Rogue3.GameShell.update Rogue3.GameShell.Start model.Shell
+                { model with Shell = shell; StatsOpen = false; HeldKeys = Set.empty }, effects |> List.collect (applyShellEffect shell)
+            | OpenStats -> { model with StatsOpen = true; HeldKeys = Set.empty }, []
+            | CloseStats -> { model with StatsOpen = false }, []
+            | AbandonRun ->
+                let shell, effects = Rogue3.GameShell.update Rogue3.GameShell.ReturnToMenu model.Shell
+                { model with Shell = shell; Play = { model.Play with RunActive = false }; StatsOpen = false; HeldKeys = Set.empty }, effects |> List.collect (applyShellEffect shell)
+            | ChangeDifficulty difficulty ->
+                let play = Rogue3.Model.update (SetDifficulty difficulty) model.Play |> fst
+                { model with Play = play }, []
+            | ChangeVolume volume ->
+                let play = Rogue3.Model.update (SetMasterVolume volume) model.Play |> fst
+                { model with Play = play }, []
+            | ChangeMuted muted ->
+                let play = Rogue3.Model.update (SetMuted muted) model.Play |> fst
+                { model with Play = play }, []
+            | ChangeScreenShake enabled ->
+                let play = Rogue3.Model.update (SetScreenShake enabled) model.Play |> fst
+                { model with Play = play }, []
+            | ChangeStatScope scope ->
+                let play = Rogue3.Model.update (SetStatScope scope) model.Play |> fst
+                { model with Play = play }, []
             | RawKeyChanged(key, isDown) ->
-                let latchKey play = Rogue3.Model.update (KeyChanged(key, isDown)) play |> fst
+                if model.StatsOpen && isDown && key = Rogue3.GameShell.menuKey then
+                    { model with StatsOpen = false; HeldKeys = Set.empty }, []
+                else
+                    let latchKey play = Rogue3.Model.update (KeyChanged(key, isDown)) play |> fst
 
-                match Rogue3.GameShell.routeKeyEvent playCommandToMsg key isDown model.Shell with
-                | Rogue3.GameShell.ShellEdge shellMsg ->
-                    let nextShell, effects = Rogue3.GameShell.update shellMsg model.Shell
-                    let held = if nextShell.Screen = Rogue3.GameShell.Playing then model.HeldKeys else Set.empty
-                    { model with Shell = nextShell; HeldKeys = held }, (effects |> List.collect (applyShellEffect nextShell))
-                | Rogue3.GameShell.GameEdge(_, true) ->
-                    { model with
-                        Play = latchKey model.Play
-                        HeldKeys = Set.add key model.HeldKeys }, []
-                | Rogue3.GameShell.GameEdge(_, false) ->
-                    { model with
-                        Play = latchKey model.Play
-                        HeldKeys = Set.remove key model.HeldKeys }, []
-                | Rogue3.GameShell.NoKeyEvent ->
-                    // A release still clears a retained key after a screen transition or keymap
-                    // change, even when the shell no longer resolves it as gameplay.
-                    let play =
-                        if model.Shell.Screen = Rogue3.GameShell.Playing then latchKey model.Play
-                        else model.Play
+                    match Rogue3.GameShell.routeKeyEvent playCommandToMsg key isDown model.Shell with
+                    | Rogue3.GameShell.ShellEdge shellMsg ->
+                        let nextShell, effects = Rogue3.GameShell.update shellMsg model.Shell
+                        let held = if nextShell.Screen = Rogue3.GameShell.Playing then model.HeldKeys else Set.empty
+                        { model with Shell = nextShell; HeldKeys = held }, (effects |> List.collect (applyShellEffect nextShell))
+                    | Rogue3.GameShell.GameEdge(_, true) ->
+                        { model with
+                            Play = latchKey model.Play
+                            HeldKeys = Set.add key model.HeldKeys }, []
+                    | Rogue3.GameShell.GameEdge(_, false) ->
+                        { model with
+                            Play = latchKey model.Play
+                            HeldKeys = Set.remove key model.HeldKeys }, []
+                    | Rogue3.GameShell.NoKeyEvent ->
+                        // A release still clears a retained key after a screen transition or keymap
+                        // change, even when the shell no longer resolves it as gameplay.
+                        let play =
+                            if model.Shell.Screen = Rogue3.GameShell.Playing then latchKey model.Play
+                            else model.Play
 
-                    if isDown then { model with Play = play }, []
-                    else { model with Play = play; HeldKeys = Set.remove key model.HeldKeys }, []
+                        if isDown then { model with Play = play }, []
+                        else { model with Play = play; HeldKeys = Set.remove key model.HeldKeys }, []
             | PlayDispatch playMsg ->
                 // Live play only advances while the shell is on the `Playing` screen — the menu, the
                 // pause overlay and the settings screen freeze the world behind them.
-                match model.Shell.Screen with
-                | Rogue3.GameShell.Playing ->
+                match model.Shell.Screen, model.StatsOpen with
+                | Rogue3.GameShell.Playing, false ->
                     let applyPlay (play, effects) msg =
                         let nextPlay, _ = Rogue3.Model.update msg play
                         let cues = Rogue3.AudioCues.forTransition msg play nextPlay
@@ -481,11 +536,26 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
                     { model with Play = nextPlay }, tickEffects
                 | _ -> model, []
       View =
-        fun _size model ->
-            match Rogue3.GameShell.view ShellDispatch shellConfig model.Shell with
-            | Some widget -> Widget.toControl widget
-            | None -> Canvas.create [ Canvas.scene { Nodes = [ Rogue3.View.view model.Play ] } ]
-      Theme = Theme.light
+        fun size model ->
+            let actions: Rogue3.M7Ui.Actions<ShellHostMsg> =
+                { NewRun = StartFreshRun (model.Play.RunSeed + 1UL)
+                  ContinueRun = ContinueRun
+                  DailySeed = StartFreshRun 0xD4115EEDUL
+                  OpenStats = OpenStats
+                  AbandonRun = AbandonRun
+                  Difficulty = ChangeDifficulty
+                  Volume = ChangeVolume
+                  Muted = ChangeMuted
+                  ScreenShake = ChangeScreenShake
+                  CloseStats = CloseStats
+                  Scope = ChangeStatScope }
+            if model.StatsOpen then
+                Rogue3.M7Ui.statsView model.Play actions |> Widget.toControl
+            else
+                match Rogue3.M7Ui.shellView ShellDispatch shellConfig model.Shell model.Play actions with
+                | Some widget -> Widget.toControl widget
+                | None -> Canvas.create [ Canvas.scene { Nodes = [ Rogue3.Render.viewForSize size model.Play ] } ]
+      Theme = Theme.dark
       MapKey =
         // Forward BOTH native edges raw (do not resolve here): rebind capture needs the unbound down,
         // while held gameplay needs the matching up. `Update` routes one normalized seam through the
@@ -1145,6 +1215,86 @@ let m6VisualEvidence (outputDirectory: string) =
     manifest |> List.iter (printfn "%s")
     0
 
+let m7VisualEvidence (outputDirectory: string) =
+    Directory.CreateDirectory outputDirectory |> ignore
+    let render size name scene =
+        let directory = Path.Combine(outputDirectory,name)
+        Directory.CreateDirectory directory |> ignore
+        FS.GG.UI.Symbology.Render.Render.toPng size scene directory
+    let size720 = { Width=1280;Height=720 }
+    let size1080 = { Width=1920;Height=1080 }
+    let hudModel =
+        { initialModel with
+            FloorIndex=7; ActiveCharge=4; FloorNameTicks=240
+            PlayerCurrency={Coins=7;Keys=2;Bombs=1}
+            PlayerHealth={RedContainers=4;RedHalfHearts=7;SoulHalfHearts=2;BlackHalfHearts=0} }
+    let hud720 = render size720 "hud-1280x720" {Nodes=[Rogue3.Render.viewForSize size720 hudModel]}
+    let hud1080 = render size1080 "hud-1920x1080" {Nodes=[Rogue3.Render.viewForSize size1080 hudModel]}
+    let host = interactiveHost
+    let shellModel = host.Init() |> fst
+    let shellFrame = Control.renderTree host.Theme size720 (host.View size720 shellModel)
+    let menu = render size720 "main-menu" shellFrame.Scene
+    let statsModel =
+        { shellModel with
+            StatsOpen=true
+            Play=
+                { shellModel.Play with
+                    RunStats={shellModel.Play.RunStats with DepthReached=8;DamageDealt=146.0;DamageTaken=37.0;DamageByFloor=Map.ofList[1,(24.0,7.0);2,(41.0,10.0);3,(37.0,8.0);4,(44.0,12.0)]}
+                    Profile={shellModel.Play.Profile with Lifetime={shellModel.Play.Profile.Lifetime with RunsPlayed=19;Wins=6;DeepestFloor=13;TotalKills=284;DepthHistory=[2;4;5;8;8;11;13]}} } }
+    let statsFrame = Control.renderTree host.Theme size720 (host.View size720 statsModel)
+    let stats = render size720 "stats-charts" statsFrame.Scene
+    let manifest =
+        [ "status=ok"
+          $"hud-1280x720={hud720} overlap={Rogue3.Render.hudLayoutForSize size720 |> _.Overlaps}"
+          $"hud-1920x1080={hud1080} overlap={Rogue3.Render.hudLayoutForSize size1080 |> _.Overlaps}"
+          $"main-menu={menu} bound-controls={shellFrame.BoundIds.Count} nodes={shellFrame.NodeCount}"
+          $"stats-charts={stats} bound-controls={statsFrame.BoundIds.Count} nodes={statsFrame.NodeCount}"
+          "interaction-proof=tests/Rogue3.Tests/M7UiMenusStatsTests.fs (retained pointer clicks + Responsive verdicts)" ]
+    File.WriteAllLines(Path.Combine(outputDirectory,"manifest.txt"),manifest)
+    manifest |> List.iter (printfn "%s")
+    0
+
+let m7UiPerformanceEvidence (path:string) =
+    let directory = Path.GetDirectoryName path
+    if not(String.IsNullOrWhiteSpace directory) then Directory.CreateDirectory directory |> ignore
+    let host = interactiveHost
+    let size = {Width=1280;Height=720}
+    let menu = host.Init() |> fst
+    let playing = host.Update (StartFreshRun 901UL) menu |> fst
+    let stats = host.Update OpenStats menu |> fst
+    let percentile p (values:float list) =
+        let sorted=List.sort values
+        sorted.[min (sorted.Length-1) (int(Math.Ceiling(p*float sorted.Length))-1)]
+    let measure name model =
+        for _ in 1..20 do Control.renderTree host.Theme size (host.View size model) |> ignore
+        let samples =
+            [for _ in 1..200 do
+                let sw=Stopwatch.StartNew()
+                let frame=Control.renderTree host.Theme size (host.View size model)
+                sw.Stop()
+                yield sw.Elapsed.TotalMilliseconds,frame.NodeCount,frame.BoundIds.Count]
+        let times=samples|>List.map(fun(value,_,_)->value)
+        let _,nodes,bound=samples.Head
+        name,percentile 0.95 times,percentile 0.99 times,nodes,bound
+    let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "stats-charts" stats]
+    use stream=File.Create path
+    use json=new Utf8JsonWriter(stream,JsonWriterOptions(Indented=true))
+    json.WriteStartObject()
+    json.WriteNumber("schemaVersion",1)
+    json.WriteString("capability","bounded-headless InteractiveAppHost.View + Control.renderTree")
+    json.WriteNumber("sampleFramesPerRoute",200)
+    json.WriteNumber("p95BudgetMs",16.67)
+    json.WriteNumber("p99BudgetMs",25.0)
+    json.WriteStartArray("routes")
+    for name,p95,p99,nodes,bound in routes do
+        json.WriteStartObject();json.WriteString("id",name);json.WriteNumber("p95Ms",p95);json.WriteNumber("p99Ms",p99)
+        json.WriteNumber("controlNodes",nodes);json.WriteNumber("boundControls",bound)
+        json.WriteBoolean("passed",p95<=16.67 && p99<=25.0 && nodes<=4096);json.WriteEndObject()
+    json.WriteEndArray();json.WriteEndObject();json.Flush()
+    let passed=routes|>List.forall(fun(_,p95,p99,nodes,_)->p95<=16.67&&p99<=25.0&&nodes<=4096)
+    printfn "status=%s m7-ui-performance routes=%d artifact=%s" (if passed then "ok" else "failed") routes.Length path
+    if passed then 0 else 1
+
 let tryRunEvidenceCommand args =
     match args with
     | "--layout-evidence" :: path :: width :: height :: _ ->
@@ -1187,6 +1337,10 @@ let tryRunEvidenceCommand args =
     | "--performance-intent" :: _ -> Some(Rogue3.PerformanceEvidence.writePerformanceIntentDeclaration "readiness/performance-intent.yml")
     | "--m6-visual-evidence" :: path :: _ -> Some(m6VisualEvidence path)
     | "--m6-visual-evidence" :: _ -> Some(m6VisualEvidence "feedback/2026-08-01-Rogue3-7-assets")
+    | "--m7-visual-evidence" :: path :: _ -> Some(m7VisualEvidence path)
+    | "--m7-visual-evidence" :: _ -> Some(m7VisualEvidence "feedback/2026-08-01-Rogue3-8-assets")
+    | "--m7-ui-performance" :: path :: _ -> Some(m7UiPerformanceEvidence path)
+    | "--m7-ui-performance" :: _ -> Some(m7UiPerformanceEvidence "readiness/m7-ui-performance.json")
     | "--pixel-readback-evidence" :: path :: _ -> Some(visualEvidence "--pixel-readback-evidence" "command=--pixel-readback-evidence" Hash "pixel-readback" "evidence-kind=pixel-readback" "screenshot-unavailable" path)
     | "--pixel-readback-evidence" :: _ -> Some(visualEvidence "--pixel-readback-evidence" "command=--pixel-readback-evidence" Hash "pixel-readback" "evidence-kind=pixel-readback" "screenshot-unavailable" "readiness/game-pixel-readback-evidence.txt")
     | _ -> None

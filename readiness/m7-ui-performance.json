@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "capability": "bounded-headless InteractiveAppHost.View \u002B Control.renderTree",
+  "sampleFramesPerRoute": 200,
+  "p95BudgetMs": 16.67,
+  "p99BudgetMs": 25,
+  "routes": [
+    {
+      "id": "main-menu",
+      "p95Ms": 0.3676,
+      "p99Ms": 0.6573,
+      "controlNodes": 9,
+      "boundControls": 7,
+      "passed": true
+    },
+    {
+      "id": "hud-playing",
+      "p95Ms": 0.0582,
+      "p99Ms": 0.0613,
+      "controlNodes": 1,
+      "boundControls": 0,
+      "passed": true
+    },
+    {
+      "id": "stats-charts",
+      "p95Ms": 0.4386,
+      "p99Ms": 0.7365,
+      "controlNodes": 13,
+      "boundControls": 3,
+      "passed": true
+    }
+  ]
+}

@@ -22,6 +22,56 @@ let layerOrder =
 let private color r g b a : Color = { Red=r; Green=g; Blue=b; Alpha=a }
 let private point (v: Vec2) : Point = { X=v.Vx; Y=v.Vy }
 
+type HudLayoutEvidence =
+    { Size: Size
+      HeartsBounds: Rect
+      CurrencyBounds: Rect
+      ChargeBounds: Rect
+      MinimapBounds: Rect
+      FloorNameBounds: Rect
+      Overlaps: bool }
+
+let hudLayoutForSize (size: Size) =
+    let width, height = float size.Width, float size.Height
+    let hearts = { X=24.0; Y=20.0; Width=min 384.0 (max 96.0 (width*0.34)); Height=32.0 }
+    let currency = { X=24.0; Y=60.0; Width=230.0; Height=28.0 }
+    let charge = { X=max 24.0 (width-100.0); Y=20.0; Width=72.0; Height=40.0 }
+    let minimap = { X=max 24.0 (width-140.0); Y=70.0; Width=120.0; Height=120.0 }
+    let floorName = { X=max 24.0 (width/2.0-150.0); Y=max 100.0 (height-52.0); Width=300.0; Height=32.0 }
+    let intersects a b = a.X < b.X+b.Width && a.X+a.Width > b.X && a.Y < b.Y+b.Height && a.Y+a.Height > b.Y
+    { Size=size; HeartsBounds=hearts; CurrencyBounds=currency; ChargeBounds=charge; MinimapBounds=minimap
+      FloorNameBounds=floorName
+      Overlaps=[hearts,currency; hearts,charge; currency,minimap; charge,minimap; minimap,floorName] |> List.exists (fun (a,b)->intersects a b) }
+
+let hudSceneForSize (size: Size) model =
+    let layout = hudLayoutForSize size
+    let heartCount = min 12 model.PlayerHealth.RedContainers
+    let filledRed = min (heartCount*2) model.PlayerHealth.RedHalfHearts
+    let heartNodes =
+        [ for i in 0..heartCount-1 do
+            let x = layout.HeartsBounds.X + float i*32.0
+            let fill = if filledRed >= (i+1)*2 then color 232uy 66uy 79uy 255uy elif filledRed = i*2+1 then color 232uy 66uy 79uy 150uy else color 84uy 72uy 88uy 255uy
+            yield Scene.circle { X=x+12.0;Y=layout.HeartsBounds.Y+12.0 } 11.0 fill ]
+    let currency = sprintf "COIN %02d   KEY %02d   BOMB %02d" model.PlayerCurrency.Coins model.PlayerCurrency.Keys model.PlayerCurrency.Bombs
+    let chargeRatio = if model.ActiveChargeMaximum<=0 then 0.0 else float model.ActiveCharge/float model.ActiveChargeMaximum
+    let chargeText = sprintf "ACTIVE %d/%d" model.ActiveCharge model.ActiveChargeMaximum
+    let revealed = model.Floor.MapRevealed |> Set.toList |> List.choose (fun id -> Map.tryFind id model.Floor.Rooms)
+    let mapNodes =
+        revealed |> List.map (fun room ->
+            let current = room.Id=model.Floor.CurrentRoom
+            let fill = if current then color 255uy 220uy 80uy 255uy else color 90uy 115uy 145uy 255uy
+            Scene.filledRectangle
+                { X=layout.MinimapBounds.X+56.0+float room.Cell.Col*10.0; Y=layout.MinimapBounds.Y+56.0+float room.Cell.Row*10.0; Width=8.0;Height=8.0 } fill)
+    let floorName = sprintf "%d — THE BURROWS" model.FloorIndex
+    Scene.group
+        (heartNodes @
+         [ Scene.textAt { X=layout.CurrencyBounds.X;Y=layout.CurrencyBounds.Y+18.0 } currency (color 255uy 244uy 205uy 255uy)
+           Scene.circle { X=layout.ChargeBounds.X+20.0;Y=layout.ChargeBounds.Y+20.0 } (8.0+12.0*chargeRatio) (color 42uy 120uy 214uy 220uy)
+           Scene.textAt { X=layout.ChargeBounds.X-35.0;Y=layout.ChargeBounds.Y+38.0 } chargeText (color 255uy 255uy 255uy 255uy)
+           Scene.filledRectangle layout.MinimapBounds (color 16uy 20uy 30uy 210uy)
+           Scene.group mapNodes ] @
+         (if model.FloorNameTicks>0 then [ Scene.textAt { X=layout.FloorNameBounds.X;Y=layout.FloorNameBounds.Y+24.0 } floorName (color 255uy 255uy 255uy 255uy) ] else []))
+
 let klassOf = function
     | EnemyKind.Brute | EnemyKind.Turret -> Klass.Heavy
     | EnemyKind.Maggot | EnemyKind.Fly -> Klass.Scout
@@ -253,7 +303,7 @@ let renderedElementsIn grammar model : RenderedElement list =
                     (model.M6Particles |> List.map particleScene |> Scene.group)
 
       yield rendered "HudScore" "scene/hud-score" RenderLayer.Hud
-                (Scene.textAt { X=playfieldWidth/2.0-28.0;Y=28.0 } $"{model.LeftScore} : {model.RightScore}" (color 240uy 240uy 240uy 255uy)) ]
+                (hudSceneForSize { Width=1280;Height=720 } model) ]
 
 let renderedElements model = renderedElementsIn Grammar.Token model
 
@@ -285,3 +335,10 @@ let viewIn grammar model : SceneNode =
     Group [ translatedWorld; all.[9].Scene; all.[10].Scene ]
 
 let view model = viewIn Grammar.Token model
+
+let viewForSize size model =
+    let all = layersIn Grammar.Token model
+    let world = all |> List.take 9 |> List.map _.Scene |> Scene.group
+    let offset = cameraOffset model
+    let translatedWorld = if offset = zero then world else Scene.translate offset.Vx offset.Vy world
+    Group [ translatedWorld; hudSceneForSize size model; all.[10].Scene ]

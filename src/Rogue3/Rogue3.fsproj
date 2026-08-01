@@ -45,6 +45,7 @@
          consumes the same projection the visual-coverage gate audits. Game-only inside the file. -->
     <Compile Include="GameplayVisualInventory.fs" />
     <Compile Include="View.fs" />
+    <Compile Include="M7Ui.fs" />
     <Compile Include="PerformanceEvidence.fs" />
     <Compile Include="LayoutEvidence.fs" />
     <!-- Issue #245: the rogue3-owned `Msg -> AudioEffect list` cue map and asset resolver. Compiles

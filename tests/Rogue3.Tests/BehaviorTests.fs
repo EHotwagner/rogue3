@@ -124,13 +124,14 @@ let behaviorTests =
             Expect.equal 1 1 "rogue3 tests run"
         }
 
-        test "game default view renders the playfield, ball, paddles and score as a scene" {
+        test "game default view renders gameplay and the Hollow Depths HUD as a scene" {
             let scene = Rogue3.Program.view Rogue3.Program.initialModel
             let nodes = collectSceneNodes scene |> Seq.toList
             let text = sceneText scene
 
-            Expect.isTrue (List.length nodes >= 5) "game view draws the playfield, ball, two paddles and a score HUD"
-            Expect.stringContains text "0 : 0" "the unmodified default renders the served 0:0 score"
+            Expect.isTrue (List.length nodes >= 5) "game view draws the gameplay scene and HUD"
+            Expect.stringContains text "COIN 00" "the production HUD renders two-digit currency"
+            Expect.stringContains text "ACTIVE 2/6" "the production HUD renders active charge"
         }
 
         test "game tick advances the ball and the tick count (the default is a live, moving rogue3)" {
@@ -370,14 +371,15 @@ let behaviorTests =
             let keyUp = fst (host.Update (raw (Letter 'W') false) afterTick2)
             let afterReleaseTick = fst (host.Update (tickMessage ()) keyUp)
 
-            Expect.isTrue (afterTick1.Play.LeftPaddleY < keyDown.Play.LeftPaddleY) "held W advances on the first fixed tick"
-            Expect.isTrue (afterTick2.Play.LeftPaddleY < afterTick1.Play.LeftPaddleY) "held W remains active across a second fixed tick"
-            Expect.equal afterReleaseTick.Play.LeftPaddleY keyUp.Play.LeftPaddleY "key-up clears the held control before the next tick"
+            Expect.isTrue (afterTick1.Play.PlayerPosition.Vy < keyDown.Play.PlayerPosition.Vy) "held W advances on the first fixed tick"
+            Expect.isTrue (afterTick2.Play.PlayerPosition.Vy < afterTick1.Play.PlayerPosition.Vy) "held W remains active across a second fixed tick"
+            Expect.isFalse (Set.contains (ViewerKeyboard.toKeyId (Letter 'W')) keyUp.HeldKeys) "key-up clears the retained host control"
+            Expect.equal afterReleaseTick.Play.LastResolvedInput.Move Rogue3.Geometry.zero "the next tick receives no movement intent (existing velocity may decelerate)"
 
             let configProof, settings = clickWithProof "config" model0
             Expect.equal configProof.Verdict FS.GG.UI.Controls.Elmish.Responsive "retained Config click visibly opens settings"
 
-            let rebindId = "rebind-left-up"
+            let rebindId = "rebind-move-up"
 
             let rebindProof, armed = clickWithProof rebindId settings
             Expect.equal rebindProof.Verdict FS.GG.UI.Controls.Elmish.Responsive "retained rebind-row click visibly enters capture"

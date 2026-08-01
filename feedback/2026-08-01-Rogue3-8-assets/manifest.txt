@@ -1,0 +1,6 @@
+status=ok
+hud-1280x720=feedback/2026-08-01-Rogue3-8-assets/hud-1280x720/sha256-830a17128ce3d4c901ca603c6546cc4599b0cabb7e0a1b89c041941032dc571d.png overlap=False
+hud-1920x1080=feedback/2026-08-01-Rogue3-8-assets/hud-1920x1080/sha256-2e22f003c262faf7e6f87b75cf4ff238799086bcea4460bc546363f862077d01.png overlap=False
+main-menu=feedback/2026-08-01-Rogue3-8-assets/main-menu/sha256-9219356b3d83be43cf8930f5d0a27970d37deccbb1c15d6588a672c46f9a8c8b.png bound-controls=7 nodes=9
+stats-charts=feedback/2026-08-01-Rogue3-8-assets/stats-charts/sha256-dbb50e23afbe4fec1c21b3a602ebee3c182ed8f88c8324f95759be421d984262.png bound-controls=3 nodes=13
+interaction-proof=tests/Rogue3.Tests/M7UiMenusStatsTests.fs (retained pointer clicks + Responsive verdicts)

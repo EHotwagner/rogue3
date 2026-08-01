@@ -20,6 +20,7 @@ open System
 //   `fs-gg-model-swap` / `fs-gg-game-core` skills.
 // ============================================================================================
 open FS.GG.UI.KeyboardInput
+open FS.GG.UI.Canvas
 open FS.GG.Game.Core // FixedStep.drain — the fixed-timestep accumulator drain (ADR-0022 P5: moved from FS.GG.UI.Canvas to the FS.GG.Game.Core bottom layer)
 open FS.GG.UI.Controls.Elmish
 open FS.GG.UI.Controls.Elmish.Authoring // Cmd.none / Sub.none (Elmish-convention no-ops for `[]`)
@@ -142,6 +143,55 @@ type ShopSlot =
 type PlayerLifeState = Alive | Dead
 
 [<RequireQualifiedAccess>]
+type DifficultyMode = Easy | Normal | Hard
+
+type DifficultyScaling =
+    { EnemyHpScale: float
+      PostHitInvulnSeconds: float
+      DropNothingWeight: int
+      ExtraStartingContainers: int
+      ExtraElitePerCombatRoom: int
+      PostBossHeal: bool }
+
+type GameSettings =
+    { Difficulty: DifficultyMode
+      MasterVolume: float
+      Muted: bool
+      ScreenShake: bool }
+
+[<RequireQualifiedAccess>]
+type DeathCause = Enemy of string | Trap | Bomb
+
+[<RequireQualifiedAccess>]
+type StatScope = ThisRun | Lifetime
+
+type RunStats =
+    { DepthReached: int
+      KillsByType: Map<Rogue3.Entities.EnemyKind, int>
+      ItemsFound: int
+      CoinsCollected: int
+      RunSeconds: float
+      DamageDealt: float
+      DamageTaken: float
+      DamageByFloor: Map<int, float * float>
+      DeathCause: DeathCause option
+      Character: string }
+
+type LifetimeStats =
+    { RunsPlayed: int
+      DeepestFloor: int
+      Wins: int
+      TotalKills: int
+      DeathsByCause: Map<DeathCause, int>
+      DepthHistory: int list }
+
+type MetaProfile =
+    { Settings: GameSettings
+      Lifetime: LifetimeStats
+      UnlockedItems: Set<string>
+      UnlockedCharacters: Set<string> }
+
+[<RequireQualifiedAccess>]
 type ParticleShape = Circle | Quad
 
 [<RequireQualifiedAccess>]
@@ -252,7 +302,15 @@ type Model =
       EdgeActionCount: int
       M6Particles: M6Particle list
       M6NextParticleId: int
-      M6CameraTransition: M6CameraTransition option }
+      M6CameraTransition: M6CameraTransition option
+      Profile: MetaProfile
+      RunStats: RunStats
+      ActiveDifficulty: DifficultyScaling option
+      RunActive: bool
+      StatScope: StatScope
+      ActiveCharge: int
+      ActiveChargeMaximum: int
+      FloorNameTicks: int }
 
 type Msg =
     /// The program started, and `initialModel` is the state it started in (issue #458).
@@ -290,6 +348,12 @@ type Msg =
     | DamageM5Obstacle of obstacleId:int * damage:int
     | SpawnM6Particles of count:int * origin:Vec2 * tint:ParticleTint
     | BeginM6RoomTransition of RoomSlideDirection
+    | StartRun of seed:uint64
+    | SetDifficulty of DifficultyMode
+    | SetMasterVolume of float
+    | SetMuted of bool
+    | SetScreenShake of bool
+    | SetStatScope of StatScope
     | NoOp
 
 // Kept model-agnostic so the durable LayoutEvidence spine validates the skeleton AND a swap.
@@ -350,6 +414,55 @@ let basePlayerStats =
       Bounce = 0
       Homing = 0.0
       SpeedMultiplier = 0.0 }
+
+let difficultyScaling = function
+    | DifficultyMode.Easy ->
+        { EnemyHpScale=0.08; PostHitInvulnSeconds=1.10; DropNothingWeight=35
+          ExtraStartingContainers=1; ExtraElitePerCombatRoom=0; PostBossHeal=true }
+    | DifficultyMode.Normal ->
+        { EnemyHpScale=0.12; PostHitInvulnSeconds=0.80; DropNothingWeight=45
+          ExtraStartingContainers=0; ExtraElitePerCombatRoom=0; PostBossHeal=true }
+    | DifficultyMode.Hard ->
+        { EnemyHpScale=0.18; PostHitInvulnSeconds=0.55; DropNothingWeight=55
+          ExtraStartingContainers=0; ExtraElitePerCombatRoom=1; PostBossHeal=false }
+
+let defaultGameSettings =
+    { Difficulty=DifficultyMode.Normal; MasterVolume=1.0; Muted=false; ScreenShake=true }
+
+let emptyRunStats =
+    { DepthReached=1; KillsByType=Map.empty; ItemsFound=0; CoinsCollected=0; RunSeconds=0.0
+      DamageDealt=0.0; DamageTaken=0.0; DamageByFloor=Map.empty; DeathCause=None; Character="Delver" }
+
+let defaultMetaProfile =
+    { Settings=defaultGameSettings
+      Lifetime={ RunsPlayed=0; DeepestFloor=0; Wins=0; TotalKills=0; DeathsByCause=Map.empty; DepthHistory=[] }
+      UnlockedItems=Set.empty; UnlockedCharacters=Set.singleton "delver" }
+
+let winRatePct lifetime =
+    if lifetime.RunsPlayed <= 0 then 0.0 else 100.0 * float lifetime.Wins / float lifetime.RunsPlayed
+
+let depthHistogram depths =
+    let bucket floor = if floor <= 3 then 0 elif floor <= 6 then 1 elif floor <= 9 then 2 elif floor <= 12 then 3 else 4
+    depths |> List.fold (fun counts floor -> counts |> List.mapi (fun i count -> if i=bucket floor then count+1 else count)) [0;0;0;0;0]
+
+let private clampVolume value = if Double.IsFinite value then max 0.0 (min 1.0 value) else 1.0
+
+let encodeMetaProfile (profile: MetaProfile) =
+    let difficulty = match profile.Settings.Difficulty with DifficultyMode.Easy->"easy" | DifficultyMode.Normal->"normal" | DifficultyMode.Hard->"hard"
+    sprintf "{\"format\":\"hollow-depths.meta-profile\",\"version\":1,\"difficulty\":\"%s\",\"masterVolume\":%.6f,\"muted\":%s,\"screenShake\":%s,\"runsPlayed\":%d,\"deepestFloor\":%d,\"wins\":%d,\"totalKills\":%d,\"depthHistory\":[%s]}"
+        difficulty profile.Settings.MasterVolume ((string profile.Settings.Muted).ToLowerInvariant())
+        ((string profile.Settings.ScreenShake).ToLowerInvariant()) profile.Lifetime.RunsPlayed
+        profile.Lifetime.DeepestFloor profile.Lifetime.Wins profile.Lifetime.TotalKills
+        (profile.Lifetime.DepthHistory |> List.map string |> String.concat ",")
+
+let profilePersistenceRequest profile =
+    Persistence.save (Persistence.saveEnvelope 1 (SaveSlot "meta-profile") (encodeMetaProfile profile))
+
+let profilePersistenceRequestsForTransition msg previous next =
+    match msg with
+    | SetDifficulty _ | SetMasterVolume _ | SetMuted _ | SetScreenShake _ when previous.Profile <> next.Profile ->
+        [ profilePersistenceRequest next.Profile ]
+    | _ -> []
 
 let private finiteOr fallback value = if Double.IsFinite value then value else fallback
 
@@ -519,7 +632,15 @@ let initialModelForSeed seed =
       EdgeActionCount = 0
       M6Particles = []
       M6NextParticleId = 1
-      M6CameraTransition = None }
+      M6CameraTransition = None
+      Profile = defaultMetaProfile
+      RunStats = emptyRunStats
+      ActiveDifficulty = None
+      RunActive = false
+      StatScope = StatScope.ThisRun
+      ActiveCharge = 2
+      ActiveChargeMaximum = 6
+      FloorNameTicks = 240 }
 
 let initialModel = initialModelForSeed 0xC0FFEEUL
 
@@ -804,16 +925,25 @@ let private circlesOverlap aPosition aRadius bPosition bRadius =
         { Center = toSimPoint bPosition; Radius = bRadius }
     |> Option.isSome
 
+let private addFloorDamage floor dealt taken (stats: RunStats) =
+    let oldDealt,oldTaken = Map.tryFind floor stats.DamageByFloor |> Option.defaultValue (0.0,0.0)
+    { stats with
+        DamageDealt=stats.DamageDealt+dealt
+        DamageTaken=stats.DamageTaken+taken
+        DamageByFloor=Map.add floor (oldDealt+dealt,oldTaken+taken) stats.DamageByFloor }
+
 let private takePlayerHit damage source model =
     if damage <= 0 || model.PlayerLifeState = Dead || model.DodgeIFrameTicks > 0 || model.PostHitInvulnTicks > 0 then model
     else
         let health, bursts = applyDamage damage model.PlayerHealth
         let away = sub model.PlayerPosition source |> normalizeOrZero
+        let lost = float (totalHalfHearts model.PlayerHealth - totalHalfHearts health)
         { model with
             PlayerHealth = health
             PlayerVelocity = add model.PlayerVelocity (scale 90.0 away)
             PostHitInvulnTicks = postHitInvulnTicks
-            BlackHeartBursts = model.BlackHeartBursts + bursts }
+            BlackHeartBursts = model.BlackHeartBursts + bursts
+            RunStats = addFloorDamage model.FloorIndex 0.0 lost model.RunStats }
 
 let purchaseShopSlot slotId model =
     match model.ShopSlots |> List.tryFind (fun slot -> slot.Id = slotId) with
@@ -1045,7 +1175,8 @@ let damageM5Enemy enemyId damage model =
     | Some actor when actor.HitPoints-damage>0.0 ->
         let hp=actor.HitPoints-damage
         {model with M5Enemies=model.M5Enemies|>List.map(fun a->if a.Id=enemyId then {a with HitPoints=hp} else a)
-                    Enemies=model.Enemies|>List.map(fun e->if e.Id=enemyId then {e with HitPoints=hp} else e)}
+                    Enemies=model.Enemies|>List.map(fun e->if e.Id=enemyId then {e with HitPoints=hp} else e)
+                    RunStats=addFloorDamage model.FloorIndex (max 0.0 damage) 0.0 model.RunStats}
     | Some actor ->
         let children=Rogue3.Entities.grubSplit model.FloorIndex model.M5NextEntityId actor
         let survivors=model.M5Enemies|>List.filter(fun a->a.Id<>enemyId)
@@ -1062,19 +1193,24 @@ let damageM5Enemy enemyId damage model =
             boss
             |> Option.exists(fun value->value.Kind=Rogue3.Entities.BossKind.HollowChoir && value.ChoirKillTicks.Length=3 && not(Rogue3.Entities.choirRevives value.ChoirKillTicks))
         let room = if choirDefeated then Rogue3.Entities.bossCleared room.Reward room else {room with LiveEnemyIds=Set.union room.LiveEnemyIds childIds}
+        let kills = model.RunStats.KillsByType |> Map.change actor.Kind (fun count->Some(1 + Option.defaultValue 0 count))
+        let stats = addFloorDamage model.FloorIndex (max 0.0 (min actor.HitPoints damage)) 0.0 model.RunStats
         {model with M5Enemies=survivors@children;Enemies=(model.Enemies|>List.filter(fun e->e.Id<>enemyId))@(children|>List.map legacyEnemy)
                     M5Boss=(if choirDefeated then None else boss);M5ChoirMemberIds=Set.remove enemyId model.M5ChoirMemberIds
                     M5Room=room;Floor=(if choirDefeated then FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor else model.Floor)
-                    DropRng=rng;M5NextEntityId=model.M5NextEntityId+children.Length}
+                    DropRng=rng;M5NextEntityId=model.M5NextEntityId+children.Length
+                    RunStats={stats with KillsByType=kills}}
 
 let damageM5Boss damage model =
     match model.M5Boss with
     | None -> model
     | Some boss when boss.Kind=Rogue3.Entities.BossKind.HollowChoir -> model
-    | Some boss when boss.HitPoints-damage>0.0 -> {model with M5Boss=Some{boss with HitPoints=boss.HitPoints-damage}}
-    | Some _ ->
+    | Some boss when boss.HitPoints-damage>0.0 ->
+        {model with M5Boss=Some{boss with HitPoints=boss.HitPoints-damage};RunStats=addFloorDamage model.FloorIndex (max 0.0 damage) 0.0 model.RunStats}
+    | Some boss ->
         let room=Rogue3.Entities.bossCleared model.M5Room.Reward model.M5Room
-        {model with M5Boss=None;M5Room=room;Floor=FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor}
+        {model with M5Boss=None;M5Room=room;Floor=FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor
+                    RunStats=addFloorDamage model.FloorIndex (max 0.0 (min boss.HitPoints damage)) 0.0 model.RunStats}
 
 let purchaseM5ShopSlot slotId model =
     match model.M5ShopSlots|>List.tryFind(fun slot->slot.Id=slotId) with
@@ -1401,6 +1537,11 @@ let private advanceSim dtSeconds (model: Model) =
     { stepped with
         SimAccumulator = accumulator
         TickCount = model.TickCount + 1
+        RunStats =
+            if model.RunActive then
+                { stepped.RunStats with RunSeconds = stepped.RunStats.RunSeconds + float steps * fixedDt }
+            else stepped.RunStats
+        FloorNameTicks = max 0 (stepped.FloorNameTicks - steps)
         Input =
             if steps = 0 then model.Input
             else
@@ -1461,6 +1602,8 @@ let update msg model : Model * AdapterCommand<Msg> =
             EnemyBullets = []
             Bombs = []
             ShopSlots = []
+            RunStats = { model.RunStats with DepthReached=max model.RunStats.DepthReached nextIndex }
+            FloorNameTicks = 240
             PlayerPosition = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0) }, Cmd.none
     | EnterM5Room roomId -> loadM5Room roomId model, Cmd.none
     | DamageM5Enemy(enemyId,damage) -> damageM5Enemy enemyId damage model, Cmd.none
@@ -1470,6 +1613,27 @@ let update msg model : Model * AdapterCommand<Msg> =
     | SpawnM6Particles(count, origin, tint) -> spawnM6Particles count origin tint model, Cmd.none
     | BeginM6RoomTransition direction ->
         { model with M6CameraTransition = Some { Direction = direction; ElapsedTicks = 0 } }, Cmd.none
+    | StartRun seed ->
+        let scaling = difficultyScaling model.Profile.Settings.Difficulty
+        let started = initialModelForSeed seed
+        { started with
+            Profile=model.Profile
+            ActiveDifficulty=Some scaling
+            RunActive=true
+            RunStats={ emptyRunStats with Character=model.RunStats.Character }
+            PlayerHealth=
+                { started.PlayerHealth with
+                    RedContainers=started.PlayerHealth.RedContainers + scaling.ExtraStartingContainers
+                    RedHalfHearts=started.PlayerHealth.RedHalfHearts + 2*scaling.ExtraStartingContainers } }, Cmd.none
+    | SetDifficulty difficulty ->
+        { model with Profile={ model.Profile with Settings={ model.Profile.Settings with Difficulty=difficulty } } }, Cmd.none
+    | SetMasterVolume volume ->
+        { model with Profile={ model.Profile with Settings={ model.Profile.Settings with MasterVolume=clampVolume volume } } }, Cmd.none
+    | SetMuted muted ->
+        { model with Profile={ model.Profile with Settings={ model.Profile.Settings with Muted=muted } } }, Cmd.none
+    | SetScreenShake enabled ->
+        { model with Profile={ model.Profile with Settings={ model.Profile.Settings with ScreenShake=enabled } } }, Cmd.none
+    | SetStatScope scope -> { model with StatScope=scope }, Cmd.none
     | NoOp -> model, Cmd.none
 
 let subscriptions _ : AdapterSubscription<Msg> list = Sub.none

@@ -102,6 +102,9 @@ type Msg =
     | PauseGame
     /// Paused → Playing.
     | ResumeGame
+    /// Playing or Paused → MainMenu. The game decides whether this means abandon/finish;
+    /// the generic shell only owns the navigation transition.
+    | ReturnToMenu
     /// Choose the logical resolution.
     | SetResolution of Size
     /// Choose how the window presents.
@@ -178,6 +181,11 @@ let update (msg: Msg) (model: Model) : Model * Effect list =
     | ResumeGame ->
         match model.Screen with
         | Paused -> { model with Screen = Playing }, []
+        | _ -> model, []
+    | ReturnToMenu ->
+        match model.Screen with
+        | Playing
+        | Paused -> { model with Screen = MainMenu; Rebinding = None }, []
         | _ -> model, []
     | SetResolution size ->
         let display = { model.Display with Resolution = size }
@@ -473,7 +481,7 @@ let decodeSettings (bytes: byte[]) (model: Model) : Model =
 /// into the game's own message type. The settings screen wires the resolution + display-mode
 /// choices and explicitly keyed binding rows (each row's rebind affordance dispatches
 /// `ArmRebind`, which arms the `mapKeyRaw` capture).
-let view (dispatch: Msg -> 'msg) (config: Config) (model: Model) : Widget<'msg> option =
+let viewWithRows (dispatch: Msg -> 'msg) (config: Config) (model: Model) (extraRows: Widget<'msg> list) : Widget<'msg> option =
     let button (id: string) (label: string) (msg: Msg) =
         Button.view
             { Button.defaults with
@@ -485,23 +493,21 @@ let view (dispatch: Msg -> 'msg) (config: Config) (model: Model) : Widget<'msg> 
     let stack (children: Widget<'msg> list) = Stack.view { Stack.defaults with Children = children }
 
     match model.Screen with
-    | Playing -> None
+    | Playing -> if List.isEmpty extraRows then None else Some(stack extraRows)
     | MainMenu ->
-        Some(
-            stack
-                [ title config.Title
-                  button "start" "Start" Start
-                  button "config" "Config" OpenSettings
-                  button "exit" "Exit" Quit ]
-        )
+        let children =
+            [ title config.Title
+              button "start" "Start" Start
+              button "config" "Config" OpenSettings
+              button "exit" "Exit" Quit ] @ extraRows
+        Some(stack children)
     | Paused ->
-        Some(
-            stack
-                [ title (config.Title + " — Paused")
-                  button "resume" "Resume" ResumeGame
-                  button "config" "Config" OpenSettings
-                  button "exit" "Exit" Quit ]
-        )
+        let children =
+            [ title (config.Title + " — Paused")
+              button "resume" "Resume" ResumeGame
+              button "config" "Config" OpenSettings
+              button "exit" "Exit" Quit ] @ extraRows
+        Some(stack children)
     | Settings ->
         let modeLabel mode =
             match mode with
@@ -542,9 +548,15 @@ let view (dispatch: Msg -> 'msg) (config: Config) (model: Model) : Widget<'msg> 
             @ (config.DisplayModes |> List.map modeButton)
             @ [ title "Resolution" ]
             @ (config.Resolutions |> List.map resButton)
+            @ extraRows
             @ [ title "Controls"; title rebindHint ]
             @ rebindRows
             @ [ button "reset-bindings" "Reset controls to defaults" ResetBindings ]
             @ [ button "back" "Back" LeaveSettings ]
 
         Some(stack children)
+
+/// Default generic shell view. Products that need game-specific rows can use `viewWithRows`; the
+/// generic router still owns every screen transition and the extras share one layout tree.
+let view (dispatch: Msg -> 'msg) (config: Config) (model: Model) : Widget<'msg> option =
+    viewWithRows dispatch config model []
