@@ -39,7 +39,7 @@ let private performanceIntentSeed: PerformanceIntentDeclaration =
       TargetFps = 60
       WorkloadIds = []
       WorkloadDefinitionDigests = []
-      MaximumExpectedScale = "40 live player shots, 8 static obstacles, 30 live enemies/targets, 120 enemy bullets, 736 wall primitives, 2,400 homing considerations, multishot 3, and all five scaffold visuals"
+      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static obstacles, 30 live enemies/targets, 120 enemy bullets, 736 wall primitives, 2,400 homing considerations, multishot 3, and all five scaffold visuals"
       MaxP95Ms = 16.67m
       MaxP99Ms = 25.0m
       MaxCatchUpFrames = 0
@@ -150,6 +150,12 @@ let performanceCostDrivers =
         MaximumExpected = 40
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "generation.floor-room-budget"
+        Category = Simulation
+        ScaleSource = "Floor.Rooms.Count after production DescendFloor generation; §4.8 hard cap"
+        MaximumExpected = 20
+        VisualElement = None
+        Disposition = RequiredIn [ "floor-generation" ] }
       { Id = "collision.shot-wall-queries"
         Category = Simulation
         ScaleSource = "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once and perform two player-axis casts plus four slide contact folds against 8 stable AABBs"
@@ -619,6 +625,7 @@ let private observeCostScale driverId routed beforeModel afterModel =
         | "simulation.fixed-step", _, _ -> afterModel.SimStepCount - beforeModel.SimStepCount
         | "simulation.shot-spawn", _, _ -> afterModel.TotalShotSpawns - beforeModel.TotalShotSpawns
         | "state.live-player-shots", _, _ -> afterModel.ShotSpawns.Length
+        | "generation.floor-room-budget", _, _ -> afterModel.Floor.Rooms.Count
         | "collision.shot-wall-queries", _, _ -> afterModel.TotalWallQueries - beforeModel.TotalWallQueries
         | "simulation.homing-target-considerations", _, _ -> afterModel.TotalHomingQueries - beforeModel.TotalHomingQueries
         | "state.static-obstacles", _, _ -> afterModel.Obstacles.Length
@@ -799,14 +806,14 @@ let private performanceJourneyReceipt scenarioId boot terminalSteps script =
                 | JourneyEvent.FixedTick -> JourneyDispatch.Mapped [ Tick fixedDt ]
                 | JourneyEvent.PointerInput(position, primaryDown) -> JourneyDispatch.Mapped [ PointerChanged(position, primaryDown) ]
                 | JourneyEvent.MenuAction _ -> JourneyDispatch.Unbound "menu action"
-                | JourneyEvent.Interact -> JourneyDispatch.Unbound "interact (M1)"
+                | JourneyEvent.Interact -> JourneyDispatch.Mapped [ DescendFloor ]
                 | JourneyEvent.Pause -> JourneyDispatch.Unbound "pause"
                 | JourneyEvent.Resume -> JourneyDispatch.Unbound "resume"
                 | JourneyEvent.EffectResult _ -> JourneyDispatch.Unbound "effect result"
           Update = fun message model -> update message model |> fst
           FixedTick = fun model -> update (Tick fixedDt) model |> fst
           ApplyEffectResult = fun _ model -> model
-          IsTerminal = fun model -> model.SimStepCount >= terminalSteps
+          IsTerminal = fun model -> if scenarioId = "floor-generation" then model.FloorIndex >= terminalSteps else model.SimStepCount >= terminalSteps
           // The opaque runner receipt binds the complete closed Model, including every M3 population,
           // resource, timer and cost counter; the same structural closure authorship digests use.
           Fingerprint = modelDefinitionFingerprint
@@ -903,7 +910,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "26a72b61fe62a04f5e1663b7d203e378f18adc0264c6f65c7e24480037020dd3" }
+        Authorship = Authored "2ed65809573c84c4051c3a446b8770c36494287729c6fa4db40093cbce81c828" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -937,7 +944,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "bca75d66ef4e717a86707a780d6389593bd3130c60718500853aca54b8109fcf" }
+        Authorship = Authored "a02038b7b8145fd7f3748c2e32152cff1a35fe86b97a4922754c44012f464987" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -972,7 +979,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "5a531bc02b2f5575fe21802cc3e26cf74653efd1334d01f178de3f11dc698f6f" }
+        Authorship = Authored "e009940dc00ac0d2e8c520564c5ecba43af1d973392e4089c546ceea27cbb93e" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -995,8 +1002,25 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "cd1f48e1df4a3d8e5d54c648214474eae7b1bc670ef0c6faba284ec12d04a2b3" }
+        Authorship = Authored "b30e6ef70f4275280642272ed1705cce182364b6929e4e6827502640f1954b76" }
       // WORKLOAD-SOURCE-END effects-fog
+      // WORKLOAD-SOURCE-BEGIN floor-generation
+      { Id = "floor-generation"
+        Definition = "M4 maximum bounded floor generation: production DescendFloor repeatedly derives MapGen.floorSeed, executes bounded room placement with 20-room cap, assigns templates/threat/specials/fixtures, and replaces room-local state"
+        Classification = NormalPlay
+        WarmupFrames = 4
+        SampleFrames = 40
+        EventsPerFrame = 0
+        PointerEventsPerFrame = 0
+        InitialState = (fun () -> { initialModel with FloorIndex = 8 })
+        MessagesAt = (fun _ -> [ DescendFloor ])
+        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "floor-generation" (fun () -> initialModel) 2 [ JourneyEvent.Interact ])
+        Composition = CompleteComposition
+        CostDriverIds = [ "generation.floor-room-budget"; "scene.playfield" ]
+        Budget = Some normalBudget
+        BlockingDebt = None
+        Authorship = Authored "395c111c259a6314d09c8e3c2f2eec1cf536ab4d828c16aec1afbc62134e1178" }
+      // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
         Definition = "M3 canonical maximum fixture through the production journey/update/view route: 40 live homing/piercing shots, 8 static AABBs, 30 live enemies/targets, 120 bullet-player broadphase candidates, held ArrowRight keyboard aim/fire routed through production input, production Tick(1/60), and all five scaffold visuals"
@@ -1035,7 +1059,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "e4ec8ce37cc2f71dd462154e2bc605042f1ddef2e39d6d0e38d00a5b557b37dc" }
+        Authorship = Authored "5e31f83fbcbd74c5c9e01b054f31de13aada5fec6d3cd2d36ee3b19bc8a3e28e" }
       // WORKLOAD-SOURCE-END maximum-content
       ]
 
@@ -1052,7 +1076,7 @@ let private duplicateValues values =
     |> List.choose (fun (value, count) -> if count > 1 then Some value else None)
 
 let private requiredNormalWorkloadIds =
-    [ "idle"; "movement-aiming"; "firing"; "effects-fog"; "maximum-content" ]
+    [ "idle"; "movement-aiming"; "firing"; "effects-fog"; "floor-generation"; "maximum-content" ]
 
 let private costDriverProblems (results: WorkloadResult list) =
     let workloadById = expectedWorkloads |> List.map (fun workload -> workload.Id, workload) |> Map.ofList

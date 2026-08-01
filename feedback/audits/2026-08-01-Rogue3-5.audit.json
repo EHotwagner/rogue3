@@ -1,0 +1,81 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-01-Rogue3-5.md",
+  "reportSha256": "661da052e2e0558ac123362562f76d557e477291b93011582bf41e3e3de480f6",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/FloorGeneration.fs",
+          "result": "verified",
+          "sha256": "1606857795f5386b4ce5eb19369e653d36a928b93e4f87206958cf37fc5094a5"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M4ProceduralFloorTests.fs",
+          "result": "verified",
+          "sha256": "c7cb475babf1044dcb1a2f9e084f48c10d323589acc2651a0097f96bbb9b5412"
+        },
+        {
+          "locator": "command:dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release --filter Name~M4",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The exact cited command passed 6/6 against the final candidate.",
+        "Seed/index coverage verifies that total room count, including hidden rooms, equals the 8..20 budget and that graph edges are orthogonal.",
+        "The focused tests do not force the deterministic fallback branch, as the report explicitly states.",
+        "No procedural-generation recurrence exists in the four prior reports."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "d25da86808b00f25ace2d94934458c17da95c26413b32ebe108fba24015ecd30"
+        },
+        {
+          "locator": "file:readiness/performance-evidence.json",
+          "result": "verified",
+          "sha256": "886fda32b8ce076577f59ccbf0ff625abf79a2488b282aa35037137f64538a17"
+        }
+      ],
+      "confidenceLimits": [
+        "The structural driver observes Floor.Rooms.Count after production DescendFloor.",
+        "The retained artifact verifies six workloads, room count 20, p95 1.267 ms, p99 1.3566 ms, zero catch-up, and a passing verdict.",
+        "Timing values remain artifact-specific and are not promoted as stable claims.",
+        "The receipt reports FS.GG.Game.Harness 0.12.0.0; latest-release re-verification was not performed.",
+        "Recurrence correctly distinguishes earlier positive patterns from the related M3 quality-gap repair."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git remote -v",
+          "result": "verified"
+        },
+        {
+          "locator": "file:readiness/005-m4-procedural-floor-generation/ship-verdict.json",
+          "result": "verified",
+          "sha256": "1090561c31a20aebc695c479982e4713fa49c5a8c1a35e9742442ebc054ffcef"
+        }
+      ],
+      "confidenceLimits": [
+        "The remote command succeeds with empty output and the retained verdict is shipReady.",
+        "This duplicates the boundary in feedback/2026-08-01-Rogue3-2.md §4.4 and recurs in -3 §4.3 and -4 §4.3.",
+        "External PR, review, merge, issue, and post-merge state cannot be checked without a configured remote."
+      ]
+    }
+  ]
+}

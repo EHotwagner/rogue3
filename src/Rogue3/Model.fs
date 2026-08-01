@@ -24,6 +24,7 @@ open FS.GG.Game.Core // FixedStep.drain — the fixed-timestep accumulator drain
 open FS.GG.UI.Controls.Elmish
 open FS.GG.UI.Controls.Elmish.Authoring // Cmd.none / Sub.none (Elmish-convention no-ops for `[]`)
 open Rogue3.Geometry // Vec2 + vec2/add/scale/clamp/toPoint/toRect (collision-safe positions)
+open Rogue3.FloorGeneration
 
 type Ball = { Pos: Vec2; Velocity: Vec2 }
 
@@ -175,6 +176,8 @@ type Model =
       RunSeed: uint64
       LayoutRng: Rng // layout/template stream; combat must never advance it
       DropRng: Rng // drop/AI-variance stream; layout must never advance it
+      FloorIndex: int
+      Floor: Floor
       LastInput: ViewerKey option
       Input: InputState
       PlayerPosition: Vec2
@@ -234,6 +237,9 @@ type Msg =
     | PointerChanged of position: Vec2 * primaryDown: bool option
     | InputChanged of InputSnapshot
     | InteractShop of slotId: int
+    | RevealSecret of adjacentRoom: int * secretRoom: int
+    | BossCleared of roomId: int
+    | DescendFloor
     | NoOp
 
 // Kept model-agnostic so the durable LayoutEvidence spine validates the skeleton AND a swap.
@@ -397,6 +403,7 @@ let rngStreams seed =
 
 let initialModelForSeed seed =
     let layoutRng, dropRng = rngStreams seed
+    let generated = FloorGeneration.generate seed 1
     { Ball = servedBall
       LeftPaddleY = (playfieldHeight - paddleHeight) / 2.0
       RightPaddleY = (playfieldHeight - paddleHeight) / 2.0
@@ -408,8 +415,10 @@ let initialModelForSeed seed =
       SimStepCount = 0
       TickCount = 0
       RunSeed = seed
-      LayoutRng = layoutRng
+      LayoutRng = generated.LayoutRng
       DropRng = dropRng
+      FloorIndex = 1
+      Floor = generated.Floor
       LastInput = None
       Input = emptyInputState
       PlayerPosition = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0)
@@ -1048,6 +1057,25 @@ let update msg model : Model * AdapterCommand<Msg> =
     | InputChanged snapshot ->
         { model with Input = { model.Input with Current = snapshot } }, Cmd.none
     | InteractShop slotId -> purchaseShopSlot slotId model |> fst, Cmd.none
+    | RevealSecret(adjacentRoom, secretRoom) ->
+        { model with Floor = FloorGeneration.revealSecret adjacentRoom secretRoom model.Floor }, Cmd.none
+    | BossCleared roomId ->
+        { model with Floor = FloorGeneration.clearBoss roomId model.Floor }, Cmd.none
+    | DescendFloor ->
+        let nextIndex = model.FloorIndex + 1
+        let generated = FloorGeneration.generate model.RunSeed nextIndex
+        { model with
+            FloorIndex = nextIndex
+            Floor = generated.Floor
+            LayoutRng = generated.LayoutRng
+            ShotSpawns = []
+            Obstacles = []
+            HomingTargets = []
+            Enemies = []
+            EnemyBullets = []
+            Bombs = []
+            ShopSlots = []
+            PlayerPosition = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0) }, Cmd.none
     | NoOp -> model, Cmd.none
 
 let subscriptions _ : AdapterSubscription<Msg> list = Sub.none

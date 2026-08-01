@@ -1,0 +1,136 @@
+schemaVersion: 1
+work:
+  id: 005-m4-procedural-floor-generation
+  title: "M4 Procedural Floor Generation"
+  stage: tasks
+  status: tasksReady
+  sourceSpec: work/005-m4-procedural-floor-generation/spec.md
+  sourceClarifications: work/005-m4-procedural-floor-generation/clarifications.md
+  sourceChecklist: work/005-m4-procedural-floor-generation/checklist.md
+  sourcePlan: work/005-m4-procedural-floor-generation/plan.md
+  publicOrToolFacingImpact: true
+
+sources:
+  - label: spec
+    path: work/005-m4-procedural-floor-generation/spec.md
+    digest: ca44c23ab092c5564570e873cf2b6dfc4ec7906191c91ed6eef73d8f41946d6d
+    schemaVersion: 1
+  - label: clarifications
+    path: work/005-m4-procedural-floor-generation/clarifications.md
+    digest: 5f7c22bd3fa5ce2c731581ec6eb4e6cb6344d203d898e0d9b5b35b7efd458bef
+    schemaVersion: 1
+  - label: checklist
+    path: work/005-m4-procedural-floor-generation/checklist.md
+    digest: 034c93c7eadb7d32cab05a106b46b443da53dcff1d08c304d888e559d03657aa
+    schemaVersion: 1
+  - label: plan
+    path: work/005-m4-procedural-floor-generation/plan.md
+    digest: ad54ffc356432a197b2e31bfe08b49ccf316b29d70b0fddc2ad0e08db564ce1e
+    schemaVersion: 1
+tasks:
+  - id: T001
+    title: Implement requirement FR-001
+    status: done
+    owner: sdd
+    dependencies: []
+    requirements: [FR-001]
+    decisions: []
+    sourceIds: [AC-001, FR-001, PD-001]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV001]
+  - id: T002
+    title: Implement requirement FR-002
+    status: done
+    owner: sdd
+    dependencies: []
+    requirements: [FR-002]
+    decisions: []
+    sourceIds: [AC-001, FR-002, PD-002]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV002]
+  - id: T003
+    title: Implement requirement FR-003
+    status: done
+    owner: sdd
+    dependencies: []
+    requirements: [FR-003]
+    decisions: []
+    sourceIds: [AC-001, FR-003, PD-003]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV003]
+  - id: T004
+    title: Implement requirement FR-004
+    status: done
+    owner: sdd
+    dependencies: []
+    requirements: [FR-004]
+    decisions: []
+    sourceIds: [AC-001, FR-004, PD-004]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV004]
+  - id: T005
+    title: Implement requirement FR-005
+    status: done
+    owner: sdd
+    dependencies: []
+    requirements: [FR-005]
+    decisions: []
+    sourceIds: [AC-002, FR-005, PD-005]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV005]
+  - id: T006
+    title: Implement requirement FR-006
+    status: done
+    owner: sdd
+    dependencies: []
+    requirements: [FR-006]
+    decisions: []
+    sourceIds: [AC-003, FR-006, PD-006]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV006]
+  - id: T007
+    title: Update contract surface PC-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [PC-001, PD-001]
+    requiredSkills: [fsharp]
+    requiredEvidence: [EV007]
+  - id: T008
+    title: Record verification evidence VO-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [PC-001, PD-001, PD-002, PD-003, PD-004, PD-005, PD-006, VO-001]
+    requiredSkills: [automated-tests, readiness-evidence]
+    requiredEvidence: [EV008]
+  - id: T009
+    title: Handle migration posture PM-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [PC-001, PM-001]
+    requiredSkills: [schema-versioning]
+    requiredEvidence: [EV009]
+  - id: T010
+    title: Refresh generated view impact GV-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [GV-001, PD-001]
+    requiredSkills: [deterministic-json]
+    requiredEvidence: [EV010]
+acceptedDeferrals: []
+findings: []
+advisoryNotes:
+  - "Optional Governance pointers remain compatibility facts only."
+lifecycleNotes:
+  - "Next lifecycle action: fsgg-sdd analyze --work 005-m4-procedural-floor-generation."

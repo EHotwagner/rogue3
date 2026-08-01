@@ -45,13 +45,15 @@ Evidence (2026-08-01): focused Release M2 11/11 and full Release 91/91; `./fake.
 Evidence (2026-08-01): focused Release M3 9/9 and full Release/Verify 99/99; five runner-issued bounded-headless workloads retain exact M2 gates (40 shots, 8 obstacles, 30 targets, 736 wall primitives, 2,400 homing considerations, multishot 3) and add 30 enemies, 120 bullets, and 2,520 exact combat candidates including 240 bullet candidates; final fresh-context performance critic supported on the third repair round; SDD verdict `readiness/004-m3-combat-health-currency/ship-verdict.json` is `shipReady` with five observed non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3-4.md`.
 
 ### M4 — Procedural floor generation
-- 🟥 Seed derivation `floorSeed = split(runSeed, floorIndex)` on `LayoutRng` stream (§4.8, §13) — AC #2
-- 🟥 Room budget + branching placement walk with bounded re-roll (§4.8)
-- 🟥 Special-room assignment: boss/treasure/shop/secret on the placed graph (§4.8)
-- 🟥 Room interior population by template + threat budget `6 + 2*floorIndex` (§4.8)
-- 🟥 Door carving between orthogonally adjacent rooms (§4.8) — AC #1
-- 🟥 Secret / super-secret reveal by bombing an adjacent wall; atomic door-graph update (§4.8, §13) — AC #14
-- 🟥 Floor descent: trapdoor spawns on boss clear, `DescendFloor` regenerates next floor & carries player, drops room state (§7.3, §4.8)
+- 🟩 Seed derivation `floorSeed = split(runSeed, floorIndex)` on `LayoutRng` stream (§4.8, §13) — AC #2
+- 🟩 Room budget + branching placement walk with bounded re-roll (§4.8)
+- 🟩 Special-room assignment: boss/treasure/shop/secret on the placed graph (§4.8)
+- 🟩 Room interior population by template + threat budget `6 + 2*floorIndex` (§4.8)
+- 🟩 Door carving between orthogonally adjacent rooms (§4.8) — AC #1
+- 🟩 Secret / super-secret reveal by bombing an adjacent wall; atomic door-graph update (§4.8, §13) — AC #14
+- 🟩 Floor descent: trapdoor spawns on boss clear, `DescendFloor` regenerates next floor & carries player, drops room state (§7.3, §4.8)
+
+Evidence (2026-08-01): focused Release M4 6/6 and full Release/Verify 105/105; six runner-issued bounded-headless workloads include production `DescendFloor` generation at the exact 20-room cap with p95/p99 and catch-up budgets green; SDD verdict `readiness/005-m4-procedural-floor-generation/ship-verdict.json` is `shipReady` with 10 observed non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3-5.md`. Delivery is local-only because this checkout has no configured remote.
 
 ### M5 — Entities: enemies, bosses & rooms
 - 🟥 Enemy roster + per-enemy state machines (e.g. Charger WindUp→Dash→Recover) (§5.2)

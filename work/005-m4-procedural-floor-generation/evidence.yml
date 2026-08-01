@@ -1,0 +1,298 @@
+schemaVersion: 1
+workId: 005-m4-procedural-floor-generation
+stage: evidence
+status: evidenceReady
+sourceSpec: work/005-m4-procedural-floor-generation/spec.md
+sourceClarifications: work/005-m4-procedural-floor-generation/clarifications.md
+sourceChecklist: work/005-m4-procedural-floor-generation/checklist.md
+sourcePlan: work/005-m4-procedural-floor-generation/plan.md
+sourceTasks: work/005-m4-procedural-floor-generation/tasks.yml
+sourceAnalysis: readiness/005-m4-procedural-floor-generation/analysis.json
+sourceSnapshots:
+  - label: analysis
+    path: readiness/005-m4-procedural-floor-generation/analysis.json
+    digest: fe37527bbc6179435ee17a6d422bdfb47694b8ec9664c8f9bb9032802ccc0e0b
+    schemaVersion: 1
+  - label: checklist
+    path: work/005-m4-procedural-floor-generation/checklist.md
+    digest: 034c93c7eadb7d32cab05a106b46b443da53dcff1d08c304d888e559d03657aa
+    schemaVersion: 1
+  - label: clarifications
+    path: work/005-m4-procedural-floor-generation/clarifications.md
+    digest: 5f7c22bd3fa5ce2c731581ec6eb4e6cb6344d203d898e0d9b5b35b7efd458bef
+    schemaVersion: 1
+  - label: plan
+    path: work/005-m4-procedural-floor-generation/plan.md
+    digest: ad54ffc356432a197b2e31bfe08b49ccf316b29d70b0fddc2ad0e08db564ce1e
+    schemaVersion: 1
+  - label: spec
+    path: work/005-m4-procedural-floor-generation/spec.md
+    digest: ca44c23ab092c5564570e873cf2b6dfc4ec7906191c91ed6eef73d8f41946d6d
+    schemaVersion: 1
+  - label: tasks
+    path: work/005-m4-procedural-floor-generation/tasks.yml
+    digest: 9396ab2ce7f6a80c37a5ec3070c39f96c8861b1a559af7e0cfe1b9f40f166b05
+    schemaVersion: 1
+evidence:
+  - id: EV001
+    kind: verification
+    subject:
+      type: task
+      id: T001
+    taskRefs: [T001]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV001]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M4ProceduralFloorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m4-release.trx
+      digest: "sha256:d6ae6e81a2ed9052104976855c0129999df0fbf8adc16a1cd1e9ec1d9fcfe0a5"
+      outcome: passed
+      passed: 105
+      failed: 0
+      skipped: 0
+    notes: [M4 production floor generation and exact Release evidence are green.]
+  - id: EV002
+    kind: verification
+    subject:
+      type: task
+      id: T002
+    taskRefs: [T002]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV002]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M4ProceduralFloorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m4-release.trx
+      digest: "sha256:d6ae6e81a2ed9052104976855c0129999df0fbf8adc16a1cd1e9ec1d9fcfe0a5"
+      outcome: passed
+      passed: 105
+      failed: 0
+      skipped: 0
+    notes: [M4 production floor generation and exact Release evidence are green.]
+  - id: EV003
+    kind: verification
+    subject:
+      type: task
+      id: T003
+    taskRefs: [T003]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV003]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M4ProceduralFloorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m4-release.trx
+      digest: "sha256:d6ae6e81a2ed9052104976855c0129999df0fbf8adc16a1cd1e9ec1d9fcfe0a5"
+      outcome: passed
+      passed: 105
+      failed: 0
+      skipped: 0
+    notes: [M4 production floor generation and exact Release evidence are green.]
+  - id: EV004
+    kind: verification
+    subject:
+      type: task
+      id: T004
+    taskRefs: [T004]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV004]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M4ProceduralFloorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m4-release.trx
+      digest: "sha256:d6ae6e81a2ed9052104976855c0129999df0fbf8adc16a1cd1e9ec1d9fcfe0a5"
+      outcome: passed
+      passed: 105
+      failed: 0
+      skipped: 0
+    notes: [M4 production floor generation and exact Release evidence are green.]
+  - id: EV005
+    kind: verification
+    subject:
+      type: task
+      id: T005
+    taskRefs: [T005]
+    requirementRefs: [FR-005]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV005]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M4ProceduralFloorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m4-release.trx
+      digest: "sha256:d6ae6e81a2ed9052104976855c0129999df0fbf8adc16a1cd1e9ec1d9fcfe0a5"
+      outcome: passed
+      passed: 105
+      failed: 0
+      skipped: 0
+    notes: [M4 production floor generation and exact Release evidence are green.]
+  - id: EV006
+    kind: verification
+    subject:
+      type: task
+      id: T006
+    taskRefs: [T006]
+    requirementRefs: [FR-006]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-006]
+    obligationRefs: [EV006]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M4ProceduralFloorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m4-release.trx
+      digest: "sha256:d6ae6e81a2ed9052104976855c0129999df0fbf8adc16a1cd1e9ec1d9fcfe0a5"
+      outcome: passed
+      passed: 105
+      failed: 0
+      skipped: 0
+    notes: [M4 production floor generation and exact Release evidence are green.]
+  - id: EV007
+    kind: verification
+    subject:
+      type: task
+      id: T007
+    taskRefs: [T007]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV007]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M4ProceduralFloorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m4-release.trx
+      digest: "sha256:d6ae6e81a2ed9052104976855c0129999df0fbf8adc16a1cd1e9ec1d9fcfe0a5"
+      outcome: passed
+      passed: 105
+      failed: 0
+      skipped: 0
+    notes: [M4 production floor generation and exact Release evidence are green.]
+  - id: EV008
+    kind: verification
+    subject:
+      type: task
+      id: T008
+    taskRefs: [T008]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-002, PD-003, PD-004, PD-005, PD-006]
+    obligationRefs: [EV008]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M4ProceduralFloorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m4-release.trx
+      digest: "sha256:d6ae6e81a2ed9052104976855c0129999df0fbf8adc16a1cd1e9ec1d9fcfe0a5"
+      outcome: passed
+      passed: 105
+      failed: 0
+      skipped: 0
+    notes: [M4 production floor generation and exact Release evidence are green.]
+  - id: EV009
+    kind: verification
+    subject:
+      type: task
+      id: T009
+    taskRefs: [T009]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV009]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M4ProceduralFloorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m4-release.trx
+      digest: "sha256:d6ae6e81a2ed9052104976855c0129999df0fbf8adc16a1cd1e9ec1d9fcfe0a5"
+      outcome: passed
+      passed: 105
+      failed: 0
+      skipped: 0
+    notes: [M4 production floor generation and exact Release evidence are green.]
+  - id: EV010
+    kind: verification
+    subject:
+      type: task
+      id: T010
+    taskRefs: [T010]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV010]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M4ProceduralFloorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m4-release.trx
+      digest: "sha256:d6ae6e81a2ed9052104976855c0129999df0fbf8adc16a1cd1e9ec1d9fcfe0a5"
+      outcome: passed
+      passed: 105
+      failed: 0
+      skipped: 0
+    notes: [M4 production floor generation and exact Release evidence are green.]
+lifecycleNotes:
+  - "Next lifecycle action: verify."
