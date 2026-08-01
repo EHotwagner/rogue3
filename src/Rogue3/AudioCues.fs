@@ -133,6 +133,13 @@ let private track = function
     | GameOver -> TrackId "game-over"
     | Victory -> TrackId "victory"
 
+let private replaceMusic context =
+    [ Audio.stopMusic; Audio.playMusic (track context) true ]
+
+/// Shell transitions are outside the play-model Msg stream, but they replace the same single loop.
+let replaceWithTitleMusic () = replaceMusic Title
+let replaceWithCurrentMusic model = replaceMusic (musicContext model)
+
 let private effectiveVolume model =
     if model.Profile.Settings.Muted then 0.0
     else Audio.clampVolume model.Profile.Settings.MasterVolume
@@ -145,15 +152,32 @@ let private musicForTransition msg previous next =
         | _ -> musicContext next
     match msg with
     | Started -> [ Audio.playMusic (track Title) true ]
-    | _ when before <> after -> [ Audio.stopMusic; Audio.playMusic (track after) true ]
+    | _ when before <> after -> replaceMusic after
     | _ -> []
 
-let private pickupCues previous next =
-    [ if next.PlayerCurrency.Coins > previous.PlayerCurrency.Coins then yield sfx "pickup-coin" 0.7
-      if next.PlayerCurrency.Keys > previous.PlayerCurrency.Keys then yield sfx "pickup-key" 0.7
-      if next.PlayerCurrency.Bombs > previous.PlayerCurrency.Bombs then yield sfx "pickup-bomb" 0.7
-      if totalHalfHearts next.PlayerHealth > totalHalfHearts previous.PlayerHealth then yield sfx "pickup-heart" 0.7
-      if List.length next.PlayerItems > List.length previous.PlayerItems then yield sfx "item-pickup" 0.85 ]
+let private cueForPickup = function
+    | Rogue3.Entities.PickupKind.Coin1
+    | Rogue3.Entities.PickupKind.Coin3 -> Some(sfx "pickup-coin" 0.7)
+    | Rogue3.Entities.PickupKind.Key -> Some(sfx "pickup-key" 0.7)
+    | Rogue3.Entities.PickupKind.Bomb -> Some(sfx "pickup-bomb" 0.7)
+    | Rogue3.Entities.PickupKind.HalfRedHeart
+    | Rogue3.Entities.PickupKind.SoulHeart -> Some(sfx "pickup-heart" 0.7)
+    | Rogue3.Entities.PickupKind.Nothing -> None
+
+// A shop interaction is an explicit acquisition event. Do not infer pickups from arbitrary model
+// increases: run resets and the difficulty-owned post-boss heal also increase those fields.
+let private m5ShopPickupCues msg previous next =
+    match msg with
+    | InteractM5Shop slotId ->
+        match previous.M5ShopSlots |> List.tryFind (fun slot -> slot.Id = slotId),
+              next.M5ShopSlots |> List.tryFind (fun slot -> slot.Id = slotId) with
+        | Some before, Some after when before.Offer <> after.Offer ->
+            match before.Offer with
+            | Rogue3.Entities.ShopOffer.Item _ -> [ sfx "item-pickup" 0.85 ]
+            | Rogue3.Entities.ShopOffer.Consumable kind -> cueForPickup kind |> Option.toList
+            | Rogue3.Entities.ShopOffer.Empty -> []
+        | _ -> []
+    | _ -> []
 
 let private doorAndBossCues previous next =
     let locked = function
@@ -180,7 +204,6 @@ let private directEventCues msg previous next =
       | DamageM5Boss _ when next.M5Boss <> previous.M5Boss -> yield sfx "shot-hit" 0.7
       | RecordCoinsCollected count when count > 0 -> yield sfx "pickup-coin" 0.7
       | RecordItemFound -> yield sfx "item-pickup" 0.85
-      | InteractM5Shop _ when next.RunStats.ItemsFound > previous.RunStats.ItemsFound -> yield sfx "item-pickup" 0.85
       | DescendFloor -> yield sfx "floor-descend" 0.8
       | _ -> () ]
 
@@ -203,6 +226,6 @@ let forTransition (msg: Msg) (previous: Model) (next: Model) : AudioEffect list 
     volume
     @ fixedStepEvents
     @ directEventCues msg previous next
-    @ pickupCues previous next
+    @ m5ShopPickupCues msg previous next
     @ doorAndBossCues previous next
     @ musicForTransition msg previous next

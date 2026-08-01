@@ -12,8 +12,8 @@
       "definitionDigest": "13de109dbf6efa7ad540e5835f11bf858c66cf2a21bc81b408b3680b6885274c",
       "declaredDefinitionDigest": "13de109dbf6efa7ad540e5835f11bf858c66cf2a21bc81b408b3680b6885274c",
       "authorshipPassed": true,
-      "p95Ms": 0.3849,
-      "p99Ms": 0.647,
+      "p95Ms": 0.4175,
+      "p99Ms": 0.591,
       "observedScale": {
         "controlNodes": 9,
         "boundControls": 7
@@ -27,8 +27,8 @@
       "definitionDigest": "ee87e8f62d8410327eb17a104f898a8742557dd59b3658feec83a9cb765082d1",
       "declaredDefinitionDigest": "ee87e8f62d8410327eb17a104f898a8742557dd59b3658feec83a9cb765082d1",
       "authorshipPassed": true,
-      "p95Ms": 0.0605,
-      "p99Ms": 0.0682,
+      "p95Ms": 0.0606,
+      "p99Ms": 0.0707,
       "observedScale": {
         "controlNodes": 1,
         "boundControls": 0,
@@ -128,8 +128,8 @@
       "definitionDigest": "9660d11af9c68ffc9866df9f062c1e89627e9e9bdd22968a6343e79b56903ac1",
       "declaredDefinitionDigest": "9660d11af9c68ffc9866df9f062c1e89627e9e9bdd22968a6343e79b56903ac1",
       "authorshipPassed": true,
-      "p95Ms": 1.1252,
-      "p99Ms": 1.2195,
+      "p95Ms": 1.1655,
+      "p99Ms": 1.2668,
       "observedScale": {
         "controlNodes": 19,
         "boundControls": 3,

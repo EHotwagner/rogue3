@@ -470,6 +470,8 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
                     match shellMsg, model.Shell.Screen, nextShell.Screen with
                     | Rogue3.GameShell.Start, Rogue3.GameShell.MainMenu, Rogue3.GameShell.Playing ->
                         Rogue3.AudioCues.forTransition (StartRun (model.Play.RunSeed + 1UL)) model.Play transitionedPlay
+                    | _, _, Rogue3.GameShell.MainMenu when model.Shell.Screen <> Rogue3.GameShell.MainMenu ->
+                        Rogue3.AudioCues.replaceWithTitleMusic ()
                     | _ -> []
                 let play =
                     if model.Shell.Screen=Rogue3.GameShell.Playing && nextShell.Screen<>Rogue3.GameShell.Playing then
@@ -485,14 +487,17 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
                 { model with Shell = shell; Play = play; StatsOpen = false; HeldKeys = Set.empty }, hostEffects @ (if List.isEmpty cues then [] else [ PlayAudio cues ])
             | ContinueRun ->
                 let shell, effects = Rogue3.GameShell.update Rogue3.GameShell.Start model.Shell
-                { model with Shell = shell; StatsOpen = false; HeldKeys = Set.empty }, effects |> List.collect (applyShellEffect shell)
+                let hostEffects = effects |> List.collect (applyShellEffect shell)
+                let cues = Rogue3.AudioCues.replaceWithCurrentMusic model.Play
+                { model with Shell = shell; StatsOpen = false; HeldKeys = Set.empty }, hostEffects @ [ PlayAudio cues ]
             | OpenStats ->
                 { model with StatsOpen = true; Play=clearHeldGameplayCommands model.Shell model.HeldKeys model.Play; HeldKeys = Set.empty }, []
             | CloseStats -> { model with StatsOpen = false }, []
             | AbandonRun ->
                 let shell, effects = Rogue3.GameShell.update Rogue3.GameShell.ReturnToMenu model.Shell
                 let play=clearHeldGameplayCommands model.Shell model.HeldKeys model.Play
-                { model with Shell = shell; Play = { play with RunActive = false }; StatsOpen = false; HeldKeys = Set.empty }, effects |> List.collect (applyShellEffect shell)
+                let hostEffects = effects |> List.collect (applyShellEffect shell)
+                { model with Shell = shell; Play = { play with RunActive = false }; StatsOpen = false; HeldKeys = Set.empty }, hostEffects @ [ PlayAudio (Rogue3.AudioCues.replaceWithTitleMusic ()) ]
             | ChangeDifficulty difficulty ->
                 let msg=SetDifficulty difficulty
                 let play = Rogue3.Model.update msg model.Play |> fst
@@ -532,7 +537,13 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
                             if model.Shell.Screen=Rogue3.GameShell.Playing && nextShell.Screen<>Rogue3.GameShell.Playing then
                                 clearHeldGameplayCommands model.Shell model.HeldKeys model.Play
                             else model.Play
-                        { model with Shell = nextShell; Play=play; HeldKeys = held }, (effects |> List.collect (applyShellEffect nextShell))
+                        let hostEffects = effects |> List.collect (applyShellEffect nextShell)
+                        let audio =
+                            if nextShell.Screen = Rogue3.GameShell.MainMenu
+                               && model.Shell.Screen <> Rogue3.GameShell.MainMenu then
+                                [ PlayAudio (Rogue3.AudioCues.replaceWithTitleMusic ()) ]
+                            else []
+                        { model with Shell = nextShell; Play=play; HeldKeys = held }, hostEffects @ audio
                     | Rogue3.GameShell.GameEdge(CommandChanged(command, _), edgeDown) ->
                         let play = Rogue3.Model.update (CommandChanged(command, edgeDown)) model.Play |> fst
                         let held =

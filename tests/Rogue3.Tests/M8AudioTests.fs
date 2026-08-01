@@ -93,6 +93,19 @@ let audioTests =
                 [ StopMusic; PlayMusic(TrackId "floor-2-theme", true) ]
                 "descent replaces the boss track with the new floor loop"
             Expect.contains (audioFromHost descendEffects) (PlaySfx(SoundId "floor-descend", 0.8)) "descent also requests its cue"
+
+            let shell = Program.interactiveHost
+            let shell0, _ = shell.Init()
+            let shellRun, shellStartEffects = shell.Update (EvidenceCommands.StartFreshRun 4242UL) shell0
+            Expect.equal (audioFromHost shellStartEffects |> musicOnly) [ StopMusic; PlayMusic(TrackId "floor-1-theme", true) ] "the actual menu-to-run route replaces title"
+            let shellMenu, abandonEffects = shell.Update EvidenceCommands.AbandonRun shellRun
+            Expect.equal shellMenu.Shell.Screen GameShell.MainMenu "abandon returns through the production shell"
+            Expect.equal (audioFromHost abandonEffects |> musicOnly) [ StopMusic; PlayMusic(TrackId "title-theme", true) ] $"ending/abandoning a run restores exactly one title loop; effects={abandonEffects}"
+
+            let resumable = { shell0 with Play={shell0.Play with RunActive=true} }
+            let continued, continueEffects = shell.Update EvidenceCommands.ContinueRun resumable
+            Expect.equal continued.Shell.Screen GameShell.Playing "continue enters the production play shell"
+            Expect.equal (audioFromHost continueEffects |> musicOnly) [ StopMusic; PlayMusic(TrackId "floor-1-theme", true) ] "continue replaces the existing title loop with the restored model context"
         }
 
         test "production settings host clamps volume and mute/unmute reaches AudioEvidence.Requested" {
@@ -118,17 +131,27 @@ let audioTests =
 
         test "pickup, room, boss and run-end transitions retain exact product-owned values" {
             let before = Program.initialModel
-            let afterPickups =
-                { before with
-                    PlayerCurrency = { before.PlayerCurrency with Coins=1; Keys=2; Bombs=2 }
-                    PlayerHealth = { before.PlayerHealth with SoulHalfHearts=2 }
-                    PlayerItems = before.PlayerItems @ [ { Id="audio-item"; Modifiers=[] } ] }
-            Expect.equal
-                (AudioCues.forTransition NoOp before afterPickups |> requested)
-                [ PlaySfx(SoundId "pickup-coin",0.7); PlaySfx(SoundId "pickup-key",0.7)
-                  PlaySfx(SoundId "pickup-bomb",0.7); PlaySfx(SoundId "pickup-heart",0.7)
-                  PlaySfx(SoundId "item-pickup",0.85) ]
-                "pickup diffs map to the five specified cues"
+            let pickupCue kind =
+                let slot : Entities.ShopSlot = { Id=71; Offer=Entities.ShopOffer.Consumable kind; Price=0; KeyLocked=false }
+                let previous = { before with M5ShopSlots=[slot] }
+                let next = { previous with M5ShopSlots=[{slot with Offer=Entities.ShopOffer.Empty}] }
+                AudioCues.forTransition (InteractM5Shop slot.Id) previous next |> requested
+            Expect.equal (pickupCue Entities.PickupKind.Coin3) [ PlaySfx(SoundId "pickup-coin",0.7) ] "coin acquisition has its exact cue"
+            Expect.equal (pickupCue Entities.PickupKind.Key) [ PlaySfx(SoundId "pickup-key",0.7) ] "key acquisition has its exact cue"
+            Expect.equal (pickupCue Entities.PickupKind.Bomb) [ PlaySfx(SoundId "pickup-bomb",0.7) ] "bomb acquisition has its exact cue"
+            Expect.equal (pickupCue Entities.PickupKind.SoulHeart) [ PlaySfx(SoundId "pickup-heart",0.7) ] "heart acquisition has its exact cue"
+
+            let item = Entities.baseItems.Head
+            let itemSlot : Entities.ShopSlot = { Id=72; Offer=Entities.ShopOffer.Item item; Price=0; KeyLocked=false }
+            let beforeItem = { before with M5ShopSlots=[itemSlot] }
+            let afterItem = { beforeItem with M5ShopSlots=[{itemSlot with Offer=Entities.ShopOffer.Empty}] }
+            Expect.equal (AudioCues.forTransition (InteractM5Shop itemSlot.Id) beforeItem afterItem |> requested) [ PlaySfx(SoundId "item-pickup",0.85) ] "item acquisition has its exact cue"
+
+            let healedBoss = { before with PlayerHealth={before.PlayerHealth with RedHalfHearts=2}; M5Boss=Some (Entities.spawnBoss 91 Entities.BossKind.Gnawer before.PlayerPosition) }
+            let afterBoss = { healedBoss with PlayerHealth={healedBoss.PlayerHealth with RedHalfHearts=4}; M5Boss=None }
+            Expect.isFalse (AudioCues.forTransition (DamageM5Boss 10000.0) healedBoss afterBoss |> requested |> List.contains (PlaySfx(SoundId "pickup-heart",0.7))) "post-boss healing is not mislabeled as a pickup"
+            let reset = { before with PlayerCurrency={before.PlayerCurrency with Coins=0;Keys=0;Bombs=0};PlayerHealth={before.PlayerHealth with RedHalfHearts=1} }
+            Expect.isEmpty (AudioCues.forTransition (StartRun 99UL) reset before |> requested |> List.filter (function PlaySfx(SoundId id,_) when id.StartsWith("pickup-") -> true | _ -> false)) "run reset increases are not mislabeled as pickups"
 
             let ended, endEffects = Program.generatedHost.Update (CompleteRunStats(false, None)) { before with RunActive=true }
             Expect.isFalse ended.RunActive "production end-run transition completed"
