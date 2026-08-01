@@ -1,0 +1,566 @@
+{
+  "schemaVersion": 3,
+  "compatibility": {
+    "acceptedLegacySchemaVersions": [
+      2
+    ],
+    "legacyRepresentativeness": "legacy-unreviewed"
+  },
+  "performanceIntent": {
+    "id": "PI-GENERATED-GAME",
+    "disposition": "active",
+    "targetFps": 60,
+    "workloadIds": [
+      "idle",
+      "movement-aiming",
+      "firing",
+      "effects-fog",
+      "maximum-content"
+    ],
+    "workloadDefinitionDigests": [
+      "idle=sha256:19a2ca8497cd8ae8df35e4da8d0446cb539a1960c9f339514e21373528eb9983",
+      "movement-aiming=sha256:c5fd9e99b5f2b56544f31ccb43f117251d80cbed262d7451020f08c04db1d132",
+      "firing=sha256:3c55e47739ac7ed4dbf4d7d6a7a59f3945b4d411ff45e36d4fe216441240fcea",
+      "effects-fog=sha256:84166d3f6fcb5007c24c01f89a6173c6ff655350cedd2b0379bd495251a2b917",
+      "maximum-content=sha256:bf8f24421afbd3c8ab7582f21ec6d8e305d16f4b43299b498777e6942fa67e1c"
+    ],
+    "maximumExpectedScale": "maximum-content workload",
+    "maxP95Ms": 16.67,
+    "maxP99Ms": 25.0,
+    "maxCatchUpFrames": 0,
+    "structuralCostBudgets": [
+      "scene-nodes\u003C=4096"
+    ],
+    "requiredCapability": "bounded-headless-update-and-scene-route",
+    "liveCompositorRequired": false,
+    "evidenceRefs": [
+      "readiness/performance-evidence.json"
+    ],
+    "rationale": "Generated normal-play declaration; live-compositor evidence remains a separate workload."
+  },
+  "measurementCapability": "bounded-headless-update-and-scene-route",
+  "notAuthoritativeFor": "live-compositor,swapchain,vblank,vsync",
+  "hostProfile": "Unix;X64;10.0.10",
+  "packageVersions": {
+    "Expecto": "10.2.3",
+    "FS.GG.Audio.Core": "0.5.0",
+    "FS.GG.Audio.Elmish": "0.5.0",
+    "FS.GG.Audio.Engine": "0.5.0",
+    "FS.GG.Audio.Host": "0.5.0",
+    "FS.GG.Contracts": "7.5.2",
+    "FS.GG.Game.Core": "0.12.0",
+    "FS.GG.Game.Harness": "0.12.0",
+    "FS.GG.UI.Build": "0.21.1",
+    "FS.GG.UI.Canvas": "0.21.1",
+    "FS.GG.UI.Controls": "0.21.1",
+    "FS.GG.UI.Controls.Elmish": "0.21.1",
+    "FS.GG.UI.DesignSystem": "0.21.1",
+    "FS.GG.UI.Elmish": "0.21.1",
+    "FS.GG.UI.KeyboardInput": "0.21.1",
+    "FS.GG.UI.Layout": "0.21.1",
+    "FS.GG.UI.Scene": "0.21.1",
+    "FS.GG.UI.SkiaViewer": "0.21.1",
+    "FS.GG.UI.Symbology": "0.21.1",
+    "FS.GG.UI.Symbology.Render": "0.21.1",
+    "FS.GG.UI.Testing": "0.21.1",
+    "FS.GG.UI.Themes.Default": "0.21.1",
+    "Microsoft.NET.Test.Sdk": "18.8.1",
+    "YoloDev.Expecto.TestSdk": "0.16.0"
+  },
+  "warmupSamplePolicy": "per-workload; monotonic Stopwatch; warmup excluded",
+  "costDrivers": [
+    {
+      "id": "simulation.fixed-step",
+      "category": "Simulation",
+      "scaleSource": "Model; one shipped update per sampled frame",
+      "maximumExpected": 1,
+      "visualElement": null,
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "idle",
+        "movement-aiming",
+        "firing",
+        "effects-fog",
+        "maximum-content"
+      ]
+    },
+    {
+      "id": "input.viewer-route",
+      "category": "Input",
+      "scaleSource": "shipped host-input mapping and routed-input receipt",
+      "maximumExpected": 1,
+      "visualElement": null,
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "movement-aiming",
+        "firing"
+      ]
+    },
+    {
+      "id": "scene.ball",
+      "category": "SceneRender",
+      "scaleSource": "GameplayVisualInventory.Ball",
+      "maximumExpected": 1,
+      "visualElement": "Ball",
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "movement-aiming",
+        "firing",
+        "maximum-content"
+      ]
+    },
+    {
+      "id": "scene.left-paddle",
+      "category": "SceneRender",
+      "scaleSource": "GameplayVisualInventory.LeftPaddle",
+      "maximumExpected": 1,
+      "visualElement": "LeftPaddle",
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "movement-aiming",
+        "maximum-content"
+      ]
+    },
+    {
+      "id": "scene.right-paddle",
+      "category": "SceneRender",
+      "scaleSource": "GameplayVisualInventory.RightPaddle",
+      "maximumExpected": 1,
+      "visualElement": "RightPaddle",
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "maximum-content"
+      ]
+    },
+    {
+      "id": "ui.score",
+      "category": "UiControl",
+      "scaleSource": "GameplayVisualInventory.Score",
+      "maximumExpected": 1,
+      "visualElement": "Score",
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "firing",
+        "maximum-content"
+      ]
+    },
+    {
+      "id": "scene.playfield",
+      "category": "SceneRender",
+      "scaleSource": "GameplayVisualInventory.Playfield",
+      "maximumExpected": 1,
+      "visualElement": "Playfield",
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "idle",
+        "movement-aiming",
+        "firing",
+        "effects-fog",
+        "maximum-content"
+      ]
+    },
+    {
+      "id": "effects.rogue3",
+      "category": "EffectsParticles",
+      "scaleSource": "starter has no effect/particle system; replace this disposition when one is added",
+      "maximumExpected": 1,
+      "visualElement": null,
+      "disposition": "non-performance",
+      "reason": "no effect/particle system exists in the generated starter"
+    },
+    {
+      "id": "host.presentation",
+      "category": "HostPresentation",
+      "scaleSource": "protected live-compositor host",
+      "maximumExpected": 1,
+      "visualElement": null,
+      "disposition": "non-performance",
+      "reason": "bounded headless evidence cannot measure present/drop/swapchain/vsync; use a live-compositor workload"
+    }
+  ],
+  "workloads": [
+    {
+      "id": "idle",
+      "definition": "M0 idle: production Tick(1/60) drains two 120 Hz steps, then builds the complete logical view",
+      "class": "normal",
+      "definitionDigest": "19a2ca8497cd8ae8df35e4da8d0446cb539a1960c9f339514e21373528eb9983",
+      "stateProvenance": "production-journey",
+      "provenanceReceipt": {
+        "schemaVersion": 1,
+        "runnerIdentity": "FS.GG.Game.Harness.Journey",
+        "runnerVersion": "0.12.0.0",
+        "compositionAuthority": "Rogue3/4b305f6d7673825161469bf9132a9589",
+        "origin": "ProductionJourney",
+        "routeId": "rogue3-m0-update-view",
+        "scenarioId": "idle",
+        "testId": "performance-idle",
+        "inputKind": "FixedScript",
+        "inputIdentity": "idle-one-fixed-step",
+        "inputDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
+        "scriptDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
+        "traceDigest": "76ac8b2aee291b5824e176daacc6496aa4c47e8a4caa059bd00f8f7f601a1220",
+        "initialFingerprintDigest": "87aa27569125942caee382df1e62fee7092bbea791500b5694175a578816d7b8",
+        "terminalFingerprintDigest": "76ac8b2aee291b5824e176daacc6496aa4c47e8a4caa059bd00f8f7f601a1220",
+        "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
+        "terminalPredicateReached": true,
+        "result": "Passed",
+        "steps": 1,
+        "maxSteps": 4,
+        "receiptDigest": "sha256:25565b00ecb297aaf23c12ecfb954b96eb4c9812ba456418566ec4fbd31b53c3"
+      },
+      "compositionClaim": "production-composition",
+      "costDriverIds": [
+        "simulation.fixed-step",
+        "scene.playfield"
+      ],
+      "authorship": "authored",
+      "requiredAuthoringWork": null,
+      "declaredDefinitionDigest": "19a2ca8497cd8ae8df35e4da8d0446cb539a1960c9f339514e21373528eb9983",
+      "blockingDebt": null,
+      "warmupFrames": 20,
+      "sampleFrames": 120,
+      "p50Ms": 0.0032,
+      "p95Ms": 0.0103,
+      "p99Ms": 0.0157,
+      "updateCount": 120,
+      "presentCount": {
+        "status": "unsupported",
+        "reason": "bounded-headless route has no compositor presentation capability"
+      },
+      "catchUpFrames": 0,
+      "droppedFrames": {
+        "status": "unsupported",
+        "reason": "bounded-headless route has no swapchain/drop observation capability"
+      },
+      "declaredEventCount": 0,
+      "observedEventCount": 0,
+      "declaredPointerEventCount": 0,
+      "observedPointerEventCount": 0,
+      "rawInputSampleCount": 0,
+      "allocatedBytes": 573768,
+      "observedScale": {
+        "scene.playfield": 1,
+        "simulation.fixed-step": 1
+      },
+      "sceneNodesByLayer": {
+        "rogue3-scene": 6
+      },
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "id": "movement-aiming",
+      "definition": "M0 routed-input seam: production ViewerInput(W,true) plus complete logical view; analog aiming arrives in M1",
+      "class": "normal",
+      "definitionDigest": "c5fd9e99b5f2b56544f31ccb43f117251d80cbed262d7451020f08c04db1d132",
+      "stateProvenance": "production-journey",
+      "provenanceReceipt": {
+        "schemaVersion": 1,
+        "runnerIdentity": "FS.GG.Game.Harness.Journey",
+        "runnerVersion": "0.12.0.0",
+        "compositionAuthority": "Rogue3/4b305f6d7673825161469bf9132a9589",
+        "origin": "ProductionJourney",
+        "routeId": "rogue3-m0-update-view",
+        "scenarioId": "movement-aiming",
+        "testId": "performance-movement-aiming",
+        "inputKind": "FixedScript",
+        "inputIdentity": "movement-aiming-one-fixed-step",
+        "inputDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
+        "scriptDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
+        "traceDigest": "76ac8b2aee291b5824e176daacc6496aa4c47e8a4caa059bd00f8f7f601a1220",
+        "initialFingerprintDigest": "87aa27569125942caee382df1e62fee7092bbea791500b5694175a578816d7b8",
+        "terminalFingerprintDigest": "76ac8b2aee291b5824e176daacc6496aa4c47e8a4caa059bd00f8f7f601a1220",
+        "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
+        "terminalPredicateReached": true,
+        "result": "Passed",
+        "steps": 1,
+        "maxSteps": 4,
+        "receiptDigest": "sha256:1fbad64b8cf72e31f8f09aa45b4df7e7bea92b978611623445c2769215750f72"
+      },
+      "compositionClaim": "production-composition",
+      "costDriverIds": [
+        "simulation.fixed-step",
+        "input.viewer-route",
+        "scene.ball",
+        "scene.left-paddle",
+        "scene.playfield"
+      ],
+      "authorship": "authored",
+      "requiredAuthoringWork": null,
+      "declaredDefinitionDigest": "c5fd9e99b5f2b56544f31ccb43f117251d80cbed262d7451020f08c04db1d132",
+      "blockingDebt": null,
+      "warmupFrames": 20,
+      "sampleFrames": 120,
+      "p50Ms": 0.0028,
+      "p95Ms": 0.0076,
+      "p99Ms": 0.0111,
+      "updateCount": 120,
+      "presentCount": {
+        "status": "unsupported",
+        "reason": "bounded-headless route has no compositor presentation capability"
+      },
+      "catchUpFrames": 0,
+      "droppedFrames": {
+        "status": "unsupported",
+        "reason": "bounded-headless route has no swapchain/drop observation capability"
+      },
+      "declaredEventCount": 120,
+      "observedEventCount": 120,
+      "declaredPointerEventCount": 0,
+      "observedPointerEventCount": 0,
+      "rawInputSampleCount": 120,
+      "allocatedBytes": 953400,
+      "observedScale": {
+        "input.viewer-route": 1,
+        "scene.ball": 1,
+        "scene.left-paddle": 1,
+        "scene.playfield": 1,
+        "simulation.fixed-step": 1
+      },
+      "sceneNodesByLayer": {
+        "rogue3-scene": 6
+      },
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "id": "firing",
+      "definition": "M0 future-fire input seam: production ViewerInput(Space,true) plus complete logical view; firing entities arrive in M1/M2",
+      "class": "normal",
+      "definitionDigest": "3c55e47739ac7ed4dbf4d7d6a7a59f3945b4d411ff45e36d4fe216441240fcea",
+      "stateProvenance": "production-journey",
+      "provenanceReceipt": {
+        "schemaVersion": 1,
+        "runnerIdentity": "FS.GG.Game.Harness.Journey",
+        "runnerVersion": "0.12.0.0",
+        "compositionAuthority": "Rogue3/4b305f6d7673825161469bf9132a9589",
+        "origin": "ProductionJourney",
+        "routeId": "rogue3-m0-update-view",
+        "scenarioId": "firing",
+        "testId": "performance-firing",
+        "inputKind": "FixedScript",
+        "inputIdentity": "firing-one-fixed-step",
+        "inputDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
+        "scriptDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
+        "traceDigest": "76ac8b2aee291b5824e176daacc6496aa4c47e8a4caa059bd00f8f7f601a1220",
+        "initialFingerprintDigest": "87aa27569125942caee382df1e62fee7092bbea791500b5694175a578816d7b8",
+        "terminalFingerprintDigest": "76ac8b2aee291b5824e176daacc6496aa4c47e8a4caa059bd00f8f7f601a1220",
+        "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
+        "terminalPredicateReached": true,
+        "result": "Passed",
+        "steps": 1,
+        "maxSteps": 4,
+        "receiptDigest": "sha256:4cd00df932d8240576c0fb4408f4f3b4a09645e6498a5c2f85a792cbbb2a8fd9"
+      },
+      "compositionClaim": "production-composition",
+      "costDriverIds": [
+        "simulation.fixed-step",
+        "input.viewer-route",
+        "scene.ball",
+        "ui.score",
+        "scene.playfield"
+      ],
+      "authorship": "authored",
+      "requiredAuthoringWork": null,
+      "declaredDefinitionDigest": "3c55e47739ac7ed4dbf4d7d6a7a59f3945b4d411ff45e36d4fe216441240fcea",
+      "blockingDebt": null,
+      "warmupFrames": 20,
+      "sampleFrames": 120,
+      "p50Ms": 0.0028,
+      "p95Ms": 0.0065,
+      "p99Ms": 0.0157,
+      "updateCount": 120,
+      "presentCount": {
+        "status": "unsupported",
+        "reason": "bounded-headless route has no compositor presentation capability"
+      },
+      "catchUpFrames": 0,
+      "droppedFrames": {
+        "status": "unsupported",
+        "reason": "bounded-headless route has no swapchain/drop observation capability"
+      },
+      "declaredEventCount": 120,
+      "observedEventCount": 120,
+      "declaredPointerEventCount": 0,
+      "observedPointerEventCount": 0,
+      "rawInputSampleCount": 120,
+      "allocatedBytes": 930360,
+      "observedScale": {
+        "input.viewer-route": 1,
+        "scene.ball": 1,
+        "scene.playfield": 1,
+        "simulation.fixed-step": 1,
+        "ui.score": 1
+      },
+      "sceneNodesByLayer": {
+        "rogue3-scene": 6
+      },
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "id": "effects-fog",
+      "definition": "M0 future-effects baseline: production Tick(1/60) plus complete logical view; effects and fog arrive in later milestones",
+      "class": "normal",
+      "definitionDigest": "84166d3f6fcb5007c24c01f89a6173c6ff655350cedd2b0379bd495251a2b917",
+      "stateProvenance": "production-journey",
+      "provenanceReceipt": {
+        "schemaVersion": 1,
+        "runnerIdentity": "FS.GG.Game.Harness.Journey",
+        "runnerVersion": "0.12.0.0",
+        "compositionAuthority": "Rogue3/4b305f6d7673825161469bf9132a9589",
+        "origin": "ProductionJourney",
+        "routeId": "rogue3-m0-update-view",
+        "scenarioId": "effects-fog",
+        "testId": "performance-effects-fog",
+        "inputKind": "FixedScript",
+        "inputIdentity": "effects-fog-one-fixed-step",
+        "inputDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
+        "scriptDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
+        "traceDigest": "76ac8b2aee291b5824e176daacc6496aa4c47e8a4caa059bd00f8f7f601a1220",
+        "initialFingerprintDigest": "87aa27569125942caee382df1e62fee7092bbea791500b5694175a578816d7b8",
+        "terminalFingerprintDigest": "76ac8b2aee291b5824e176daacc6496aa4c47e8a4caa059bd00f8f7f601a1220",
+        "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
+        "terminalPredicateReached": true,
+        "result": "Passed",
+        "steps": 1,
+        "maxSteps": 4,
+        "receiptDigest": "sha256:5e539e8c3f68cc8cc904de2d913dcc93b62eab671b2a01e24ac3e9958a85ab2e"
+      },
+      "compositionClaim": "production-composition",
+      "costDriverIds": [
+        "simulation.fixed-step",
+        "scene.playfield"
+      ],
+      "authorship": "authored",
+      "requiredAuthoringWork": null,
+      "declaredDefinitionDigest": "84166d3f6fcb5007c24c01f89a6173c6ff655350cedd2b0379bd495251a2b917",
+      "blockingDebt": null,
+      "warmupFrames": 20,
+      "sampleFrames": 120,
+      "p50Ms": 0.0032,
+      "p95Ms": 0.0042,
+      "p99Ms": 0.0047,
+      "updateCount": 120,
+      "presentCount": {
+        "status": "unsupported",
+        "reason": "bounded-headless route has no compositor presentation capability"
+      },
+      "catchUpFrames": 0,
+      "droppedFrames": {
+        "status": "unsupported",
+        "reason": "bounded-headless route has no swapchain/drop observation capability"
+      },
+      "declaredEventCount": 0,
+      "observedEventCount": 0,
+      "declaredPointerEventCount": 0,
+      "observedPointerEventCount": 0,
+      "rawInputSampleCount": 0,
+      "allocatedBytes": 573120,
+      "observedScale": {
+        "scene.playfield": 1,
+        "simulation.fixed-step": 1
+      },
+      "sceneNodesByLayer": {
+        "rogue3-scene": 6
+      },
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "id": "maximum-content",
+      "definition": "M0 maximum implemented content: production Tick(1/60), split RNG state, and all five scaffold-preserved visual elements",
+      "class": "normal",
+      "definitionDigest": "bf8f24421afbd3c8ab7582f21ec6d8e305d16f4b43299b498777e6942fa67e1c",
+      "stateProvenance": "production-journey",
+      "provenanceReceipt": {
+        "schemaVersion": 1,
+        "runnerIdentity": "FS.GG.Game.Harness.Journey",
+        "runnerVersion": "0.12.0.0",
+        "compositionAuthority": "Rogue3/4b305f6d7673825161469bf9132a9589",
+        "origin": "ProductionJourney",
+        "routeId": "rogue3-m0-update-view",
+        "scenarioId": "maximum-content",
+        "testId": "performance-maximum-content",
+        "inputKind": "FixedScript",
+        "inputIdentity": "maximum-content-one-fixed-step",
+        "inputDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
+        "scriptDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
+        "traceDigest": "76ac8b2aee291b5824e176daacc6496aa4c47e8a4caa059bd00f8f7f601a1220",
+        "initialFingerprintDigest": "87aa27569125942caee382df1e62fee7092bbea791500b5694175a578816d7b8",
+        "terminalFingerprintDigest": "76ac8b2aee291b5824e176daacc6496aa4c47e8a4caa059bd00f8f7f601a1220",
+        "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
+        "terminalPredicateReached": true,
+        "result": "Passed",
+        "steps": 1,
+        "maxSteps": 4,
+        "receiptDigest": "sha256:aecc3d7dfc2586097faf6717b773e199786408b1a747e84bcffd4d61a581dea1"
+      },
+      "compositionClaim": "production-composition",
+      "costDriverIds": [
+        "simulation.fixed-step",
+        "scene.ball",
+        "scene.left-paddle",
+        "scene.right-paddle",
+        "ui.score",
+        "scene.playfield"
+      ],
+      "authorship": "authored",
+      "requiredAuthoringWork": null,
+      "declaredDefinitionDigest": "bf8f24421afbd3c8ab7582f21ec6d8e305d16f4b43299b498777e6942fa67e1c",
+      "blockingDebt": null,
+      "warmupFrames": 20,
+      "sampleFrames": 120,
+      "p50Ms": 0.0032,
+      "p95Ms": 0.0039,
+      "p99Ms": 0.0042,
+      "updateCount": 120,
+      "presentCount": {
+        "status": "unsupported",
+        "reason": "bounded-headless route has no compositor presentation capability"
+      },
+      "catchUpFrames": 0,
+      "droppedFrames": {
+        "status": "unsupported",
+        "reason": "bounded-headless route has no swapchain/drop observation capability"
+      },
+      "declaredEventCount": 0,
+      "observedEventCount": 0,
+      "declaredPointerEventCount": 0,
+      "observedPointerEventCount": 0,
+      "rawInputSampleCount": 0,
+      "allocatedBytes": 1383264,
+      "observedScale": {
+        "scene.ball": 1,
+        "scene.left-paddle": 1,
+        "scene.playfield": 1,
+        "scene.right-paddle": 1,
+        "simulation.fixed-step": 1,
+        "ui.score": 1
+      },
+      "sceneNodesByLayer": {
+        "rogue3-scene": 6
+      },
+      "passed": true,
+      "reasons": []
+    }
+  ],
+  "critic": {
+    "rubricVersion": "performance-representativeness-v1",
+    "inputDigest": "0574199bbb618cc6ae89ea37aff15dddbeb2040084576233c00215a9b8be685c",
+    "status": "external-review-required",
+    "reviewBoundary": "attributable review system at the exact landing commit",
+    "preferredMode": "fresh-context-subagent",
+    "fallbackMode": "separated-pass-with-independence-disclosure",
+    "prohibitedProof": "in-repo JSON, author-entered identity, or a same-context mode string cannot establish independence",
+    "acceptedOutcomes": [
+      "supported",
+      "underrepresentative",
+      "synthetic-only",
+      "unmeasured",
+      "misclassified",
+      "ambiguous"
+    ],
+    "representativeReady": false
+  }
+}

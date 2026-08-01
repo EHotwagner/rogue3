@@ -661,6 +661,45 @@ let private normalBudget =
       MaximumSceneNodes = maximumSceneNodes
       AllowSustainedCatchUp = performanceIntentSeed.MaxCatchUpFrames > 0 }
 
+/// Bind every M0 performance workload to a runner-issued receipt over the shipped composition:
+/// boot `initialModel`, map timestamp-free events to production `Msg`, call production `update`,
+/// and reach a real fixed step. The measured workload below remains the longer update+view sample.
+let private performanceJourneyReceipt scenarioId =
+    let adapter: ProductionJourney<Model, ViewerKey, unit, unit, unit, Msg, string> =
+        { RouteId = "rogue3-m0-update-view"
+          ScenarioId = scenarioId
+          TestId = $"performance-{scenarioId}"
+          MaxSteps = 4
+          Boot = fun () -> initialModel
+          MapEvent =
+            fun event _ ->
+                match event with
+                | JourneyEvent.Start -> JourneyDispatch.Mapped [ Started ]
+                | JourneyEvent.KeyInput(key, pressed) -> JourneyDispatch.Mapped [ ViewerInput(key, pressed) ]
+                | JourneyEvent.FixedTick -> JourneyDispatch.Mapped [ Tick fixedDt ]
+                | JourneyEvent.PointerInput _ -> JourneyDispatch.Unbound "pointer input (M1)"
+                | JourneyEvent.MenuAction _ -> JourneyDispatch.Unbound "menu action"
+                | JourneyEvent.Interact -> JourneyDispatch.Unbound "interact (M1)"
+                | JourneyEvent.Pause -> JourneyDispatch.Unbound "pause"
+                | JourneyEvent.Resume -> JourneyDispatch.Unbound "resume"
+                | JourneyEvent.EffectResult _ -> JourneyDispatch.Unbound "effect result"
+          Update = fun message model -> update message model |> fst
+          FixedTick = fun model -> update (Tick fixedDt) model |> fst
+          ApplyEffectResult = fun _ model -> model
+          IsTerminal = fun model -> model.SimStepCount >= 1
+          Fingerprint =
+            fun model ->
+                $"{model.RunSeed}|{model.SimStepCount}|{model.SimAccumulator:R}|{model.LayoutRng.State}|{model.DropRng.State}"
+          EncodeEvent = string
+          EncodeFingerprint = id }
+
+    Journey.runScriptWithIdentity
+        $"{scenarioId}-one-fixed-step"
+        "model.SimStepCount>=1"
+        adapter
+        [ JourneyEvent.FixedTick ]
+    |> fun run -> run.Receipt
+
 /// REQUIRED PRODUCT AUTHORING. Every untouched row is deliberately a failing placeholder.
 ///
 /// For each row: replace `InitialState` and `MessageAt` with representative rogue3 state/messages,
@@ -670,7 +709,7 @@ let private normalBudget =
 let expectedWorkloads =
     [ // WORKLOAD-SOURCE-BEGIN idle
       { Id = "idle"
-        Definition = "PLACEHOLDER: author representative idle state and messages through update + view"
+        Definition = "M0 idle: production Tick(1/60) drains two 120 Hz steps, then builds the complete logical view"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
@@ -678,29 +717,25 @@ let expectedWorkloads =
         PointerEventsPerFrame = 0
         InitialState = (fun () -> initialModel)
         MessageAt = (fun _ -> Tick(1.0 / 60.0))
-        Provenance = SyntheticConstructed "starter state has no opaque runner-issued journey receipt"
+        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "idle")
         Composition = CompleteComposition
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Placeholder "replace starter idle state/message route, then copy the emitted definitionDigest" }
+        Authorship = Authored "19a2ca8497cd8ae8df35e4da8d0446cb539a1960c9f339514e21373528eb9983" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
-        Definition = "PLACEHOLDER: author simultaneous movement and aiming state/messages through update + view"
+        Definition = "M0 routed-input seam: production ViewerInput(W,true) plus complete logical view; analog aiming arrives in M1"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
         EventsPerFrame = 1
-        PointerEventsPerFrame = 1
+        PointerEventsPerFrame = 0
         InitialState = (fun () -> initialModel)
         MessageAt =
-          (fun frame ->
-              if frame % 2 = 0 then
-                  ViewerInput(Letter 'W', true)
-              else
-                  Tick(1.0 / 60.0))
-        Provenance = SyntheticConstructed "starter state has no opaque runner-issued journey receipt"
+          (fun _ -> ViewerInput(Letter 'W', true))
+        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "movement-aiming")
         Composition = CompleteComposition
         CostDriverIds =
             [ "simulation.fixed-step"
@@ -710,19 +745,19 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Placeholder "replace starter keyboard/tick route with rogue3 movement plus aiming" }
+        Authorship = Authored "c5fd9e99b5f2b56544f31ccb43f117251d80cbed262d7451020f08c04db1d132" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
-        Definition = "PLACEHOLDER: author combat/firing state and messages through update + view"
+        Definition = "M0 future-fire input seam: production ViewerInput(Space,true) plus complete logical view; firing entities arrive in M1/M2"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
         EventsPerFrame = 1
-        PointerEventsPerFrame = 1
+        PointerEventsPerFrame = 0
         InitialState = (fun () -> initialModel)
-        MessageAt = (fun _ -> NoOp)
-        Provenance = SyntheticConstructed "starter state has no opaque runner-issued journey receipt"
+        MessageAt = (fun _ -> ViewerInput(Space, true))
+        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "firing")
         Composition = CompleteComposition
         CostDriverIds =
             [ "simulation.fixed-step"
@@ -732,11 +767,11 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Placeholder "replace NoOp with representative combat and firing messages" }
+        Authorship = Authored "3c55e47739ac7ed4dbf4d7d6a7a59f3945b4d411ff45e36d4fe216441240fcea" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
-        Definition = "PLACEHOLDER: author effects/fog state and messages through update + view"
+        Definition = "M0 future-effects baseline: production Tick(1/60) plus complete logical view; effects and fog arrive in later milestones"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
@@ -744,16 +779,16 @@ let expectedWorkloads =
         PointerEventsPerFrame = 0
         InitialState = (fun () -> initialModel)
         MessageAt = (fun _ -> Tick(1.0 / 60.0))
-        Provenance = SyntheticConstructed "starter state has no opaque runner-issued journey receipt"
+        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "effects-fog")
         Composition = CompleteComposition
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Placeholder "replace Tick with the rogue3 effects and fog workload route" }
+        Authorship = Authored "84166d3f6fcb5007c24c01f89a6173c6ff655350cedd2b0379bd495251a2b917" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
-        Definition = "PLACEHOLDER: author maximum-expected-content state and messages through update + view"
+        Definition = "M0 maximum implemented content: production Tick(1/60), split RNG state, and all five scaffold-preserved visual elements"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
@@ -761,7 +796,7 @@ let expectedWorkloads =
         PointerEventsPerFrame = 0
         InitialState = (fun () -> initialModel)
         MessageAt = (fun _ -> Tick(1.0 / 60.0))
-        Provenance = SyntheticConstructed "starter state has no opaque runner-issued journey receipt"
+        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "maximum-content")
         Composition = CompleteComposition
         CostDriverIds =
             [ "simulation.fixed-step"
@@ -772,7 +807,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Placeholder "replace Tick with the maximum expected rogue3 content route" }
+        Authorship = Authored "bf8f24421afbd3c8ab7582f21ec6d8e305d16f4b43299b498777e6942fa67e1c" }
       // WORKLOAD-SOURCE-END maximum-content
       ]
 

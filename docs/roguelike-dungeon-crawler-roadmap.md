@@ -7,10 +7,12 @@ This local roadmap is the implementation ledger for the source specification. Mi
 **Legend:** 🟥 Not started · 🟨 In progress · 🟩 Done · ⬜ Deferred (post-v1)
 
 ### M0 — Scaffold & fixed-step loop
-- 🟥 Project scaffold: `Model`/`Msg`/`update`/`view` skeleton (§7)
-- 🟥 Fixed 120 Hz sim via `FixedStep.drainWith`, `MAX_STEPS = 5` guard, banked accumulator (§7.3, §13) — AC #8
-- 🟥 `Rng` (splitmix64) seeded, `LayoutRng`/`DropRng` sub-streams via `Rng.split` (§13)
-- 🟥 Logical 1280×720 coordinate system + world→screen transform (§6, §8)
+- 🟩 Project scaffold: `Model`/`Msg`/`update`/`view` skeleton (§7)
+- 🟩 Fixed 120 Hz sim via `FixedStep.drainWith`, `MAX_STEPS = 5` guard, banked accumulator (§7.3, §13) — AC #8
+- 🟩 `Rng` (splitmix64) seeded, `LayoutRng`/`DropRng` sub-streams via `Rng.split` (§13)
+- 🟩 Logical 1280×720 coordinate system + world→screen transform (§6, §8)
+
+Evidence (2026-08-01): focused Release 24/24 and full Release 71/71; `./fake.sh build -t Verify` green with five bounded-headless workloads; SDD verdict `readiness/001-m0-scaffold-fixed-step-loop/ship-verdict.json` is `shipReady` with 21 observed, non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3.md`.
 
 ### M1 — Input & twin-stick control
 - 🟥 `InputState` snapshot + `PressedThisTick` edge set `(currentKeys − previousKeys)` (§3, §7.3)

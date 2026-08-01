@@ -1,0 +1,1 @@
+size=320x200;capabilities=1;hash=c8b1dccfddad3657b593d4fef50c6430bc87bc828a920f15f70224a28e6f9d21

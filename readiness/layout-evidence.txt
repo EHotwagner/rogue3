@@ -1,0 +1,14 @@
+status=ok
+command=--layout-evidence
+output=readiness/layout-evidence.txt
+scene=Rogue3.Program.view
+output-size=1280x720
+proof-level=ReadableLayout
+hud-region=score:0,0,1280,96
+gameplay-region=playfield:0,96,1280,624
+text-bounds=2
+gameplay-bounds=1
+overlap-status=NoLayoutOverlap
+measurement-mode=ApproximateTextBounds
+accepted=True
+diagnostics=hud-region=present|gameplay-region=present|measurement-mode=approximate

@@ -5,6 +5,7 @@ open Expecto
 open Rogue3.Program
 open Rogue3.Model
 open FS.GG.UI.Scene
+open FS.GG.Game.Core
 
 // Feature 060 (FR-005): replaceable scaffold-BEHAVIOR tests. These call the scaffold
 // rogue3's `view`/`update`/host/scene-text directly, so when you replace the scaffold
@@ -104,7 +105,7 @@ open FS.GG.UI.Controls
 open Rogue3.Geometry // Vec2 (Vx/Vy) — the collision-safe positions the starter uses (feature 250)
 
 // One fixed sim step's worth of elapsed time — enough for `update (Tick oneStep)` to drain a step.
-let private oneStep = 1.0 / 60.0
+let private oneStep = fixedDt
 
 // A raw viewer key-DOWN event, built exactly as the host receives one from the window. The #911
 // scene-host driver (`runKeyScriptToModel` / `auditKeyWiring` / `reachableMessages`) normalizes the
@@ -139,6 +140,60 @@ let behaviorTests =
             Expect.notEqual after.Ball before.Ball "a tick integrates the ball position"
             Expect.equal after.TickCount (before.TickCount + 1) "a tick advances the tick count"
             Expect.isEmpty effects "a pure game tick emits no host command"
+        }
+
+        test "M0 fixed 120 Hz drain banks fractions and clamps a huge stall to five steps (AC #8)" {
+            let model0 = Rogue3.Program.initialModel
+            let decimalFrame, _ = Rogue3.Program.update (Tick 0.033) model0
+            Expect.equal decimalFrame.SimStepCount 3 "decimal 0.033 contains three whole 1/120-second steps"
+            Expect.isGreaterThan decimalFrame.SimAccumulator 0.0 "the decimal-frame fraction remains banked"
+            Expect.isLessThan decimalFrame.SimAccumulator fixedDt "the banked fraction remains below one step"
+
+            let exactFrame, _ = Rogue3.Program.update (Tick (1.0 / 30.0)) model0
+            Expect.equal exactFrame.SimStepCount 4 "exact 1/30 second advances four 120 Hz steps"
+            Expect.floatClose Accuracy.high exactFrame.SimAccumulator 0.0 "the exact frame leaves no meaningful remainder"
+
+            let stalled, _ = Rogue3.Program.update (Tick 1.0) model0
+            Expect.equal stalled.SimStepCount maxSteps "a one-second stall advances no more than MAX_STEPS"
+            Expect.isGreaterThanOrEqual stalled.SimAccumulator 0.0 "the clamped remainder is non-negative"
+            Expect.isLessThan stalled.SimAccumulator fixedDt "the clamp retains no unbounded catch-up debt"
+        }
+
+        test "M0 banked accumulator combines sub-step host frames deterministically" {
+            let model0 = Rogue3.Program.initialModel
+            let first, _ = Rogue3.Program.update (Tick (fixedDt * 0.6)) model0
+            let second, _ = Rogue3.Program.update (Tick (fixedDt * 0.6)) first
+            Expect.equal first.SimStepCount 0 "the first sub-step frame does not advance the sim"
+            Expect.equal second.SimStepCount 1 "the second frame drains the banked whole step"
+            Expect.floatClose Accuracy.high second.SimAccumulator (fixedDt * 0.2) "the residual fraction remains banked"
+        }
+
+        test "M0 same seed reproduces independent LayoutRng and DropRng streams" {
+            let first = initialModelForSeed 0xC0FFEEUL
+            let replay = initialModelForSeed 0xC0FFEEUL
+            Expect.equal first.LayoutRng replay.LayoutRng "the layout stream is seed-reproducible"
+            Expect.equal first.DropRng replay.DropRng "the drop stream is seed-reproducible"
+            Expect.notEqual first.LayoutRng first.DropRng "the split streams start decorrelated"
+
+            let struct (_, advancedDrop) = Rng.nextInt 0 99 first.DropRng
+            let combatAdvanced = { first with DropRng = advancedDrop }
+            Expect.equal combatAdvanced.LayoutRng first.LayoutRng "advancing drops cannot perturb layout state"
+            Expect.notEqual combatAdvanced.DropRng first.DropRng "the draw writes back the advanced drop stream"
+        }
+
+        test "M0 logical 1280x720 world-to-screen transform is centered, uniform, and invertible" {
+            Expect.equal Rogue3.Program.initialModel.Playfield (vec2 1280.0 720.0) "the model owns the specified logical extent"
+            let transform = worldScreenTransform 1600.0 1200.0
+            Expect.floatClose Accuracy.high transform.Scale 1.25 "the limiting width chooses one uniform scale"
+            Expect.floatClose Accuracy.high transform.OffsetVx 0.0 "no horizontal letterbox is needed"
+            Expect.floatClose Accuracy.high transform.OffsetVy 150.0 "vertical surplus is centered"
+
+            let logical = vec2 640.0 360.0
+            let physical = worldToScreen transform logical
+            Expect.equal physical (vec2 800.0 600.0) "logical center maps to physical center"
+            let roundTrip = screenToWorld transform physical
+            Expect.floatClose Accuracy.high roundTrip.Vx logical.Vx "inverse recovers world x"
+            Expect.floatClose Accuracy.high roundTrip.Vy logical.Vy "inverse recovers world y"
         }
 
         test "game keyboard input moves the paddles and records the last input" {

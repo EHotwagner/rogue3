@@ -1,0 +1,60 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-01-Rogue3.md",
+  "reportSha256": "dccd0ed6b813e5605d52a24a9c20dcd426d390cfb600d2216c60f8554af7a14f",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:work/001-m0-scaffold-fixed-step-loop/spec.md",
+          "result": "verified",
+          "sha256": "15095a1953b45bf185af613ed4888f8ad57b27a2d52b628f71e14d523d4c0580"
+        },
+        {
+          "locator": "file:work/001-m0-scaffold-fixed-step-loop/clarifications.md",
+          "result": "verified",
+          "sha256": "6efc7ee989b48e94078ce2d1d2698ce25fa3acc68f1fa8bd6bbf076e5ceaa8ea"
+        },
+        {
+          "locator": "command:curl -fsSL https://raw.githubusercontent.com/FS-GG/FS.GG.Game/main/docs/TestSpecs/Games/roguelike-dungeon-crawler.md",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The upstream main branch is mutable.",
+        "The local package pin is not a released documentation snapshot.",
+        "No remote issue tracker was available for duplicate checking."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "033970f6614359ba1d71fd23a1545fbe0d3e908cb8a8e4c02920db3f4349674d"
+        },
+        {
+          "locator": "command:./fake.sh build -t PerformanceIntent",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t PerformanceEvidence",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Repeated runs support pass/fail budgets and zero catch-up frames, not stable exact timings.",
+        "The five-workload production-journey composition is bounded-headless only.",
+        "No external feedback store was available for duplicate checking."
+      ]
+    }
+  ]
+}

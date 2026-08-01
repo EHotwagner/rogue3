@@ -44,7 +44,11 @@ type Model =
       RightScore: int
       Playfield: Vec2 // width = Playfield.Vx, height = Playfield.Vy (no Width/Height labels)
       SimAccumulator: float // seconds carried between Ticks for the fixed-step drain
+      SimStepCount: int // whole 1/120-second simulation steps completed
       TickCount: int
+      RunSeed: uint64
+      LayoutRng: Rng // layout/template stream; combat must never advance it
+      DropRng: Rng // drop/AI-variance stream; layout must never advance it
       LastInput: ViewerKey option }
 
 type Msg =
@@ -81,8 +85,10 @@ type GeneratedLayoutValidationResult =
       FailureClass: GeneratedLayoutValidationFailureClass option
       Diagnostics: string list }
 
-let playfieldWidth = 640.0
-let playfieldHeight = 480.0
+/// Hollow Depths' stable logical coordinate system. The host letterboxes this canvas onto the
+/// physical output; simulation and view never observe the window dimensions.
+let playfieldWidth = 1280.0
+let playfieldHeight = 720.0
 let paddleHeight = 96.0
 let paddleSpeed = 24.0
 let ballRadius = 6.0
@@ -90,16 +96,29 @@ let leftPaddleX = 16.0
 let rightPaddleX = playfieldWidth - 24.0
 let paddleThickness = 8.0
 
-// One fixed simulation step is 1/60 s. `update` on `Tick dt` accumulates the host's real elapsed
-// time and drains WHOLE steps out of it (FixedStep.drain), so the sim advances deterministically
-// regardless of the host frame rate — the classic fixed-timestep accumulator.
-let simInterval = 1.0 / 60.0
+/// One fixed simulation step is 1/120 s (Hollow Depths §7.3 / §13).
+let fixedDt = 1.0 / 120.0
+
+/// A host frame may advance no more than five fixed steps. `FixedStep.drainWith` receives this as
+/// a maximum accepted frame-time budget, preventing a tab-out or stall from creating catch-up debt.
+let maxSteps = 5
+let simInterval = fixedDt
+let maxFrameTime = float maxSteps * fixedDt
 
 let private servedBall =
     { Pos = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0)
       Velocity = vec2 5.0 3.0 }
 
-let initialModel =
+/// Derive independent deterministic layout and combat/drop streams from one serializable run seed.
+/// The fixed split order is part of the replay contract.
+let rngStreams seed =
+    let runRng = Rng.ofSeed seed
+    let struct (layoutRng, continuation) = Rng.split runRng
+    let struct (dropRng, _) = Rng.split continuation
+    layoutRng, dropRng
+
+let initialModelForSeed seed =
+    let layoutRng, dropRng = rngStreams seed
     { Ball = servedBall
       LeftPaddleY = (playfieldHeight - paddleHeight) / 2.0
       RightPaddleY = (playfieldHeight - paddleHeight) / 2.0
@@ -108,8 +127,41 @@ let initialModel =
       RightScore = 0
       Playfield = vec2 playfieldWidth playfieldHeight
       SimAccumulator = 0.0
+      SimStepCount = 0
       TickCount = 0
+      RunSeed = seed
+      LayoutRng = layoutRng
+      DropRng = dropRng
       LastInput = None }
+
+let initialModel = initialModelForSeed 0xC0FFEEUL
+
+/// Uniform centered logical-canvas transform used for world-to-screen presentation.
+type WorldScreenTransform =
+    { Scale: float
+      OffsetVx: float
+      OffsetVy: float }
+
+let worldScreenTransform outputWidth outputHeight =
+    if outputWidth <= 0.0 || outputHeight <= 0.0 then
+        { Scale = 1.0; OffsetVx = 0.0; OffsetVy = 0.0 }
+    else
+        let scale = min (outputWidth / playfieldWidth) (outputHeight / playfieldHeight)
+        { Scale = scale
+          OffsetVx = (outputWidth - playfieldWidth * scale) / 2.0
+          OffsetVy = (outputHeight - playfieldHeight * scale) / 2.0 }
+
+let worldToScreen transform point =
+    vec2
+        (point.Vx * transform.Scale + transform.OffsetVx)
+        (point.Vy * transform.Scale + transform.OffsetVy)
+
+let screenToWorld transform point =
+    if transform.Scale <= 0.0 then point
+    else
+        vec2
+            ((point.Vx - transform.OffsetVx) / transform.Scale)
+            ((point.Vy - transform.OffsetVy) / transform.Scale)
 
 let keyName key = ViewerKeyboard.toKeyId key
 
@@ -165,7 +217,8 @@ let stepSim model =
     let withinLeftPaddle = clampedY >= model.LeftPaddleY && clampedY <= model.LeftPaddleY + model.PaddleHeight
     let withinRightPaddle = clampedY >= model.RightPaddleY && clampedY <= model.RightPaddleY + model.PaddleHeight
 
-    if next.Vx < leftPaddleX + paddleThickness + ballRadius then
+    let stepped =
+      if next.Vx < leftPaddleX + paddleThickness + ballRadius then
         if withinLeftPaddle then
             { model with
                 Ball =
@@ -175,7 +228,7 @@ let stepSim model =
             { model with
                 RightScore = model.RightScore + 1
                 Ball = servedBall }
-    elif next.Vx > rightPaddleX - ballRadius then
+      elif next.Vx > rightPaddleX - ballRadius then
         if withinRightPaddle then
             { model with
                 Ball =
@@ -185,19 +238,22 @@ let stepSim model =
             { model with
                 LeftScore = model.LeftScore + 1
                 Ball = servedBall }
-    else
+      else
         { model with
             Ball =
                 { ball with
                     Pos = vec2 next.Vx clampedY
                     Velocity = vec2 ball.Velocity.Vx velocityY } }
 
+    { stepped with SimStepCount = model.SimStepCount + 1 }
+
 // Fixed-timestep advance: fold the host's real elapsed `dt` into the carried accumulator, drain the
 // whole number of `simInterval` steps out of it, and run `stepSim` that many times. `FixedStep.drain`
 // is a pure FS.GG.Game.Core primitive (no wall-clock read), so a scripted `dt` sequence replays
 // byte-identically. This is the accumulator + stepSim pattern — the shape most games want on Tick.
 let private advanceSim dtSeconds model =
-    let struct (steps, accumulator) = FixedStep.drain simInterval dtSeconds model.SimAccumulator
+    let struct (steps, accumulator) =
+        FixedStep.drainWith maxFrameTime fixedDt dtSeconds model.SimAccumulator
 
     let stepped =
         // mutable: a single unaliased accumulator over a fixed step count is plainer than a fold here.
@@ -233,4 +289,3 @@ let update msg model : Model * AdapterCommand<Msg> =
     | NoOp -> model, Cmd.none
 
 let subscriptions _ : AdapterSubscription<Msg> list = Sub.none
-

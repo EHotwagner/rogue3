@@ -1,0 +1,584 @@
+schemaVersion: 1
+workId: 001-m0-scaffold-fixed-step-loop
+stage: evidence
+status: evidenceReady
+sourceSpec: work/001-m0-scaffold-fixed-step-loop/spec.md
+sourceClarifications: work/001-m0-scaffold-fixed-step-loop/clarifications.md
+sourceChecklist: work/001-m0-scaffold-fixed-step-loop/checklist.md
+sourcePlan: work/001-m0-scaffold-fixed-step-loop/plan.md
+sourceTasks: work/001-m0-scaffold-fixed-step-loop/tasks.yml
+sourceAnalysis: readiness/001-m0-scaffold-fixed-step-loop/analysis.json
+sourceSnapshots:
+  - label: analysis
+    path: readiness/001-m0-scaffold-fixed-step-loop/analysis.json
+    digest: 10634b86b27bd42f7780fa67975ff832b85e6e503858fe9337f7bee930d4da6e
+    schemaVersion: 1
+  - label: checklist
+    path: work/001-m0-scaffold-fixed-step-loop/checklist.md
+    digest: 2754e73c353983fd83b4d085a6ca05a306c0858c9a87ee4ff1d0c9692d0792c5
+    schemaVersion: 1
+  - label: clarifications
+    path: work/001-m0-scaffold-fixed-step-loop/clarifications.md
+    digest: 6efc7ee989b48e94078ce2d1d2698ce25fa3acc68f1fa8bd6bbf076e5ceaa8ea
+    schemaVersion: 1
+  - label: plan
+    path: work/001-m0-scaffold-fixed-step-loop/plan.md
+    digest: 94f50fbe9b34f7afe45b9e513295c77d0ad1852a7334b07129ef98db4e531b63
+    schemaVersion: 1
+  - label: spec
+    path: work/001-m0-scaffold-fixed-step-loop/spec.md
+    digest: 15095a1953b45bf185af613ed4888f8ad57b27a2d52b628f71e14d523d4c0580
+    schemaVersion: 1
+  - label: tasks
+    path: work/001-m0-scaffold-fixed-step-loop/tasks.yml
+    digest: 0af8be294920c6a9f59fcf96e5b0a93af52aa4bc191a641783abc39a0d4612a6
+    schemaVersion: 1
+evidence:
+  - id: EV001
+    kind: verification
+    subject:
+      type: task
+      id: T001
+    taskRefs: [T001]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV001]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV002
+    kind: verification
+    subject:
+      type: task
+      id: T002
+    taskRefs: [T002]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV002]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV003
+    kind: verification
+    subject:
+      type: task
+      id: T003
+    taskRefs: [T003]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV003]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV004
+    kind: verification
+    subject:
+      type: task
+      id: T004
+    taskRefs: [T004]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV004]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV005
+    kind: verification
+    subject:
+      type: task
+      id: T005
+    taskRefs: [T005]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV005]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV006
+    kind: verification
+    subject:
+      type: task
+      id: T006
+    taskRefs: [T006]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV006]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV007
+    kind: verification
+    subject:
+      type: task
+      id: T007
+    taskRefs: [T007]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV007]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV008
+    kind: verification
+    subject:
+      type: task
+      id: T008
+    taskRefs: [T008]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV008]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV009
+    kind: verification
+    subject:
+      type: task
+      id: T009
+    taskRefs: [T009]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV009]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV010
+    kind: verification
+    subject:
+      type: task
+      id: T010
+    taskRefs: [T010]
+    requirementRefs: [FR-001, FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV010]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV011
+    kind: verification
+    subject:
+      type: task
+      id: T011
+    taskRefs: [T011]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV011]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV012
+    kind: verification
+    subject:
+      type: task
+      id: T012
+    taskRefs: [T012]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV012]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV013
+    kind: verification
+    subject:
+      type: task
+      id: T013
+    taskRefs: [T013]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV013]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV014
+    kind: verification
+    subject:
+      type: task
+      id: T014
+    taskRefs: [T014]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV014]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV015
+    kind: verification
+    subject:
+      type: task
+      id: T015
+    taskRefs: [T015]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV015]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV016
+    kind: verification
+    subject:
+      type: task
+      id: T016
+    taskRefs: [T016]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV016]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV017
+    kind: verification
+    subject:
+      type: task
+      id: T017
+    taskRefs: [T017]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV017]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV018
+    kind: verification
+    subject:
+      type: task
+      id: T018
+    taskRefs: [T018]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV018]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV019
+    kind: verification
+    subject:
+      type: task
+      id: T019
+    taskRefs: [T019]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV019]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV020
+    kind: verification
+    subject:
+      type: task
+      id: T020
+    taskRefs: [T020]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV020]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV021
+    kind: verification
+    subject:
+      type: task
+      id: T021
+    taskRefs: [T021]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV021]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/BehaviorTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/001-m0-scaffold-fixed-step-loop/test-results/m0-full.trx
+      digest: "sha256:8f8b1b23d5c6a5b1b2733a6384067ff17fd29bb78c0b1135005ff39f79c9bf3a"
+      outcome: passed
+      passed: 71
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+lifecycleNotes:
+  - "Next lifecycle action: verify."

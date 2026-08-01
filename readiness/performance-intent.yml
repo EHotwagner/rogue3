@@ -1,0 +1,15 @@
+performanceIntent:
+  id: "PI-GENERATED-GAME"
+  disposition: "active"
+  targetFps: 60
+  workloadIds: ["idle", "movement-aiming", "firing", "effects-fog", "maximum-content"]
+  workloadDefinitionDigests: ["idle=sha256:19a2ca8497cd8ae8df35e4da8d0446cb539a1960c9f339514e21373528eb9983", "movement-aiming=sha256:c5fd9e99b5f2b56544f31ccb43f117251d80cbed262d7451020f08c04db1d132", "firing=sha256:3c55e47739ac7ed4dbf4d7d6a7a59f3945b4d411ff45e36d4fe216441240fcea", "effects-fog=sha256:84166d3f6fcb5007c24c01f89a6173c6ff655350cedd2b0379bd495251a2b917", "maximum-content=sha256:bf8f24421afbd3c8ab7582f21ec6d8e305d16f4b43299b498777e6942fa67e1c"]
+  maximumExpectedScale: "maximum-content workload"
+  maxP95Ms: 16.67
+  maxP99Ms: 25.0
+  maxCatchUpFrames: 0
+  structuralCostBudgets: ["scene-nodes\u003C=4096"]
+  requiredCapability: "bounded-headless-update-and-scene-route"
+  liveCompositorRequired: false
+  evidenceRefs: ["readiness/performance-evidence.json"]
+  rationale: "Generated normal-play declaration; live-compositor evidence remains a separate workload."
