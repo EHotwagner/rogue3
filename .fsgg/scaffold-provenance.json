@@ -1,0 +1,1082 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "id": "FS.GG.SDD.Artifacts",
+    "version": "0.32.0"
+  },
+  "requiredMinimumCliVersion": "0.6.0",
+  "providerName": "rendering",
+  "providerContractVersion": "1.1.0",
+  "templateRef": "fs-gg-ui",
+  "outcome": "providerSucceeded",
+  "producedPaths": [
+    {
+      "path": ".agents/skills/fs-gg-collision/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "cf22a55d88a46e26d47a4c86e35c064b9cc4e0a968b589153283a8afab709d83"
+    },
+    {
+      "path": ".agents/skills/fs-gg-elmish/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "de59b399f60ce62b34f128c17b39f69c1c9783f0be790de201051de74ebbb9c1"
+    },
+    {
+      "path": ".agents/skills/fs-gg-feedback-report/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "2d7127addbab83625a31d0d9defe7c9322845209a93b6e02b00f5d7cad11e4f8"
+    },
+    {
+      "path": ".agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+      "owner": "generatedProduct",
+      "sha256": "982f6fdd9f9fbe5c95faec14b14494b05ccafc449846f5f42138772bc89275bf"
+    },
+    {
+      "path": ".agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+      "owner": "generatedProduct",
+      "sha256": "e59d6506a97118218448ac37e9430ff9bea3b50136100f37618b2b37cc091c7b"
+    },
+    {
+      "path": ".agents/skills/fs-gg-game-shell/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "8f0a44606f18ac99e359720d7cdaf564017233e5de18c14fa2b5a1d789a056a3"
+    },
+    {
+      "path": ".agents/skills/fs-gg-grids/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "9b1b2bd0cdd4732ffaa0efb9434fae12b8e04e6a5c747239fee357faa0c118a0"
+    },
+    {
+      "path": ".agents/skills/fs-gg-keyboard-input/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "48378dd80c74e2484af5b5f284b4aa2b57b24b3d0359303d53f9032c26a9c988"
+    },
+    {
+      "path": ".agents/skills/fs-gg-layout/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "85c55e26ee42bd8d54533abcf6cb955d53e02651901be3c0e91bfe92dac92d62"
+    },
+    {
+      "path": ".agents/skills/fs-gg-line-drawing/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "b9b19b8d491f21972714ef0cb11b84dd078fb80cef6cc820dfb2945d1913dc22"
+    },
+    {
+      "path": ".agents/skills/fs-gg-project/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "c9fac83fb4ebb1f29f666cd206e4f47a88c0686a0245f21f5fa48dc2209a54a0"
+    },
+    {
+      "path": ".agents/skills/fs-gg-scene/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "3c3afaa6a4293435771b18acd9aea06e807a0b62430796236d4d70249a3fcc07"
+    },
+    {
+      "path": ".agents/skills/fs-gg-skiaviewer/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "b4234ede69d626710966960cd390ef2d4fd99dcf27c70925589d5ef0b940cf9c"
+    },
+    {
+      "path": ".agents/skills/fs-gg-styling/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "24754ec5cb931deb6fcaf7d4b9e5926c42f4325dc4f67cb4852295de8b405ac9"
+    },
+    {
+      "path": ".agents/skills/fs-gg-symbol-design/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "1a28af97d907265344ce65a5458de2f74395c29be347fd16e5404908aa98803e"
+    },
+    {
+      "path": ".agents/skills/fs-gg-symbol-design/reference.fsx",
+      "owner": "generatedProduct",
+      "sha256": "83cdf5654c59a94f1456806375b24072fc19f0d87c91fa03666349f3f1fa1331"
+    },
+    {
+      "path": ".agents/skills/fs-gg-symbol-design/reference/candidates.md",
+      "owner": "generatedProduct",
+      "sha256": "ff30943fdafbfce5960bc5cd65d477ae0a564b19816f8c7f8bb9db91e5b81f9b"
+    },
+    {
+      "path": ".agents/skills/fs-gg-symbology/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "d927539dd50df2e04a56945cd39e7bb87349cdc8976edfe2b0a4304377c91262"
+    },
+    {
+      "path": ".agents/skills/fs-gg-symbology/reference.fsx",
+      "owner": "generatedProduct",
+      "sha256": "68c3e323660b12d128b8ea5adb2c027fe410513a540da00987ec6a7a1877d233"
+    },
+    {
+      "path": ".agents/skills/fs-gg-symbology/reference/labels.md",
+      "owner": "generatedProduct",
+      "sha256": "22f6f73fd1b83223ab0ccb37b9ddfc6168e3646d31f9154760f4ff05e6119226"
+    },
+    {
+      "path": ".agents/skills/fs-gg-testing/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "8e35f29eff51fca7886d4a3bc88cf6d2ab7a2c7108161476d04a54a0d4521510"
+    },
+    {
+      "path": ".agents/skills/fs-gg-ui-widgets/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "90dd4131289a6720336c815ef4eff54b6d63e50bb3a270b406bfc4898b67f220"
+    },
+    {
+      "path": ".agents/skills/fs-gg-visibility/SKILL.md",
+      "owner": "generatedProduct",
+      "sha256": "53f2657f1463f43aab247691d49e36ce7856d8ef75a8658d82b734f0d65226f4"
+    },
+    {
+      "path": ".agents/skills/skill-manifest.json",
+      "owner": "generatedProduct",
+      "sha256": "7bf2f301c0a18fb018124a27443c28c4f2ae7c1d490992828a76e7830d68d2c4"
+    },
+    {
+      "path": "Directory.Build.props",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "Directory.Packages.props",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "README.md",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "Rogue3.slnx",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "SWAP-CHECKLIST.md",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "build.cmd",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "build.fsx",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "build.sh",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/UPGRADING.md",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Audio.Core/Audio.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Audio.Elmish/Elmish.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Audio.Engine/Engine.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Audio.Host/Host.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Canvas/Elements.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Canvas/Persistence.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Contracts/Schemas.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls.Elmish/Authoring.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls.Elmish/ControlsElmish.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Accessibility.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Attributes.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Buttons.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Catalog.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Charts.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/ChartsWidgets.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Collections.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/CollectionsWidgets.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Containers.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Control.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/ControlRuntime.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/CustomControl.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/CustomControlWidget.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/DataGrid.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/DataGridWidget.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Diagnostics.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Display.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Input.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/KeyRebind.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Navigation.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Overlay.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Pickers.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Pointer.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Primitives.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/RichText.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/TextAreaWidget.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/TextBoxWidget.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/TextInput.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Controls/Types.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/DesignSystem/DesignTokens.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/DesignSystem/Style.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/DesignSystem/Types.DesignSystem.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Elmish/Elmish.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Ai.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Ballistics.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Dice.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Effects.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/FixedStep.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Fov.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Geometry.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Loop.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Los.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/MapAnalysis.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/MapGen.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Pathfinding.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Physics.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Primitives.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Resolution.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Rng.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/SpatialGrid.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Core/Visibility.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Game.Harness/Journey.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/KeyboardInput/KeyboardInput.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Layout/Graph.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Layout/GraphValidation.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Layout/Layout.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Layout/Types.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Scene/Animation.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Scene/Scene.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/SkiaViewer/SkiaViewer.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Symbology.Render/Render.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Symbology/Catalog.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Symbology/Coverage.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Symbology/LabelLayout.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Symbology/Legibility.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Symbology/Symbology.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Testing/Testing.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Themes.Default/Theme.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/api-surface/Themes.Default/Theming.fsi",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/controls-catalog.md",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/effects-boundary.md",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/evidence-formats.md",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/interactive-readiness.md",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/product.md",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "docs/scaffold-map.md",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "fake.cmd",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "fake.sh",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "global.json",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "lifecycle-scaffolding-pending.md",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "load-Rogue3.fsx",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/AudioCues.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/Collision.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/EvidenceCommands.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/GameShell.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/GameplayVisualInventory.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/Grids.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/LayoutEvidence.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/LineDrawing.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/Model.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/PerformanceEvidence.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/Program.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/Rogue3.fsproj",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/Vec2.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/View.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/Visibility.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "src/Rogue3/WindowOptions.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "tests/Rogue3.Tests/BehaviorTests.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "tests/Rogue3.Tests/CoverageGateTests.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "tests/Rogue3.Tests/GovernanceTests.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "tests/Rogue3.Tests/Program.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "tests/Rogue3.Tests/Rogue3.Tests.fsproj",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "tests/Rogue3.Tests/ShellBehaviorTests.fs",
+      "owner": "generatedProduct"
+    },
+    {
+      "path": "tests/Rogue3.Tests/element-visuals.catalog",
+      "owner": "generatedProduct"
+    }
+  ],
+  "mirroredPaths": [
+    {
+      "path": ".claude/skills/fs-gg-collision/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "cf22a55d88a46e26d47a4c86e35c064b9cc4e0a968b589153283a8afab709d83"
+    },
+    {
+      "path": ".claude/skills/fs-gg-elmish/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "de59b399f60ce62b34f128c17b39f69c1c9783f0be790de201051de74ebbb9c1"
+    },
+    {
+      "path": ".claude/skills/fs-gg-feedback-report/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "2d7127addbab83625a31d0d9defe7c9322845209a93b6e02b00f5d7cad11e4f8"
+    },
+    {
+      "path": ".claude/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+      "owner": "mirrored",
+      "sha256": "982f6fdd9f9fbe5c95faec14b14494b05ccafc449846f5f42138772bc89275bf"
+    },
+    {
+      "path": ".claude/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+      "owner": "mirrored",
+      "sha256": "e59d6506a97118218448ac37e9430ff9bea3b50136100f37618b2b37cc091c7b"
+    },
+    {
+      "path": ".claude/skills/fs-gg-game-shell/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "8f0a44606f18ac99e359720d7cdaf564017233e5de18c14fa2b5a1d789a056a3"
+    },
+    {
+      "path": ".claude/skills/fs-gg-grids/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "9b1b2bd0cdd4732ffaa0efb9434fae12b8e04e6a5c747239fee357faa0c118a0"
+    },
+    {
+      "path": ".claude/skills/fs-gg-keyboard-input/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "48378dd80c74e2484af5b5f284b4aa2b57b24b3d0359303d53f9032c26a9c988"
+    },
+    {
+      "path": ".claude/skills/fs-gg-layout/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "85c55e26ee42bd8d54533abcf6cb955d53e02651901be3c0e91bfe92dac92d62"
+    },
+    {
+      "path": ".claude/skills/fs-gg-line-drawing/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "b9b19b8d491f21972714ef0cb11b84dd078fb80cef6cc820dfb2945d1913dc22"
+    },
+    {
+      "path": ".claude/skills/fs-gg-project/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "c9fac83fb4ebb1f29f666cd206e4f47a88c0686a0245f21f5fa48dc2209a54a0"
+    },
+    {
+      "path": ".claude/skills/fs-gg-scene/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "3c3afaa6a4293435771b18acd9aea06e807a0b62430796236d4d70249a3fcc07"
+    },
+    {
+      "path": ".claude/skills/fs-gg-skiaviewer/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "b4234ede69d626710966960cd390ef2d4fd99dcf27c70925589d5ef0b940cf9c"
+    },
+    {
+      "path": ".claude/skills/fs-gg-styling/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "24754ec5cb931deb6fcaf7d4b9e5926c42f4325dc4f67cb4852295de8b405ac9"
+    },
+    {
+      "path": ".claude/skills/fs-gg-symbol-design/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "1a28af97d907265344ce65a5458de2f74395c29be347fd16e5404908aa98803e"
+    },
+    {
+      "path": ".claude/skills/fs-gg-symbol-design/reference.fsx",
+      "owner": "mirrored",
+      "sha256": "83cdf5654c59a94f1456806375b24072fc19f0d87c91fa03666349f3f1fa1331"
+    },
+    {
+      "path": ".claude/skills/fs-gg-symbol-design/reference/candidates.md",
+      "owner": "mirrored",
+      "sha256": "ff30943fdafbfce5960bc5cd65d477ae0a564b19816f8c7f8bb9db91e5b81f9b"
+    },
+    {
+      "path": ".claude/skills/fs-gg-symbology/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "d927539dd50df2e04a56945cd39e7bb87349cdc8976edfe2b0a4304377c91262"
+    },
+    {
+      "path": ".claude/skills/fs-gg-symbology/reference.fsx",
+      "owner": "mirrored",
+      "sha256": "68c3e323660b12d128b8ea5adb2c027fe410513a540da00987ec6a7a1877d233"
+    },
+    {
+      "path": ".claude/skills/fs-gg-symbology/reference/labels.md",
+      "owner": "mirrored",
+      "sha256": "22f6f73fd1b83223ab0ccb37b9ddfc6168e3646d31f9154760f4ff05e6119226"
+    },
+    {
+      "path": ".claude/skills/fs-gg-testing/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "8e35f29eff51fca7886d4a3bc88cf6d2ab7a2c7108161476d04a54a0d4521510"
+    },
+    {
+      "path": ".claude/skills/fs-gg-ui-widgets/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "90dd4131289a6720336c815ef4eff54b6d63e50bb3a270b406bfc4898b67f220"
+    },
+    {
+      "path": ".claude/skills/fs-gg-visibility/SKILL.md",
+      "owner": "mirrored",
+      "sha256": "53f2657f1463f43aab247691d49e36ce7856d8ef75a8658d82b734f0d65226f4"
+    },
+    {
+      "path": ".claude/skills/skill-manifest.json",
+      "owner": "mirrored",
+      "sha256": "7bf2f301c0a18fb018124a27443c28c4f2ae7c1d490992828a76e7830d68d2c4"
+    }
+  ],
+  "sddOwnedPaths": [
+    {
+      "path": ".config/dotnet-tools.json",
+      "owner": "sdd"
+    }
+  ],
+  "driverPaths": [
+    {
+      "path": ".agents/skills/padd-item/SKILL.md",
+      "owner": "driver",
+      "sha256": "f77540a387627a13ed88133e259eee6fc8d956213a23b18097977bcc07520aca"
+    },
+    {
+      "path": ".agents/skills/padd-item/agents/openai.yaml",
+      "owner": "driver",
+      "sha256": "b5e453d33a40ed8aa0a14a34b01b01fbe72f351d6269208a77e883b7efac02f8"
+    },
+    {
+      "path": ".agents/skills/work-board-best/SKILL.md",
+      "owner": "driver",
+      "sha256": "2b0577726f7cab6aa27169888c0f47370ad26ddadbcb6fda300acf1a00e754e3"
+    },
+    {
+      "path": ".agents/skills/work-board-best/agents/openai.yaml",
+      "owner": "driver",
+      "sha256": "9d85ffa0636c28f3d4a6713217640b3572bb003ec5759ac5a00a3851a10ff548"
+    },
+    {
+      "path": ".agents/skills/work-board-normal/SKILL.md",
+      "owner": "driver",
+      "sha256": "4649b17f1e05e2302626927b77462eee91ba41ceb3eb7b72df8d933fbd5863db"
+    },
+    {
+      "path": ".agents/skills/work-board-normal/agents/openai.yaml",
+      "owner": "driver",
+      "sha256": "2058fafb85ceaf1b6bed448a4cb4f6b51bfdbee05c9eb062af0647cb27dc1ec0"
+    },
+    {
+      "path": ".agents/skills/work-board/SKILL.md",
+      "owner": "driver",
+      "sha256": "0e44ecccfb46537cdb40296c7351dd08a0e5494ea6144ff13ceefd27872a8855"
+    },
+    {
+      "path": ".agents/skills/work-board/agents/openai.yaml",
+      "owner": "driver",
+      "sha256": "a4d2b19cde3fd490c669da9a007b16620a106586efc30c32a02efd92f58d0433"
+    },
+    {
+      "path": ".agents/skills/work-board/references/backlog-triage.md",
+      "owner": "driver",
+      "sha256": "6e9601d6e752be4ca3f3e5f5a2a5837b6fb5e0b6f4a1722aac8a6731ad0ebc44"
+    },
+    {
+      "path": ".agents/skills/work-board/references/deep-detail.md",
+      "owner": "driver",
+      "sha256": "4fb060eef5a291f53118aefa546b187d4b1c929703ce56910030af0f066180ad"
+    },
+    {
+      "path": ".agents/skills/work-board/references/feedback-contract.md",
+      "owner": "driver",
+      "sha256": "cca471febecbd3f63cd29a5ec81c3af3ea1542a4e40ba1075208ec8416632f86"
+    },
+    {
+      "path": ".agents/skills/work-board/references/host-loop.md",
+      "owner": "driver",
+      "sha256": "66b3c7763aeeaf7d30e872cc31dea31fa5c4515b7637bc9eb397acbde1d70ed9"
+    },
+    {
+      "path": ".agents/skills/work-board/references/workspace-scope.md",
+      "owner": "driver",
+      "sha256": "9435aa1fcc975aba3c3f22066b708a3061b13e9181f4c03fce6dc0526807e245"
+    },
+    {
+      "path": ".agents/skills/work-board/scripts/validate-feedback-state.py",
+      "owner": "driver",
+      "sha256": "8a28ff24719a11204f168456974b4941026111d498039bf88a679cbca5f11a07"
+    },
+    {
+      "path": ".agents/skills/work-roadmap/SKILL.md",
+      "owner": "driver",
+      "sha256": "7eb9f056104bdbcfdcbd6a73cc82199f481b46864f762a8f0f041d6757529c4f"
+    },
+    {
+      "path": ".agents/skills/work-roadmap/agents/openai.yaml",
+      "owner": "driver",
+      "sha256": "d15ec5205fcd2d3698bcfb5b82237036ed115c1a28bf4acd03aa4a8dd55def22"
+    },
+    {
+      "path": ".agents/skills/work-roadmap/references/deep-detail.md",
+      "owner": "driver",
+      "sha256": "b0d8ebf3ae0a3209b4879f88396f17871a6b3dd702b87e2df82659a835565b11"
+    },
+    {
+      "path": ".agents/skills/work-roadmap/references/feedback-contract.md",
+      "owner": "driver",
+      "sha256": "2baee136dbcad2e40a51d28b8389feb7dfe7e1f7c85774c04ad78b0230012f02"
+    },
+    {
+      "path": ".agents/skills/work-roadmap/references/host-loop.md",
+      "owner": "driver",
+      "sha256": "daac46a07bc1eece70cf60c89d8739ec9c9c0899ddff26b25ed9afd163a04b44"
+    },
+    {
+      "path": ".agents/skills/work-roadmap/references/roadmap-ledger.md",
+      "owner": "driver",
+      "sha256": "1c06635c0a51dc5d1decae33231b93157647672d2c5c3ae791fb6b750682981f"
+    },
+    {
+      "path": ".agents/skills/work-roadmap/scripts/validate-feedback-state.py",
+      "owner": "driver",
+      "sha256": "8a28ff24719a11204f168456974b4941026111d498039bf88a679cbca5f11a07"
+    },
+    {
+      "path": ".claude/skills/padd-item/SKILL.md",
+      "owner": "driver",
+      "sha256": "f77540a387627a13ed88133e259eee6fc8d956213a23b18097977bcc07520aca"
+    },
+    {
+      "path": ".claude/skills/padd-item/agents/openai.yaml",
+      "owner": "driver",
+      "sha256": "b5e453d33a40ed8aa0a14a34b01b01fbe72f351d6269208a77e883b7efac02f8"
+    },
+    {
+      "path": ".claude/skills/work-board-best/SKILL.md",
+      "owner": "driver",
+      "sha256": "2b0577726f7cab6aa27169888c0f47370ad26ddadbcb6fda300acf1a00e754e3"
+    },
+    {
+      "path": ".claude/skills/work-board-best/agents/openai.yaml",
+      "owner": "driver",
+      "sha256": "9d85ffa0636c28f3d4a6713217640b3572bb003ec5759ac5a00a3851a10ff548"
+    },
+    {
+      "path": ".claude/skills/work-board-normal/SKILL.md",
+      "owner": "driver",
+      "sha256": "4649b17f1e05e2302626927b77462eee91ba41ceb3eb7b72df8d933fbd5863db"
+    },
+    {
+      "path": ".claude/skills/work-board-normal/agents/openai.yaml",
+      "owner": "driver",
+      "sha256": "2058fafb85ceaf1b6bed448a4cb4f6b51bfdbee05c9eb062af0647cb27dc1ec0"
+    },
+    {
+      "path": ".claude/skills/work-board/SKILL.md",
+      "owner": "driver",
+      "sha256": "0e44ecccfb46537cdb40296c7351dd08a0e5494ea6144ff13ceefd27872a8855"
+    },
+    {
+      "path": ".claude/skills/work-board/agents/openai.yaml",
+      "owner": "driver",
+      "sha256": "a4d2b19cde3fd490c669da9a007b16620a106586efc30c32a02efd92f58d0433"
+    },
+    {
+      "path": ".claude/skills/work-board/references/backlog-triage.md",
+      "owner": "driver",
+      "sha256": "6e9601d6e752be4ca3f3e5f5a2a5837b6fb5e0b6f4a1722aac8a6731ad0ebc44"
+    },
+    {
+      "path": ".claude/skills/work-board/references/deep-detail.md",
+      "owner": "driver",
+      "sha256": "4fb060eef5a291f53118aefa546b187d4b1c929703ce56910030af0f066180ad"
+    },
+    {
+      "path": ".claude/skills/work-board/references/feedback-contract.md",
+      "owner": "driver",
+      "sha256": "cca471febecbd3f63cd29a5ec81c3af3ea1542a4e40ba1075208ec8416632f86"
+    },
+    {
+      "path": ".claude/skills/work-board/references/host-loop.md",
+      "owner": "driver",
+      "sha256": "66b3c7763aeeaf7d30e872cc31dea31fa5c4515b7637bc9eb397acbde1d70ed9"
+    },
+    {
+      "path": ".claude/skills/work-board/references/workspace-scope.md",
+      "owner": "driver",
+      "sha256": "9435aa1fcc975aba3c3f22066b708a3061b13e9181f4c03fce6dc0526807e245"
+    },
+    {
+      "path": ".claude/skills/work-board/scripts/validate-feedback-state.py",
+      "owner": "driver",
+      "sha256": "8a28ff24719a11204f168456974b4941026111d498039bf88a679cbca5f11a07"
+    },
+    {
+      "path": ".claude/skills/work-roadmap/SKILL.md",
+      "owner": "driver",
+      "sha256": "7eb9f056104bdbcfdcbd6a73cc82199f481b46864f762a8f0f041d6757529c4f"
+    },
+    {
+      "path": ".claude/skills/work-roadmap/agents/openai.yaml",
+      "owner": "driver",
+      "sha256": "d15ec5205fcd2d3698bcfb5b82237036ed115c1a28bf4acd03aa4a8dd55def22"
+    },
+    {
+      "path": ".claude/skills/work-roadmap/references/deep-detail.md",
+      "owner": "driver",
+      "sha256": "b0d8ebf3ae0a3209b4879f88396f17871a6b3dd702b87e2df82659a835565b11"
+    },
+    {
+      "path": ".claude/skills/work-roadmap/references/feedback-contract.md",
+      "owner": "driver",
+      "sha256": "2baee136dbcad2e40a51d28b8389feb7dfe7e1f7c85774c04ad78b0230012f02"
+    },
+    {
+      "path": ".claude/skills/work-roadmap/references/host-loop.md",
+      "owner": "driver",
+      "sha256": "daac46a07bc1eece70cf60c89d8739ec9c9c0899ddff26b25ed9afd163a04b44"
+    },
+    {
+      "path": ".claude/skills/work-roadmap/references/roadmap-ledger.md",
+      "owner": "driver",
+      "sha256": "1c06635c0a51dc5d1decae33231b93157647672d2c5c3ae791fb6b750682981f"
+    },
+    {
+      "path": ".claude/skills/work-roadmap/scripts/validate-feedback-state.py",
+      "owner": "driver",
+      "sha256": "8a28ff24719a11204f168456974b4941026111d498039bf88a679cbca5f11a07"
+    }
+  ],
+  "gameSkillPaths": [
+    {
+      "path": ".agents/skills/fs-gg-ai/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "612e642ed57a2ea6857d68236c91219698674e1467a09d22bd00ae0e3abf6098"
+    },
+    {
+      "path": ".agents/skills/fs-gg-audio/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "e9fff88a3be86c2d95829357ffc180e3c53c18f2872b4f84e792de5a24f73bb7"
+    },
+    {
+      "path": ".agents/skills/fs-gg-ballistics/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "01620e43423d429c1332de30e3d69358c2bf5e2f8fa4fb92d8c7d67ea3de2f77"
+    },
+    {
+      "path": ".agents/skills/fs-gg-effects/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "85816888a88eb7f073ea02cfe3ff3be2d075eae8f77356b2772de20a6b113d87"
+    },
+    {
+      "path": ".agents/skills/fs-gg-game-core/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "de45c8fcfb5510d6afa5ef584516b4938011a8207844b7eb81112119d0d02e45"
+    },
+    {
+      "path": ".agents/skills/fs-gg-mapcraft/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "73725ff9b9e8958d053842a895777704ac74092a28a600836495d12512fdd049"
+    },
+    {
+      "path": ".agents/skills/fs-gg-model-swap/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "720a21596be6d24b05191c91da82e228ff9c8f63837a82ad60d3c089fdbb5a26"
+    },
+    {
+      "path": ".agents/skills/fs-gg-persistence/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "9461822e5c282f0cac37aa0a88720fbb910319a6571d74bbcb1119eeb48530fb"
+    },
+    {
+      "path": ".agents/skills/fs-gg-physics/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "cabeed0641815e23776045a57d923d79f52fdc5ba51a2377d26efe97f9581724"
+    },
+    {
+      "path": ".agents/skills/fs-gg-playtest/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "f070f0719dde93b55d1a41ea8aa881b90e41cd20a20e558771d87ef3fe28f642"
+    },
+    {
+      "path": ".claude/skills/fs-gg-ai/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "612e642ed57a2ea6857d68236c91219698674e1467a09d22bd00ae0e3abf6098"
+    },
+    {
+      "path": ".claude/skills/fs-gg-audio/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "e9fff88a3be86c2d95829357ffc180e3c53c18f2872b4f84e792de5a24f73bb7"
+    },
+    {
+      "path": ".claude/skills/fs-gg-ballistics/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "01620e43423d429c1332de30e3d69358c2bf5e2f8fa4fb92d8c7d67ea3de2f77"
+    },
+    {
+      "path": ".claude/skills/fs-gg-effects/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "85816888a88eb7f073ea02cfe3ff3be2d075eae8f77356b2772de20a6b113d87"
+    },
+    {
+      "path": ".claude/skills/fs-gg-game-core/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "de45c8fcfb5510d6afa5ef584516b4938011a8207844b7eb81112119d0d02e45"
+    },
+    {
+      "path": ".claude/skills/fs-gg-mapcraft/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "73725ff9b9e8958d053842a895777704ac74092a28a600836495d12512fdd049"
+    },
+    {
+      "path": ".claude/skills/fs-gg-model-swap/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "720a21596be6d24b05191c91da82e228ff9c8f63837a82ad60d3c089fdbb5a26"
+    },
+    {
+      "path": ".claude/skills/fs-gg-persistence/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "9461822e5c282f0cac37aa0a88720fbb910319a6571d74bbcb1119eeb48530fb"
+    },
+    {
+      "path": ".claude/skills/fs-gg-physics/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "cabeed0641815e23776045a57d923d79f52fdc5ba51a2377d26efe97f9581724"
+    },
+    {
+      "path": ".claude/skills/fs-gg-playtest/SKILL.md",
+      "owner": "gameSkill",
+      "sha256": "f070f0719dde93b55d1a41ea8aa881b90e41cd20a20e558771d87ef3fe28f642"
+    }
+  ],
+  "effectiveParameters": [
+    {
+      "key": "designSystem",
+      "value": "wcag"
+    },
+    {
+      "key": "lifecycle",
+      "value": "sdd"
+    },
+    {
+      "key": "productName",
+      "value": "Rogue3"
+    },
+    {
+      "key": "profile",
+      "value": "game"
+    },
+    {
+      "key": "rootNamespace",
+      "value": "Rogue3"
+    }
+  ]
+}

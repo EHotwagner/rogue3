@@ -1,0 +1,109 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- 064 (FR-004): the SINGLE source of FS.GG.UI version truth. Every FS.GG.UI.*
+         pin below references $(FsGgUiVersion), and build.fsx reads this property at
+         runtime to bind the engine assembly — so a consumer upgrade is ONE edit to this
+         value + `dotnet restore`. Preview vs stable is explicit in the value
+         (`-preview.N` => preview channel; a bare `x.y.z` => stable). See docs/UPGRADING.md. -->
+    <FsGgUiVersion>0.21.1</FsGgUiVersion>
+    <!-- ADR-0022 P5: the deterministic sim primitives (Rng/FixedStep/Pathfinding/SpatialGrid/
+         Geometry) moved OUT of FS.GG.UI.Canvas/.Scene into FS.GG.Game.Core — the platform's
+         BCL-only bottom layer, released on its OWN axis (NOT $(FsGgUiVersion)). Game/sample-pack
+         scaffolds pin it here; simulation profiles only.
+         0.3.0 (ADR-0104, Rendering#269): adds `Loop`, the double step buffer that supersedes the
+         deprecated FS.GG.UI.Canvas.Loop. A scaffold cannot reach it below this version. -->
+
+    <FsGgGameVersion>0.12.0</FsGgGameVersion>
+    <!-- The standalone FS.GG.Audio component (own repo FS-GG/FS.GG.Audio, released on its OWN
+         axis — NOT $(FsGgUiVersion)/$(FsGgGameVersion)). App/game/sample-pack scaffolds pin it here
+         to get the REAL host-side audio realization (named buses, fades/ducking, 3D, device backend)
+         behind the pure AudioEffect edge — the piece the fs-gg-audio skill calls "a real playback
+         backend is deferred". Every profile that opens a viewer window (issue #436), not the
+         simulation profiles only. See ADR-0024. -->
+    <FsGgAudioVersion>0.5.0</FsGgAudioVersion>
+    <!-- Rendering#1060: producer-owned early performance intent. Keep this on the Contracts
+         release axis rather than the FS.GG.UI coherent-set axis.
+         Rendering#1101: 7.4.0 is the FIRST published FS.GG.Contracts that packs `api-surface/*.fsi`
+         (FS-GG/FS.GG.SDD#742 discharged #782's producer half; 7.0.0-7.3.0 each carry only
+         `lib/net10.0/`). Do NOT move this pin below 7.4.0 — `scripts/refresh-api-surface-mirror.fsx`
+         now reads Contracts like every other package and the pre-#782 hand-copy bridge is deleted,
+         so a pre-7.4.0 pin has no surface to generate from and hard-fails the generator. -->
+    <FsGgContractsVersion>7.5.2</FsGgContractsVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- 043 (FR-013): the published governance engine consumed in-process by the
+         generated build.fsx; pinned for every profile and bumped with the other
+         FS.GG.UI.* packages via the single $(FsGgUiVersion) above. -->
+    <PackageVersion Include="FS.GG.UI.Build" Version="$(FsGgUiVersion)" />
+    <PackageVersion Include="FS.GG.UI.Scene" Version="$(FsGgUiVersion)" />
+    <PackageVersion Include="FS.GG.Contracts" Version="$(FsGgContractsVersion)" />
+    <!-- ADR-0022 P5: the sim primitives (FixedStep/Rng/Pathfinding/SpatialGrid/Geometry) that the
+         fs-gg-game-core / -collision / -visibility / -line-drawing / -grids skills use now live in
+         FS.GG.Game.Core (the BCL-only bottom layer), consumed on its own $(FsGgGameVersion) axis. -->
+    <PackageVersion Include="FS.GG.Game.Core" Version="$(FsGgGameVersion)" />
+    <PackageVersion Include="FS.GG.Game.Harness" Version="$(FsGgGameVersion)" />
+    <!-- FS.GG.UI.Canvas is still referenced on simulation profiles for the Persistence request
+         surface (fs-gg-persistence; Feature 244) — it no longer carries the sim primitives
+         (ADR-0022 P5) nor, since the Canvas 0.3.0 major (ADR-0024, Rendering#158), the Audio
+         request surface, which moved to FS.GG.Audio.Core below. -->
+    <PackageVersion Include="FS.GG.UI.Canvas" Version="$(FsGgUiVersion)" />
+    <!-- FS.GG.Audio, the simulation half (standalone repo, $(FsGgAudioVersion) axis):
+         Engine = buses / fades / ducking / 3D; Elmish = the Audio.Cmd authoring bridge.
+         Simulation profiles only — the `app` starter opens neither (its cue map needs the request
+         vocabulary and a device, nothing more), and the fs-gg-audio skill names them in prose without
+         ever telling the author to `open` them, so #430's R-REACH does not put them on `app`. See
+         ADR-0024. -->
+    <PackageVersion Include="FS.GG.Audio.Engine" Version="$(FsGgAudioVersion)" />
+    <PackageVersion Include="FS.GG.Audio.Elmish" Version="$(FsGgAudioVersion)" />
+    <!-- FS.GG.Audio, the half EVERY windowed profile needs (standalone repo, $(FsGgAudioVersion) axis):
+         Core = the pure AudioEffect request vocabulary + record interpreter (headless default);
+         Host = the IAudioBackend device seam (Null/record + OpenAL, degrading to Null).
+
+         Issue #436: these two ship on every profile with a LIVE VIEWER WINDOW — app as well as
+         game/sample-pack — not on the simulation profiles only. #429 gave the Controls host family its
+         audio sink (`ControlsElmish.runInteractiveAppWithAudio`), and an `app` scaffold that cannot
+         even name `AudioEffect` cannot reach it: "every game with a menu" was the motivating case for
+         #429, and the menu lives on `app`. The gate is the SAME three profiles that pin
+         SkiaViewer/Controls below — the ones that actually open a window and can make a sound.
+         `headless-scene`/`governed` still pin nothing: they never launch a viewer.
+
+         Core and Host, and not the other two, is exactly what the scaffold and the skill use: the
+         `app` AudioCues.fs opens `FS.GG.Audio.Core` (the cue values) and `FS.GG.Audio.Host` (the
+         `AssetResolver`), and Program.fs the device sink. It is also what keeps the #366 offline
+         probe honest — this repo builds no project for FS.GG.Audio, so the probe resolves these from
+         the feed, and only Core/Host are guaranteed in the global-packages folder (the framework
+         itself depends on them: SkiaViewer -> Core, SkiaViewer.Tests -> Host). -->
+    <PackageVersion Include="FS.GG.Audio.Core" Version="$(FsGgAudioVersion)" />
+    <PackageVersion Include="FS.GG.Audio.Host" Version="$(FsGgAudioVersion)" />
+    <PackageVersion Include="FS.GG.UI.SkiaViewer" Version="$(FsGgUiVersion)" />
+    <PackageVersion Include="FS.GG.UI.Elmish" Version="$(FsGgUiVersion)" />
+    <PackageVersion Include="FS.GG.UI.KeyboardInput" Version="$(FsGgUiVersion)" />
+    <PackageVersion Include="FS.GG.UI.Layout" Version="$(FsGgUiVersion)" />
+    <PackageVersion Include="FS.GG.UI.Controls" Version="$(FsGgUiVersion)" />
+    <PackageVersion Include="FS.GG.UI.Controls.Elmish" Version="$(FsGgUiVersion)" />
+    <!-- Feature 125: design-system primitives + default theme carved out of Controls. -->
+    <PackageVersion Include="FS.GG.UI.DesignSystem" Version="$(FsGgUiVersion)" />
+    <PackageVersion Include="FS.GG.UI.Themes.Default" Version="$(FsGgUiVersion)" />
+    <!-- Issue #430: the fs-gg-symbology skill ships a full authoring loop (build a ChannelMap, lint it
+         with Legibility.scoreIn, rasterise boards with Render.toPng) and the scaffold bundles the
+         authoritative Symbology/Symbology.Render api-surface — but neither package was ever pinned, so
+         the first line an author wrote did not compile. Pinned on THIS gate, not the wider skill reach
+         it used to claim: Symbology.Render is the raster bridge and depends on FS.GG.UI.SkiaViewer, so
+         it can only live where SkiaViewer already does. The skill's materializes-when was narrowed to
+         match (.template.config/template.json) — a skill may never out-reach the packages it needs. -->
+    <PackageVersion Include="FS.GG.UI.Symbology" Version="$(FsGgUiVersion)" />
+    <PackageVersion Include="FS.GG.UI.Symbology.Render" Version="$(FsGgUiVersion)" />
+    <!-- Issue #432 (finishing #90): the fs-gg-testing skill materializes on ALL FIVE profiles and its body
+         says `open FS.GG.UI.Testing`, but this pin was `governed`-gated — so on four of the five the first
+         line an author copied out of the skill did not compile. Ungated, alongside the other test packages:
+         every profile ships the base Rogue3.Tests project, and the skill is about authoring in it. The
+         REFERENCE lives on Rogue3.Tests.fsproj, not Rogue3.fsproj — nothing in the rogue3 source uses
+         these helpers, and a generated rogue3 should not carry a testing dependency to satisfy a skill
+         about its tests. -->
+    <PackageVersion Include="FS.GG.UI.Testing" Version="$(FsGgUiVersion)" />
+    <PackageVersion Include="Expecto" Version="10.2.3" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageVersion Include="YoloDev.Expecto.TestSdk" Version="0.16.0" />
+  </ItemGroup>
+</Project>

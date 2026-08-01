@@ -1,0 +1,116 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Feature 250: the collision-safe Vec2 helper (fs-gg-model-swap / fs-gg-game-core skills).
+         Consumer-owned, adaptable source — compiled before Model.fs so the starter (and your own model)
+         can express entity positions/velocities as Geometry.Vec2 without reusing Scene.Point/Rect field
+         labels. The Exists guard keeps the build green if you delete the file AFTER swapping Model.fs off
+         it (Rogue3.fsproj stays "durable"). -->
+    <Compile Include="Vec2.fs" Condition="Exists('Vec2.fs')" />
+    <!-- Feature 246: the import-and-adapt collision helper (fs-gg-collision skill). Consumer-owned,
+         adaptable source — compiled before Model.fs so your update can call Collision.step. The
+         Exists guard keeps the build green if you delete the file (Rogue3.fsproj stays "durable"). -->
+    <Compile Include="Collision.fs" Condition="Exists('Collision.fs')" />
+    <!-- Feature 247: the import-and-adapt visibility helper (fs-gg-visibility skill). Consumer-owned,
+         adaptable source — compiled before Model.fs so your update/view can call Visibility.polygon.
+         The Exists guard keeps the build green if you delete the file (Rogue3.fsproj stays "durable"). -->
+    <Compile Include="Visibility.fs" Condition="Exists('Visibility.fs')" />
+    <!-- Feature 249: the import-and-adapt grid-parts helper (fs-gg-grids skill). Consumer-owned,
+         adaptable source — compiled before Model.fs so your update/view can call Grids.cellEdges etc.
+         The Exists guard keeps the build green if you delete the file (Rogue3.fsproj stays "durable"). -->
+    <Compile Include="Grids.fs" Condition="Exists('Grids.fs')" />
+    <!-- Feature 248: the import-and-adapt line-drawing helper (fs-gg-line-drawing skill).
+         Consumer-owned, adaptable source — compiled before Model.fs so your update/view can call
+         LineDrawing.line / supercover / lineOfSight. The Exists guard keeps the build green if you
+         delete the file (Rogue3.fsproj stays "durable"). -->
+    <Compile Include="LineDrawing.fs" Condition="Exists('LineDrawing.fs')" />
+    <!-- Issue #991: the generic game-shell module (fs-gg-game-shell skill) — a reusable
+         menu/start screen + settings (resolution/fullscreen) + key rebinding that composes the
+         framework pieces (KeyRebind + Keymap/KeymapCodec, LogicalCanvas + window-behavior, the
+         typed Controls). Game-agnostic and opt-in: compiled before Model.fs so your update/view
+         can wire it, and Exists-guarded so deleting it keeps the build green (Rogue3.fsproj stays
+         "durable"). See the fs-gg-game-shell skill for the host wiring. -->
+    <Compile Include="GameShell.fs" Condition="Exists('GameShell.fs')" />
+    <Compile Include="Model.fs" />
+    <!-- Rendering#1071: the independent, runtime-owned gameplay-visual inventory and handle
+         registry. Compiles after Model (its projections read gameplay state) and before View, which
+         consumes the same projection the visual-coverage gate audits. Game-only inside the file. -->
+    <Compile Include="GameplayVisualInventory.fs" />
+    <Compile Include="View.fs" />
+    <Compile Include="PerformanceEvidence.fs" />
+    <Compile Include="LayoutEvidence.fs" />
+    <!-- Issue #245: the rogue3-owned `Msg -> AudioEffect list` cue map and asset resolver. Compiles
+         after Model.fs (it names your Msg cases and reads your Model) and before EvidenceCommands.fs
+         (which lifts its output onto ViewerEffect.PlayAudio). Replaceable: rewrite it with the model.
+
+         Issue #436: on every viewer profile now, not `game` alone. The file still names the starter
+         `Msg`, and the two starters DIFFER — so AudioCues.fs carries one `forTransition` per starter
+         behind its own `#if`, rather than pretending one cue map fits both. What it does NOT do is
+         fork the seam: both variants have the same signature, and both `generatedHost` (game,
+         sample-pack) and `interactiveHost` (app) call the same function from Init and Update. -->
+    <Compile Include="AudioCues.fs" />
+    <Compile Include="WindowOptions.fs" />
+    <Compile Include="EvidenceCommands.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FS.GG.UI.Scene" />
+    <!-- Rendering#1060: use the producer-owned PerformanceIntentDeclaration directly; the
+         generated workload/evidence surface must not maintain a lookalike contract. -->
+    <PackageReference Include="FS.GG.Contracts" />
+    <!-- ADR-0022 P5: simulation primitives (FixedStep.drain, Rng, Pathfinding, SpatialGrid, Geometry)
+         for the fs-gg-game-core / -collision / -visibility / -line-drawing / -grids skills — now in
+         FS.GG.Game.Core, the BCL-only bottom layer (moved out of FS.GG.UI.Canvas/.Scene). -->
+    <PackageReference Include="FS.GG.Game.Core" />
+    <!-- Rendering#1072: opaque runner-issued journey receipts are the only normal-play provenance
+         accepted by PerformanceEvidence; caller-authored label/hash records cannot mint one. -->
+    <PackageReference Include="FS.GG.Game.Harness" />
+    <!-- FS.GG.UI.Canvas stays on simulation profiles for the Persistence request surface
+         (PersistenceEffect, Persistence.interpretRecordOnly; Feature 244, fs-gg-persistence). Its Audio
+         request surface was RETIRED at the Canvas 0.3.0 major (ADR-0024, Rendering#158) — the
+         AudioEffect vocabulary now lives in FS.GG.Audio.Core, referenced just below. -->
+    <PackageReference Include="FS.GG.UI.Canvas" />
+    <!-- FS.GG.Audio, the simulation half: Engine (buses, fades/ducking, 3D) and Elmish (the Audio.Cmd
+         authoring bridge for the MVU loop). Simulation profiles only — the `app` starter opens
+         neither. See ADR-0024 / fs-gg-audio skill. -->
+    <PackageReference Include="FS.GG.Audio.Engine" />
+    <PackageReference Include="FS.GG.Audio.Elmish" />
+    <!-- FS.GG.Audio, the half every windowed profile needs (standalone repo, $(FsGgAudioVersion)
+         axis): Core is the pure AudioEffect vocabulary + record interpreter; Host is the device
+         backend that degrades to a headless Null/record path (so tests stay deterministic and
+         hardware-free) plus the `AssetResolver` the rogue3 owns.
+
+         Issue #436: referenced on every profile that opens a viewer window, not just the simulation
+         ones. Before this, `app` referenced NONE of the FS.GG.Audio packages, so an author on the
+         Controls family could not so much as NAME `AudioEffect` — which made #429's
+         `runInteractiveAppWithAudio` seam unreachable from the exact profile it was built for. -->
+    <PackageReference Include="FS.GG.Audio.Core" />
+    <PackageReference Include="FS.GG.Audio.Host" />
+    <PackageReference Include="FS.GG.UI.SkiaViewer" />
+    <PackageReference Include="FS.GG.UI.Elmish" />
+    <PackageReference Include="FS.GG.UI.KeyboardInput" />
+    <PackageReference Include="FS.GG.UI.Layout" />
+    <PackageReference Include="FS.GG.UI.Controls" />
+    <PackageReference Include="FS.GG.UI.Controls.Elmish" />
+    <!-- Feature 125: design-system primitives + default theme carved out of Controls. -->
+    <PackageReference Include="FS.GG.UI.DesignSystem" />
+    <PackageReference Include="FS.GG.UI.Themes.Default" />
+    <!-- Issue #430: the pure channel-grammar vocabulary (Symbology, Scene-only) and its headless
+         Scene->PNG design-loop bridge (Symbology.Render, which reaches SkiaViewer's ReferenceRendering
+         path). Both are what the fs-gg-symbology skill and the bundled docs/api-surface/Symbology*
+         reference tell an author to `open`; without the references that instruction did not compile. -->
+    <PackageReference Include="FS.GG.UI.Symbology" />
+    <PackageReference Include="FS.GG.UI.Symbology.Render" />
+    <!-- Issue #432: FS.GG.UI.Testing was referenced here on `governed`, but no rogue3 source has ever
+         used it — its only consumer is tests/Rogue3.Tests. It now lives on Rogue3.Tests.fsproj, on every
+         profile, so the fs-gg-testing skill compiles everywhere it materializes without the rogue3
+         carrying a test-only dependency. -->
+  </ItemGroup>
+
+</Project>

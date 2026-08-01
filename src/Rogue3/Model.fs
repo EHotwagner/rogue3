@@ -1,0 +1,236 @@
+module Rogue3.Model
+
+open System
+// ============================================================================================
+// GAME family — minimal, replaceable Pong-style starter (feature 220).
+//
+//   REPLACE ME. This Model/Msg/update is the developer-owned game seam. Swap in your own game
+//   by editing Model.fs + View.fs + tests/Rogue3.Tests/BehaviorTests.fs (plus the documented
+//   field re-points in LayoutEvidence.fs / EvidenceCommands.fs). The durable governance spine
+//   (GovernanceTests.fs, Program.fs, WindowOptions.fs) never calls update/view, so it keeps
+//   passing across the swap — see docs/scaffold-map.md.
+//
+//   Collision-safe positions (feature 250, fs-gg-scene pitfall): a game record that names its
+//   fields X/Y/Width/Height collides with FS.GG.UI.Scene.Point/Rect — because the durable
+//   LayoutEvidence.fs opens BOTH Scene and this model, its bare `{ X=…; Y=…; Width=…; Height=… }`
+//   Rect literals then mis-resolve to YOUR record (a wall of errors in a file you must not touch,
+//   surfacing only after a whole model is written). So DON'T put X/Y/Width/Height labels on a game
+//   record while Scene is open. Use the collision-safe `Geometry.Vec2` (Vx/Vy) for positions and
+//   velocities, and `Geometry.toPoint`/`toRect` to cross into the scene. See Vec2.fs and the
+//   `fs-gg-model-swap` / `fs-gg-game-core` skills.
+// ============================================================================================
+open FS.GG.UI.KeyboardInput
+open FS.GG.Game.Core // FixedStep.drain — the fixed-timestep accumulator drain (ADR-0022 P5: moved from FS.GG.UI.Canvas to the FS.GG.Game.Core bottom layer)
+open FS.GG.UI.Controls.Elmish
+open FS.GG.UI.Controls.Elmish.Authoring // Cmd.none / Sub.none (Elmish-convention no-ops for `[]`)
+open Rogue3.Geometry // Vec2 + vec2/add/scale/clamp/toPoint/toRect (collision-safe positions)
+
+type Ball = { Pos: Vec2; Velocity: Vec2 }
+
+type PaddleSide =
+    | LeftSide
+    | RightSide
+
+type PaddleDirection =
+    | PaddleUp
+    | PaddleDown
+
+type Model =
+    { Ball: Ball
+      LeftPaddleY: float
+      RightPaddleY: float
+      PaddleHeight: float
+      LeftScore: int
+      RightScore: int
+      Playfield: Vec2 // width = Playfield.Vx, height = Playfield.Vy (no Width/Height labels)
+      SimAccumulator: float // seconds carried between Ticks for the fixed-step drain
+      TickCount: int
+      LastInput: ViewerKey option }
+
+type Msg =
+    /// The program started, and `initialModel` is the state it started in (issue #458).
+    ///
+    /// This exists so that the initial state passes through the SAME seam every other state passes
+    /// through. `AudioCues.forTransition` is a function of a *transition* — and without this message
+    /// there is no transition into the initial model, so nothing the initial state implies is ever
+    /// cued. Anything you *load* rather than *transition into* — settings, a save game, a restored
+    /// session, a replayed checkpoint — enters the model through that door, and a
+    /// transition-shaped effect seam cannot see it.
+    ///
+    /// The failure is invisible from inside the model: a restored volume the mixer was never told
+    /// about is indistinguishable, in the model, from one that was restored correctly. It surfaces
+    /// as "turn the music down, restart, and get full-volume music from a settings screen that
+    /// correctly reports it as quiet".
+    ///
+    /// `EvidenceCommands.generatedHost.Init` dispatches it as `forTransition Started m m` — the same
+    /// function `Update` calls, so there is no separate startup path to drift out of sync. `update`
+    /// treats it as identity: it announces the initial state, it does not build it.
+    | Started
+    | Tick of dtSeconds: float
+    | MovePaddle of PaddleSide * PaddleDirection
+    | ViewerInput of ViewerKey * isDown: bool
+    | NoOp
+
+// Kept model-agnostic so the durable LayoutEvidence spine validates the skeleton AND a swap.
+type GeneratedLayoutValidationFailureClass =
+    | MissingLayoutFacts
+    | OverlappingLayoutBounds
+
+type GeneratedLayoutValidationResult =
+    { Accepted: bool
+      FailureClass: GeneratedLayoutValidationFailureClass option
+      Diagnostics: string list }
+
+let playfieldWidth = 640.0
+let playfieldHeight = 480.0
+let paddleHeight = 96.0
+let paddleSpeed = 24.0
+let ballRadius = 6.0
+let leftPaddleX = 16.0
+let rightPaddleX = playfieldWidth - 24.0
+let paddleThickness = 8.0
+
+// One fixed simulation step is 1/60 s. `update` on `Tick dt` accumulates the host's real elapsed
+// time and drains WHOLE steps out of it (FixedStep.drain), so the sim advances deterministically
+// regardless of the host frame rate — the classic fixed-timestep accumulator.
+let simInterval = 1.0 / 60.0
+
+let private servedBall =
+    { Pos = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0)
+      Velocity = vec2 5.0 3.0 }
+
+let initialModel =
+    { Ball = servedBall
+      LeftPaddleY = (playfieldHeight - paddleHeight) / 2.0
+      RightPaddleY = (playfieldHeight - paddleHeight) / 2.0
+      PaddleHeight = paddleHeight
+      LeftScore = 0
+      RightScore = 0
+      Playfield = vec2 playfieldWidth playfieldHeight
+      SimAccumulator = 0.0
+      TickCount = 0
+      LastInput = None }
+
+let keyName key = ViewerKeyboard.toKeyId key
+
+let private clampPaddle model y =
+    y |> max 0.0 |> min (model.Playfield.Vy - model.PaddleHeight)
+
+let movePaddle side direction model =
+    let delta =
+        match direction with
+        | PaddleUp -> -paddleSpeed
+        | PaddleDown -> paddleSpeed
+
+    match side with
+    | LeftSide -> { model with LeftPaddleY = clampPaddle model (model.LeftPaddleY + delta) }
+    | RightSide -> { model with RightPaddleY = clampPaddle model (model.RightPaddleY + delta) }
+
+// Keyboard → paddle moves. W/S drive the left paddle; Up/Down the right paddle. Replace this
+// mapping when you swap in your own game (EvidenceCommands.mapKey wraps it as ViewerInput).
+//
+// HOST INPUT BOUNDARY — this PLAY-INPUT mapping is KEYBOARD-ONLY (feature 139). `paddleForKey`
+// resolves a `ViewerKey` to a paddle move; `ViewerKey` has NO mouse/pointer case, so a key press
+// arrives here as `DispatchInput of ViewerKey * isDown` and maps to `ViewerInput` below. A
+// mouse-aimed control scheme (e.g. twin-stick WASD + mouse aim) therefore CANNOT be wired at this
+// site: there is no mouse to read here.
+//
+// The game's turnkey DEFAULT launch, however, now boots the generic game shell on the pointer-aware
+// interactive host (#991/#1000): `InteractiveAppHost` driven by `Controls.Elmish.runInteractiveApp`
+// (see EvidenceCommands.interactiveHost / Program.fs), the same host the `app`/controls family uses,
+// which adds a `MapPointer` seam so the shell's clickable menu works. Live play keys still flow
+// through the shell's raw-key seam into `paddleForKey` — so to give GAMEPLAY a mouse you read the
+// pointer at the interactive host's `MapPointer`, not at this keyboard mapping. Decide your control
+// scheme with that boundary in mind.
+let private paddleForKey key =
+    match key with
+    | Letter 'W' -> Some(LeftSide, PaddleUp)
+    | Letter 'S' -> Some(LeftSide, PaddleDown)
+    | ArrowUp -> Some(RightSide, PaddleUp)
+    | ArrowDown -> Some(RightSide, PaddleDown)
+    | _ -> None
+
+// Pure fixed step: integrate the ball by one step, bounce off the top/bottom walls and the paddles,
+// score and re-serve on a miss. Positions/velocities are `Vec2`, advanced with `add`/`scale`; the
+// ball always stays inside the playfield after the step. This is your `stepSim` — edit it freely.
+let stepSim model =
+    let ball = model.Ball
+    let next = add ball.Pos ball.Velocity // one unit step (dt folded into velocity units)
+
+    let velocityY, clampedY =
+        if next.Vy < ballRadius then -ball.Velocity.Vy, ballRadius
+        elif next.Vy > model.Playfield.Vy - ballRadius then -ball.Velocity.Vy, model.Playfield.Vy - ballRadius
+        else ball.Velocity.Vy, next.Vy
+
+    let withinLeftPaddle = clampedY >= model.LeftPaddleY && clampedY <= model.LeftPaddleY + model.PaddleHeight
+    let withinRightPaddle = clampedY >= model.RightPaddleY && clampedY <= model.RightPaddleY + model.PaddleHeight
+
+    if next.Vx < leftPaddleX + paddleThickness + ballRadius then
+        if withinLeftPaddle then
+            { model with
+                Ball =
+                    { Pos = vec2 (leftPaddleX + paddleThickness + ballRadius) clampedY
+                      Velocity = vec2 (abs ball.Velocity.Vx) velocityY } }
+        else
+            { model with
+                RightScore = model.RightScore + 1
+                Ball = servedBall }
+    elif next.Vx > rightPaddleX - ballRadius then
+        if withinRightPaddle then
+            { model with
+                Ball =
+                    { Pos = vec2 (rightPaddleX - ballRadius) clampedY
+                      Velocity = vec2 (-(abs ball.Velocity.Vx)) velocityY } }
+        else
+            { model with
+                LeftScore = model.LeftScore + 1
+                Ball = servedBall }
+    else
+        { model with
+            Ball =
+                { ball with
+                    Pos = vec2 next.Vx clampedY
+                    Velocity = vec2 ball.Velocity.Vx velocityY } }
+
+// Fixed-timestep advance: fold the host's real elapsed `dt` into the carried accumulator, drain the
+// whole number of `simInterval` steps out of it, and run `stepSim` that many times. `FixedStep.drain`
+// is a pure FS.GG.Game.Core primitive (no wall-clock read), so a scripted `dt` sequence replays
+// byte-identically. This is the accumulator + stepSim pattern — the shape most games want on Tick.
+let private advanceSim dtSeconds model =
+    let struct (steps, accumulator) = FixedStep.drain simInterval dtSeconds model.SimAccumulator
+
+    let stepped =
+        // mutable: a single unaliased accumulator over a fixed step count is plainer than a fold here.
+        let mutable m = model
+        for _ in 1..steps do
+            m <- stepSim m
+        m
+
+    { stepped with
+        SimAccumulator = accumulator
+        TickCount = model.TickCount + 1 }
+
+let init () : Model * AdapterCommand<Msg> = initialModel, Cmd.none
+
+let update msg model : Model * AdapterCommand<Msg> =
+    match msg with
+    // Identity (issue #458). `Started` ANNOUNCES the initial state; it does not build it —
+    // `initialModel` already did. Its whole job is to give the cue seam a transition to look at, so
+    // keep this a no-op and put what you want to happen at startup in `AudioCues.forTransition`.
+    | Started -> model, Cmd.none
+    | Tick dtSeconds -> advanceSim dtSeconds model, Cmd.none
+    | MovePaddle(side, direction) -> movePaddle side direction model, Cmd.none
+    | ViewerInput(key, isDown) ->
+        let moved =
+            if isDown then
+                match paddleForKey key with
+                | Some(side, direction) -> movePaddle side direction model
+                | None -> model
+            else
+                model
+
+        { moved with LastInput = Some key }, Cmd.none
+    | NoOp -> model, Cmd.none
+
+let subscriptions _ : AdapterSubscription<Msg> list = Sub.none
+

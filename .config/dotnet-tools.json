@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "fs.gg.sdd.cli": {
+      "version": "0.32.0",
+      "commands": [
+        "fsgg-sdd"
+      ]
+    },
+    "fs.gg.coord.cli": {
+      "version": "0.18.0",
+      "commands": [
+        "fsgg-coord-engine"
+      ]
+    }
+  }
+}

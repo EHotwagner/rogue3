@@ -1,0 +1,340 @@
+#!/usr/bin/env bash
+# fsgg-coord — the ADR-0034 §4.4 resolver: find the typed engine and exec it, nothing else.
+#
+# WHY THIS EXISTS. Phase D of ADR-0040 replaced ~7,000 lines of `bash scripts/fsgg-coord` with the
+# compiled `fs.gg.coord.cli` (`fsgg-coord-engine`). ADR-0034's decision 2 keeps the `scripts/fsgg-coord`
+# PATH that every doc, workflow, and skill references — as a small bash SHIM that resolves the tool from
+# `.config/dotnet-tools.json` (already distributed to every receiver by `sync-build-config.sh`, already
+# watched by Renovate) and `exec`s it. The kit row, its digest, and its exec bit are unchanged; the shim
+# stops churning, so the kit stops re-drifting on every protocol edit.
+#
+# THIS IS THE SWAP (ADR-0040 Phase D.2), NOW FINAL (D.4). This file WAS ~7,000 lines of bash; it is now
+# a resolver, proven transparent by `tests/coord-engine-parity/shim.sh` — the D.1 corpus is
+# green THROUGH it. D.4 (the one-way door) deleted the old bash monolith and the shadow/differential gates
+# that drove it; the engine is the one and only implementation now. Nothing that calls `scripts/fsgg-coord`
+# had to change: this PATH still answers, and it answers with the engine.
+#
+# NO SIZE IS PINNED IN THIS COMMENT, AND THAT IS THE POINT (.github#1586). The line above read "a
+# ~50-line resolver" while the file was 793 lines — a comment asserting a property the code does not
+# have, which this repo treats as a defect in its own right (#1059's class). The number rotted because
+# every protocol decision landed here. #1586 moved the coordination knowledge to
+# `scripts/fsgg-coord-guards.sh` (see below), which is what stops it rotting again; a fresh number
+# written here today would simply start rotting tomorrow. If you want the count, run `wc -l`.
+#
+# WHAT IT DOES. It resolves ONE engine and execs it, passing argv through unchanged and returning its exit
+# code unchanged. It is a transparent pipe — it adds no output of its own on the happy path and holds no
+# state. The resolution order is:
+#
+#   1. THE EXPLICIT BIN      — `FSGG_COORD_ENGINE_BIN`. An instruction. Honoured or REFUSED, never fallen
+#                              back from: a caller who named an engine that is not there must be told, not
+#                              silently handed a different (perhaps stale) build that answers for the one
+#                              they meant.
+#   2. THE SOURCE BUILD      — `src/FS.GG.Coord.Cli/bin/Release/net10.0/`, when THIS checkout is the one
+#                              that builds the engine. `.github` alone does, and it never consumes the feed
+#                              (ADR-0034 decision 2): *"the publish cycle is broken by asymmetry — `.github`
+#                              builds the engine from source and never depends on the feed… a broken feed
+#                              therefore cannot prevent the coordination tool from being fixed."* So where a
+#                              source build exists it is the AUTHORITY, and it outranks both packaged forms.
+#   3. a global tool on PATH — `dotnet tool install -g`, or any binary an operator put on PATH.
+#   4. a LOCAL tool manifest — the receivers' shape: `.config/dotnet-tools.json` + `dotnet tool run`. A
+#                              restored local tool is NOT on PATH (it answers only to `dotnet tool run`),
+#                              so a manifest that DECLARES the engine but has not been restored is restored
+#                              here — a manifest is a wish until `dotnet tool restore` grants it (#655).
+#
+# THE NUMBERS MOVED, AND #1018 IS WHY (old → new: 4 → 2, 2 → 3, 3 → 4; tier 1 is unchanged). The source
+# build used to be LAST, beneath both packaged forms — an order "lifted verbatim from bash's proven
+# `engine_resolve`" into the one repo where it asserts the opposite of what the ADR decided. In a RECEIVER
+# that order is right and is retained: there is no source build, so a packaged engine is the only engine.
+# In `.github` it inverted decision 2 outright — a FEED build beat the authoritative source, so this repo
+# silently DID depend on the feed, and a fix sitting in `src/` never ran. Prose in #929, #1008 and #1018
+# predates the move and says "tier 4" for what is now tier 2; the NAMES above cannot rot, so prefer them.
+#
+# MEASURED, AND THE SAME CAUSE BOTH TIMES. A global tool on PATH and a current `src/` both answered
+# `--version` `0.3.0.0` and nothing warned, so `done --flip` falsely closed epic #889 — with the #1005
+# guard that would have refused it sitting BUILT in `src/` (#1018). The same preemption then reached this
+# shim's OWN tests: `tests/coord-engine-parity/shim.sh` builds a synthetic source-build checkout and drives
+# the shim at it with `env -u FSGG_COORD_ENGINE_BIN`, but unsetting tier 1 was never enough — a global tool
+# won, and the staleness legs made 2 REAL claims against the live board while passing vacuously (#1008).
+# One cause, and it is the ORDER, not the guard: the guard was never mis-scoped, it was unreachable.
+#
+# A resolution that finds nothing is a hard error naming what to do — never a silent no-op, which is the
+# #266 failure this whole effort exists to end.
+
+set -uo pipefail
+
+die() { echo "fsgg-coord: $*" >&2; exit 69; }  # EX_UNAVAILABLE — the engine is not here
+
+git_toplevel() { git rev-parse --show-toplevel 2>/dev/null || true; }
+
+# THE SHARED CHECKOUT'S WORKING TREE — the one every worker's worktree hangs off (#931).
+#
+# `git worktree list` reports the MAIN working tree FIRST, always and by documented contract, and as an
+# ABSOLUTE path from anywhere. That is the whole reason it is spelled this way rather than the obvious
+# `dirname "$(git rev-parse --git-common-dir)"`, which LOOKS equivalent and is not: `--git-common-dir`
+# answers RELATIVE from the main checkout (a bare `.git`, measured), so `dirname` yields `.` — and `.`
+# is the CALLER's tree, not the shared one. That would make the fallback below resolve to whatever tree
+# the caller happens to be standing in, silently, exactly when it is meant to reach past it.
+#
+# `--porcelain`, because the human form appends `[branch]`/`(bare)` decorations that would land in the
+# path. `cut -f2-` rather than `awk '{print $2}'`: a checkout path may contain spaces, and taking only
+# field 2 would truncate it to the first word — a path that then fails `-x` and reads as "no build".
+shared_toplevel() { git worktree list --porcelain 2>/dev/null | head -1 | cut -d' ' -f2- ; }
+
+# The source build's path under a given working tree. ONE spelling, used by both tiers below: two
+# copies of it is one edit away from a fallback that probes a path the primary tier does not, which
+# would resolve a DIFFERENT engine than the one the guards just measured.
+engine_path() { printf '%s/src/FS.GG.Coord.Cli/bin/Release/net10.0/fsgg-coord-engine' "$1"; }
+
+# THE COORDINATION KNOWLEDGE MOVED OUT, AND THE DISTRIBUTION IS WHY (.github#1586).
+#
+# This file used to also hold the verb PARTITION and the two guards that decide with it — `stale_guard`
+# (is the artifact behind the source, or the source behind `main`?) and `dirty_guard` (is that source
+# committed?). They are still exactly that, unchanged, and the long argument for why they cannot live
+# inside the engine (the suspect engine is the thing being checked; a derived write-set fails OPEN on
+# the oldest artifacts) is unchanged too. What changed is WHERE the bytes sit.
+#
+# This file is a `coordination-kit` row, so it is CONTENT: mirrored byte-identical into all seven
+# receivers, and every edit republishes the kit and stales all seven. `scripts/fsgg-coord-guards.sh` has
+# no kit row, so it is not mirrored anywhere — and it does not need to be, because the guards are
+# reachable ONLY from tiers 2/2b below, and only the repo that owns coord's SOURCE can have a source
+# build. A receiver resolves at tier 1/3/4 and never loads the file. #1528, #1534 and #1535 each
+# republished the kit to mirror a partition decision into seven repos that cannot execute it; after this
+# they are a `.github` commit and nothing more. `tests/coord-engine-parity/shim.sh` §3f measures it.
+#
+# ENGINE VERSION BUMPS ARE **NOT** COVERED, and pretending otherwise was the filer's own correction on
+# #1586: `dist/dotnet/.config/dotnet-tools.json` is a kit row too (#1077), so bumping the engine still
+# republishes. That is a kit-OWNERSHIP question, filed separately. This reduces the fan-out; it does not
+# remove it.
+#
+# LOADED WHERE IT IS USED, AND FAIL-CLOSED WHEN IT IS NOT THERE. `[ -f ] && source` would make a missing
+# file mean "no guards" — silence indistinguishable from a clean tree, which is the #266 shape the guards
+# themselves warn about three times. So `guards` is called only from inside the tier-2/2b branches, i.e.
+# only where a source build ALREADY resolved and staleness is therefore a real question; and if the
+# module is absent there, it dies rather than execing an unmeasured engine.
+#
+# `${BASH_SOURCE[0]}`, NOT `$0`: `$0` is the INVOKED name (a `bash scripts/fsgg-coord` reader would get
+# bash's idea of it), while `BASH_SOURCE` is this file's own path. Inside a function it still names the
+# file the function was DEFINED in, which is this one — so resolving it here is exact.
+# A SYMLINKED shim resolves to the symlink's directory and will not find the module — which is a
+# REFUSAL, not a silent skip, and is therefore safe rather than merely unfortunate.
+#
+# RESOLVED INSIDE `guards`, NOT AT FILE SCOPE, AND THAT IS THIS FILE'S OWN RULE RATHER THAN A FLOURISH.
+# The `cd … && pwd` is a SUBSHELL — a fork on every single invocation — and at file scope every receiver
+# would pay it on every `scripts/fsgg-coord` call to compute a path that only tiers 2/2b ever read, and
+# that no receiver can ever have. Tier 2b already refuses exactly that trade nine lines from here ("this
+# line is on the RECEIVERS' hot path … every invocation would otherwise pay for a subprocess that cannot
+# succeed"), and putting the module lookup at file scope would have re-introduced the cost that comment
+# exists to avoid. Inside the function it is paid only where a source build already resolved.
+guards() {   # $1 = the checkout that OWNS the build, $2 = its .dll, $3 = the verb
+  local module
+  module="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/fsgg-coord-guards.sh"
+  [ -f "$module" ] || die "the stale/dirty guard module is missing: $module
+            A source build resolved under $1, so this checkout CAN hand you an engine that is
+            stale or built from uncommitted code — and the file that decides whether to refuse a
+            board write is not here. An unanswerable staleness question is not freshness (#266),
+            so this REFUSES rather than exec'ing unguarded.
+            Restore it:  git -C $1 checkout -- scripts/fsgg-coord-guards.sh"
+  # THE DIRECTIVE IS REPO-ROOT-RELATIVE, BECAUSE THAT IS WHERE THE LINTER STANDS. `scripts/lint-shell.sh`
+  # cd's to `git rev-parse --show-toplevel` before invoking shellcheck, and shellcheck resolves a
+  # `source=` path from its own CWD — not from the directory of the file being checked. The neighbouring
+  # `scripts/coordination-sync` spells its two as `lib/args.sh` / `lib/roots.sh`, which is the intuitive
+  # reading and does NOT resolve (measured: both emit SC1091 "Not following"). That is invisible in CI
+  # only because SC1091 is `info` and the gate runs at `warning`, so the directives have been decorative
+  # for their whole life. This one is spelled to actually work, so `-x` really does cross the boundary.
+  # shellcheck source=scripts/fsgg-coord-guards.sh
+  . "$module"
+  # DIRTY BEFORE STALE, because a dirty checkout is usually WHY an engine is stale, and a refusal is
+  # easier to act on when the thing that caused it is already on screen. `stale_guard` may die(); this
+  # one never does, so it cannot swallow that refusal.
+  dirty_guard "$1"
+  stale_guard "$1" "$2" "$3"
+}
+
+
+# AN EXPLICIT PATH IS AN INSTRUCTION, NOT A HINT (bash's rule, kept exactly): if it is set and not runnable,
+# REFUSE — do not fall through to some other engine the caller did not choose.
+if [ -n "${FSGG_COORD_ENGINE_BIN:-}" ]; then
+  [ -x "${FSGG_COORD_ENGINE_BIN}" ] || die "FSGG_COORD_ENGINE_BIN is set but not executable: ${FSGG_COORD_ENGINE_BIN}"
+  exec "${FSGG_COORD_ENGINE_BIN}" "$@"
+fi
+
+TOP="$(git_toplevel)"
+
+# TIER 2 — THE SOURCE BUILD, AND IT OUTRANKS EVERY PACKAGED ENGINE (#1018, #1008). `.github`'s shape: the
+# engine built from source, never from the feed (ADR-0034 decision 2). This is the ONE tier with a `src/`
+# beside the binary, so it is the one tier that can be STALE against it (#929) — and therefore the one that
+# must be REACHED, which beneath a global tool it was not.
+#
+# THE CONDITION IS THE BUILD, NOT A REPO NAME, and that is precisely what keeps this off receivers. Only
+# the repo that owns coord's source can have `src/FS.GG.Coord.Cli/bin/Release/net10.0/fsgg-coord-engine`
+# under its toplevel; a receiver cannot, so it falls to tiers 3/4 exactly as before and its resolution is
+# byte-for-byte unchanged. There is no `.github` special-case here to drift out of step with the roster.
+#
+# AND ONLY WHEN IT IS BUILT — an unbuilt `src/` falls through, deliberately. Decision 2's invariant is that
+# a broken feed cannot prevent coord being FIXED, and building is the act of fixing: a fix you have built is
+# a fix this tier protects; a fix you have not built is not yet running anywhere, and there is nothing to
+# prefer it over. So a fresh clone with a global tool keeps working, and `die()` below still names
+# `dotnet build` when nothing resolves at all.
+#
+# AN OPERATOR WHO GENUINELY WANTS THE PACKAGED ENGINE HERE IS NOT TRAPPED — tier 1 outranks this, and it is
+# the documented way to mean it rather than to get it by accident:
+#   FSGG_COORD_ENGINE_BIN="$(command -v fsgg-coord-engine)" scripts/fsgg-coord …
+if [ -n "$TOP" ]; then
+  CANDIDATE="$(engine_path "$TOP")"
+  if [ -x "$CANDIDATE" ]; then
+    guards "$TOP" "${CANDIDATE}.dll" "${1:-}"
+    exec "$CANDIDATE" "$@"
+  fi
+fi
+
+# TIER 2b — THE SHARED CHECKOUT'S BUILD, FOR A CALLER STANDING IN A WORKTREE (#931).
+#
+# WHAT WAS BROKEN. `/pnext-item` §2 MANDATES an item worktree ("never work an item in the shared
+# checkout"), and a fresh worktree has no `bin/`. So tier 2a missed, tier 3 found no global tool, tier 4
+# found no manifest (`.github` has none — its engine is tier 2a), and the resolver died 69 for EVERY
+# worker following the recipe. The tool printed dozens of commands into that: `fsgg-coord-engine <verb>`
+# is 127 (`command not found`), and `scripts/fsgg-coord <verb>` was 69 — a MORE convincing failure,
+# because it looks like a real diagnostic. Both spellings were broken, which is why printing the other
+# one was not a fix and this tier is. (#931 says "25 sites"; it was 31 by the time it was worked, across
+# verbs the issue never named. The thesis survived the drift; the count did not, so no number is pinned
+# here for the next reader to re-check — `check-worker-id-attractor.py` rule 5 counts them at run time.)
+#
+# DECIDED ON THE RECORD, not chosen here (#931). Three alternatives were weighed and rejected: shipping
+# the engine on PATH (a provisioning change, and it would make #569's fix wrong); printing
+# `scripts/fsgg-coord` and stopping (still 69 — the trade this tier exists to refuse); an absolute path
+# at runtime (correct, and unpasteable into any doc). This one fixes every site without changing what
+# any of them print, and RETIRES the tribal note — *"run coord from the shared checkout"* — that every
+# bitten worker was carrying privately. #570: a rule enforced by whoever happens to remember it decays.
+#
+# AFTER 2a, NEVER BEFORE IT. A worker who builds in their own worktree gets THEIR build — that is the
+# kit author's whole workflow, and preempting it would hand them the shared engine and silently discard
+# the edits they are testing. The consequence — a worker who edits `src/` here but does not build gets
+# the shared engine, which does not carry their edits — is the status quo of the note this retires, not
+# a regression this introduces.
+#
+# THE GUARDS MEASURE THE SHARED TREE, AND THAT IS LOAD-BEARING RATHER THAN TIDY. Passing "$TOP" here
+# would compare the CALLER's `src/` against the SHARED build — and `git worktree add` writes every file
+# at checkout time, so a fresh worktree's `.fs` mtimes are NEWER than any shared `.dll` by construction.
+# `stale_guard` would fire on EVERY fresh worktree, and it REFUSES board writes: a guard that halts the
+# entire fleet the moment it starts working, fail-closed, hiding inside an obviously-correct-looking
+# line. The honest question is the same one tier 2a asks — "is THIS artifact behind the source beside
+# IT?" — and both halves of that pair live under $SHARED.
+#
+# AND THE DIRTY GUARD NOW REACHES ITS REAL SUBJECT. `dirty_guard` exempts a linked worktree because
+# nobody else resolves an engine through it. That premise held only while a worktree resolved NO engine;
+# this tier is exactly the case where the shared checkout's WIP decides a worktree worker's claims, so
+# `dirty_guard "$SHARED"` is the #709 warning arriving at the reader who needs it. It fires by the same
+# rule, not an exception to it: $SHARED is a main working tree, so its `--git-dir` and `--git-common-dir`
+# agree and the exemption simply does not apply.
+# Only ASK when there is a git repo to ask about. `$TOP` empty means `rev-parse` already failed, so
+# `git worktree list` would fail too — and this line is on the RECEIVERS' hot path, where tiers 3/4
+# answer and every invocation would otherwise pay for a subprocess that cannot succeed.
+SHARED=""
+[ -n "$TOP" ] && SHARED="$(shared_toplevel)"
+if [ -n "$SHARED" ] && [ "$SHARED" != "$TOP" ]; then
+  CANDIDATE="$(engine_path "$SHARED")"
+  if [ -x "$CANDIDATE" ]; then
+    guards "$SHARED" "${CANDIDATE}.dll" "${1:-}"
+    exec "$CANDIDATE" "$@"
+  fi
+fi
+
+# TIER 3 — a global tool (or any operator-placed binary) on PATH.
+if command -v fsgg-coord-engine >/dev/null 2>&1; then
+  exec fsgg-coord-engine "$@"
+fi
+
+if [ -n "$TOP" ]; then
+  # TIER 4 — THE RECEIVERS' SHAPE. Check the MANIFEST before probing `dotnet tool run` blindly — a `run` on
+  # a repo with no manifest is a slow, noisy failure, and `.github` (whose source build is tier 2 above) has
+  # no root manifest at all.
+  MANIFEST="$TOP/.config/dotnet-tools.json"
+  if [ -f "$MANIFEST" ] && command -v dotnet >/dev/null 2>&1 \
+     && jq -e '.tools | to_entries[] | select(.value.commands // [] | index("fsgg-coord-engine"))' \
+          >/dev/null 2>&1 <"$MANIFEST"; then
+    # A MANIFEST IS A DECLARATION, NOT AN INSTALLATION (#655). If the tool is not yet restored, `dotnet tool
+    # run` prints a restore hint and exits 1 — so restore it once (bookkeeping, in a subshell), then exec.
+    # Asking a worker to restore has a measured hit rate of zero; do it for them.
+    # `--` here is PROPHYLACTIC, not a fix: measured on dotnet 10.0.302, `tool run` does NOT consume
+    # `--version` (unlike `--help`/`-h`, which it does — see the exec below, #1029). It is separated anyway
+    # because this probe FAILS OPEN if that ever changes: a consumed `--version` would answer 0 from dotnet
+    # itself, the shim would read "already restored" and skip the restore, and the exec would then fail with
+    # the very hint this branch exists to pre-empt. One separator costs nothing and removes the whole class.
+    if ! ( cd "$TOP" && dotnet tool run fsgg-coord-engine -- --version ) >/dev/null 2>&1; then
+      # THE RESTORE'S OWN DIAGNOSIS IS THE EVIDENCE — DO NOT DISCARD IT AND THEN GUESS (#957).
+      #
+      # This was `>/dev/null 2>&1 || die "… the feed is unreachable or the version is unpublished"`:
+      # the restore's words thrown away, and TWO causes asserted from an exit code. Both are false for
+      # the failure that actually fires — a missing credential for the auth-walled org feed, which says
+      # `401 (Unauthorized)` in as many words. The cause that fires was not in the list, and the list
+      # was not observed. That is #266's class (a check reporting a cause it structurally cannot see),
+      # and it fails toward the two LEAST actionable readings: told "the feed is unreachable" a worker
+      # checks their network; told "the version is unpublished" they go read the release workflow.
+      # Neither is the remedy, and the real one was named nowhere. It cost the reporter a debugging
+      # pass on an otherwise-clean checkout.
+      if ! restore_out="$( cd "$TOP" && dotnet tool restore 2>&1 )"; then
+        # A HINT IS KEYED OFF THE OUTPUT, NEVER ASSERTED BLIND — that asymmetry IS the fix. Output we
+        # do not recognise gets NO cause: the restore's own words are the finding, and inventing one on
+        # top of them is the bug being removed. The two original causes survive here, demoted from
+        # fallback to what they always should have been — claims made only when something observed
+        # supports them.
+        # MATCH ON THE PHRASE, NEVER ON A BARE STATUS NUMBER. `*401*` would fire on any output that
+        # happens to contain those three digits — a hash, a version, a tmpdir called `tmp.401xyz` — and
+        # then assert an auth failure nobody observed. That is this block's own bug, one level down, so
+        # the patterns below are anchored to text NuGet actually emits.
+        hint=""
+        case "$restore_out" in
+          *"401 (Unauthorized)"*|*Unauthorized*)
+            hint="
+
+  This is an AUTH failure, not an unreachable feed. The org feed (nuget.pkg.github.com) refused the
+  credentials. Export FSGG_PACKAGES_ACTOR (your GitHub login) and FSGG_PACKAGES_READ_TOKEN (a PAT with
+  read:packages) — a receiver's nuget.config reads them as %FSGG_PACKAGES_ACTOR% / %FSGG_PACKAGES_READ_TOKEN%." ;;
+          *"403 (Forbidden)"*|*Forbidden*)
+            hint="
+
+  The credential was ACCEPTED and is missing the scope: FSGG_PACKAGES_READ_TOKEN needs read:packages." ;;
+          *"Unable to load the service index"*|*"No such host"*|*"Name or service not known"*|*"Connection refused"*|*"timed out"*)
+            hint="
+
+  The feed is genuinely unreachable — this one IS a network fault, and the message says so because the
+  restore's output said so." ;;
+          *"is not found in NuGet feeds"*|*"Unable to find package"*)
+            # The first pattern is the wording NuGet ACTUALLY emits — measured by driving a manifest that
+            # declares a version no feed carries, not guessed. The obvious `Unable to find package` never
+            # fired against the real thing; it is kept because `dotnet tool install` does use it. A hint
+            # branch that cannot match is the same fail-open shape as the assertion this whole block
+            # replaces, so these patterns are observations, not expectations. A bare `*404*` was dropped
+            # for the reason given above the `case`.
+            hint="
+
+  The version declared in the manifest is not on the feed. This is the 'unpublished' case, claimed here
+  only because the restore reported it." ;;
+        esac
+        die "the engine is declared in $MANIFEST but 'dotnet tool restore' failed:
+
+$restore_out$hint"
+      fi
+    fi
+    # exec from the ORIGINAL cwd, not $TOP: `dotnet tool run` finds the manifest by walking up from here,
+    # and the engine is cwd-sensitive (reap scopes to the checkout you stand in, #480; the git-remote repo
+    # default reads it, #430). A cd to $TOP would silently rescope those commands.
+    #
+    # `--` IS LOAD-BEARING, AND ITS ABSENCE IS WHY THIS SHIM WAS NOT THE TRANSPARENT PIPE ITS HEADER
+    # PROMISES (#1029). `dotnet tool run` has its OWN `-?, -h, --help` option, so without a separator it
+    # CONSUMES those flags and answers for itself — the engine is never reached. Measured on dotnet
+    # 10.0.302, and it is not position-dependent (`… fsgg-coord-engine next --help` is eaten too):
+    #
+    #   dotnet tool run fsgg-coord-engine --help        -> dotnet's own help, EXIT 0
+    #   dotnet tool run fsgg-coord-engine next --help   -> dotnet's own help, EXIT 0
+    #   dotnet tool run fsgg-coord-engine -- next --help -> reaches the engine
+    #
+    # Exit 0 is what made it silent: the worker asked the coordination tool for help, got dotnet's, and
+    # nothing reported a failure. THIS repo cannot reproduce it — `.github` builds from source and resolves
+    # at tier 2, which is a real `exec` — so the only repo that owns the shim is the one repo where the bug
+    # is invisible, and every RECEIVER got dotnet's help instead (ADR-0034 decision 2).
+    exec dotnet tool run fsgg-coord-engine -- "$@"
+  fi
+fi
+
+die "no fsgg-coord engine found. Set FSGG_COORD_ENGINE_BIN, install the tool (dotnet tool install), restore the local manifest (dotnet tool restore), or build it from source (dotnet build src/FS.GG.Coord.Cli -c Release)."

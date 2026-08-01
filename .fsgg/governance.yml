@@ -1,0 +1,12 @@
+schemaVersion: 1
+id: Rogue3
+governedRoot: .
+domains:
+  - build
+  - test
+  - evidence
+  - gameplay
+packageSurfaces:
+  - src
+policyRef: .fsgg/policy.yml
+capabilitiesRef: .fsgg/capabilities.yml

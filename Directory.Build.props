@@ -1,0 +1,62 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- 204 (US2/SM-3): byte-reproducible restore for the pinned FS.GG.UI.* snapshot. The single
+         host applies to every generated project, so each profile writes its own profile-correct
+         packages.lock.json on first restore and resolves the identical graph on every later restore
+         (SC-002). RestoreLockedMode is gated to CI/verify AND to an existing lockfile, so a
+         consumer's first local restore (no lockfile yet) is never blocked — once they commit the
+         generated lockfile, CI restores are locked to it. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(ContinuousIntegrationBuild)' == 'true' And Exists('$(MSBuildProjectDirectory)/packages.lock.json')">true</RestoreLockedMode>
+  </PropertyGroup>
+
+  <!-- 231 (ADR-0014): the ONE standalone-lane skill-root materialize step. Present only when the
+       spec-kit lifecycle emitted the vendored script (an sdd/none lifecycle never runs it — the
+       orchestrator owns mirroring there). Fans .agents/skills/** into .claude/ + .codex/ as
+       byte-identical copies and verifies against .agents/skills/skill-manifest.json (advisory in
+       the rogue3; release/composition gates rerun the script with the enforce flag). Incremental via the
+       stamp file, so multi-project builds run the fsi step once and re-run it only when the
+       union changes. dotnet fsi ships with the SDK; the script is pure BCL (no restore/network). -->
+  <PropertyGroup>
+    <FsGgSkillMaterializeScript>$(MSBuildThisFileDirectory).specify/scripts/fs-gg/materialize-skill-roots.fsx</FsGgSkillMaterializeScript>
+    <FsGgSkillRootsStamp>$(MSBuildThisFileDirectory).specify/.fs-gg/skill-roots.stamp</FsGgSkillRootsStamp>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(FsGgSkillMaterializeScript)')">
+    <FsGgAgentSkillFile Include="$(MSBuildThisFileDirectory).agents/skills/**/*" />
+  </ItemGroup>
+  <Target Name="FsGgMaterializeSkillRoots"
+          BeforeTargets="Build"
+          Condition="Exists('$(FsGgSkillMaterializeScript)')"
+          Inputs="@(FsGgAgentSkillFile);$(FsGgSkillMaterializeScript)"
+          Outputs="$(FsGgSkillRootsStamp)">
+    <Exec Command="dotnet fsi &quot;$(FsGgSkillMaterializeScript)&quot;"
+          WorkingDirectory="$(MSBuildThisFileDirectory)" />
+    <MakeDir Directories="$(MSBuildThisFileDirectory).specify/.fs-gg" />
+    <Touch Files="$(FsGgSkillRootsStamp)" AlwaysCreate="true" />
+  </Target>
+
+  <!-- ADR-0056 §Decision.2: the sdd-lane guard. `sdd` (the default) emits the rogue3 only and
+       expects an external SDD lifecycle owner (fsgg-sdd) to re-supply the lifecycle; until then the
+       tree is lifecycle-less. The guard keys on the CHOSEN INTENT via the one file that distinguishes
+       the byte-identical sdd/none trees: the rogue3-root lifecycle-scaffolding-pending.md, emitted
+       only under `lifecycle == "sdd"`. (It formerly lived under `readiness/`, but that is an
+       SDD-owned tree the provider may not write under the orchestrated fsgg-sdd flow — see #954.)
+       This target WARNS on every build while the sentinel is present
+       ("sdd warns"); `none` (deliberately lifecycle-less, no sentinel) and `spec-kit` (full workspace,
+       no sentinel) are silent. The FAIL-CLOSED half — a readiness/doctor verdict that stays red until
+       the lifecycle is re-supplied or the sentinel removed — lives in build.fsx's `Verify` gate, NOT
+       here: a hard build error would break the stock `dotnet build`/`dotnet test` smoke checks that
+       scaffold the default lane, and the ADR asks for a build that WARNS. -->
+  <PropertyGroup>
+    <FsGgLifecyclePendingSentinel>$(MSBuildThisFileDirectory)lifecycle-scaffolding-pending.md</FsGgLifecyclePendingSentinel>
+  </PropertyGroup>
+  <Target Name="FsGgSddLifecycleGuard"
+          BeforeTargets="Build"
+          Condition="Exists('$(FsGgLifecyclePendingSentinel)')">
+    <!-- The Warning text avoids the literal tokens `rogue3` and `rogue3`/`Rogue3`: this file is
+         NOT copyOnly, so the projectSlug / effectiveName template symbols would rewrite them to the
+         scaffolded name and mangle the message. `tree` / `scaffolded with` keep it name-stable. -->
+    <Warning Text="ADR-0056: lifecycle scaffolding not yet supplied (scaffolded with --lifecycle sdd, the default). Run `fsgg-sdd` to re-supply it (clears lifecycle-scaffolding-pending.md), or re-scaffold with `--lifecycle none` if a lifecycle-less tree is deliberate. The `Verify` readiness/doctor gate fails closed until then. See lifecycle-scaffolding-pending.md." />
+  </Target>
+</Project>

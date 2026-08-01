@@ -1,0 +1,6 @@
+# fs-gg element-visual catalog v1
+Ball	shown	scene/ball
+LeftPaddle	shown	scene/left-paddle
+RightPaddle	shown	scene/right-paddle
+Score	shown	scene/score
+Playfield	shown	scene/playfield

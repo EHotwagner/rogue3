@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Rogue3/Rogue3.fsproj" />
+  <Project Path="tests/Rogue3.Tests/Rogue3.Tests.fsproj" />
+</Solution>

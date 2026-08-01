@@ -1,0 +1,12 @@
+schemaVersion: 1
+defaultProfile: light
+profiles:
+  - light
+  - standard
+  - strict
+  - release
+branchPolicy:
+  pattern: "main"
+  requirePr: true
+reviewBudget:
+  maxReviews: 3
