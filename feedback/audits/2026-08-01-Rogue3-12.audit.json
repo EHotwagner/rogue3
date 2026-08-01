@@ -1,0 +1,251 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-01-Rogue3-12.md",
+  "reportSha256": "92cdb493f14c1635385bea918c1fdf43bf37e8bb25c85f9b11c7342aa9aa345c",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:docs/roguelike-dungeon-crawler-roadmap.md",
+          "result": "verified",
+          "sha256": "43655139510aab9b9456d06d78e91d3a3990dc7a38d296df6dc2c66d4f4e3527"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs",
+          "result": "verified",
+          "sha256": "ab6918036155e8448e27166eb07aff803ecae6d922e74655852eafc6cca9f97a"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic established the dead-code sub-claim independently at the boundary commit (git show ce95759:src/Rogue3/PerformanceEvidence.fs), not from the cited files; the finding now states that inspection route explicitly."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/AudioCues.fs",
+          "result": "verified",
+          "sha256": "a53f4db363de567292cf879bf3d1f5de808fb69fb343995331a5f0e5cd39c8cf"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs",
+          "result": "verified",
+          "sha256": "ab6918036155e8448e27166eb07aff803ecae6d922e74655852eafc6cca9f97a"
+        }
+      ],
+      "confidenceLimits": [
+        "Measured by the independent code critic against the built assembly before the fix: direct DescendFloor produced the cue, the E-key-plus-Tick route produced none. The defect no longer reproduces at HEAD by design; the regression test in the cited test file fails without the AudioCues change."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs",
+          "result": "verified",
+          "sha256": "7257ff144eb45c71d9766e993d5e801c4e0f1718ddf546862a931d16fb6f8b1f"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M4ProceduralFloorTests.fs",
+          "result": "verified",
+          "sha256": "809a557a87c20460beec98f2eae153cd19a2d75235ed58527370cbd75bccf9df"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic measured the disarmed pre-descend state (Enemies=0 staged versus Enemies=7 on main) before the fix. At HEAD the seeded state is asserted non-empty, so the condition is now guarded rather than reproducible."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs",
+          "result": "verified",
+          "sha256": "ab6918036155e8448e27166eb07aff803ecae6d922e74655852eafc6cca9f97a"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/CoverageGateTests.fs",
+          "result": "verified",
+          "sha256": "1ff47b9a7224b794cab83451e4af1dab6ab19893f1579b9dd252aafe03196098"
+        }
+      ],
+      "confidenceLimits": [
+        "Scene.group [] yielding one node is directly checkable in FS.GG.UI.Scene 0.21.1; the critic confirmed it and confirmed CoverageGateTests independently filters on empty node lists."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "7602e4619ccfb05edf9e2d980317cfbaca93a887744989b99822752987d51381"
+        },
+        {
+          "locator": "file:src/Rogue3/Render.fs",
+          "result": "verified",
+          "sha256": "988fa1d955b8beb8f9bec70e616caf2f29a83b668ebba8c610e36977b3e40921"
+        },
+        {
+          "locator": "file:docs/roguelike-dungeon-crawler-roadmap.md",
+          "result": "verified",
+          "sha256": "43655139510aab9b9456d06d78e91d3a3990dc7a38d296df6dc2c66d4f4e3527"
+        }
+      ],
+      "confidenceLimits": [
+        "Observed directly as white frames from the render harness while TraverseDoor still started a slide. Reproduce by restoring the M6CameraTransition assignment in the TraverseDoor arm and re-running scripts/render-m11-frames.fsx."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:work/012-m11-playability-visual-legibility/plan.md",
+          "result": "verified",
+          "sha256": "c8741b3de56ea44de0c135ac0d989f77f99ad25db25ee04d38db2baa77148304"
+        },
+        {
+          "locator": "file:feedback/2026-08-01-Rogue3-11.md",
+          "result": "verified",
+          "sha256": "808c8f153ef263f1989c47b6163788449dc79ec3cc975c2fb166050f2712cc9b"
+        }
+      ],
+      "confidenceLimits": [
+        "The cited plan shows the placeholder sentence that replaced the authored baseline; the prior report records the same behaviour at the same tool version one cycle earlier, which is what makes this a recurrence rather than a first sighting."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "adef667c34d5172df3fc54d02e0b582f3cb66dc4c6710027c60167d184aa20bd"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs",
+          "result": "verified",
+          "sha256": "ab6918036155e8448e27166eb07aff803ecae6d922e74655852eafc6cca9f97a"
+        }
+      ],
+      "confidenceLimits": [
+        "The rejection message text could not be located in the pinned FS.GG.Game.Harness assembly's string table and is presumed built at runtime; the finding states the behaviour and its reproduction rather than quoting the literal as a checkable artefact."
+      ]
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:work/012-m11-playability-visual-legibility/evidence.yml",
+          "result": "verified",
+          "sha256": "49ee40fe0ab854ceb95a620a335c2312acc17cda5dacaabf2aa19e596ea75eec"
+        },
+        {
+          "locator": "file:readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md",
+          "result": "verified",
+          "sha256": "7c36cf6fb9c8365f74fd1bdf441c44f2fa1384c3aa38838d29a5e835b438e5ec"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic confirmed the workaround is directly inspectable: the evidence file cites reference receipts and zero PNGs, and the receipt carries the four fields the finding names. The block itself is reproduced by citing any .png, which the finding states."
+      ]
+    },
+    {
+      "id": "§4.9",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:load-Rogue3.fsx",
+          "result": "verified",
+          "sha256": "f69bd363091ddbbd680666e489ff5444369b65a9c69322a2f2a82f82b91ffe43"
+        },
+        {
+          "locator": "file:scripts/render-m11-frames.fsx",
+          "result": "verified",
+          "sha256": "de010a4d4b912d1a450d767559078a5f1e2e9de42e5dd62ed9d1d3e2c08be9e6"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.10",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/AudioCues.fs",
+          "result": "verified",
+          "sha256": "a53f4db363de567292cf879bf3d1f5de808fb69fb343995331a5f0e5cd39c8cf"
+        },
+        {
+          "locator": "file:docs/roguelike-dungeon-crawler-roadmap.md",
+          "result": "verified",
+          "sha256": "43655139510aab9b9456d06d78e91d3a3990dc7a38d296df6dc2c66d4f4e3527"
+        }
+      ],
+      "confidenceLimits": [
+        "Scope corrected after critic verification: the cue map requests at least fourteen ids and assets/ does not exist at all, so the earlier five-id framing understated it. Only title-theme reproduces on an idle launch; the rest need gameplay input, which the finding states."
+      ]
+    },
+    {
+      "id": "§4.11",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs",
+          "result": "verified",
+          "sha256": "ab6918036155e8448e27166eb07aff803ecae6d922e74655852eafc6cca9f97a"
+        },
+        {
+          "locator": "file:src/Rogue3/AudioCues.fs",
+          "result": "verified",
+          "sha256": "a53f4db363de567292cf879bf3d1f5de808fb69fb343995331a5f0e5cd39c8cf"
+        }
+      ],
+      "confidenceLimits": [
+        "The two critic reports are transient subagent output and are not committed artefacts; their substance is preserved in the pull request comments and in findings §4.2 through §4.5, each of which carries a committed regression test."
+      ]
+    },
+    {
+      "id": "§4.12",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "pr:EHotwagner/rogue3#4",
+          "result": "verified"
+        },
+        {
+          "locator": "file:docs/roguelike-dungeon-crawler-roadmap.md",
+          "result": "verified",
+          "sha256": "43655139510aab9b9456d06d78e91d3a3990dc7a38d296df6dc2c66d4f4e3527"
+        }
+      ],
+      "confidenceLimits": [
+        "Locator kind corrected from issue: to pr: after the critic found that #4 does not resolve as an issue. The branch collision is verifiable from the merged pull request's headRefName."
+      ]
+    }
+  ]
+}
