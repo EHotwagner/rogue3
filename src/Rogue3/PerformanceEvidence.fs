@@ -792,6 +792,12 @@ let private normalBudget =
 /// boot `initialModel`, map timestamp-free events to production `Msg`, call production `update`,
 /// and reach a real fixed step. The measured workload below remains the longer update+view sample.
 let private performanceJourneyReceipt scenarioId boot terminalSteps script =
+    let terminalPredicateIdentity =
+        if scenarioId = "floor-generation" then
+            $"model.FloorIndex>={terminalSteps}"
+        else
+            $"model.SimStepCount>={terminalSteps}"
+
     let adapter: ProductionJourney<Model, ViewerKey, Vec2 * bool option, unit, unit, Msg, string> =
         { RouteId = "rogue3-m3-combat-health-currency-update-view"
           ScenarioId = scenarioId
@@ -822,7 +828,7 @@ let private performanceJourneyReceipt scenarioId boot terminalSteps script =
 
     Journey.runScriptWithIdentity
         $"{scenarioId}-one-fixed-step"
-        $"model.SimStepCount>={terminalSteps}"
+        terminalPredicateIdentity
         adapter
         script
     |> fun run -> run.Receipt
@@ -887,6 +893,9 @@ let private maximumContentModel () =
 // player boot; its role is to make maximum authored content reachable through the same production
 // update/view composition without caller-authored receipt labels or hashes.
 let private maximumContentJourneyBoot () = maximumContentModel ()
+
+// Canonical representative generation boot shared by the timed workload and its runner receipt.
+let private floorGenerationModel () = { initialModel with FloorIndex = 8 }
 
 /// REQUIRED PRODUCT AUTHORING. Every untouched row is deliberately a failing placeholder.
 ///
@@ -1012,14 +1021,14 @@ let expectedWorkloads =
         SampleFrames = 40
         EventsPerFrame = 0
         PointerEventsPerFrame = 0
-        InitialState = (fun () -> { initialModel with FloorIndex = 8 })
+        InitialState = floorGenerationModel
         MessagesAt = (fun _ -> [ DescendFloor ])
-        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "floor-generation" (fun () -> initialModel) 2 [ JourneyEvent.Interact ])
+        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "floor-generation" floorGenerationModel 9 [ JourneyEvent.Interact ])
         Composition = CompleteComposition
         CostDriverIds = [ "generation.floor-room-budget"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "395c111c259a6314d09c8e3c2f2eec1cf536ab4d828c16aec1afbc62134e1178" }
+        Authorship = Authored "380721f4766bcbd2eeb8d133cb99058df498768a574eb4522678faa2837a82b3" }
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"

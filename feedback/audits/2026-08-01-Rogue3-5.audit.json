@@ -40,17 +40,20 @@
         {
           "locator": "file:src/Rogue3/PerformanceEvidence.fs",
           "result": "verified",
-          "sha256": "d25da86808b00f25ace2d94934458c17da95c26413b32ebe108fba24015ecd30"
+          "sha256": "f312596a1c456cce0133460bcaa10c7dc693cc7c602a2acf2af897fa5bd6ab09"
         },
         {
           "locator": "file:readiness/performance-evidence.json",
           "result": "verified",
-          "sha256": "886fda32b8ce076577f59ccbf0ff625abf79a2488b282aa35037137f64538a17"
+          "sha256": "3bb8d49432300f65c8617cf8e4206c45dbdcb7094faf533afedf92ec9572b9bc"
         }
       ],
       "confidenceLimits": [
-        "The structural driver observes Floor.Rooms.Count after production DescendFloor.",
-        "The retained artifact verifies six workloads, room count 20, p95 1.267 ms, p99 1.3566 ms, zero catch-up, and a passing verdict.",
+        "The timed workload and runner receipt share the canonical FloorIndex=8 representative factory.",
+        "The timed route dispatches DescendFloor; the receipt maps Interact to DescendFloor.",
+        "Receipt predicate behavior and terminalPredicateIdentity both use model.FloorIndex>=9 and the predicate was reached.",
+        "The structural driver observes Floor.Rooms.Count after production descent.",
+        "The retained artifact verifies six workloads, room count 20, p95 1.3477 ms, p99 1.4529 ms, zero catch-up, and a passing verdict.",
         "Timing values remain artifact-specific and are not promoted as stable claims.",
         "The receipt reports FS.GG.Game.Harness 0.12.0.0; latest-release re-verification was not performed.",
         "Recurrence correctly distinguishes earlier positive patterns from the related M3 quality-gap repair."
@@ -68,7 +71,7 @@
         {
           "locator": "file:readiness/005-m4-procedural-floor-generation/ship-verdict.json",
           "result": "verified",
-          "sha256": "1090561c31a20aebc695c479982e4713fa49c5a8c1a35e9742442ebc054ffcef"
+          "sha256": "9c17a05208348493da5883f10c09614407ee636cbef7b1bfc75f687a317c33a1"
         }
       ],
       "confidenceLimits": [

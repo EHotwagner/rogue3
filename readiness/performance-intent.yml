@@ -3,7 +3,7 @@ performanceIntent:
   disposition: "active"
   targetFps: 60
   workloadIds: ["idle", "movement-aiming", "firing", "effects-fog", "floor-generation", "maximum-content"]
-  workloadDefinitionDigests: ["idle=sha256:2ed65809573c84c4051c3a446b8770c36494287729c6fa4db40093cbce81c828", "movement-aiming=sha256:a02038b7b8145fd7f3748c2e32152cff1a35fe86b97a4922754c44012f464987", "firing=sha256:e009940dc00ac0d2e8c520564c5ecba43af1d973392e4089c546ceea27cbb93e", "effects-fog=sha256:b30e6ef70f4275280642272ed1705cce182364b6929e4e6827502640f1954b76", "floor-generation=sha256:395c111c259a6314d09c8e3c2f2eec1cf536ab4d828c16aec1afbc62134e1178", "maximum-content=sha256:5e31f83fbcbd74c5c9e01b054f31de13aada5fec6d3cd2d36ee3b19bc8a3e28e"]
+  workloadDefinitionDigests: ["idle=sha256:2ed65809573c84c4051c3a446b8770c36494287729c6fa4db40093cbce81c828", "movement-aiming=sha256:a02038b7b8145fd7f3748c2e32152cff1a35fe86b97a4922754c44012f464987", "firing=sha256:e009940dc00ac0d2e8c520564c5ecba43af1d973392e4089c546ceea27cbb93e", "effects-fog=sha256:b30e6ef70f4275280642272ed1705cce182364b6929e4e6827502640f1954b76", "floor-generation=sha256:380721f4766bcbd2eeb8d133cb99058df498768a574eb4522678faa2837a82b3", "maximum-content=sha256:5e31f83fbcbd74c5c9e01b054f31de13aada5fec6d3cd2d36ee3b19bc8a3e28e"]
   maximumExpectedScale: "20 generated floor rooms plus 40 live player shots, 8 static obstacles, 30 live enemies/targets, 120 enemy bullets, 736 wall primitives, 2,400 homing considerations, multishot 3, and all five scaffold visuals"
   maxP95Ms: 16.67
   maxP99Ms: 25.0
