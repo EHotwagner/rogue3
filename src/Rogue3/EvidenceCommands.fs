@@ -1384,10 +1384,11 @@ let m7UiPerformanceEvidence (path:string) =
               // files moved; `main-menu` hashes GameShell.fs/M7Ui.fs and is byte-identical, which is
               // the check that the digest set moved where the source moved and nowhere else. Every
               // route's scale and budget verdict stayed green — hud-playing still reports 12 scene
-              // elements at both outputs, the same five named regions, and zero bound controls.
-              "hud-playing", "6d520173963d4b7e41e987253e5ce30a3ca582bf930900ccf3447e71f320cc24"
-              "run-result", "84d7f93c2b7d5078541b8689f82e88d580d009b4b4f87b2d18d494794b05d82f"
-              "stats-charts", "43a1b26c1b15da7ed2c2de9604e42deb29c771af74999eae911fb511289c585e" ]
+              // elements at both outputs, the same five named regions, and zero bound controls. These are
+              // the SECOND derivation: the independent critics' fixes moved Model.fs and Render.fs again.
+              "hud-playing", "779e3ce953ef840002abecf89a7ea456ebbbc650a0b56b6dd69b5a659ef0752c"
+              "run-result", "8fedd0b6902a33c3f4b4c94437354875d99aa6e0863654f3911577a3cb427b0f"
+              "stats-charts", "bd8fd06562c65cfc9e9a54384f6fdfe5ec5e99b56de3d8e12ef263a89b4ce326" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]

@@ -2,14 +2,14 @@
 
 - verdict: passed
 - classification: none
-- package-identity: sha256:cb64d3b15b8634063c0283d81a722bafcc35be618236e1f857d4ba76fb9e3d5d
+- package-identity: sha256:20fd76d5717aa7443f1066b3a24b122a0ec9f1138eaffb02b3c462626a0f9423
 - protocol-version: 1.0
 - capability-profile: scene-portable/v1
 - resource-status: none
 - output-size: 1280x720
 - renderer-identity: FS.GG.UI.SkiaViewer.SceneRenderer/skia-reference
-- image-path: readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/sha256-cb64d3b15b8634063c0283d81a722bafcc35be618236e1f857d4ba76fb9e3d5d.png
-- image-identity: sha256:37d2b45eac68fab871dbcbc1cf484fec481804e8483d85112396396c022dd941
+- image-path: readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/sha256-20fd76d5717aa7443f1066b3a24b122a0ec9f1138eaffb02b3c462626a0f9423.png
+- image-identity: sha256:3408eb109750ab947014fcd31239960bf37007acbcc6fd25ded93f13954e6996
 
 ## Diagnostics
 - none

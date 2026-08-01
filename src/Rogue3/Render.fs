@@ -37,7 +37,11 @@ let hudLayoutForSize (size: Size) =
     let currency = { X=24.0; Y=60.0; Width=230.0; Height=28.0 }
     let charge = { X=max 24.0 (width-100.0); Y=20.0; Width=72.0; Height=40.0 }
     let minimap = { X=max 24.0 (width-140.0); Y=70.0; Width=120.0; Height=120.0 }
-    let floorName = { X=max 24.0 (width/2.0-150.0); Y=max 100.0 (height-52.0); Width=300.0; Height=32.0 }
+    // The floor banner must clear the SOUTH DOORWAY. It used to sit at `height-52`, which put its
+    // glyphs directly on top of the south door panel — on the one wall segment a player is looking at
+    // when a room loads, which is exactly when the banner fires. `Overlaps` below only intersects HUD
+    // rects against other HUD rects, so it can never see a HUD-over-gameplay collision.
+    let floorName = { X=max 24.0 (width/2.0-150.0); Y=max 100.0 (height*0.80); Width=300.0; Height=32.0 }
     let intersects a b = a.X < b.X+b.Width && a.X+a.Width > b.X && a.Y < b.Y+b.Height && a.Y+a.Height > b.Y
     { Size=size; HeartsBounds=hearts; CurrencyBounds=currency; ChargeBounds=charge; MinimapBounds=minimap
       FloorNameBounds=floorName
@@ -232,7 +236,13 @@ let private obstacleScene obstacle =
     | ObstacleKind.Spikes ->
         Scene.filledRectangle { X=obstacle.Position.Vx-18.0;Y=obstacle.Position.Vy-8.0;Width=36.0;Height=16.0 } (color 138uy 138uy 154uy 255uy)
     | ObstacleKind.Pit ->
-        Scene.filledEllipse { X=obstacle.Position.Vx-24.0;Y=obstacle.Position.Vy-14.0;Width=48.0;Height=28.0 } (color 10uy 7uy 16uy 255uy)
+        // A pit is a hazard and measured 1.10:1 against the floor — the lowest-contrast object in the
+        // game. The rim is what makes it visible; the void stays dark so it still reads as a hole.
+        Scene.group
+            [ Scene.filledEllipse { X=obstacle.Position.Vx-24.0;Y=obstacle.Position.Vy-14.0;Width=48.0;Height=28.0 } (color 8uy 5uy 12uy 255uy)
+              Scene.ellipse
+                  { X=obstacle.Position.Vx-24.0;Y=obstacle.Position.Vy-14.0;Width=48.0;Height=28.0 }
+                  (Paint.stroke (color 132uy 116uy 148uy 255uy) 3.0) ]
 
 let private pickupIdentity = function
     | PickupKind.Coin1 -> Some("PickupCoin1", "scene/pickup/coin-1", 5.0, color 245uy 197uy 66uy 255uy)
@@ -270,8 +280,11 @@ let bossToken model (boss: BossActor) =
 
 let wallThickness = 24.0
 
-let private stone = color 62uy 52uy 70uy 255uy
-let private stoneEdge = color 92uy 80uy 104uy 255uy
+// Raised from 62,52,70 / 92,80,104. Against the 27,19,32 floor those measured about 1.54:1, which is
+// below any usable contrast floor for a 24-unit band; the walls read only because they were
+// continuous and frame-aligned, not because they were visible.
+let private stone = color 96uy 82uy 108uy 255uy
+let private stoneEdge = color 146uy 130uy 162uy 255uy
 
 /// The opening a door occupies in the wall its `Direction` names.
 let doorwayRect direction : Rect =
@@ -388,21 +401,31 @@ let private doorScene elementId direction =
               Scene.line (at (-span + 10.0) 21.0) (at (-24.0) 21.0) (Paint.stroke (color 140uy 98uy 30uy 255uy) 4.0)
               Scene.line (at 24.0 21.0) (at (span - 10.0) 21.0) (Paint.stroke (color 140uy 98uy 30uy 255uy) 4.0) ]
     | "DoorBossDoor" ->
-        // A boss doorway: enterable, and unmistakably the wrong way to wander in by accident.
+        // A boss doorway: ENTERABLE. Its mark is a toothed maw — deliberately built from a disc and
+        // upright teeth, with NO diagonal stroke anywhere, because the sealed presentation below is an
+        // X and a mark that is a visual SUBSET of another mark is not a distinct mark. These two
+        // states mean opposite things ("the way on" versus "you cannot pass"), so they may not share
+        // an idiom.
         Scene.group
-            [ Scene.filledRectangle panel (color 158uy 40uy 50uy 255uy)
-              Scene.rectangleWithPaint panel (Paint.stroke (color 255uy 128uy 128uy 255uy) 4.0)
-              Scene.circle (at 0.0 20.0) 11.0 (color 26uy 8uy 10uy 255uy)
-              Scene.line (at (-26.0) 8.0) (at (-10.0) 34.0) (Paint.stroke (color 255uy 206uy 128uy 255uy) 5.0)
-              Scene.line (at 26.0 8.0) (at 10.0 34.0) (Paint.stroke (color 255uy 206uy 128uy 255uy) 5.0) ]
+            ([ Scene.filledRectangle panel (color 158uy 40uy 50uy 255uy)
+               Scene.rectangleWithPaint panel (Paint.stroke (color 255uy 150uy 150uy 255uy) 4.0)
+               Scene.filledEllipse (slab 30.0 8.0 34.0) (color 22uy 6uy 8uy 255uy) ]
+             @ [ for offset in [ -21.0; -7.0; 7.0; 21.0 ] ->
+                    Scene.line (at offset 10.0) (at offset 32.0) (Paint.stroke (color 255uy 226uy 170uy 255uy) 5.0) ])
     | "DoorHiddenWall" ->
         // A cracked wall. It reads as WALL, not door — but the seam tells a player where to bomb.
+        //
+        // The trim line is redrawn ACROSS the panel. Without it the panel punched a 112-unit hole in
+        // the room's trim rectangle, and that break was far louder than the crack itself: it betrayed
+        // every secret on the floor at a glance, which is the opposite of a hidden wall.
         Scene.group
             [ Scene.filledRectangle (slab doorwayHalfSpan 0.0 wallThickness) stone
-              Scene.line (at (-34.0) 4.0) (at (-12.0) 14.0) (Paint.stroke (color 138uy 124uy 152uy 255uy) 3.0)
-              Scene.line (at (-12.0) 14.0) (at 6.0 5.0) (Paint.stroke (color 138uy 124uy 152uy 255uy) 3.0)
-              Scene.line (at 6.0 5.0) (at 30.0 17.0) (Paint.stroke (color 138uy 124uy 152uy 255uy) 3.0)
-              Scene.line (at (-4.0) 9.0) (at 2.0 22.0) (Paint.stroke (color 138uy 124uy 152uy 255uy) 2.0) ]
+              Scene.line (at (-doorwayHalfSpan) (wallThickness / 2.0)) (at doorwayHalfSpan (wallThickness / 2.0)) (Paint.stroke stoneEdge 2.0)
+              Scene.line (at (-34.0) 3.0) (at (-12.0) 13.0) (Paint.stroke (color 168uy 152uy 184uy 255uy) 4.0)
+              Scene.line (at (-12.0) 13.0) (at 6.0 4.0) (Paint.stroke (color 168uy 152uy 184uy 255uy) 4.0)
+              Scene.line (at 6.0 4.0) (at 30.0 16.0) (Paint.stroke (color 168uy 152uy 184uy 255uy) 4.0)
+              Scene.line (at (-4.0) 8.0) (at 3.0 21.0) (Paint.stroke (color 168uy 152uy 184uy 255uy) 3.0)
+              Scene.line (at 12.0 9.0) (at 18.0 20.0) (Paint.stroke (color 168uy 152uy 184uy 255uy) 3.0) ]
     | "DoorLockedClear" ->
         // Sealed by combat: iron bars across the opening while anything in the room is still alive.
         Scene.group
@@ -411,23 +434,60 @@ let private doorScene elementId direction =
              @ [ for offset in [ -36.0; -12.0; 12.0; 36.0 ] ->
                     Scene.line (at offset 3.0) (at offset (wallThickness + doorApron - 3.0)) (Paint.stroke (color 196uy 204uy 226uy 255uy) 7.0) ])
     | _ ->
-        // Sealed by the boss fight.
+        // Sealed by the boss fight: a barred X. The horizontal bolt is what makes it categorically a
+        // BARRIER rather than a marked doorway, and it is the mark the enterable boss door above does
+        // not share. The X colour is pulled away from the enemy-bullet red so a sealed door and an
+        // incoming projectile are not the same hue.
         Scene.group
-            [ Scene.filledRectangle panel (color 104uy 22uy 30uy 255uy)
-              Scene.rectangleWithPaint panel (Paint.stroke (color 210uy 70uy 78uy 255uy) 3.0)
-              Scene.line (at (-span + 10.0) 6.0) (at (span - 10.0) (wallThickness + doorApron - 6.0)) (Paint.stroke (color 255uy 96uy 96uy 255uy) 7.0)
-              Scene.line (at (-span + 10.0) (wallThickness + doorApron - 6.0)) (at (span - 10.0) 6.0) (Paint.stroke (color 255uy 96uy 96uy 255uy) 7.0) ]
+            [ Scene.filledRectangle panel (color 96uy 20uy 28uy 255uy)
+              Scene.rectangleWithPaint panel (Paint.stroke (color 176uy 58uy 66uy 255uy) 3.0)
+              Scene.line (at (-span + 10.0) 6.0) (at (span - 10.0) (wallThickness + doorApron - 6.0)) (Paint.stroke (color 236uy 214uy 220uy 255uy) 7.0)
+              Scene.line (at (-span + 10.0) (wallThickness + doorApron - 6.0)) (at (span - 10.0) 6.0) (Paint.stroke (color 236uy 214uy 220uy 255uy) 7.0)
+              Scene.filledRectangle (slab (span - 4.0) (wallThickness / 2.0 + 2.0) (wallThickness / 2.0 + 12.0)) (color 236uy 214uy 220uy 255uy) ]
+
+let private trapdoorBounds =
+    { X=trapdoorCenter.Vx-trapdoorHalfWidth; Y=trapdoorCenter.Vy-trapdoorHalfHeight
+      Width=trapdoorHalfWidth*2.0; Height=trapdoorHalfHeight*2.0 }
 
 /// The trapdoor, drawn where the guard tests for it: the centre of the room.
+///
+/// The SHAPE is carried by the bright rim and the descending chevrons, not by the interior fill. A
+/// near-black hole on a near-black floor measures about 1.05:1 and simply is not visible; the amber
+/// furniture around it is what a player actually sees.
 let trapdoorScene () =
-    let bounds =
-        { X=trapdoorCenter.Vx-trapdoorHalfWidth; Y=trapdoorCenter.Vy-trapdoorHalfHeight
-          Width=trapdoorHalfWidth*2.0; Height=trapdoorHalfHeight*2.0 }
+    let lip = color 214uy 166uy 96uy 255uy
     Scene.group
-        [ Scene.filledRectangle bounds (color 20uy 13uy 24uy 255uy)
-          Scene.rectangleWithPaint bounds (Paint.stroke (color 168uy 128uy 74uy 255uy) 4.0)
-          Scene.line { X=bounds.X+14.0;Y=trapdoorCenter.Vy-8.0 } { X=trapdoorCenter.Vx;Y=trapdoorCenter.Vy+10.0 } (Paint.stroke (color 168uy 128uy 74uy 255uy) 3.0)
-          Scene.line { X=bounds.X+bounds.Width-14.0;Y=trapdoorCenter.Vy-8.0 } { X=trapdoorCenter.Vx;Y=trapdoorCenter.Vy+10.0 } (Paint.stroke (color 168uy 128uy 74uy 255uy) 3.0) ]
+        ([ Scene.filledRectangle trapdoorBounds (color 6uy 4uy 8uy 255uy)
+           Scene.rectangleWithPaint trapdoorBounds (Paint.stroke lip 6.0)
+           // A lit inner lip, so the opening reads as a hole with a near edge rather than a panel.
+           Scene.line
+               { X=trapdoorBounds.X+5.0;Y=trapdoorBounds.Y+5.0 }
+               { X=trapdoorBounds.X+trapdoorBounds.Width-5.0;Y=trapdoorBounds.Y+5.0 }
+               (Paint.stroke (color 255uy 214uy 150uy 255uy) 4.0) ]
+         @ [ for row in [ -6.0; 4.0; 14.0 ] ->
+                Scene.group
+                    [ Scene.line
+                        { X=trapdoorCenter.Vx-16.0;Y=trapdoorCenter.Vy+row-6.0 }
+                        { X=trapdoorCenter.Vx;Y=trapdoorCenter.Vy+row } (Paint.stroke lip 4.0)
+                      Scene.line
+                        { X=trapdoorCenter.Vx+16.0;Y=trapdoorCenter.Vy+row-6.0 }
+                        { X=trapdoorCenter.Vx;Y=trapdoorCenter.Vy+row } (Paint.stroke lip 4.0) ] ])
+
+/// Drawn ONLY while the descent guard would accept: the room depicts a trapdoor and the player is
+/// standing on it. Without this there is no on-screen difference between standing on the trapdoor and
+/// standing beside it, while the guard demands an interact press — a keypress with no affordance.
+let trapdoorReadyScene () =
+    let halo = color 255uy 226uy 150uy 255uy
+    let ring =
+        { X=trapdoorBounds.X-10.0; Y=trapdoorBounds.Y-10.0
+          Width=trapdoorBounds.Width+20.0; Height=trapdoorBounds.Height+20.0 }
+    Scene.group
+        [ Scene.rectangleWithPaint ring (Paint.stroke halo 3.0)
+          Scene.circle { X=ring.X;Y=ring.Y } 5.0 halo
+          Scene.circle { X=ring.X+ring.Width;Y=ring.Y } 5.0 halo
+          Scene.circle { X=ring.X;Y=ring.Y+ring.Height } 5.0 halo
+          Scene.circle { X=ring.X+ring.Width;Y=ring.Y+ring.Height } 5.0 halo
+          Scene.textAt { X=trapdoorCenter.Vx-52.0;Y=trapdoorBounds.Y-22.0 } "E  DESCEND" halo ]
 
 type RenderedElement =
     { ElementId: string
@@ -445,11 +505,18 @@ let renderedElementsIn grammar model : RenderedElement list =
       for obstacle in model.M5Obstacles do
           yield rendered (obstacleId obstacle.Kind) (obstacleHandle obstacle.Kind) RenderLayer.Obstacles (obstacleScene obstacle)
 
+      // Obstacle drops used to be drawn at X=80+index*24, Y=80 — directly under the currency readout,
+      // on a layer BELOW the HUD, so a pickup a player must walk onto was clipped behind the word
+      // "COIN". They are laid out in the room instead, clear of every doorway and of the HUD bands.
+      // `M5ObstacleDrops` still carries no world position, so this is a legible placeholder rather
+      // than a placed pickup; giving drops a position and a collection rule is separate roadmap work.
       for index, pickup in model.M5ObstacleDrops |> List.indexed do
           match pickupIdentity pickup with
           | Some(elementId, handle, radius, fill) ->
               yield rendered elementId handle RenderLayer.Pickups
-                        (Scene.circle { X=80.0 + float index*24.0; Y=80.0 } radius fill)
+                        (Scene.group
+                            [ Scene.circle { X=300.0 + float index*52.0; Y=520.0 } (radius+3.0) (color 18uy 13uy 22uy 255uy)
+                              Scene.circle { X=300.0 + float index*52.0; Y=520.0 } radius fill ])
           | None -> ()
 
       for index, (slot: Rogue3.Entities.ShopSlot) in model.M5ShopSlots |> List.indexed do
@@ -482,8 +549,13 @@ let renderedElementsIn grammar model : RenderedElement list =
                     (Scene.filledRectangle { X=620.0;Y=450.0;Width=40.0+float reward.Quality*5.0;Height=26.0 } (color 190uy 126uy 255uy 255uy))
       | None -> ()
 
-      if model.M5Room.Trapdoor then
+      // Rendered from the SAME predicate the descent guard tests, so the fixture a player sees is the
+      // fixture the guard accepts. `M5Room.Trapdoor` alone can be true while the floor records no
+      // fixture, and drawing that state would promise a descent the guard then refuses.
+      if trapdoorPresent model then
           yield rendered "Trapdoor" "scene/trapdoor" RenderLayer.FloorDecals (trapdoorScene ())
+          if canDescend model then
+              yield rendered "TrapdoorReady" "scene/trapdoor-ready" RenderLayer.FloorDecals (trapdoorReadyScene ())
 
       let shadowPositions =
           model.PlayerPosition

@@ -15,6 +15,8 @@ open Expecto
 open FS.GG.UI.Scene
 open FS.GG.UI.KeyboardInput
 open FS.GG.Game.Harness
+open FS.GG.Audio.Core
+open FS.GG.UI.SkiaViewer
 open Rogue3
 open Rogue3.Geometry
 open Rogue3.FloorGeneration
@@ -95,6 +97,14 @@ let private doorTowards direction (model: Model) =
 
 let private roomOfType kind (model: Model) =
     model.Floor.Rooms |> Map.toList |> List.find (fun (_, room) -> room.RoomType = kind) |> fst
+
+/// Kill everything alive in the loaded room. This dispatches `DamageM5Enemy` directly: it is combat
+/// staging, not a door claim, and M3 already proves that message is reachable from a fired shot.
+let private audioFromHost effects =
+    effects
+    |> List.collect (function ViewerEffect.PlayAudio batch -> batch | _ -> [])
+    |> Audio.interpret
+    |> _.Requested
 
 let private clearLoadedRoom (model: Model) =
     model.M5Enemies
@@ -325,12 +335,17 @@ let m11PlayabilityLegibilityTests =
               for required in [ "DoorOpen"; "DoorLockedKey"; "DoorBossDoor"; "DoorHiddenWall"; "DoorLockedClear"; "DoorBossSealed"; "RoomWalls"; "Trapdoor" ] do
                   Expect.isTrue (Set.contains required declared) $"{required} is declared in the production-owned inventory"
 
+              // `binding.Project` ends in `Scene.group`, and `Scene.group []` still yields one node —
+              // so asserting on `scene.Nodes` here would pass for an element production never emitted.
+              // Ask the production renderer directly instead.
               for binding in GameplayVisualInventory.bindings do
                   for state, model in binding.RequiredStates do
-                      let scene = binding.Project model
-                      Expect.isNonEmpty
-                          scene.Nodes
-                          $"{GameplayVisualInventory.elementId binding.Element}/{state} is exercised by production rendering"
+                      let elementId = GameplayVisualInventory.elementId binding.Element
+                      let emitted =
+                          Render.renderedElements model
+                          |> List.filter (fun item -> item.ElementId = elementId && item.Handle = binding.Handle)
+                      Expect.isNonEmpty emitted $"{elementId}/{state} is emitted by the production renderer"
+                      Expect.isNonEmpty (binding.Project model).Nodes $"{elementId}/{state} projects a scene"
           }
 
           test "FR-006 the committed render-and-look frames exist for every room and door state" {
@@ -339,15 +354,23 @@ let m11PlayabilityLegibilityTests =
 
               Expect.isTrue (Directory.Exists root) "the render-and-look evidence directory is committed"
 
-              for frame in
-                  [ "01-start-room"
-                    "02-all-door-states"
-                    "03-combat-room-sealed"
-                    "04-boss-room-sealed"
-                    "05-boss-cleared-trapdoor"
-                    "06-standing-on-trapdoor"
-                    "07-combat-room-cleared-hidden-wall"
-                    "08-key-door-in-play" ] do
+              // Frames 09-16 are the contact sheet: every catalogued element that no room-or-door frame
+              // shows. An independent critic found two real defects in them that no door frame could
+              // have surfaced, which is the argument for covering the whole inventory rather than the
+              // subject of the milestone.
+              let expected =
+                  [ "01-start-room"; "02-all-door-states"; "03-combat-room-sealed"; "04-boss-room-sealed"
+                    "05-boss-cleared-trapdoor"; "06-standing-on-trapdoor"; "07-combat-room-cleared-hidden-wall"
+                    "08-key-door-in-play"; "09-pickups-and-drops"; "10-enemy-roster"; "11-boss-hollow-choir"
+                    "12-boss-maw"; "13-shop-and-reward"; "14-projectiles-and-bombs"; "15-particles"
+                    "16-run-result-overlay" ]
+
+              Expect.equal
+                  (Directory.GetDirectories root |> Array.map Path.GetFileName |> Array.sort |> Array.toList)
+                  (List.sort expected)
+                  "the committed frame set is exactly the authored one"
+
+              for frame in expected do
                   let directory = Path.Combine(root, frame)
                   Expect.isTrue (Directory.Exists directory) $"{frame} was rendered"
                   Expect.isNonEmpty (Directory.GetFiles(directory, "*.png")) $"{frame} committed a production-frame PNG"
@@ -455,66 +478,51 @@ let m11PlayabilityLegibilityTests =
               let start = boot.Floor.CurrentRoom
               let north = doorTowards North boot
 
-              // The room next door is recorded cleared — the state a player is in once they have
-              // fought through it. A live combat room seals its doorways, and proving that is the job
-              // of FR-001 above; this row is about the round trip through the real input route.
-              let bootModel = { boot with Floor = recordRoomCleared north.ToRoom boot.Floor }
-
-              // The journey issues nothing but Start, key edges and fixed ticks: the events the shipped
-              // host produces. Movement is a held key, exactly as a player holds W.
-              let script =
+              // Two runner-issued journeys, so every claim below is read off runner OUTPUT rather than
+              // off a re-simulation of the same script. The first must END in the room behind the north
+              // door; the second, booted from nowhere but the product, must end back in the start room.
+              let outbound =
                   [ yield JourneyEvent.Start
                     yield JourneyEvent.KeyInput(Letter 'W', true)
-                    for _ in 1..320 -> JourneyEvent.FixedTick
-                    yield JourneyEvent.KeyInput(Letter 'W', false)
+                    for _ in 1..320 -> JourneyEvent.FixedTick ]
+
+              let out = PerformanceEvidence.runM11RoundTripJourney outbound
+
+              Expect.equal (JourneyReceipt.result out.Receipt) JourneyResult.Passed "every issued event mapped to a production message"
+              Expect.isTrue (JourneyReceipt.terminalPredicateReached out.Receipt) "the outbound journey reached its terminal predicate"
+              Expect.equal out.Final.Floor.CurrentRoom north.ToRoom "the journey crossed into the room behind the north door"
+              Expect.notEqual out.Final.Floor.CurrentRoom start "which is not the room it started in"
+
+              let inbound =
+                  [ yield JourneyEvent.KeyInput(Letter 'W', false)
                     yield JourneyEvent.KeyInput(Letter 'S', true)
                     for _ in 1..320 -> JourneyEvent.FixedTick ]
 
-              let run = PerformanceEvidence.runPlayerJourneyWith 900 "m11-door-round-trip" (PerformanceEvidence.journeyBootOf bootModel) 600 script
-
-              Expect.equal (JourneyReceipt.result run.Receipt) JourneyResult.Passed "every issued event mapped to a production message"
-              Expect.isTrue (JourneyReceipt.terminalPredicateReached run.Receipt) "the journey reached its terminal predicate"
-              Expect.equal run.Final.Floor.CurrentRoom start "the journey ends back where it started"
-
-              // Prove the round trip actually happened rather than the player never leaving.
-              let visited =
-                  script
+              let back =
+                  inbound
                   |> List.fold
-                      (fun (model, rooms) event ->
-                          let next =
-                              match event with
-                              | JourneyEvent.Start -> model
-                              | JourneyEvent.KeyInput(Letter letter, pressed) -> setKey letter pressed model
-                              | _ -> tick model
-                          next, Set.add next.Floor.CurrentRoom rooms)
-                      (bootModel, Set.singleton start)
-                  |> snd
+                      (fun model event ->
+                          match event with
+                          | JourneyEvent.KeyInput(Letter letter, pressed) -> setKey letter pressed model
+                          | _ -> tick model)
+                      out.Final
 
-              Expect.isTrue (Set.contains north.ToRoom visited) "the journey crossed into the room behind the north door"
-              Expect.equal visited (Set.ofList [ start; north.ToRoom ]) "and crossed back, visiting exactly those two rooms"
+              Expect.equal back.Floor.CurrentRoom start "and the same held-key gesture brings the player home"
+              Expect.equal (JourneyReceipt.steps out.Receipt) (List.length outbound) "the runner consumed the whole outbound script"
           }
 
           test "FR-011 an unwired player action reports Unbound instead of being inexpressible" {
-              // The starting room has no door on a wall it has no door on. Asking to cross there is a
-              // displayed action nothing binds, and the runner must SAY SO rather than no-op silently.
-              let withoutNorth =
-                  let roomId = boot.Floor.CurrentRoom
-                  let room = boot.Floor.Rooms.[roomId]
-                  { boot with
-                      Floor =
-                          { boot.Floor with
-                              Rooms =
-                                  Map.add
-                                      roomId
-                                      { room with Doors = room.Doors |> List.filter (fun door -> door.Direction <> North) }
-                                      boot.Floor.Rooms } }
+              // Asking to cross a wall the current room has no door on is a displayed action nothing
+              // binds, and the runner must SAY SO rather than no-op silently. The boot is owned by the
+              // product (`m11NoNorthDoorBoot`), because a journey assembled partly by a test is not the
+              // shipped composition and the runner is right to refuse it.
+              Expect.isEmpty
+                  (PerformanceEvidence.m11NoNorthDoorBoot().Floor.Rooms.[boot.Floor.CurrentRoom].Doors
+                   |> List.filter (fun door -> door.Direction = North))
+                  "the unbound-action boot really has no north door"
 
               let run =
-                  PerformanceEvidence.runPlayerJourneyWith
-                      8
-                      "m11-unbound-action"
-                      (PerformanceEvidence.journeyBootOf withoutNorth)
-                      1
+                  PerformanceEvidence.runM11UnboundActionJourney
                       [ JourneyEvent.MenuAction(PerformanceEvidence.PlayerAction.CrossDoor North) ]
 
               match JourneyReceipt.result run.Receipt with
@@ -524,11 +532,7 @@ let m11PlayabilityLegibilityTests =
 
               // The same vocabulary, wired, maps to a production message.
               let bound =
-                  PerformanceEvidence.runPlayerJourneyWith
-                      8
-                      "m11-bound-action"
-                      (PerformanceEvidence.journeyBootOf boot)
-                      1
+                  PerformanceEvidence.runM11BoundActionJourney
                       [ JourneyEvent.MenuAction(PerformanceEvidence.PlayerAction.CrossDoor North); JourneyEvent.FixedTick ]
 
               Expect.equal (JourneyReceipt.result bound.Receipt) JourneyResult.Passed "the wired action maps"
@@ -536,6 +540,99 @@ let m11PlayabilityLegibilityTests =
                   bound.Final.Floor.CurrentRoom
                   (doorTowards North boot).ToRoom
                   "and really crosses the door it names"
+          }
+
+          test "FR-008 the descent cue is audible on the route a player takes, not only on a dispatch" {
+              // The cue used to key on the `DescendFloor` MESSAGE. M11 reaches a descent from inside a
+              // `Tick`, so the audio seam never sees that message on a real descent — a player pressing
+              // E on a trapdoor heard nothing while a test that dispatched the message heard the cue.
+              // That is this milestone's own defect class, one layer down.
+              let host = Program.generatedHost
+              let bossId = roomOfType Boss boot
+
+              let staged =
+                  { boot with Floor = clearBoss bossId boot.Floor }
+                  |> update (EnterM5Room bossId)
+                  |> fst
+                  |> clearLoadedRoom
+                  |> fun model -> { model with PlayerPosition = trapdoorCenter }
+
+              let pressed, _ = host.Update (KeyChanged(key 'E', true)) staged
+              let descended, effects = host.Update (Tick fixedDt) pressed
+
+              Expect.equal descended.FloorIndex (boot.FloorIndex + 1) "the route really descended"
+
+              Expect.contains
+                  (audioFromHost effects)
+                  (PlaySfx(SoundId "floor-descend", 0.8))
+                  "and the descent cue is requested on that route"
+
+              // A refused descent stays silent.
+              let refusedModel, refusedEffects = host.Update (Tick fixedDt) (setKey 'E' true boot)
+              Expect.equal refusedModel.FloorIndex boot.FloorIndex "no trapdoor, no descent"
+              Expect.isFalse
+                  (audioFromHost refusedEffects |> List.contains (PlaySfx(SoundId "floor-descend", 0.8)))
+                  "and a refused descent is silent"
+          }
+
+          test "FR-005 the HUD never paints over a doorway, and pickups are drawn in the room" {
+              // `hudLayoutForSize.Overlaps` only intersects HUD rects against other HUD rects, so it
+              // cannot see a HUD region sitting on top of a door. The floor banner used to do exactly
+              // that to the south doorway — the one wall a player looks at as a room loads.
+              let size: Size = { Width = 1280; Height = 720 }
+              let intersects (a: Rect) (b: Rect) =
+                  a.X < b.X + b.Width && a.X + a.Width > b.X && a.Y < b.Y + b.Height && a.Y + a.Height > b.Y
+
+              for regionId, bounds in Render.hudRegionsForSize size do
+                  for direction in [ North; East; South; West ] do
+                      let doorway = Render.doorwayRect direction
+                      let panel =
+                          match direction with
+                          | North -> { doorway with Height = doorway.Height + Render.doorApron }
+                          | South -> { doorway with Y = doorway.Y - Render.doorApron; Height = doorway.Height + Render.doorApron }
+                          | West -> { doorway with Width = doorway.Width + Render.doorApron }
+                          | East -> { doorway with X = doorway.X - Render.doorApron; Width = doorway.Width + Render.doorApron }
+                      Expect.isFalse (intersects bounds panel) $"the HUD region {regionId} does not overlap the {direction} doorway"
+
+              // Obstacle drops used to be drawn under the currency readout and clipped behind it.
+              let dropped = { boot with M5ObstacleDrops = [ Entities.PickupKind.Coin1; Entities.PickupKind.Key; Entities.PickupKind.Bomb ] }
+              let pickups =
+                  Render.renderedElements dropped
+                  |> List.filter (fun element -> element.ElementId.StartsWith "Pickup")
+              Expect.hasLength pickups 3 "every drop is drawn"
+              for element in pickups do
+                  match centreOf element.Scene with
+                  | Some(cx, cy) ->
+                      for regionId, bounds in Render.hudRegionsForSize size do
+                          Expect.isFalse
+                              (cx >= bounds.X && cx <= bounds.X + bounds.Width && cy >= bounds.Y && cy <= bounds.Y + bounds.Height)
+                              $"the pickup is not drawn inside the HUD region {regionId}"
+                      Expect.isTrue (cy > Render.wallThickness && cy < playfieldHeight - Render.wallThickness) "and is inside the room"
+                  | None -> failtest "a pickup drew nothing"
+          }
+
+          test "FR-009 standing on the trapdoor is visible, and the drawn fixture is the one the guard tests" {
+              let bossId = roomOfType Boss boot
+              let cleared =
+                  { boot with Floor = clearBoss bossId boot.Floor } |> update (EnterM5Room bossId) |> fst
+
+              let beside = { cleared with PlayerPosition = vec2 240.0 240.0 }
+              let onIt = { cleared with PlayerPosition = trapdoorCenter }
+
+              let has elementId model =
+                  Render.renderedElements model |> List.exists (fun element -> element.ElementId = elementId)
+
+              Expect.isTrue (has "Trapdoor" beside) "the trapdoor is drawn whenever the room records it"
+              Expect.isFalse (has "TrapdoorReady" beside) "but standing away from it promises nothing"
+              Expect.isTrue (has "TrapdoorReady" onIt) "standing on it is a visibly different state"
+              Expect.isTrue (canDescend onIt) "which is exactly the state the guard accepts"
+              Expect.isFalse (canDescend beside) "and the state it refuses"
+
+              // A model whose loaded room claims a trapdoor the FLOOR does not record must not draw one:
+              // drawing it would promise a descent the guard then refuses.
+              let desynced = { boot with M5Room = { boot.M5Room with Trapdoor = true } }
+              Expect.isFalse (trapdoorPresent desynced) "the floor records no fixture"
+              Expect.isFalse (has "Trapdoor" desynced) "so nothing is drawn"
           }
 
           test "FR-004 floor generation emits the hidden-wall state a player can see and bomb" {

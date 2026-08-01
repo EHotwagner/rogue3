@@ -189,6 +189,7 @@ let private m6AdditionalVisualCostDrivers =
       required "scene.room-drop" "RoomDrop"
       required "scene.room-reward" "RoomReward"
       required "scene.trapdoor" "Trapdoor"
+      required "scene.trapdoor-ready" "TrapdoorReady"
       required "scene.placed-bomb" "PlacedBomb"
       required "scene.shadow" "Shadow" ]
 
@@ -1106,15 +1107,34 @@ let journeyAdapter scenarioId boot terminalSteps = journeyAdapterWith 4 scenario
 /// whose composition functions do not share one assembly authority — correctly, because a
 /// caller-assembled composition is not the shipped one. `NoInlining` is load-bearing: without it the
 /// F# optimizer may copy this closure into the caller's assembly and reintroduce the split.
-let private journeyBoots = System.Collections.Concurrent.ConcurrentDictionary<int, Model>()
-let private journeyBootIds = ref 0
+// ------------------------------------------------------------------------------------------------
+// M11 journey boots. Authored HERE, and taking NO caller-supplied model, because the runner requires
+// every composition function of a production journey to share one assembly authority — and it is
+// right to: a caller-assembled composition is not the shipped one. A product-side helper that lifts a
+// caller's model into a boot closure satisfies the letter of that check while defeating its purpose,
+// so the product owns the whole entry point instead.
+// ------------------------------------------------------------------------------------------------
 
-let journeyBootOf (model: Model) : unit -> Model =
-    // The table indirection is not decoration: it makes this function side-effecting, which is what
-    // stops the optimizer copying the closure into the caller and re-splitting the authority.
-    let id = System.Threading.Interlocked.Increment journeyBootIds
-    journeyBoots[id] <- model
-    fun () -> journeyBoots[id]
+let private m11StartRoomDoor direction =
+    Map.tryFind initialModel.Floor.CurrentRoom initialModel.Floor.Rooms
+    |> Option.bind (fun room -> room.Doors |> List.tryFind (fun door -> door.Direction = direction))
+
+/// The starting room with the room behind its north door already cleared — the state a player is in
+/// once they have fought through it, and the state in which a door can be crossed in both directions.
+let m11RoundTripBoot () =
+    match m11StartRoomDoor FloorGeneration.North with
+    | Some door -> { initialModel with Floor = FloorGeneration.recordRoomCleared door.ToRoom initialModel.Floor }
+    | None -> initialModel
+
+/// The starting room with its north door removed, so asking to cross north is an action the live
+/// floor graph cannot bind.
+let m11NoNorthDoorBoot () =
+    let roomId = initialModel.Floor.CurrentRoom
+    match Map.tryFind roomId initialModel.Floor.Rooms with
+    | Some room ->
+        let doors = room.Doors |> List.filter (fun door -> door.Direction <> FloorGeneration.North)
+        { initialModel with Floor = { initialModel.Floor with Rooms = Map.add roomId { room with Doors = doors } initialModel.Floor.Rooms } }
+    | None -> initialModel
 
 /// Run a production-journey script through the shipped adapter and return the whole run. `maxSteps`
 /// bounds the runner; a boot-to-cross-a-door-and-return script needs far more than a workload's four.
@@ -1133,6 +1153,22 @@ let runPlayerJourneyWith maxSteps scenarioId boot terminalSteps script =
 
 let runPlayerJourney scenarioId boot terminalSteps script =
     runPlayerJourneyWith 4 scenarioId boot terminalSteps script
+
+/// The three M11 journeys, entry points and all. A test names the script; the product names the
+/// composition. `[<MethodImpl(NoInlining)>]` keeps the boot closures in THIS assembly: without it the
+/// F# optimizer may copy them into the caller and re-split the composition authority the runner
+/// checks — a failure whose message points at assembly identity and never at inlining.
+[<System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)>]
+let runM11RoundTripJourney script =
+    runPlayerJourneyWith 900 "m11-door-round-trip" m11RoundTripBoot 300 script
+
+[<System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)>]
+let runM11UnboundActionJourney script =
+    runPlayerJourneyWith 8 "m11-unbound-action" m11NoNorthDoorBoot 1 script
+
+[<System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)>]
+let runM11BoundActionJourney script =
+    runPlayerJourneyWith 8 "m11-bound-action" (fun () -> initialModel) 1 script
 
 /// Bind every M2 performance workload to a runner-issued receipt over the shipped composition:
 /// boot `initialModel`, map timestamp-free events to production `Msg`, call production `update`,
@@ -1232,6 +1268,10 @@ let private maximumContentModel () =
                         Map.add
                             maximumFloor.CurrentRoom
                             { maximumFloor.Rooms.[maximumFloor.CurrentRoom] with
+                                // The trapdoor is drawn from the FLOOR fixture (so what a player sees
+                                // is what the descent guard tests), which means the maximal fixture has
+                                // to record it rather than only setting the loaded room's flag.
+                                Fixtures = maximumFloor.Rooms.[maximumFloor.CurrentRoom].Fixtures @ [ FloorGeneration.Trapdoor ]
                                 Doors =
                                     [ { ToRoom=901; Direction=FloorGeneration.North; State=FloorGeneration.Open }
                                       { ToRoom=902; Direction=FloorGeneration.East; State=FloorGeneration.LockedKey }
@@ -1545,6 +1585,7 @@ let expectedWorkloads =
               "scene.room-drop"
               "scene.room-reward"
               "scene.trapdoor"
+              "scene.trapdoor-ready"
               "scene.placed-bomb"
               "scene.shadow"
               "effects.pooled-particles"
@@ -1566,7 +1607,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "d4e0081bd3ad8435094d1ec773bbbd9c0beef1584c212fda05a211f02c0cd9da" }
+        Authorship = Authored "6f4cdc71dde101672320311a29340c239699e3aec95f3875979898b6dcc87073" }
       // WORKLOAD-SOURCE-END maximum-content
       // WORKLOAD-SOURCE-BEGIN secret-reveal
       { Id = "secret-reveal"
@@ -1589,7 +1630,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "ad8a357073adabc0e84751a995c278798ff39bf770636c5fb4e4b91534158fed" }
+        Authorship = Authored "8f05af70c7afdee55dbcef94acbbb59d372649a51dda9d3c6c4d4964780c92b4" }
       // WORKLOAD-SOURCE-END secret-reveal
       ]
 

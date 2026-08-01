@@ -33,6 +33,7 @@ RoomWalls	shown	scene/room-walls
 RoomDrop	shown	scene/room-drop
 RoomReward	shown	scene/room-reward
 Trapdoor	shown	scene/trapdoor
+TrapdoorReady	shown	scene/trapdoor-ready
 Shadow	shown	scene/shadow
 Player	shown	scene/player
 PlayerShot	shown	scene/player-shot

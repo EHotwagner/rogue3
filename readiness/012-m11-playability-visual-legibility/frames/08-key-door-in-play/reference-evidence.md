@@ -2,14 +2,14 @@
 
 - verdict: passed
 - classification: none
-- package-identity: sha256:8c06cf3a88b27a830de5d1e79db7d2a80622f1da7d47c256e26aa4dc4355ec75
+- package-identity: sha256:8aff8474a90159911a73f44b97d74e891a6c88c70d668b70e105a284c41b75e3
 - protocol-version: 1.0
 - capability-profile: scene-portable/v1
 - resource-status: none
 - output-size: 1280x720
 - renderer-identity: FS.GG.UI.SkiaViewer.SceneRenderer/skia-reference
-- image-path: readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/sha256-8c06cf3a88b27a830de5d1e79db7d2a80622f1da7d47c256e26aa4dc4355ec75.png
-- image-identity: sha256:ce3e05b2588e16d0cd5c614be6b76819c29a096e8d21bef0ea8739d82dd93aed
+- image-path: readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/sha256-8aff8474a90159911a73f44b97d74e891a6c88c70d668b70e105a284c41b75e3.png
+- image-identity: sha256:a6453ebb58abfe6a73f37b8c69b129abfe97ec856dce182e7a8fe970a1eb601b
 
 ## Diagnostics
 - none

@@ -1810,9 +1810,15 @@ let stepSim model = stepSimWithInput Set.empty model
 
 /// True on the rising edge of the interact input, from either the raw `E` key or the rebindable
 /// `active` command the shell routes.
-let private interactPressed pressedThisTick (model: Model) =
+///
+/// `isFirstStep` is load-bearing. `advanceSim` rotates `Input.Previous` only AFTER the whole step
+/// loop, so the command comparison stays true on every step of a multi-step host frame; the raw-key
+/// arm is already gated because `advanceSim` passes an empty pressed-set after the first step. Both
+/// arms must agree, or one host frame would raise the same edge up to five times.
+let private interactPressed isFirstStep pressedThisTick (model: Model) =
     Set.contains eKey pressedThisTick
-    || (Set.contains "active" model.Input.Current.Commands
+    || (isFirstStep
+        && Set.contains "active" model.Input.Current.Commands
         && not (Set.contains "active" model.Input.Previous.Commands))
 
 /// True when the current room's derived combat lock has sealed the doorway at `index`.
@@ -1840,7 +1846,7 @@ let canDescend (model: Model) = trapdoorPresent model && trapdoorContains model.
 // `advanceSim` folds them through `update`, so there is exactly one traversal transition in the
 // product, `Replay` needs no new entry kind, and a crossing replays from `KeyChanged` + `Tick` alone.
 // ------------------------------------------------------------------------------------------------
-let playerRoomIntents pressedThisTick (model: Model) : Model * Msg list =
+let playerRoomIntentsIn isFirstStep pressedThisTick (model: Model) : Model * Msg list =
     let doors =
         match Map.tryFind model.Floor.CurrentRoom model.Floor.Rooms with
         | Some room -> room.Doors
@@ -1868,10 +1874,12 @@ let playerRoomIntents pressedThisTick (model: Model) : Model * Msg list =
     let descentIntents =
         // `DescendFloor` replaces every room-local collection but does not load a room, so the route
         // follows it with the production room-entry message. Both are guarded reducers.
-        if interactPressed pressedThisTick model && canDescend model then [ DescendFloor; EnterM5Room 0 ]
+        if interactPressed isFirstStep pressedThisTick model && canDescend model then [ DescendFloor; EnterM5Room 0 ]
         else []
 
     scanned, doorIntents @ descentIntents
+
+let playerRoomIntents pressedThisTick model = playerRoomIntentsIn true pressedThisTick model
 
 // Fixed-timestep advance: fold the host's real elapsed `dt` into the carried accumulator, drain the
 // whole number of `simInterval` steps out of it, and run `stepSim` that many times. `FixedStep.drain`
@@ -1896,7 +1904,7 @@ let private advanceSim (dispatch: Msg -> Model -> Model) dtSeconds (model: Model
                 m <- stepSimWithInput pressed m
                 // Apply this step's player intents BEFORE the next step, so a crossing relocates the
                 // player immediately and the same doorway cannot fire twice inside one host frame.
-                let scanned, intents = playerRoomIntents pressed m
+                let scanned, intents = playerRoomIntentsIn (stepIndex = 1) pressed m
                 m <- intents |> List.fold (fun state message -> dispatch message state) scanned
                 executed <- executed+1
                 terminalStep <-
@@ -2049,12 +2057,19 @@ let rec update msg model : Model * AdapterCommand<Msg> =
                 | FloorGeneration.East -> RoomSlideDirection.East
                 | FloorGeneration.South -> RoomSlideDirection.South
                 | FloorGeneration.West -> RoomSlideDirection.West
+            // NOTE: no camera transition is started here, and that is deliberate. `Render.cameraOffset`
+            // begins a slide ONE FULL ROOM away (M6's contract, asserted in M6RenderingEnemySymbologyTests)
+            // and nothing draws the room being left, so the first frames of a slide are an empty screen.
+            // Nothing dispatched `TraverseDoor` before M11, so that had never been seen; making
+            // traversal reachable would have shipped a 0.35 s blank screen on every door a player
+            // crosses. Rendering both rooms through a slide is real work and is on the roadmap.
+            ignore slide
+
             loadM5Room
                 roomId
                 { model with
                     Floor = floor
-                    PlayerPosition = add wall inward
-                    M6CameraTransition = Some { Direction = slide; ElapsedTicks = 0 } }, Cmd.none
+                    PlayerPosition = add wall inward }, Cmd.none
     | BossCleared roomId ->
         { model with Floor = FloorGeneration.clearBoss roomId model.Floor }, Cmd.none
     // §M11: a descent is guarded by the state it DEPICTS. Before this the reducer descended

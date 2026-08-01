@@ -20,7 +20,7 @@ type GameplayVisualElement =
     // M11: one element per door PRESENTATION. The first three come from the floor graph's own
     // `DoorState`; the last two are the room's combat lock, which hides whatever the graph says.
     | DoorOpen | DoorLockedKey | DoorBossDoor | DoorHiddenWall | DoorLockedClear | DoorBossSealed
-    | RoomWalls
+    | RoomWalls | TrapdoorReady
     | RoomDrop | RoomReward | Trapdoor | Shadow | Player | PlayerShot | EnemyBullet | PlacedBomb | Particle | HudScore | RunResultOverlay
 
 let all =
@@ -62,6 +62,7 @@ let handle = function
     | DoorLockedClear -> "scene/door/locked-clear"
     | DoorBossSealed -> "scene/door/boss-sealed"
     | RoomWalls -> "scene/room-walls"
+    | TrapdoorReady -> "scene/trapdoor-ready"
     | RoomDrop -> "scene/room-drop"
     | RoomReward -> "scene/room-reward"
     | Trapdoor -> "scene/trapdoor"
@@ -163,12 +164,27 @@ let private evidenceModel element =
         | RoomDrop -> roomShowing [] [] false (Some PickupKind.Key) None
         | RoomReward -> roomShowing [] [] false None (Some baseItems.Head)
         | Trapdoor -> roomShowing [] [] true None None
+        // The ready state must be a model the DESCENT GUARD accepts, not merely one that
+        // carries the fixture: the player has to be standing on the trapdoor.
+        | TrapdoorReady ->
+            roomShowing [] [] true None None
+            |> fun model -> { model with PlayerPosition = trapdoorCenter }
         | PlayerShot -> { initialModel with ShotSpawns=[ playerShot ] }
         | EnemyBullet -> { initialModel with EnemyBullets=[ enemyBullet ] }
         | PlacedBomb ->
             { initialModel with Bombs=[ {Id=1;Position=vec2 700.0 390.0;FuseTicks=bombFuseTicks} ] }
         | Particle -> update (SpawnM6Particles(1, vec2 640.0 360.0, ParticleTint.Explosion)) initialModel |> fst
-        | HudScore -> { initialModel with LeftScore=7;RightScore=3 }
+        // `LeftScore`/`RightScore` are the Pong starter's fields and the HUD reads NEITHER, so the
+        // previous representative state was a no-op that exercised nothing it claimed to. Vary
+        // what the HUD actually draws: hearts of all three kinds, currency, charge and a
+        // multi-room minimap.
+        | HudScore ->
+            { initialModel with
+                PlayerHealth = { RedContainers=4; RedHalfHearts=5; SoulHalfHearts=3; BlackHalfHearts=2 }
+                PlayerCurrency = { Coins=42; Keys=3; Bombs=7 }
+                ActiveCharge = 4
+                FloorNameTicks = 120
+                Floor = { initialModel.Floor with MapRevealed = initialModel.Floor.Rooms |> Map.toList |> List.map fst |> Set.ofList } }
         | RunResultOverlay ->
             finishRun false (Some DeathCause.Trap) { initialModel with RunActive=true;RunStats={emptyRunStats with DepthReached=3} }
         | FloorBackground | Shadow | Player -> initialModel

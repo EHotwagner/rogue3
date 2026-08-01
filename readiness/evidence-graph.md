@@ -6,7 +6,7 @@ Absent OPTIONAL artifacts (interactive launch/image/window/…, profile-dependen
 failures. The required headless baseline (layout + scene evidence) MUST be present, however —
 its absence is a product-evidence defect (evidence-output-contract.md §EvidenceGraph).
 
-- readiness files present: 41
+- readiness files present: 67
 - recognized evidence nodes: 2
 
 ## Sensed readiness files
@@ -26,28 +26,54 @@ its absence is a product-evidence defect (evidence-output-contract.md §Evidence
 - `readiness/011-m10-acceptance-determinism/ship-verdict.json`
 - `readiness/012-m11-playability-visual-legibility/analysis.json`
 - `readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md`
-- `readiness/012-m11-playability-visual-legibility/frames/01-start-room/sha256-4f204801186b3f54da5797f7dbb5edf8a885c42bd3fc5b5bbf6a2477a4a09fe6.png`
+- `readiness/012-m11-playability-visual-legibility/frames/01-start-room/sha256-e8d8c84e755aa573153a36f0bf4e4ef96ffe5f65a8f7fa313fa122422c5481c7.png`
 - `readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md`
-- `readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/sha256-c8868adf28e4756b92a92f6a09f5c8f86dadc75cae5832000c436078089f6eb8.png`
+- `readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/sha256-c65654023b023d88de492705e51b1f5edfd4d152e23fd0909dcf46e64e0e1368.png`
 - `readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/reference-evidence.md`
-- `readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/sha256-cb64d3b15b8634063c0283d81a722bafcc35be618236e1f857d4ba76fb9e3d5d.png`
+- `readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/sha256-20fd76d5717aa7443f1066b3a24b122a0ec9f1138eaffb02b3c462626a0f9423.png`
 - `readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/reference-evidence.md`
-- `readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/sha256-8250ca5ae6d41ad1a59422894012c9a68627e652fa2710c87e63aba705a5893a.png`
+- `readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/sha256-e1e3201a9962cb324234394111f2e55eba93505a18a33977a281d6e96fbcd5bb.png`
 - `readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md`
-- `readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/sha256-163c3bc8fdf0e2f4d1e62eec9c9dd66853fe855fd3dc387441fd8718260c8c9a.png`
+- `readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/sha256-2e78c18e1a1e8375bc4d04adae1ee55b9ae5c2bc854fc110a807f59809b05a34.png`
 - `readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md`
-- `readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/sha256-051fc5f363a70c577fd22e93a83fefe54e295134a57c72e0918e07491a46c674.png`
+- `readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/sha256-9989fca28dd4ab358e11cc8f81fbb3f8718aaba272b81fdc4eac6df9243546ad.png`
 - `readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/reference-evidence.md`
-- `readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/sha256-b140e14b73be336fd0c1202c7f2358c7f5a4811e9db8debe6ca8c8b208e921ca.png`
+- `readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/sha256-a51324185abc1bcae06db1bb5c07284de950821c80536b3b08257e9a4b0f9c49.png`
 - `readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/reference-evidence.md`
-- `readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/sha256-8c06cf3a88b27a830de5d1e79db7d2a80622f1da7d47c256e26aa4dc4355ec75.png`
+- `readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/sha256-8aff8474a90159911a73f44b97d74e891a6c88c70d668b70e105a284c41b75e3.png`
+- `readiness/012-m11-playability-visual-legibility/frames/09-pickups-and-drops/reference-evidence.md`
+- `readiness/012-m11-playability-visual-legibility/frames/09-pickups-and-drops/sha256-c2e43787edc96ad417b11cae2c6c0b53e5c764a6ebe06741d9857ff5d9e3882d.png`
+- `readiness/012-m11-playability-visual-legibility/frames/10-enemy-roster/reference-evidence.md`
+- `readiness/012-m11-playability-visual-legibility/frames/10-enemy-roster/sha256-05a12565189043c69555b8d5453242e831e81d1aafbd582e1505594a76df6d48.png`
+- `readiness/012-m11-playability-visual-legibility/frames/11-boss-hollow-choir/reference-evidence.md`
+- `readiness/012-m11-playability-visual-legibility/frames/11-boss-hollow-choir/sha256-a3021351a498fd733dc64c7e3b9cc5d6d53c0ae49cb3ba32a4da6d693837d8d4.png`
+- `readiness/012-m11-playability-visual-legibility/frames/12-boss-maw/reference-evidence.md`
+- `readiness/012-m11-playability-visual-legibility/frames/12-boss-maw/sha256-62e39e565317e320dc7ecff0981cb5a971bf20d976aa30f818f3fc182b74a027.png`
+- `readiness/012-m11-playability-visual-legibility/frames/13-shop-and-reward/reference-evidence.md`
+- `readiness/012-m11-playability-visual-legibility/frames/13-shop-and-reward/sha256-39999262503cadf9d9595cc34ba8e1e6fd89f33fded93c71be15f91f40bb081c.png`
+- `readiness/012-m11-playability-visual-legibility/frames/14-projectiles-and-bombs/reference-evidence.md`
+- `readiness/012-m11-playability-visual-legibility/frames/14-projectiles-and-bombs/sha256-0a24feea22ce7616c2c69f757a28a67e4254c5469324d2e76d57c06114c19afc.png`
+- `readiness/012-m11-playability-visual-legibility/frames/15-particles/reference-evidence.md`
+- `readiness/012-m11-playability-visual-legibility/frames/15-particles/sha256-b9b5314102b1be0c8a75fa32d79a0a4ed12285f441abecfec8913fcf64854c02.png`
+- `readiness/012-m11-playability-visual-legibility/frames/16-run-result-overlay/reference-evidence.md`
+- `readiness/012-m11-playability-visual-legibility/frames/16-run-result-overlay/sha256-e26caa0b83ad62b8e624c7fd36e355518af6935e6b94e26be1e87ad6659be0cd.png`
+- `readiness/012-m11-playability-visual-legibility/governance-handoff.json`
+- `readiness/012-m11-playability-visual-legibility/ship-verdict.json`
+- `readiness/012-m11-playability-visual-legibility/ship.json`
+- `readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx`
+- `readiness/012-m11-playability-visual-legibility/verify.json`
+- `readiness/012-m11-playability-visual-legibility/work-model.json`
 - `readiness/evidence-audit.md`
 - `readiness/evidence-graph.md`
 - `readiness/headless-scene-evidence.txt`
 - `readiness/layout-evidence.txt`
 - `readiness/logs/Dev.txt`
 - `readiness/logs/GeneratedGuidanceCheck.txt`
+- `readiness/logs/PerformanceEvidence.txt`
+- `readiness/logs/PerformanceIntent.txt`
 - `readiness/logs/TemplateDrift.txt`
+- `readiness/logs/Test.txt`
+- `readiness/logs/Verify.txt`
 - `readiness/m7-ui-performance.json`
 - `readiness/performance-critic-request.json`
 - `readiness/performance-evidence.json`

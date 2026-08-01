@@ -52,9 +52,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["A scripted sequence of production KeyChanged and Tick messages walks the player into the starting room's north doorway", and walks back. The fixed step raises the production TraverseDoor message and advanceSim folds it through update, changes Floor.CurrentRoom, lands the player at the reciprocal doorway, so there is one traversal transition rather than a second copy.]
@@ -76,9 +76,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["Walking into a LockedKey doorway holding one key opens both reciprocal records and spends exactly one key; crossing afterwards never charges again; the same approach with zero keys leaves door state", room and currency untouched.]
@@ -100,9 +100,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [For every room of the boot floor, and each element is the presentation the graph state and the derived combat lock imply. The parallel cosmetic list now contributes only the lock., the rendered door set is exactly one element per FloorGeneration.Door record of that room]
@@ -124,9 +124,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [BossDoor, HiddenWall, LockedKey, Open, and the four-door starting room draws them at four different places rather than one indexed strip. HiddenWall is emitted by floor generation with its graph adjacency, each centred on the wall its Direction names, so the state is reachable in play rather than only in a fixture., the combat lock and the boss lock are six distinct elements with six distinct handles and six distinct scene digests]
@@ -148,9 +148,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [The production-owned inventory declares RoomWalls and all six door presentations, and the visual-coverage audit is Complete with representative production rendering exercising every binding., the catalog agrees]
@@ -166,18 +166,18 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-008]
     obligationRefs: [EV006]
-    artifacts: [readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/reference-evidence.md, scripts/render-m11-frames.fsx, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/09-pickups-and-drops/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/10-enemy-roster/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/11-boss-hollow-choir/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/12-boss-maw/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/13-shop-and-reward/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/14-projectiles-and-bombs/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/15-particles/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/16-run-result-overlay/reference-evidence.md, scripts/render-m11-frames.fsx, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
     sourceRefs: []
     result: pass
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
-    notes: [Eight production-frame PNGs are committed, one per relevant room and door state, produced by Render.toPng over View.view and visually inspected during the loop. An independent visual-coverage critic reviews the exact candidate at the PR boundary.]
+    notes: [Sixteen production-frame PNGs are committed - eight per relevant room and door state, "and a contact sheet covering every remaining catalogued element - produced by Render.toPng over View.view and visually inspected. An independent fresh-context visual-coverage critic reviewed the candidate and returned gaps with seven blocking findings; each is resolved in the tree or filed", and the verdict is persisted on the pull request.]
   - id: EV007
     kind: verification
     subject:
@@ -196,9 +196,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [The boot model loads its START room through loadM5Room, and the booted frame draws all four exits plus the room walls., "so M5Room carries one entry per floor-graph door instead of the empty list at the old Model.fs:705-707"]
@@ -220,9 +220,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [DescendFloor returns a byte-identical model when the room records no trapdoor fixture and when the player stands away from it, and advances the floor only when both hold. The floor-descend cue is guarded on the floor index actually changing, so a refused descent is silent.]
@@ -244,9 +244,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [A route of crossable doors from the starting room to the boss room is found and walked - its first hop by keys and ticks - the boss is defeated, and the interact key on it descends., the floor records exactly one trapdoor, the loaded room presents it, the production frame draws it]
@@ -268,9 +268,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [A runner-issued production journey of Start, and exactly the two expected rooms visited., key edges and fixed ticks crosses the north door and returns, the terminal predicate reached, with a Passed receipt]
@@ -292,9 +292,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["The journey's action slot is a product-owned PlayerAction vocabulary instead of unit. An unwired CrossDoor reports JourneyDispatch.Unbound naming cross-door-north and fails the receipt; the same action", maps to a production message and really crosses., wired]
@@ -316,9 +316,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [The doorway sensor spans 56 units either side of the wall midpoint and 14 units inward, shallower than the 17-unit arrival clearance, so a crossing cannot re-trigger itself.]
@@ -340,9 +340,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [so the traversal transition is not duplicated and Replay needed no change., "update is recursive and advanceSim folds the fixed step's intents through it"]
@@ -364,9 +364,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["Walking into a LockedKey doorway with a key raises UnlockDoor; traversal follows on a later step because the traversal arm accepts only an already-usable door."]
@@ -388,9 +388,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [Generation writes reciprocal HiddenWall doors and graph edges for every pending secret, and revealSecret flips them rather than prepending a second pair.]
@@ -412,9 +412,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [The DescendFloor guard reads the floor fixture, "the loaded room and the player position; the production route additionally requires the interact edge."]
@@ -436,9 +436,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["direction and state; M5Room.Doors is documented and used only as the derived combat-lock projection."]
@@ -460,9 +460,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["The trapdoor is derived from the room fixture and drawn at the room centre; room walls are an element on the existing FloorDecals layer", so the eleven-layer contract holds.]
@@ -484,9 +484,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["PlayerAction instantiates the journey's menu type parameter and is resolved against the live floor graph", with an Unbound arm exercised by a test rather than left as dead code.]
@@ -508,9 +508,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [The five unguarded DescendFloor call sites are restaged to clear the boss room, and DescendFloor keeps its replace-every-room-local-collection contract so the scenario-18 assertions keep their meaning., enter it and stand on the trapdoor]
@@ -532,9 +532,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["bootModelForSeed loads room 0 and both initialModel and StartRun use it; finishRun's discarded post-run state stays raw."]
@@ -556,9 +556,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["The floor-generation workload stages a guarded descent per sampled frame from production messages only and its journey issues the interact edge from a cleared boss room; it still observes the full 20-room generation budget."]
@@ -580,9 +580,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [All seven workload digests and the three UI-route digests that hash the changed sources were re-derived, "reviewed and copied; main-menu is byte-identical", which is the check that the digest set moved where the source moved and nowhere else.]
@@ -604,9 +604,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["A scripted sequence of production KeyChanged and Tick messages walks the player into the starting room's north doorway", and walks back. The fixed step raises the production TraverseDoor message and advanceSim folds it through update, changes Floor.CurrentRoom, lands the player at the reciprocal doorway, so there is one traversal transition rather than a second copy.]
@@ -628,9 +628,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["A scripted sequence of production KeyChanged and Tick messages walks the player into the starting room's north doorway", and walks back. The fixed step raises the production TraverseDoor message and advanceSim folds it through update, changes Floor.CurrentRoom, lands the player at the reciprocal doorway, so there is one traversal transition rather than a second copy.]
@@ -652,9 +652,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["Walking into a LockedKey doorway holding one key opens both reciprocal records and spends exactly one key; crossing afterwards never charges again; the same approach with zero keys leaves door state", room and currency untouched.]
@@ -676,9 +676,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [For every room of the boot floor, and each element is the presentation the graph state and the derived combat lock imply. The parallel cosmetic list now contributes only the lock., the rendered door set is exactly one element per FloorGeneration.Door record of that room]
@@ -700,9 +700,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [BossDoor, HiddenWall, LockedKey, Open, and the four-door starting room draws them at four different places rather than one indexed strip. HiddenWall is emitted by floor generation with its graph adjacency, each centred on the wall its Direction names, so the state is reachable in play rather than only in a fixture., the combat lock and the boss lock are six distinct elements with six distinct handles and six distinct scene digests]
@@ -724,9 +724,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [BossDoor, HiddenWall, LockedKey, Open, and the four-door starting room draws them at four different places rather than one indexed strip. HiddenWall is emitted by floor generation with its graph adjacency, each centred on the wall its Direction names, so the state is reachable in play rather than only in a fixture., the combat lock and the boss lock are six distinct elements with six distinct handles and six distinct scene digests]
@@ -748,9 +748,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [The boot model loads its START room through loadM5Room, and the booted frame draws all four exits plus the room walls., "so M5Room carries one entry per floor-graph door instead of the empty list at the old Model.fs:705-707"]
@@ -772,9 +772,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [DescendFloor returns a byte-identical model when the room records no trapdoor fixture and when the player stands away from it, and advances the floor only when both hold. The floor-descend cue is guarded on the floor index actually changing, so a refused descent is silent.]
@@ -796,9 +796,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [A route of crossable doors from the starting room to the boss room is found and walked - its first hop by keys and ticks - the boss is defeated, and the interact key on it descends., the floor records exactly one trapdoor, the loaded room presents it, the production frame draws it]
@@ -820,9 +820,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [A runner-issued production journey of Start, and exactly the two expected rooms visited., key edges and fixed ticks crosses the north door and returns, the terminal predicate reached, with a Passed receipt]
@@ -844,9 +844,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["The journey's action slot is a product-owned PlayerAction vocabulary instead of unit. An unwired CrossDoor reports JourneyDispatch.Unbound naming cross-door-north and fails the receipt; the same action", maps to a production message and really crosses., wired]
@@ -868,9 +868,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [The five unguarded DescendFloor call sites are restaged to clear the boss room, and DescendFloor keeps its replace-every-room-local-collection contract so the scenario-18 assertions keep their meaning., enter it and stand on the trapdoor]
@@ -892,9 +892,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [Discharged by the M11 Release suite and the regenerated evidence artifacts at the exact candidate.]
@@ -916,9 +916,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [Discharged by the M11 Release suite and the regenerated evidence artifacts at the exact candidate.]
@@ -940,9 +940,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [Model gained TotalDoorSensorQueries, advanceSim gained a dispatcher parameter, and DescendFloor gained a precondition. No framework package API changed., update became recursive]
@@ -964,9 +964,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [Generation emits HiddenWall doors and their graph edges, and the inventory and catalog grew by four rows together., rendering gained RoomWalls and three door presentations and lost the fixed-strip layout]
@@ -988,9 +988,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: ["The production journey's action vocabulary is a product-owned PlayerAction type instead of unit."]
@@ -1012,9 +1012,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [a crossing does not re-trigger on arrival, and a refused descent leaves the model byte-identical., returning, unlocking and descending are proven from scripted KeyChanged and Tick messages]
@@ -1030,15 +1030,15 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-004, PD-005, PD-006, PD-007, PD-008]
     obligationRefs: [EV042]
-    artifacts: [readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/reference-evidence.md, tests/Rogue3.Tests/CoverageGateTests.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/09-pickups-and-drops/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/10-enemy-roster/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/11-boss-hollow-choir/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/12-boss-maw/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/13-shop-and-reward/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/14-projectiles-and-bombs/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/15-particles/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/16-run-result-overlay/reference-evidence.md, tests/Rogue3.Tests/CoverageGateTests.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
     sourceRefs: []
     result: pass
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [The visual-coverage audit is Complete over the grown inventory, and eight committed production-frame PNGs were rendered and looked at., every door state renders on its own wall with a distinct scene digest]
@@ -1060,9 +1060,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [Full Release Test/Verify is 196/196 with seven bounded-headless workloads and four UI routes green at the exact candidate, and the unbound-action arm reports itself.]
@@ -1084,9 +1084,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [Every change is additive - a counter, a richer journey vocabulary, and a floor that gains doors rather than losing them. Saved profiles are untouched, and every digest that moved failed closed until it was re-derived, four elements, reviewed and copied.]
@@ -1102,15 +1102,15 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-001, PD-008, PD-014]
     obligationRefs: [EV045]
-    artifacts: [readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/reference-evidence.md, readiness/evidence-audit.md, readiness/evidence-graph.md, readiness/m7-ui-performance.json, readiness/performance-critic-request.json, readiness/performance-evidence.json, readiness/performance-intent.yml]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/09-pickups-and-drops/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/10-enemy-roster/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/11-boss-hollow-choir/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/12-boss-maw/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/13-shop-and-reward/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/14-projectiles-and-bombs/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/15-particles/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/16-run-result-overlay/reference-evidence.md, readiness/evidence-audit.md, readiness/evidence-graph.md, readiness/m7-ui-performance.json, readiness/performance-critic-request.json, readiness/performance-evidence.json, readiness/performance-intent.yml]
     sourceRefs: []
     result: pass
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     notes: [The typed performance declaration, UI-route evidence, "and the render-and-look frames are committed under the work item's readiness path.", critic request and the merge-gate evidence graph and audit were regenerated at the exact candidate, workload evidence]
@@ -1132,9 +1132,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
-      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      digest: "sha256:2723d4a525ddbd1e9740483be6e280098bc10f14e37d36a0cd94b2927cd63474"
       outcome: passed
-      passed: 196
+      passed: 199
       failed: 0
       skipped: 0
     rationale: "The unresolved launch audio assets are an asset-availability fact the host already reports correctly, not a playability or legibility defect. Pulling them into a milestone that already carries eleven rows would widen it without making the game any more playable."
