@@ -1337,6 +1337,7 @@ let m7UiPerformanceEvidence (path:string) =
     let menu : ShellHostModel =
         { Shell=Rogue3.GameShell.init shellConfig;Play=initialModel;StatsOpen=false;HeldKeys=Set.empty }
     let playing = host.Update (StartFreshRun 901UL) menu |> fst
+    let runResult = host.Update (PlayDispatch (CompleteRunStats(false,Some DeathCause.Trap))) playing |> fst
     let statsPlay =
         { initialModel with
             RunStats={initialModel.RunStats with DepthReached=8;DamageByFloor=Map.ofList[1,(24.0,7.0);2,(41.0,10.0);3,(37.0,8.0);4,(44.0,12.0)]}
@@ -1360,11 +1361,13 @@ let m7UiPerformanceEvidence (path:string) =
         Map.ofList
             [ "main-menu", "M7 menu route; 1280x720; exactly 9 retained controls and 7 bound controls"
               "hud-playing", "M7 gameplay HUD route; 1280x720 and 1920x1080; exactly hearts/currency/active-charge/minimap/floor-name regions and 0 bound controls"
+              "run-result", "M9 terminal result route; 1280x720; exactly 9 retained controls, 3 bound actions, visible outcome/score/stat/unlock summary"
               "stats-charts", "M7 stats route; 1280x720; exactly 19 retained controls, 3 bound controls, deepest/runs/win-rate/kills KPI tiles, 5 depth buckets, and 2 damage series" ]
     let sourceFiles =
         Map.ofList
             [ "main-menu", ["src/Rogue3/GameShell.fs";"src/Rogue3/M7Ui.fs"]
               "hud-playing", ["src/Rogue3/Render.fs";"src/Rogue3/Model.fs"]
+              "run-result", ["src/Rogue3/M7Ui.fs";"src/Rogue3/Model.fs"]
               "stats-charts", ["src/Rogue3/M7Ui.fs";"src/Rogue3/Model.fs"] ]
     let digest name =
         let bytes =
@@ -1374,10 +1377,13 @@ let m7UiPerformanceEvidence (path:string) =
         SHA256.HashData bytes |> Convert.ToHexString |> fun value -> value.ToLowerInvariant()
     let declared =
         Map.ofList
-            [ "main-menu", "610ada4fba999067db51fe47af7813b65b9cb0053467c1e778db67233fad9cdc"
-              "hud-playing", "1ae320b60d76e29220d69aca7cb2fd8c2333bd51af5a3b2c30c70eda5706c2f6"
-              "stats-charts", "555bb17549cb9603880b8ebd29bb0dd17f9a53b5ba61ee353aabc1bdc805b9b2" ]
-    let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "stats-charts" stats]
+            [ "main-menu", "89c6080c3acf3bd3a15975455de7e1a4ba5504c8befb2acb3588ed5d3908e174"
+              "hud-playing", "e78b8185a193d9298a8253873211166666cd764e34b3851bac511f2b07273b7c"
+              "run-result", "4fb5d3386b621f4b1e29e098cac96b07103e026ee77842d3b3ffb1a129b93d80"
+              "stats-charts", "3ce62714d04372049e5d634c9f466e929e06639db1e07dcceaa897edfc13e9be" ]
+    let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
+    let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
+    let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]
     let outputs = [ {Width=1280;Height=720};{Width=1920;Height=1080} ]
     let hudSceneElements = outputs |> List.map (fun output -> Rogue3.Render.hudSceneForSize output playing.Play |> Scene.describe |> List.length)
     let hudRegions = outputs |> List.map (fun output -> output, Rogue3.Render.hudRegionsForSize output)
@@ -1394,6 +1400,9 @@ let m7UiPerformanceEvidence (path:string) =
             nodes=19 && bound=3 && (kpis |> List.map fst)=expectedKpis
             && (Rogue3.Model.depthHistogram statsPlay.Profile.Lifetime.DepthHistory).Length=5
             && (Rogue3.M7Ui.statsSeries statsPlay |> snd |> List.length)=2
+        | "run-result" ->
+            nodes=9 && bound=3 && runResultFrame.BoundIds=expectedResultActions
+            && runResult.Play.LastRunSummary.IsSome
         | _ -> false
     use stream=File.Create path
     use json=new Utf8JsonWriter(stream,JsonWriterOptions(Indented=true))
@@ -1432,6 +1441,11 @@ let m7UiPerformanceEvidence (path:string) =
             json.WriteStartArray("kpiTiles")
             kpis |> List.iter (fst >> json.WriteStringValue)
             json.WriteEndArray();json.WriteNumber("depthBuckets",5);json.WriteNumber("damageSeries",2)
+        elif name="run-result" then
+            json.WriteNumber("summaryTextFields",5)
+            json.WriteStartArray("boundActionIds")
+            expectedResultActions |> Set.iter json.WriteStringValue
+            json.WriteEndArray()
         json.WriteEndObject()
         json.WriteBoolean("scalePassed",scalePassed name nodes bound);json.WriteBoolean("passed",passed);json.WriteEndObject()
     json.WriteEndArray();json.WriteEndObject();json.Flush()

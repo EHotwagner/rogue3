@@ -86,7 +86,15 @@ let shellView shellDispatch config (shell:Rogue3.GameShell.Model) (model:Model) 
               button "abandon-run" "Abandon Run" ButtonIntent.Danger actions.AbandonRun ]
         | Rogue3.GameShell.Settings -> settingsRows actions model
         | Rogue3.GameShell.Playing when model.RunOutcome.IsSome ->
-            [ button "result-new-run" "New Run" ButtonIntent.Primary actions.NewRun
+            let summary=model.LastRunSummary.Value
+            let heading=match summary.Outcome with RunOutcome.Victory->"VICTORY"|RunOutcome.GameOver->"GAME OVER"
+            let unlocks=if summary.UnlocksEarned.IsEmpty then "Unlocks: none" else "Unlocks: "+String.concat ", " summary.UnlocksEarned
+            [ text heading
+              text (sprintf "SCORE  %d" summary.Score)
+              text (sprintf "Floors %d   Bosses %d   Kills %d" summary.FloorsCleared summary.BossKills summary.EnemyKills)
+              text (sprintf "Coins %d   Items %d   No-hit floors %d" summary.CoinsCollected summary.ItemsCollected summary.NoHitFloors)
+              text unlocks
+              button "result-new-run" "New Run" ButtonIntent.Primary actions.NewRun
               button "result-retry-seed" "Retry Seed" ButtonIntent.Secondary actions.RetryRun
               button "result-title" "Title" ButtonIntent.Secondary actions.ReturnTitle ]
         | Rogue3.GameShell.Playing -> []

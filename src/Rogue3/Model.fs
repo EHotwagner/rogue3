@@ -1694,23 +1694,31 @@ let private advanceSim dtSeconds (model: Model) =
     let previousKeys = Set.union model.Input.Previous.Keys model.Input.Previous.Gamepad.Buttons
     let pressedThisTick = Set.difference currentKeys previousKeys
 
-    let stepped =
+    let stepped,executedSteps =
         // mutable: a single unaliased accumulator over a fixed step count is plainer than a fold here.
         let mutable m = { model with AudioEvents = [] }
+        let mutable executed = 0
+        let mutable terminalStep = false
+        let hadFinalBoss = model.FloorIndex=6 && model.M5Boss.IsSome
         for stepIndex in 1..steps do
-            m <- stepSimWithInput (if stepIndex = 1 then pressedThisTick else Set.empty) m
-        m
+            if not terminalStep then
+                m <- stepSimWithInput (if stepIndex = 1 then pressedThisTick else Set.empty) m
+                executed <- executed+1
+                terminalStep <-
+                    (m.PlayerLifeState=Dead || totalHalfHearts m.PlayerHealth=0)
+                    || (hadFinalBoss && m.M5Boss.IsNone)
+        m,executed
 
     { stepped with
         SimAccumulator = accumulator
         TickCount = model.TickCount + 1
         RunStats =
             if model.RunActive then
-                { stepped.RunStats with RunSeconds = stepped.RunStats.RunSeconds + float steps * fixedDt }
+                { stepped.RunStats with RunSeconds = stepped.RunStats.RunSeconds + float executedSteps * fixedDt }
             else stepped.RunStats
-        FloorNameTicks = max 0 (stepped.FloorNameTicks - steps)
+        FloorNameTicks = max 0 (stepped.FloorNameTicks - executedSteps)
         Input =
-            if steps = 0 then model.Input
+            if executedSteps = 0 then model.Input
             else
                 { model.Input with
                     Previous = model.Input.Current

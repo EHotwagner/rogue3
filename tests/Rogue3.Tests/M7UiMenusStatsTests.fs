@@ -244,6 +244,11 @@ let m7UiMenusStatsTests =
             let menu = host.Init() |> fst
             let playing = host.Update (EvidenceCommands.StartFreshRun 404UL) menu |> fst
             let terminal = host.Update (EvidenceCommands.PlayDispatch (CompleteRunStats(false,Some DeathCause.Trap))) playing |> fst
+            let size = EvidenceCommands.shellConfig.InitialDisplay.Resolution
+            let terminalScene = host.View size terminal |> Control.renderTree host.Theme size |> _.Scene
+            let terminalText = Rogue3BehaviorTests.sceneText (Group [terminalScene])
+            Expect.stringContains terminalText "GAME OVER" "the production host composes the result summary with its controls"
+            Expect.stringContains terminalText (string terminal.Play.LastRunSummary.Value.Score) "the production host visibly includes the score"
             let retryProof, retried = click "result-retry-seed" terminal
             Expect.equal retryProof.Verdict Responsive "Retry Seed is an actual result-screen binding"
             Expect.equal retried.Play.RunSeed 404UL "retry preserves the completed seed"

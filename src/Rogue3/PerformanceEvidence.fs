@@ -113,6 +113,7 @@ type CostDriverCategory =
 
 type CostDriverDisposition =
     | RequiredIn of workloadIds: string list
+    | MeasuredInUi of routeIds: string list
     | NonPerformance of reason: string
 
 type PerformanceCostDriver =
@@ -297,7 +298,7 @@ let performanceCostDrivers =
         ScaleSource = "GameplayVisualInventory.RunResultOverlay production terminal renderer binding"
         MaximumExpected = 1
         VisualElement = Some "RunResultOverlay"
-        Disposition = NonPerformance "terminal-only mutually exclusive route; bounded production render and interactive-control tests cover it" }
+        Disposition = MeasuredInUi [ "run-result" ] }
       { Id = "persistence.meta-profile"
         Category = PersistenceEffectResult
         ScaleSource = "ProfileStore.Store debounces profile mutations and performs one sibling-temp atomic replacement"
@@ -1368,6 +1369,9 @@ let private costDriverProblems (results: WorkloadResult list) =
           | NonPerformance reason when String.IsNullOrWhiteSpace reason ->
               $"cost driver '{driver.Id}' has an empty non-performance disposition"
           | NonPerformance _ -> ()
+          | MeasuredInUi routeIds when List.isEmpty routeIds ->
+              $"cost driver '{driver.Id}' has no measured UI route binding"
+          | MeasuredInUi _ -> ()
           | RequiredIn workloadIds ->
               if List.isEmpty workloadIds then
                   $"cost driver '{driver.Id}' has no required workload binding"
@@ -1416,6 +1420,9 @@ let private criticInputDigest (results: WorkloadResult list) coverageProblems =
                     let workloadIds = String.concat "," ids
                     $"required:{workloadIds}"
                 | NonPerformance reason -> $"non-performance:{reason}"
+                | MeasuredInUi ids ->
+                    let routeIds = String.concat "," ids
+                    $"measured-ui:{routeIds}"
             $"{driver.Id}|{driver.Category}|{driver.ScaleSource}|{driver.MaximumExpected}|{driver.VisualElement}|{disposition}")
         |> String.concat ";"
     let measuredEvidence =
@@ -1593,6 +1600,11 @@ let writeExpectedWorkloadEvidence (path: string) =
         | NonPerformance reason ->
             json.WriteString("disposition", "non-performance")
             json.WriteString("reason", reason)
+        | MeasuredInUi routeIds ->
+            json.WriteString("disposition", "measured-in-ui-routes")
+            json.WriteStartArray("requiredUiRouteIds")
+            routeIds |> List.iter json.WriteStringValue
+            json.WriteEndArray()
         json.WriteEndObject()
     json.WriteEndArray()
     json.WriteStartArray("workloads")

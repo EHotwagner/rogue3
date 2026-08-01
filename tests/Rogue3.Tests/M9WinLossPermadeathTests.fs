@@ -52,9 +52,12 @@ let tests =
         test "a production player shot defeats the floor-6 boss and terminal ticks freeze simulation" {
             let boss={Entities.spawnBoss 901 Entities.BossKind.Maw initialModel.PlayerPosition with HitPoints=1.0}
             let shot=spawnShots 1 1 boss.Position Rogue3.Geometry.zero (Rogue3.Geometry.vec2 1.0 0.0) basePlayerStats|>List.head
-            let before={initialModel with RunActive=true;FloorIndex=6;M5Boss=Some boss;ShotSpawns=[shot];RunStats={emptyRunStats with DepthReached=6;BossKills=2;FloorsCleared=5}}
-            let won=update (Tick fixedDt) before|>fst
+            let bomb={Id=1;Position=boss.Position;FuseTicks=2}
+            let before={initialModel with RunActive=true;FloorIndex=6;M5Boss=Some boss;ShotSpawns=[shot];Bombs=[bomb];PlayerHealth={initialModel.PlayerHealth with RedHalfHearts=1};RunStats={emptyRunStats with DepthReached=6;BossKills=2;FloorsCleared=5}}
+            let won=update (Tick (fixedDt*2.0)) before|>fst
             Expect.equal won.RunOutcome (Some RunOutcome.Victory) "the actual fixed-step projectile collision reaches Victory"
+            Expect.equal won.LastRunSummary.Value.BossKills 3 "the terminal boss step wins before a later drained step can explode the lethal bomb"
+            Expect.equal won.SimStepCount 0 "discarded terminal state proves no later fixed step leaked into the result model"
             let frozen=update (Tick 1.0) won|>fst
             Expect.equal frozen.SimStepCount won.SimStepCount "terminal simulation does not advance"
             Expect.equal frozen.TickCount won.TickCount "terminal host ticks are pure no-ops"
