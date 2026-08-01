@@ -43,6 +43,16 @@ let hudLayoutForSize (size: Size) =
       FloorNameBounds=floorName
       Overlaps=[hearts,currency; hearts,charge; currency,minimap; charge,minimap; minimap,floorName] |> List.exists (fun (a,b)->intersects a b) }
 
+/// The named production HUD regions. Rendering and exact-scale evidence consume the same layout
+/// record, so removing or renaming a region cannot be hidden by an unchanged aggregate node count.
+let hudRegionsForSize size =
+    let layout = hudLayoutForSize size
+    [ "hearts", layout.HeartsBounds
+      "currency", layout.CurrencyBounds
+      "active-charge", layout.ChargeBounds
+      "minimap", layout.MinimapBounds
+      "floor-name", layout.FloorNameBounds ]
+
 let hudSceneForSize (size: Size) model =
     let layout = hudLayoutForSize size
     let heartCount = min 12 model.PlayerHealth.RedContainers

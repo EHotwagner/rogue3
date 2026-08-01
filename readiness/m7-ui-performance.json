@@ -9,11 +9,11 @@
     {
       "id": "main-menu",
       "definition": "M7 menu route; 1280x720; exactly 9 retained controls and 7 bound controls",
-      "definitionDigest": "4788ac68a1aa84db412c077e002598804a1e87ed37fc17f421fbb8643e64d6c2",
-      "declaredDefinitionDigest": "4788ac68a1aa84db412c077e002598804a1e87ed37fc17f421fbb8643e64d6c2",
+      "definitionDigest": "13de109dbf6efa7ad540e5835f11bf858c66cf2a21bc81b408b3680b6885274c",
+      "declaredDefinitionDigest": "13de109dbf6efa7ad540e5835f11bf858c66cf2a21bc81b408b3680b6885274c",
       "authorshipPassed": true,
-      "p95Ms": 0.3622,
-      "p99Ms": 0.5966,
+      "p95Ms": 0.3717,
+      "p99Ms": 0.5989,
       "observedScale": {
         "controlNodes": 9,
         "boundControls": 7
@@ -23,18 +23,100 @@
     },
     {
       "id": "hud-playing",
-      "definition": "M7 gameplay HUD route; 1280x720 and 1920x1080; exactly 2 responsive layouts, 5 depth-independent HUD regions, and 0 bound controls",
-      "definitionDigest": "934fb3d6db5bf5df1be3be9dc7d5cb64b3ab38c4a79c1a8edf7132e3ed8a6866",
-      "declaredDefinitionDigest": "934fb3d6db5bf5df1be3be9dc7d5cb64b3ab38c4a79c1a8edf7132e3ed8a6866",
+      "definition": "M7 gameplay HUD route; 1280x720 and 1920x1080; exactly hearts/currency/active-charge/minimap/floor-name regions and 0 bound controls",
+      "definitionDigest": "2dc71ebdfdc119144c42256a493a4252854f63443ac53c5262d27cc48781800d",
+      "declaredDefinitionDigest": "2dc71ebdfdc119144c42256a493a4252854f63443ac53c5262d27cc48781800d",
       "authorshipPassed": true,
-      "p95Ms": 0.0599,
-      "p99Ms": 0.0657,
+      "p95Ms": 0.0591,
+      "p99Ms": 0.0712,
       "observedScale": {
         "controlNodes": 1,
         "boundControls": 0,
         "sceneElementsByOutput": [
           12,
           12
+        ],
+        "namedRegionsByOutput": [
+          {
+            "output": "1280x720",
+            "regions": [
+              {
+                "id": "hearts",
+                "x": 24,
+                "y": 20,
+                "width": 384,
+                "height": 32
+              },
+              {
+                "id": "currency",
+                "x": 24,
+                "y": 60,
+                "width": 230,
+                "height": 28
+              },
+              {
+                "id": "active-charge",
+                "x": 1180,
+                "y": 20,
+                "width": 72,
+                "height": 40
+              },
+              {
+                "id": "minimap",
+                "x": 1140,
+                "y": 70,
+                "width": 120,
+                "height": 120
+              },
+              {
+                "id": "floor-name",
+                "x": 490,
+                "y": 668,
+                "width": 300,
+                "height": 32
+              }
+            ]
+          },
+          {
+            "output": "1920x1080",
+            "regions": [
+              {
+                "id": "hearts",
+                "x": 24,
+                "y": 20,
+                "width": 384,
+                "height": 32
+              },
+              {
+                "id": "currency",
+                "x": 24,
+                "y": 60,
+                "width": 230,
+                "height": 28
+              },
+              {
+                "id": "active-charge",
+                "x": 1820,
+                "y": 20,
+                "width": 72,
+                "height": 40
+              },
+              {
+                "id": "minimap",
+                "x": 1780,
+                "y": 70,
+                "width": 120,
+                "height": 120
+              },
+              {
+                "id": "floor-name",
+                "x": 810,
+                "y": 1028,
+                "width": 300,
+                "height": 32
+              }
+            ]
+          }
         ]
       },
       "scalePassed": true,
@@ -42,16 +124,21 @@
     },
     {
       "id": "stats-charts",
-      "definition": "M7 stats route; 1280x720; exactly 19 retained controls, 3 bound controls, 4 KPI tiles, 5 depth buckets, and 2 damage series",
-      "definitionDigest": "46514f7fab612e411d522246c7d14296f574ca1d7afbf3f09084e80025b511b5",
-      "declaredDefinitionDigest": "46514f7fab612e411d522246c7d14296f574ca1d7afbf3f09084e80025b511b5",
+      "definition": "M7 stats route; 1280x720; exactly 19 retained controls, 3 bound controls, deepest/runs/win-rate/kills KPI tiles, 5 depth buckets, and 2 damage series",
+      "definitionDigest": "e8fb3ffff7518987a34b6b3a687944d26e5f062d36c3d1229a1d24636daf987f",
+      "declaredDefinitionDigest": "e8fb3ffff7518987a34b6b3a687944d26e5f062d36c3d1229a1d24636daf987f",
       "authorshipPassed": true,
-      "p95Ms": 1.1923,
-      "p99Ms": 1.4716,
+      "p95Ms": 1.1447,
+      "p99Ms": 1.2049,
       "observedScale": {
         "controlNodes": 19,
         "boundControls": 3,
-        "kpiTiles": 4,
+        "kpiTiles": [
+          "deepest",
+          "runs",
+          "win-rate",
+          "kills"
+        ],
         "depthBuckets": 5,
         "damageSeries": 2
       },

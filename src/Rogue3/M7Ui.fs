@@ -102,15 +102,20 @@ let statsSeries model =
     [ { Name="Dealt #2a78d6";Points=damagePoints true }
       { Name="Taken #1baf7a";Points=damagePoints false } ]
 
+let statsKpis model =
+    let lifetime = model.Profile.Lifetime
+    [ "deepest", sprintf "DEEPEST  %d" (max model.RunStats.DepthReached lifetime.DeepestFloor)
+      "runs", sprintf "RUNS  %d" lifetime.RunsPlayed
+      "win-rate", sprintf "WIN  %.0f %%" (winRatePct lifetime)
+      "kills", sprintf "KILLS  %d" lifetime.TotalKills ]
+
 let statsView model actions =
     let lifetime = model.Profile.Lifetime
     let depth, damage = statsSeries model
+    let kpis = statsKpis model
     stack
         [ text "STATS"
-          row [tile(sprintf "DEEPEST  %d" (max model.RunStats.DepthReached lifetime.DeepestFloor))
-               tile(sprintf "RUNS  %d" lifetime.RunsPlayed)
-               tile(sprintf "WIN  %.0f %%" (winRatePct lifetime))
-               tile(sprintf "KILLS  %d" lifetime.TotalKills)]
+          row (kpis |> List.map (snd >> tile))
           button "scope-this-run" "This Run" ButtonIntent.Secondary (actions.Scope StatScope.ThisRun)
           button "scope-lifetime" "Lifetime" ButtonIntent.Secondary (actions.Scope StatScope.Lifetime)
           text "Run-depth distribution"

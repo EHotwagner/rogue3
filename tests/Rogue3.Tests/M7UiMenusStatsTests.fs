@@ -198,6 +198,14 @@ let m7UiMenusStatsTests =
             let released = host.Update (EvidenceCommands.RawKeyChanged(q,false)) moved |> fst
             Expect.isLessThan moved.Play.PlayerVelocity.Vy 0.0 "rebound Q produces move-up intent"
             Expect.isFalse (Set.contains "move-up" released.Play.Input.Current.Commands) "key-up clears semantic intent"
+
+            let escape = host.MapKey ViewerKey.Escape true |> Option.get
+            let paused = host.Update escape moved |> fst
+            let releasedWhilePaused = host.Update (EvidenceCommands.RawKeyChanged(q,false)) paused |> fst
+            let resumed = host.Update escape releasedWhilePaused |> fst
+            let afterResume = host.Update (EvidenceCommands.PlayDispatch (Tick (fixedDt*2.0))) resumed |> fst
+            Expect.isFalse (Set.contains "move-up" paused.Play.Input.Current.Commands) "leaving gameplay clears every held semantic command"
+            Expect.equal afterResume.Play.LastResolvedInput.Move Rogue3.Geometry.zero "release during pause cannot leave movement stuck after resume"
         }
 
         test "actual host clicks open stats, change scope, and return without advancing play" {
