@@ -390,7 +390,35 @@ let performanceCostDrivers =
         VisualElement = None
         Disposition =
             NonPerformance
-                "bounded headless evidence cannot measure present/drop/swapchain/vsync; use a live-compositor workload" } ]
+                "bounded headless evidence cannot measure present/drop/swapchain/vsync; use a live-compositor workload" }
+      // M10 §14.14: the same-step secret reveal is the one M10 addition on the fixed-step hot path,
+      // so its scan and its live pending set are measured, not argued.
+      { Id = "simulation.secret-reveal-candidates"
+        Category = Simulation
+        ScaleSource = "Model.TotalSecretRevealCandidates delta: pending secret/adjacent pairs the blast scan examines while resolving one fixed step's detonations, for the representative floor's current room"
+        MaximumExpected = 1
+        VisualElement = None
+        Disposition = RequiredIn [ "secret-reveal" ] }
+      { Id = "state.pending-secrets"
+        Category = Simulation
+        ScaleSource = "Floor.PendingSecrets live count on the representative production floor; §4.8 places one hidden room on floors 1-2 and two from floor 3, each reachable from its orthogonal neighbours"
+        MaximumExpected = 3
+        VisualElement = None
+        Disposition = RequiredIn [ "secret-reveal" ] }
+      { Id = "state.placed-bombs"
+        Category = Simulation
+        ScaleSource = "Model.Bombs live fused count carried into one fixed step's chain-detonation resolution"
+        MaximumExpected = 48
+        VisualElement = None
+        Disposition = RequiredIn [ "secret-reveal" ] }
+      { Id = "determinism.replay-log-entries"
+        Category = Simulation
+        ScaleSource = "Rogue3.Replay input-log length folded through production Model.update"
+        MaximumExpected = 1
+        VisualElement = None
+        Disposition =
+            NonPerformance
+                "replay is an offline verification fold over production update, bounded by the authored log length rather than a frame budget; the Release suite exercises it instead of a timed workload" } ]
     @ m6AdditionalVisualCostDrivers
 
 type Workload =
@@ -625,14 +653,19 @@ let private workloadSourceFingerprint id =
             |> Some
 
 let private modelDefinitionFingerprint (model: Model) =
-    // Model is a closed structural record: %A covers every field recursively, with Set/Map in their
-    // deterministic comparison order. Normalizing newlines makes the digest stable across hosts.
-    sprintf "%A" model |> _.Replace("\r\n", "\n") |> sha256Text
+    // M10: this used `sprintf "%A" model`, which TRUNCATES a collection after 100 elements. The
+    // maximum-content fixture carries 600 particles, 120 enemy bullets and 40 shots, so the digest
+    // could not distinguish two initial states differing past element 100 — a fingerprint that
+    // silently agrees is worse than no fingerprint. `Determinism.encode` walks the same closed
+    // structural record with no length limit and the same deterministic Set/Map ordering.
+    Rogue3.Determinism.encode model |> _.Replace("\r\n", "\n") |> sha256Text
 
 let private messageDefinitionFingerprint (workload: Workload) =
+    // Same truncation hazard: this list is one entry per sampled frame, and the sampled workloads
+    // run 120 to 720 frames, so `%A` was fingerprinting only the first 100 frames of the route.
     [ for frame in 0 .. max workload.WarmupFrames workload.SampleFrames - 1 ->
           frame, workload.MessagesAt frame ]
-    |> sprintf "%A"
+    |> Rogue3.Determinism.encode
     |> _.Replace("\r\n", "\n")
     |> sha256Text
 
@@ -789,6 +822,9 @@ let private observeCostScale visualCounts driverId routed beforeModel afterModel
         | "state.m5-shop-slots", _, _ -> afterModel.M5ShopSlots.Length
         | "boss.m5-pattern-emissions", _, _ -> afterModel.M5BossPatternEmissions - beforeModel.M5BossPatternEmissions
         | "collision.combat-candidates", _, _ -> afterModel.TotalCombatCandidates - beforeModel.TotalCombatCandidates
+        | "simulation.secret-reveal-candidates", _, _ -> afterModel.TotalSecretRevealCandidates - beforeModel.TotalSecretRevealCandidates
+        | "state.pending-secrets", _, _ -> afterModel.Floor.PendingSecrets.Count
+        | "state.placed-bombs", _, _ -> max afterModel.Bombs.Length beforeModel.Bombs.Length
         | "effects.pooled-particles", _, _ -> afterModel.M6Particles.Length
         | "scene.m6-enemy-symbols", _, _ ->
             Rogue3.Render.enemyTokens afterModel
@@ -1103,6 +1139,42 @@ let private maximumContentJourneyBoot () = maximumContentModel ()
 // Canonical representative generation boot shared by the timed workload and its runner receipt.
 let private floorGenerationModel () = { initialModel with FloorIndex = 8 }
 
+// M10 §14.14 representative state. The player stands in the room that borders a hidden secret, and
+// the fuses are staggered 1..N so EXACTLY ONE bomb detonates per fixed step: every sampled step
+// therefore pays the pending-secret scan the milestone added to the hot path. The grid bombs sit on
+// a 100 px lattice inset 150 px from every wall — wider than the 90 px blast radius, so nothing
+// chain-detonates and the one-per-step shape holds. The bomb that actually reaches the shared wall
+// is fused LAST, so the reveal itself lands inside the sampled window rather than in warmup, and the
+// earlier samples still scan the full live pending set.
+let private secretRevealBombGrid =
+    [ for column in 0 .. 9 do
+        for row in 0 .. 4 -> vec2 (150.0 + float column * 100.0) (150.0 + float row * 100.0) ]
+    |> List.truncate 48
+
+let private secretRevealModel () =
+    let baseModel = maximumContentModel ()
+    let floor = baseModel.Floor
+
+    let adjacentRoom, wall =
+        match floor.PendingSecrets |> Map.toList with
+        | (struct (adjacent, secret), _) :: _ ->
+            let direction =
+                FloorGeneration.roomDirection adjacent secret floor
+                |> Option.defaultValue FloorGeneration.North
+            adjacent, wallMidpoint direction
+        | [] -> floor.CurrentRoom, wallMidpoint FloorGeneration.North
+
+    let bombs =
+        (secretRevealBombGrid @ [ wall ])
+        |> List.mapi (fun index position -> { Id = 7000 + index; Position = position; FuseTicks = index + 1 })
+
+    { baseModel with
+        Floor = { floor with CurrentRoom = adjacentRoom }
+        Bombs = bombs
+        PlayerPosition = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0) }
+
+let private secretRevealJourneyBoot () = secretRevealModel ()
+
 /// REQUIRED PRODUCT AUTHORING. Every untouched row is deliberately a failing placeholder.
 ///
 /// For each row: replace `InitialState` and `MessagesAt` with representative rogue3 state/messages,
@@ -1125,7 +1197,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "cbd226feafeafe318cd6e965ba21cedd9e1169b92156e981d7aa993a4efdf1b8" }
+        Authorship = Authored "c0da99941034c8be30da16bb42e63210175531f23366648cad68113440802e2c" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -1158,7 +1230,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "21f40b9a18f53ff53ef1a326721de6b88062a14d001f056823da94d7b2fb372f" }
+        Authorship = Authored "ef33d19e9c9bac379b4db43d0dfd5a13567279430b2af317ed75d38e93453bde" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -1194,7 +1266,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "c5f250cfb9973920f3dae69270a590887df6f0ae35ffb9c719cce9411543c3db" }
+        Authorship = Authored "fde6e58b9e3437c517cf6c4971417dc54844d70879652285d37a61826f2bbd44" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -1217,7 +1289,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "3c7a53726bcaace75002da08550cab09d5e09dc55d4835394ca8d8c31b63c279" }
+        Authorship = Authored "93df79749f3bbae502d999c05403116307630d8684fa3e10e35feb15ff07b177" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN floor-generation
       { Id = "floor-generation"
@@ -1234,7 +1306,7 @@ let expectedWorkloads =
         CostDriverIds = [ "generation.floor-room-budget"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "18a9ad58eceacb79e5509033968073a6ccede22df6a25e1802bfa5ebd879efa6" }
+        Authorship = Authored "15aa98b75b93393a1940594867fe0f2501613bf843da66e1e05724f6d89633ae" }
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
@@ -1319,8 +1391,31 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "20155a1f0111399d50c673b1b78ba13a533423ab35bf092fed0bc636f3350671" }
+        Authorship = Authored "540fd20ae0403f481c143a60fce91d6d0e1f086cef583e571192e64afd0956b0" }
       // WORKLOAD-SOURCE-END maximum-content
+      // WORKLOAD-SOURCE-BEGIN secret-reveal
+      { Id = "secret-reveal"
+        Definition = "M10 same-step secret reveal: inherited maximum content plus staggered fuses so production Tick(1/120) detonates exactly one bomb per sampled fixed step, scanning the live pending-secret set and carving the reciprocal doors and graph adjacency inside that same step before the complete logical view"
+        Classification = NormalPlay
+        WarmupFrames = 0
+        SampleFrames = 48
+        EventsPerFrame = 0
+        PointerEventsPerFrame = 0
+        InitialState = secretRevealModel
+        MessagesAt = (fun _ -> [ Tick fixedDt ])
+        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "secret-reveal" secretRevealJourneyBoot 1 [ JourneyEvent.FixedTick ])
+        Composition = CompleteComposition
+        CostDriverIds =
+            [ "simulation.fixed-step"
+              "simulation.secret-reveal-candidates"
+              "state.pending-secrets"
+              "state.placed-bombs"
+              "scene.player"
+              "scene.floor-background" ]
+        Budget = Some normalBudget
+        BlockingDebt = None
+        Authorship = Authored "e4c08b579dd01166cd72264dff2489334c7d5dbd279a02f0b50fc5a72c109786" }
+      // WORKLOAD-SOURCE-END secret-reveal
       ]
 
 let performanceIntentDeclaration =
@@ -1336,7 +1431,7 @@ let private duplicateValues values =
     |> List.choose (fun (value, count) -> if count > 1 then Some value else None)
 
 let private requiredNormalWorkloadIds =
-    [ "idle"; "movement-aiming"; "firing"; "effects-fog"; "floor-generation"; "maximum-content" ]
+    [ "idle"; "movement-aiming"; "firing"; "effects-fog"; "floor-generation"; "maximum-content"; "secret-reveal" ]
 
 let uiEvidenceProblems (path:string) =
     if not(File.Exists path) then [ $"measured UI route artifact is missing: {path}" ],"missing"

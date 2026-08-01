@@ -1378,9 +1378,12 @@ let m7UiPerformanceEvidence (path:string) =
     let declared =
         Map.ofList
             [ "main-menu", "89c6080c3acf3bd3a15975455de7e1a4ba5504c8befb2acb3588ed5d3908e174"
-              "hud-playing", "a61e69a73ca2375c500b6bc25c1fa442a1aff1ec0fd6d713c5f4429ba9d749d7"
-              "run-result", "4fb5d3386b621f4b1e29e098cac96b07103e026ee77842d3b3ffb1a129b93d80"
-              "stats-charts", "3ce62714d04372049e5d634c9f466e929e06639db1e07dcceaa897edfc13e9be" ]
+              // M10: re-reviewed and copied after Model.fs gained the door messages, the same-step
+              // secret reveal, the dead-actor cleanup fix and the reveal-scan counter. The route
+              // scale and budget verdicts stayed green across the change; only the source digest moved.
+              "hud-playing", "0b9bfe7db5c338aa04fe084b5d9f67a8beecfbcf6cd02f8d732bfebd171ba7f3"
+              "run-result", "42956afef814b8b7b27e3ab70f6f2fc4d379e7de3981c2cc41e2b422d5cdb710"
+              "stats-charts", "ebddd7ddbcbd59c8a7d1283144246dceb90b5ff22ff879d1719c8b9716718635" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]

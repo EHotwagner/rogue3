@@ -12,6 +12,10 @@
          labels. The Exists guard keeps the build green if you delete the file AFTER swapping Model.fs off
          it (Rogue3.fsproj stays "durable"). -->
     <Compile Include="Vec2.fs" Condition="Exists('Vec2.fs')" />
+    <!-- M10 (§13, §14.1): the product's canonical, non-truncating structural encoding — the single
+         definition of "byte-identical" for floors, models and replays. Depends on nothing in the
+         model, so it compiles first and is reused by Replay.fs and PerformanceEvidence.fs. -->
+    <Compile Include="Determinism.fs" />
     <!-- Feature 246: the import-and-adapt collision helper (fs-gg-collision skill). Consumer-owned,
          adaptable source — compiled before Model.fs so your update can call Collision.step. The
          Exists guard keeps the build green if you delete the file (Rogue3.fsproj stays "durable"). -->
@@ -39,6 +43,8 @@
     <Compile Include="Entities.fs" />
     <Compile Include="FloorGeneration.fs" />
     <Compile Include="Model.fs" />
+    <!-- M10 (§13): seed + ordered input-log replay folded through the production `update`. -->
+    <Compile Include="Replay.fs" />
     <Compile Include="ProfileStore.fs" />
     <Compile Include="Render.fs" />
     <!-- Rendering#1071: the independent, runtime-owned gameplay-visual inventory and handle

@@ -40,7 +40,10 @@ type FloorRoom =
       Hidden: bool
       Interior: Interior
       Doors: Door list
-      Fixtures: Fixture list }
+      Fixtures: Fixture list
+      /// Obstacles destroyed while the player was in this room. Durable floor state so that
+      /// re-entering a room (§14.15) does not resurrect what a shot or bomb already removed.
+      DestroyedObstacles: Set<int> }
 
 type Floor =
     { Index: int
@@ -232,9 +235,15 @@ let generateWithPool runSeed floorIndex initialItemPool =
             graph.[id]
             |> List.map (fun other ->
                 let otherCell, otherKind, _ = byId.[other]
-                let state = if otherKind = Boss || kind = Boss then BossDoor elif otherKind = Treasure then LockedKey else Open
+                // §14.16 needs the pair to be reciprocal: a key door is locked from BOTH sides, so
+                // one key opens both records. Locking only the approach to the treasure room left a
+                // half-locked pair that no single unlock transition could resolve.
+                let state =
+                    if otherKind = Boss || kind = Boss then BossDoor
+                    elif otherKind = Treasure || kind = Treasure then LockedKey
+                    else Open
                 { ToRoom = other; Direction = direction cell otherCell; State = state })
-        rooms <- Map.add id { Id=id; Cell=cell; RoomType=kind; Cleared=(kind=Start || kind=Treasure || kind=Shop); Visited=(kind=Start); Hidden=(kind=Secret || kind=SuperSecret); Interior=interior; Doors=doors; Fixtures=fixtures } rooms
+        rooms <- Map.add id { Id=id; Cell=cell; RoomType=kind; Cleared=(kind=Start || kind=Treasure || kind=Shop); Visited=(kind=Start); Hidden=(kind=Secret || kind=SuperSecret); Interior=interior; Doors=doors; Fixtures=fixtures; DestroyedObstacles=Set.empty } rooms
     { Floor = { Index=floorIndex; Seed=seed; Rooms=rooms; Graph=graph; CurrentRoom=0; MapRevealed=Set.singleton 0; PendingSecrets=pending; RoomBudget=budget }
       LayoutRng = rng
       ItemPool = itemPool }
@@ -250,6 +259,73 @@ let revealSecret adjacentRoom secretRoom floor =
         let sDoor = { ToRoom=adjacentRoom; Direction=direction s.Cell a.Cell; State=Open }
         let rooms = floor.Rooms |> Map.add adjacentRoom { a with Doors=aDoor::a.Doors } |> Map.add secretRoom { s with Hidden=false; Doors=sDoor::s.Doors }
         { floor with Rooms=rooms; Graph=addEdge adjacentRoom secretRoom floor.Graph; PendingSecrets=floor.PendingSecrets |> Map.remove (struct(adjacentRoom,secretRoom)); MapRevealed=Set.add secretRoom floor.MapRevealed }
+
+/// Record that an obstacle was destroyed in `roomId`, so a later visit rebuilds the room without it.
+let recordDestroyedObstacle roomId obstacleId floor =
+    match Map.tryFind roomId floor.Rooms with
+    | Some room ->
+        { floor with Rooms = Map.add roomId { room with DestroyedObstacles = Set.add obstacleId room.DestroyedObstacles } floor.Rooms }
+    | None -> floor
+
+/// Record that `roomId` is cleared. Room-clear is durable floor state (§14.5, §14.15): a cleared
+/// room does not repopulate, so its clear drop is never rolled a second time.
+let recordRoomCleared roomId floor =
+    match Map.tryFind roomId floor.Rooms with
+    | Some room when not room.Cleared -> { floor with Rooms = Map.add roomId { room with Cleared = true } floor.Rooms }
+    | _ -> floor
+
+/// Direction travelled from `fromRoom` toward `toRoom` on the room grid. The caller uses it to
+/// place the shared wall segment (and the reciprocal doorway) in room-local coordinates.
+let roomDirection fromRoom toRoom floor =
+    match Map.tryFind fromRoom floor.Rooms, Map.tryFind toRoom floor.Rooms with
+    | Some a, Some b -> Some(direction a.Cell b.Cell)
+    | _ -> None
+
+/// The still-hidden secret rooms reachable by bombing a wall of `roomId`, in deterministic map
+/// order. Used by the §14.14 blast resolution, which must not scan the whole floor per explosion.
+let pendingSecretsFrom roomId floor =
+    floor.PendingSecrets
+    |> Map.toList
+    |> List.choose (fun (struct (adjacent, secret), _) -> if adjacent = roomId then Some(adjacent, secret) else None)
+
+/// Unlock one reciprocal key door as a single immutable floor transition (§14.16). A malformed or
+/// already-open pair is rejected without producing a half-open graph, and the caller only spends a
+/// key when the returned flag is true — so re-entering an unlocked door never charges again.
+let tryUnlockDoor fromRoom toRoom floor =
+    let openTowards target doors =
+        doors
+        |> List.map (fun door -> if door.ToRoom = target && door.State = LockedKey then { door with State = Open } else door)
+
+    match Map.tryFind fromRoom floor.Rooms, Map.tryFind toRoom floor.Rooms with
+    | Some source, Some destination ->
+        let sourceLocked = source.Doors |> List.exists (fun door -> door.ToRoom = toRoom && door.State = LockedKey)
+        let destinationLocked = destination.Doors |> List.exists (fun door -> door.ToRoom = fromRoom && door.State = LockedKey)
+
+        if sourceLocked && destinationLocked then
+            let rooms =
+                floor.Rooms
+                |> Map.add fromRoom { source with Doors = openTowards toRoom source.Doors }
+                |> Map.add toRoom { destination with Doors = openTowards fromRoom destination.Doors }
+
+            { floor with Rooms = rooms }, true
+        else floor, false
+    | _ -> floor, false
+
+/// Traverse an open (or always-enterable boss) door from the current room (§14.15). The returned
+/// direction is the direction travelled, so the caller can land the player at the reciprocal
+/// doorway. The departed room keeps its cleared state, fixtures and doors: only the destination is
+/// touched, and only to mark it visited and revealed.
+let tryTraverseDoor toRoom floor =
+    match Map.tryFind floor.CurrentRoom floor.Rooms, Map.tryFind toRoom floor.Rooms with
+    | Some source, Some destination ->
+        let usable door = door.ToRoom = toRoom && (door.State = Open || door.State = BossDoor)
+
+        match source.Doors |> List.tryFind usable with
+        | Some door when floor.Graph |> Map.tryFind source.Id |> Option.map (List.contains toRoom) |> Option.defaultValue false ->
+            let rooms = Map.add toRoom { destination with Visited = true; Hidden = false } floor.Rooms
+            { floor with CurrentRoom = toRoom; Rooms = rooms; MapRevealed = Set.add toRoom floor.MapRevealed }, Some door.Direction
+        | _ -> floor, None
+    | _ -> floor, None
 
 let clearBoss roomId floor =
     match Map.tryFind roomId floor.Rooms with

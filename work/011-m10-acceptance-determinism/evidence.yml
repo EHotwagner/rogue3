@@ -1,0 +1,614 @@
+schemaVersion: 1
+workId: 011-m10-acceptance-determinism
+stage: evidence
+status: evidenceReady
+sourceSpec: work/011-m10-acceptance-determinism/spec.md
+sourceClarifications: work/011-m10-acceptance-determinism/clarifications.md
+sourceChecklist: work/011-m10-acceptance-determinism/checklist.md
+sourcePlan: work/011-m10-acceptance-determinism/plan.md
+sourceTasks: work/011-m10-acceptance-determinism/tasks.yml
+sourceAnalysis: readiness/011-m10-acceptance-determinism/analysis.json
+sourceSnapshots:
+  - label: analysis
+    path: readiness/011-m10-acceptance-determinism/analysis.json
+    digest: 4a07f223dc05b742c2cd96f617086226b82396036d98c6d4dcd0c9888e7c12f6
+    schemaVersion: 1
+  - label: checklist
+    path: work/011-m10-acceptance-determinism/checklist.md
+    digest: 8002ca696d087db1a2a5d61c6361dc0ace5df77ea62c9c71a3a6a7ce655916db
+    schemaVersion: 1
+  - label: clarifications
+    path: work/011-m10-acceptance-determinism/clarifications.md
+    digest: 204e7d9dffa2e3df433572f32597471c8df8cfc4ec3de46749bb127fbf91da79
+    schemaVersion: 1
+  - label: plan
+    path: work/011-m10-acceptance-determinism/plan.md
+    digest: fdaacf0b1482e12fe7fe9a35e9d9234944d93d6e88d0629d8f7e3c3d38659e21
+    schemaVersion: 1
+  - label: spec
+    path: work/011-m10-acceptance-determinism/spec.md
+    digest: 78f91dd2ec97e8c5c9996355a8ef1ebe7e42cbf6ea221897a7fab26edcd07346
+    schemaVersion: 1
+  - label: tasks
+    path: work/011-m10-acceptance-determinism/tasks.yml
+    digest: ca7dc36e92a4a2451565e781d866aab3a138f63b147e192aeaeed4eb515b316b
+    schemaVersion: 1
+evidence:
+  - id: EV001
+    kind: verification
+    subject:
+      type: task
+      id: T001
+    taskRefs: [T001]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: [AC-001]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV001]
+    artifacts: [tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/TestResults/m10-release-final.trx]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["All 24 source-specification acceptance scenarios have exactly one named production-driving test, and a guard test fails if the list stops covering 1 through 24 exactly once with distinct names."]
+  - id: EV002
+    kind: verification
+    subject:
+      type: task
+      id: T002
+    taskRefs: [T002]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: [AC-002]
+    clarificationDecisionRefs: [DEC-001]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV002]
+    artifacts: [src/Rogue3/Determinism.fs, src/Rogue3/Replay.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["The canonical floor encoding is equal for equal seed and floor index and differs for any other seed or index, and it detects a divergence past element 100 that the formatting helper cannot see."]
+  - id: EV003
+    kind: verification
+    subject:
+      type: task
+      id: T003
+    taskRefs: [T003]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: [AC-003]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV003]
+    artifacts: [src/Rogue3/FloorGeneration.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["Two same-seed runs whose drop-stream draws differ descend to byte-identical floors with identical enemy anchors, and clearing a combat room leaves the layout stream untouched."]
+  - id: EV004
+    kind: verification
+    subject:
+      type: task
+      id: T004
+    taskRefs: [T004]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: [AC-004]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV004]
+    artifacts: [src/Rogue3/Entities.fs, src/Rogue3/FloorGeneration.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["A five-floor production walk collects identical pedestal, shop and boss item ids in identical rooms at identical prices between differently-played same-seed runs, with no item id repeated inside one run."]
+  - id: EV005
+    kind: verification
+    subject:
+      type: task
+      id: T005
+    taskRefs: [T005]
+    requirementRefs: [FR-005]
+    acceptanceScenarioRefs: [AC-005]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV005]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["Hard latches enemy hit-point scale 0.18, post-hit invulnerability 0.55 seconds and drop-nothing weight 55 at StartRun; the latched values reach the production invulnerability ticks and the live boss hit points, and a mid-run switch leaves the active run unchanged."]
+  - id: EV006
+    kind: verification
+    subject:
+      type: task
+      id: T006
+    taskRefs: [T006]
+    requirementRefs: [FR-006]
+    acceptanceScenarioRefs: [AC-006]
+    clarificationDecisionRefs: [DEC-004]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-006]
+    obligationRefs: [EV006]
+    artifacts: [src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["One production fixed step detonates a bomb against the shared wall and in that same step carves both door records, clears the hidden flag, commits both graph adjacencies and drops the pending pair; the test then walks every room and asserts no door exists without its adjacency."]
+  - id: EV007
+    kind: verification
+    subject:
+      type: task
+      id: T007
+    taskRefs: [T007]
+    requirementRefs: [FR-007]
+    acceptanceScenarioRefs: [AC-007]
+    clarificationDecisionRefs: [DEC-003]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-007]
+    obligationRefs: [EV007]
+    artifacts: [src/Rogue3/Determinism.fs, src/Rogue3/Replay.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["Two independent replays of one seed and ordered log encode byte-identically; another seed and the same actions at different tick timings both encode differently, and a log whose sequence numbers are not unique and increasing raises instead of replaying."]
+  - id: EV008
+    kind: verification
+    subject:
+      type: task
+      id: T008
+    taskRefs: [T008]
+    requirementRefs: [FR-008]
+    acceptanceScenarioRefs: [AC-008]
+    clarificationDecisionRefs: [DEC-005]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-008]
+    obligationRefs: [EV008]
+    artifacts: [src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["Traversal lands at the reciprocal doorway clear of the trigger it came from, and the return crossing finds the departed room still cleared, its destroyed obstacle still gone and its clear drop unrolled; unlocking spends exactly one key, opens both reciprocal records, is never charged twice, and changes nothing with zero keys."]
+  - id: EV009
+    kind: verification
+    subject:
+      type: task
+      id: T009
+    taskRefs: [T009]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-001]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV009]
+    artifacts: [src/Rogue3/Determinism.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["The canonical structural encoder is total over the closed model, value-determined, insensitive to set and map insertion order, keeps special floats distinguishable, and applies no length limit."]
+  - id: EV010
+    kind: verification
+    subject:
+      type: task
+      id: T010
+    taskRefs: [T010]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-002]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV010]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["The workload initial-state and per-frame message fingerprints moved onto the canonical encoder, and all seven authored workload definition digests were re-derived, reviewed and copied from a fresh measurement rather than carried forward."]
+  - id: EV011
+    kind: verification
+    subject:
+      type: task
+      id: T011
+    taskRefs: [T011]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-003]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-007]
+    obligationRefs: [EV011]
+    artifacts: [src/Rogue3/Replay.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["A log entry is a strictly increasing sequence number plus one production message, elapsed time rides inside the tick payload so no wall clock is read, and the replay fold is the production update function."]
+  - id: EV012
+    kind: verification
+    subject:
+      type: task
+      id: T012
+    taskRefs: [T012]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-004]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-006]
+    obligationRefs: [EV012]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["The reveal is triggered from inside fixed-step bomb resolution rather than by an external message, so the blast and the door-graph transition are the same step, and the explicit reveal message remains available for direct evidence routes."]
+  - id: EV013
+    kind: verification
+    subject:
+      type: task
+      id: T013
+    taskRefs: [T013]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-005]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-008]
+    obligationRefs: [EV013]
+    artifacts: [src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["Traversal requires an open or boss door plus graph adjacency, and unlocking requires a reciprocal locked pair, which generation now produces on both sides of a treasure door instead of only on the approach."]
+  - id: EV014
+    kind: verification
+    subject:
+      type: task
+      id: T014
+    taskRefs: [T014]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-006]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-007]
+    obligationRefs: [EV014]
+    artifacts: [src/Rogue3/Determinism.fs, src/Rogue3/Replay.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["The prior-art draft contributed only the shape of the two door transitions; its formatting-helper replay encoding was discarded and replaced by the canonical encoder, and the discarded approach is now covered by a regression test that shows why."]
+  - id: EV015
+    kind: verification
+    subject:
+      type: task
+      id: T015
+    taskRefs: [T015]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-007]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV015]
+    artifacts: [tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/TestResults/m10-release-final.trx]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["The sweep is one Release list of 24 named scenario tests plus a guard test asserting the numbering is exactly 1 through 24 with distinct names, so a dropped scenario cannot leave the milestone green."]
+  - id: EV016
+    kind: verification
+    subject:
+      type: task
+      id: T016
+    taskRefs: [T016]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-008]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-006]
+    obligationRefs: [EV016]
+    artifacts: [readiness/performance-evidence.json, readiness/performance-intent.yml, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["The added secret-reveal workload detonates exactly one staggered-fuse bomb per sampled fixed step at maximum content, observing one scanned pending pair per step, three live pending secrets and 48 placed bombs, at p95 4.7482 ms and p99 5.7418 ms with zero catch-up frames; the six existing workloads keep their identities and exact scale gates."]
+  - id: EV017
+    kind: verification
+    subject:
+      type: task
+      id: T017
+    taskRefs: [T017]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-009]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-007]
+    obligationRefs: [EV017]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["Replay is declared as a non-performance cost driver with an explicit reason because it is an offline verification fold bounded by the authored log length rather than a per-frame route, and it is exercised in the Release suite instead of a timed workload."]
+  - id: EV018
+    kind: verification
+    subject:
+      type: task
+      id: T018
+    taskRefs: [T018]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-009]
+    obligationRefs: [EV018]
+    artifacts: [docs/roguelike-dungeon-crawler-roadmap.md, work/011-m10-acceptance-determinism/charter.md]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["Every deferral aimed at M10 is discharged here. M7 and M8 deferred the acceptance sweep, which PD-001 lands, and M9 deferred the replay and determinism acceptance work, which PD-002 and PD-007 land. No new deferral leaves this terminal milestone."]
+  - id: EV019
+    kind: verification
+    subject:
+      type: task
+      id: T019
+    taskRefs: [T019]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002, PD-006, PD-007, PD-008]
+    obligationRefs: [EV019]
+    artifacts: [src/Rogue3/Determinism.fs, src/Rogue3/FloorGeneration.fs, src/Rogue3/Model.fs, src/Rogue3/Replay.fs, src/Rogue3/Rogue3.fsproj]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["The product-owned canonical encoding, replay log, two production messages, two floor-generation door transitions and one simulation cost counter are implemented without any framework package API change."]
+  - id: EV020
+    kind: verification
+    subject:
+      type: task
+      id: T020
+    taskRefs: [T020]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-002, PD-003, PD-004, PD-005, PD-006, PD-007, PD-008]
+    obligationRefs: [EV020]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, tests/Rogue3.Tests/TestResults/m10-release-final.trx, tests/Rogue3.Tests/TestResults/m10-release-final.trx.sha256]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["Focused M10 Release 30 of 30 and full Release and Verify 183 of 183, with seven bounded-headless workloads and four UI routes green at the exact candidate, and both the raw and the BOM-stripped TRX digests committed in the sidecar."]
+  - id: EV021
+    kind: verification
+    subject:
+      type: task
+      id: T021
+    taskRefs: [T021]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV021]
+    artifacts: [src/Rogue3/EvidenceCommands.fs, src/Rogue3/FloorGeneration.fs, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["The new modules, messages and cost counter are additive and no persisted profile format changed. The re-derived workload and UI route digests failed closed and were reviewed and copied rather than migrating silently, and the reciprocal treasure-door change only affects freshly generated floors because run state is never persisted."]
+  - id: EV022
+    kind: verification
+    subject:
+      type: task
+      id: T022
+    taskRefs: [T022]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-002]
+    obligationRefs: [EV022]
+    artifacts: [readiness/evidence-audit.md, readiness/evidence-graph.md, readiness/performance-critic-request.json, readiness/performance-evidence.json, readiness/performance-intent.yml]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: ["The typed performance declaration, workload evidence, critic request and the merge-gate evidence graph and audit were regenerated at the exact candidate after the model-shape change. The M10 ship verdict is the terminal generated view of this same work item, so it is produced by the ship stage rather than cited here."]
+  - id: EV023
+    kind: verification
+    subject:
+      type: task
+      id: T023
+    taskRefs: [T023]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: [CR-009]
+    planDecisionRefs: [PD-010]
+    obligationRefs: [EV023]
+    artifacts: [work/011-m10-acceptance-determinism/clarifications.md, work/011-m10-acceptance-determinism/plan.md]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: [The accepted deferral stays visible through plan and evidence and records that the deferral ledger aimed at M10 is empty at ship rather than merely that the M10 scenarios are green.]
+  - id: EV024
+    kind: verification
+    subject:
+      type: task
+      id: T024
+    taskRefs: [T024]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: [CR-009]
+    planDecisionRefs: [PD-010]
+    obligationRefs: [EV024]
+    artifacts: [docs/roguelike-dungeon-crawler-roadmap.md, work/011-m10-acceptance-determinism/plan.md]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m10-release-final.trx
+      digest: "sha256:a5410fbbe0f833d999ca4cd8ef03e1df7320e793b8d92f344fbd140fa17df296"
+      outcome: passed
+      passed: 183
+      failed: 0
+      skipped: 0
+    notes: [The checklist review row carrying the deferral is discharged by the roadmap ledger update that marks every M10 row done with the evidence paragraph the earlier milestones use.]
+lifecycleNotes:
+  - "Next lifecycle action: verify."
