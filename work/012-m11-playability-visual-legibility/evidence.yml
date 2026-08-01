@@ -1,0 +1,1146 @@
+schemaVersion: 1
+workId: 012-m11-playability-visual-legibility
+stage: evidence
+status: evidenceReady
+sourceSpec: work/012-m11-playability-visual-legibility/spec.md
+sourceClarifications: work/012-m11-playability-visual-legibility/clarifications.md
+sourceChecklist: work/012-m11-playability-visual-legibility/checklist.md
+sourcePlan: work/012-m11-playability-visual-legibility/plan.md
+sourceTasks: work/012-m11-playability-visual-legibility/tasks.yml
+sourceAnalysis: readiness/012-m11-playability-visual-legibility/analysis.json
+sourceSnapshots:
+  - label: analysis
+    path: readiness/012-m11-playability-visual-legibility/analysis.json
+    digest: e1706f2a36a3fb97da587f1fc3bdf74aaad5318699a78966aeb7424f6d6201bd
+    schemaVersion: 1
+  - label: checklist
+    path: work/012-m11-playability-visual-legibility/checklist.md
+    digest: 9551602e27b70a319e14a885801d7628c7c89fe374c8380fd87a83cf352e445b
+    schemaVersion: 1
+  - label: clarifications
+    path: work/012-m11-playability-visual-legibility/clarifications.md
+    digest: 9b9dc4f7aba42d4721490bbc736cc62f73e6a94d9c10b88656f67d9ed72241d1
+    schemaVersion: 1
+  - label: plan
+    path: work/012-m11-playability-visual-legibility/plan.md
+    digest: c8741b3de56ea44de0c135ac0d989f77f99ad25db25ee04d38db2baa77148304
+    schemaVersion: 1
+  - label: spec
+    path: work/012-m11-playability-visual-legibility/spec.md
+    digest: c69689bb6122e990bf3ffce861390d0ae9a267ba6ba79be5bb565de49daf6236
+    schemaVersion: 1
+  - label: tasks
+    path: work/012-m11-playability-visual-legibility/tasks.yml
+    digest: d82291ced4e9bb0f466206305908ef884b8df1c730d449573a63b4525a184019
+    schemaVersion: 1
+evidence:
+  - id: EV001
+    kind: verification
+    subject:
+      type: task
+      id: T001
+    taskRefs: [T001]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: [AC-001]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV001]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["A scripted sequence of production KeyChanged and Tick messages walks the player into the starting room's north doorway", and walks back. The fixed step raises the production TraverseDoor message and advanceSim folds it through update, changes Floor.CurrentRoom, lands the player at the reciprocal doorway, so there is one traversal transition rather than a second copy.]
+  - id: EV002
+    kind: verification
+    subject:
+      type: task
+      id: T002
+    taskRefs: [T002]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: [AC-002]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV002]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["Walking into a LockedKey doorway holding one key opens both reciprocal records and spends exactly one key; crossing afterwards never charges again; the same approach with zero keys leaves door state", room and currency untouched.]
+  - id: EV003
+    kind: verification
+    subject:
+      type: task
+      id: T003
+    taskRefs: [T003]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: [AC-003]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV003]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [For every room of the boot floor, and each element is the presentation the graph state and the derived combat lock imply. The parallel cosmetic list now contributes only the lock., the rendered door set is exactly one element per FloorGeneration.Door record of that room]
+  - id: EV004
+    kind: verification
+    subject:
+      type: task
+      id: T004
+    taskRefs: [T004]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: [AC-004]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV004]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, src/Rogue3/FloorGeneration.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [BossDoor, HiddenWall, LockedKey, Open, and the four-door starting room draws them at four different places rather than one indexed strip. HiddenWall is emitted by floor generation with its graph adjacency, each centred on the wall its Direction names, so the state is reachable in play rather than only in a fixture., the combat lock and the boss lock are six distinct elements with six distinct handles and six distinct scene digests]
+  - id: EV005
+    kind: verification
+    subject:
+      type: task
+      id: T005
+    taskRefs: [T005]
+    requirementRefs: [FR-005]
+    acceptanceScenarioRefs: [AC-005]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-007]
+    obligationRefs: [EV005]
+    artifacts: [src/Rogue3/GameplayVisualInventory.fs, tests/Rogue3.Tests/CoverageGateTests.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs, tests/Rogue3.Tests/element-visuals.catalog]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [The production-owned inventory declares RoomWalls and all six door presentations, and the visual-coverage audit is Complete with representative production rendering exercising every binding., the catalog agrees]
+  - id: EV006
+    kind: verification
+    subject:
+      type: task
+      id: T006
+    taskRefs: [T006]
+    requirementRefs: [FR-006]
+    acceptanceScenarioRefs: [AC-006]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-008]
+    obligationRefs: [EV006]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/reference-evidence.md, scripts/render-m11-frames.fsx, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [Eight production-frame PNGs are committed, one per relevant room and door state, produced by Render.toPng over View.view and visually inspected during the loop. An independent visual-coverage critic reviews the exact candidate at the PR boundary.]
+  - id: EV007
+    kind: verification
+    subject:
+      type: task
+      id: T007
+    taskRefs: [T007]
+    requirementRefs: [FR-007]
+    acceptanceScenarioRefs: [AC-007]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV007]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md, src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [The boot model loads its START room through loadM5Room, and the booted frame draws all four exits plus the room walls., "so M5Room carries one entry per floor-graph door instead of the empty list at the old Model.fs:705-707"]
+  - id: EV008
+    kind: verification
+    subject:
+      type: task
+      id: T008
+    taskRefs: [T008]
+    requirementRefs: [FR-008]
+    acceptanceScenarioRefs: [AC-008]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV008]
+    artifacts: [src/Rogue3/AudioCues.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [DescendFloor returns a byte-identical model when the room records no trapdoor fixture and when the player stands away from it, and advances the floor only when both hold. The floor-descend cue is guarded on the floor index actually changing, so a refused descent is silent.]
+  - id: EV009
+    kind: verification
+    subject:
+      type: task
+      id: T009
+    taskRefs: [T009]
+    requirementRefs: [FR-009]
+    acceptanceScenarioRefs: [AC-009]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV009]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md, src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [A route of crossable doors from the starting room to the boss room is found and walked - its first hop by keys and ticks - the boss is defeated, and the interact key on it descends., the floor records exactly one trapdoor, the loaded room presents it, the production frame draws it]
+  - id: EV010
+    kind: verification
+    subject:
+      type: task
+      id: T010
+    taskRefs: [T010]
+    requirementRefs: [FR-010]
+    acceptanceScenarioRefs: [AC-010]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV010]
+    artifacts: [src/Rogue3/PerformanceEvidence.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [A runner-issued production journey of Start, and exactly the two expected rooms visited., key edges and fixed ticks crosses the north door and returns, the terminal predicate reached, with a Passed receipt]
+  - id: EV011
+    kind: verification
+    subject:
+      type: task
+      id: T011
+    taskRefs: [T011]
+    requirementRefs: [FR-011]
+    acceptanceScenarioRefs: [AC-011]
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV011]
+    artifacts: [src/Rogue3/PerformanceEvidence.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["The journey's action slot is a product-owned PlayerAction vocabulary instead of unit. An unwired CrossDoor reports JourneyDispatch.Unbound naming cross-door-north and fails the receipt; the same action", maps to a production message and really crosses., wired]
+  - id: EV012
+    kind: verification
+    subject:
+      type: task
+      id: T012
+    taskRefs: [T012]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-001]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV012]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [The doorway sensor spans 56 units either side of the wall midpoint and 14 units inward, shallower than the 17-unit arrival clearance, so a crossing cannot re-trigger itself.]
+  - id: EV013
+    kind: verification
+    subject:
+      type: task
+      id: T013
+    taskRefs: [T013]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-002]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV013]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Replay.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [so the traversal transition is not duplicated and Replay needed no change., "update is recursive and advanceSim folds the fixed step's intents through it"]
+  - id: EV014
+    kind: verification
+    subject:
+      type: task
+      id: T014
+    taskRefs: [T014]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-003]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV014]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["Walking into a LockedKey doorway with a key raises UnlockDoor; traversal follows on a later step because the traversal arm accepts only an already-usable door."]
+  - id: EV015
+    kind: verification
+    subject:
+      type: task
+      id: T015
+    taskRefs: [T015]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-004]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV015]
+    artifacts: [src/Rogue3/FloorGeneration.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [Generation writes reciprocal HiddenWall doors and graph edges for every pending secret, and revealSecret flips them rather than prepending a second pair.]
+  - id: EV016
+    kind: verification
+    subject:
+      type: task
+      id: T016
+    taskRefs: [T016]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-005]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV016]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [The DescendFloor guard reads the floor fixture, "the loaded room and the player position; the production route additionally requires the interact edge."]
+  - id: EV017
+    kind: verification
+    subject:
+      type: task
+      id: T017
+    taskRefs: [T017]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-006]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV017]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["direction and state; M5Room.Doors is documented and used only as the derived combat-lock projection."]
+  - id: EV018
+    kind: verification
+    subject:
+      type: task
+      id: T018
+    taskRefs: [T018]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-007]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV018]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["The trapdoor is derived from the room fixture and drawn at the room centre; room walls are an element on the existing FloorDecals layer", so the eleven-layer contract holds.]
+  - id: EV019
+    kind: verification
+    subject:
+      type: task
+      id: T019
+    taskRefs: [T019]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-008]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV019]
+    artifacts: [src/Rogue3/PerformanceEvidence.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["PlayerAction instantiates the journey's menu type parameter and is resolved against the live floor graph", with an Unbound arm exercised by a test rather than left as dead code.]
+  - id: EV020
+    kind: verification
+    subject:
+      type: task
+      id: T020
+    taskRefs: [T020]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-009]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV020]
+    artifacts: [tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [The five unguarded DescendFloor call sites are restaged to clear the boss room, and DescendFloor keeps its replace-every-room-local-collection contract so the scenario-18 assertions keep their meaning., enter it and stand on the trapdoor]
+  - id: EV021
+    kind: verification
+    subject:
+      type: task
+      id: T021
+    taskRefs: [T021]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-010]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV021]
+    artifacts: [src/Rogue3/Model.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["bootModelForSeed loads room 0 and both initialModel and StartRun use it; finishRun's discarded post-run state stays raw."]
+  - id: EV022
+    kind: verification
+    subject:
+      type: task
+      id: T022
+    taskRefs: [T022]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-011]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV022]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["The floor-generation workload stages a guarded descent per sampled frame from production messages only and its journey issues the interact edge from a cleared boss room; it still observes the full 20-room generation budget."]
+  - id: EV023
+    kind: verification
+    subject:
+      type: task
+      id: T023
+    taskRefs: [T023]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-012]
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV023]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, src/Rogue3/EvidenceCommands.fs, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [All seven workload digests and the three UI-route digests that hash the changed sources were re-derived, "reviewed and copied; main-menu is byte-identical", which is the check that the digest set moved where the source moved and nowhere else.]
+  - id: EV024
+    kind: verification
+    subject:
+      type: task
+      id: T024
+    taskRefs: [T024]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: [AC-001]
+    clarificationDecisionRefs: [DEC-001, DEC-002]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV024]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["A scripted sequence of production KeyChanged and Tick messages walks the player into the starting room's north doorway", and walks back. The fixed step raises the production TraverseDoor message and advanceSim folds it through update, changes Floor.CurrentRoom, lands the player at the reciprocal doorway, so there is one traversal transition rather than a second copy.]
+  - id: EV025
+    kind: verification
+    subject:
+      type: task
+      id: T025
+    taskRefs: [T025]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: [AC-001]
+    clarificationDecisionRefs: [DEC-001]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV025]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["A scripted sequence of production KeyChanged and Tick messages walks the player into the starting room's north doorway", and walks back. The fixed step raises the production TraverseDoor message and advanceSim folds it through update, changes Floor.CurrentRoom, lands the player at the reciprocal doorway, so there is one traversal transition rather than a second copy.]
+  - id: EV026
+    kind: verification
+    subject:
+      type: task
+      id: T026
+    taskRefs: [T026]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: [AC-002]
+    clarificationDecisionRefs: [DEC-003]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV026]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["Walking into a LockedKey doorway holding one key opens both reciprocal records and spends exactly one key; crossing afterwards never charges again; the same approach with zero keys leaves door state", room and currency untouched.]
+  - id: EV027
+    kind: verification
+    subject:
+      type: task
+      id: T027
+    taskRefs: [T027]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: [AC-003]
+    clarificationDecisionRefs: [DEC-006]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV027]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [For every room of the boot floor, and each element is the presentation the graph state and the derived combat lock imply. The parallel cosmetic list now contributes only the lock., the rendered door set is exactly one element per FloorGeneration.Door record of that room]
+  - id: EV028
+    kind: verification
+    subject:
+      type: task
+      id: T028
+    taskRefs: [T028]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: [AC-004]
+    clarificationDecisionRefs: [DEC-006, DEC-007]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV028]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, src/Rogue3/FloorGeneration.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [BossDoor, HiddenWall, LockedKey, Open, and the four-door starting room draws them at four different places rather than one indexed strip. HiddenWall is emitted by floor generation with its graph adjacency, each centred on the wall its Direction names, so the state is reachable in play rather than only in a fixture., the combat lock and the boss lock are six distinct elements with six distinct handles and six distinct scene digests]
+  - id: EV029
+    kind: verification
+    subject:
+      type: task
+      id: T029
+    taskRefs: [T029]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: [AC-004]
+    clarificationDecisionRefs: [DEC-004]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-006]
+    obligationRefs: [EV029]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, src/Rogue3/FloorGeneration.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [BossDoor, HiddenWall, LockedKey, Open, and the four-door starting room draws them at four different places rather than one indexed strip. HiddenWall is emitted by floor generation with its graph adjacency, each centred on the wall its Direction names, so the state is reachable in play rather than only in a fixture., the combat lock and the boss lock are six distinct elements with six distinct handles and six distinct scene digests]
+  - id: EV030
+    kind: verification
+    subject:
+      type: task
+      id: T030
+    taskRefs: [T030]
+    requirementRefs: [FR-007]
+    acceptanceScenarioRefs: [AC-007]
+    clarificationDecisionRefs: [DEC-010]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-009]
+    obligationRefs: [EV030]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md, src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [The boot model loads its START room through loadM5Room, and the booted frame draws all four exits plus the room walls., "so M5Room carries one entry per floor-graph door instead of the empty list at the old Model.fs:705-707"]
+  - id: EV031
+    kind: verification
+    subject:
+      type: task
+      id: T031
+    taskRefs: [T031]
+    requirementRefs: [FR-008]
+    acceptanceScenarioRefs: [AC-008]
+    clarificationDecisionRefs: [DEC-005]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-010]
+    obligationRefs: [EV031]
+    artifacts: [src/Rogue3/AudioCues.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [DescendFloor returns a byte-identical model when the room records no trapdoor fixture and when the player stands away from it, and advances the floor only when both hold. The floor-descend cue is guarded on the floor index actually changing, so a refused descent is silent.]
+  - id: EV032
+    kind: verification
+    subject:
+      type: task
+      id: T032
+    taskRefs: [T032]
+    requirementRefs: [FR-009]
+    acceptanceScenarioRefs: [AC-009]
+    clarificationDecisionRefs: [DEC-007]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-011]
+    obligationRefs: [EV032]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md, src/Rogue3/Model.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [A route of crossable doors from the starting room to the boss room is found and walked - its first hop by keys and ticks - the boss is defeated, and the interact key on it descends., the floor records exactly one trapdoor, the loaded room presents it, the production frame draws it]
+  - id: EV033
+    kind: verification
+    subject:
+      type: task
+      id: T033
+    taskRefs: [T033]
+    requirementRefs: [FR-010]
+    acceptanceScenarioRefs: [AC-010]
+    clarificationDecisionRefs: [DEC-008]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-012]
+    obligationRefs: [EV033]
+    artifacts: [src/Rogue3/PerformanceEvidence.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [A runner-issued production journey of Start, and exactly the two expected rooms visited., key edges and fixed ticks crosses the north door and returns, the terminal predicate reached, with a Passed receipt]
+  - id: EV034
+    kind: verification
+    subject:
+      type: task
+      id: T034
+    taskRefs: [T034]
+    requirementRefs: [FR-011]
+    acceptanceScenarioRefs: [AC-011]
+    clarificationDecisionRefs: [DEC-008]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-013]
+    obligationRefs: [EV034]
+    artifacts: [src/Rogue3/PerformanceEvidence.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["The journey's action slot is a product-owned PlayerAction vocabulary instead of unit. An unwired CrossDoor reports JourneyDispatch.Unbound naming cross-door-north and fails the receipt; the same action", maps to a production message and really crosses., wired]
+  - id: EV035
+    kind: verification
+    subject:
+      type: task
+      id: T035
+    taskRefs: [T035]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-009, DEC-011, DEC-012]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-014]
+    obligationRefs: [EV035]
+    artifacts: [tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [The five unguarded DescendFloor call sites are restaged to clear the boss room, and DescendFloor keeps its replace-every-room-local-collection contract so the scenario-18 assertions keep their meaning., enter it and stand on the trapdoor]
+  - id: EV036
+    kind: verification
+    subject:
+      type: task
+      id: T036
+    taskRefs: [T036]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-013]
+    checklistResultRefs: []
+    planDecisionRefs: [PD-015]
+    obligationRefs: [EV036]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [Discharged by the M11 Release suite and the regenerated evidence artifacts at the exact candidate.]
+  - id: EV037
+    kind: verification
+    subject:
+      type: task
+      id: T037
+    taskRefs: [T037]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: [CR-012]
+    planDecisionRefs: [PD-016]
+    obligationRefs: [EV037]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [Discharged by the M11 Release suite and the regenerated evidence artifacts at the exact candidate.]
+  - id: EV038
+    kind: verification
+    subject:
+      type: task
+      id: T038
+    taskRefs: [T038]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-002, PD-003, PD-010, PD-011]
+    obligationRefs: [EV038]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [Model gained TotalDoorSensorQueries, advanceSim gained a dispatcher parameter, and DescendFloor gained a precondition. No framework package API changed., update became recursive]
+  - id: EV039
+    kind: verification
+    subject:
+      type: task
+      id: T039
+    taskRefs: [T039]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004, PD-005, PD-006, PD-007]
+    obligationRefs: [EV039]
+    artifacts: [src/Rogue3/FloorGeneration.fs, src/Rogue3/GameplayVisualInventory.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/element-visuals.catalog]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [Generation emits HiddenWall doors and their graph edges, and the inventory and catalog grew by four rows together., rendering gained RoomWalls and three door presentations and lost the fixed-strip layout]
+  - id: EV040
+    kind: verification
+    subject:
+      type: task
+      id: T040
+    taskRefs: [T040]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-012, PD-013]
+    obligationRefs: [EV040]
+    artifacts: [src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: ["The production journey's action vocabulary is a product-owned PlayerAction type instead of unit."]
+  - id: EV041
+    kind: verification
+    subject:
+      type: task
+      id: T041
+    taskRefs: [T041]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-002, PD-003, PD-009, PD-010, PD-011, PD-012]
+    obligationRefs: [EV041]
+    artifacts: [readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [a crossing does not re-trigger on arrival, and a refused descent leaves the model byte-identical., returning, unlocking and descending are proven from scripted KeyChanged and Tick messages]
+  - id: EV042
+    kind: verification
+    subject:
+      type: task
+      id: T042
+    taskRefs: [T042]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004, PD-005, PD-006, PD-007, PD-008]
+    obligationRefs: [EV042]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/reference-evidence.md, tests/Rogue3.Tests/CoverageGateTests.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [The visual-coverage audit is Complete over the grown inventory, and eight committed production-frame PNGs were rendered and looked at., every door state renders on its own wall with a distinct scene digest]
+  - id: EV043
+    kind: verification
+    subject:
+      type: task
+      id: T043
+    taskRefs: [T043]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-013, PD-014]
+    obligationRefs: [EV043]
+    artifacts: [readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx, readiness/m7-ui-performance.json, readiness/performance-evidence.json]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [Full Release Test/Verify is 196/196 with seven bounded-headless workloads and four UI routes green at the exact candidate, and the unbound-action arm reports itself.]
+  - id: EV044
+    kind: verification
+    subject:
+      type: task
+      id: T044
+    taskRefs: [T044]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV044]
+    artifacts: [readiness/performance-evidence.json, work/012-m11-playability-visual-legibility/plan.md]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [Every change is additive - a counter, a richer journey vocabulary, and a floor that gains doors rather than losing them. Saved profiles are untouched, and every digest that moved failed closed until it was re-derived, four elements, reviewed and copied.]
+  - id: EV045
+    kind: verification
+    subject:
+      type: task
+      id: T045
+    taskRefs: [T045]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-008, PD-014]
+    obligationRefs: [EV045]
+    artifacts: [readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/03-combat-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/04-boss-room-sealed/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/05-boss-cleared-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/06-standing-on-trapdoor/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/07-combat-room-cleared-hidden-wall/reference-evidence.md, readiness/012-m11-playability-visual-legibility/frames/08-key-door-in-play/reference-evidence.md, readiness/evidence-audit.md, readiness/evidence-graph.md, readiness/m7-ui-performance.json, readiness/performance-critic-request.json, readiness/performance-evidence.json, readiness/performance-intent.yml]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    notes: [The typed performance declaration, UI-route evidence, "and the render-and-look frames are committed under the work item's readiness path.", critic request and the merge-gate evidence graph and audit were regenerated at the exact candidate, workload evidence]
+  - id: EV046
+    kind: deferral
+    subject:
+      type: task
+      id: T046
+    taskRefs: [T046]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: [DEC-013]
+    checklistResultRefs: [CR-012]
+    planDecisionRefs: []
+    obligationRefs: [EV046]
+    artifacts: [docs/roguelike-dungeon-crawler-roadmap.md, work/012-m11-playability-visual-legibility/clarifications.md, work/012-m11-playability-visual-legibility/plan.md]
+    sourceRefs: []
+    result: deferred
+    synthetic: false
+    observedRun:
+      source: readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx
+      digest: "sha256:6252bb2bf34df330891a06ede7cb33e454bc531583137e57ac2a779b11990a64"
+      outcome: passed
+      passed: 196
+      failed: 0
+      skipped: 0
+    rationale: "The unresolved launch audio assets are an asset-availability fact the host already reports correctly, not a playability or legibility defect. Pulling them into a milestone that already carries eleven rows would widen it without making the game any more playable."
+    owner: roadmap
+    scope: "The title-theme, floor-1-theme, dodge-roll, player-hit and bomb-explosion sound ids, which AssetResolver reports as unresolved at launch so every play of them is silent."
+    laterLifecycleVisibility: "Carried as DEC-013 in clarifications, PD-015/PD-016 in the plan, CR-012 in the checklist, and filed as a new roadmap row before this milestone closes, so the deferral is visible rather than dropped."
+    notes: ["The unresolved launch audio assets stay visible as an accepted deferral routed to separate roadmap work; they are an asset-availability fact the host already reports correctly", not a playability or legibility defect.]
+lifecycleNotes:
+  - "Next lifecycle action: verify."
