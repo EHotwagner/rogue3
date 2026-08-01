@@ -1,9 +1,9 @@
-kind	radius	klass	sigil	threat	health
-Grub	12	Mobile	Ring	0.25	1
-Maggot	9	Scout	Ring	0.25	1
-Spitter	14	Mobile	Bolt	0.5	1
-Fly	8	Scout	Ring	0.25	1
-Charger	16	Mobile	Fang	0.75	1
-Turret	18	Heavy	Bolt	0.75	1
-Caster	13	Mobile	Bolt	0.75	1
-Brute	22	Heavy	Fang	1	1
+kind	radius	klass	sigil	threat	speed	heading	health
+Grub	12	Mobile	Ring	0.25	2	1.8442573138851415	1
+Maggot	9	Scout	Ring	0.25	2	2.1939956567289625	1
+Spitter	14	Mobile	Bolt	0.5	1	-2.4775464907631086	1
+Fly	8	Scout	Ring	0.25	3	-2.670353755551324	1
+Charger	16	Mobile	Fang	0.75	2	1.2527087596784892	1
+Turret	18	Heavy	Bolt	0.75	0	0.8699419189104464	1
+Caster	13	Mobile	Bolt	0.75	1	-0.5880026035475676	1
+Brute	22	Heavy	Fang	1	1	-1.192828015298621	1

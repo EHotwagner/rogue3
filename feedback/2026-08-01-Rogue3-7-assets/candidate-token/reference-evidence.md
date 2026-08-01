@@ -2,14 +2,14 @@
 
 - verdict: passed
 - classification: none
-- package-identity: sha256:0259992c72cfda779f28c026bec0d5eebd5e5c2fcbe4293277e6ef282ffa6586
+- package-identity: sha256:d53cf7884f6104313dc27be575ed9315e39fdcb4952189d35866f2b2030dddad
 - protocol-version: 1.0
 - capability-profile: scene-portable/v1
 - resource-status: none
 - output-size: 1280x720
 - renderer-identity: FS.GG.UI.SkiaViewer.SceneRenderer/skia-reference
-- image-path: feedback/2026-08-01-Rogue3-7-assets/candidate-token/sha256-0259992c72cfda779f28c026bec0d5eebd5e5c2fcbe4293277e6ef282ffa6586.png
-- image-identity: sha256:256e4645311fb608313b099327761179e68638066bfe132e917b9d59422a1ab1
+- image-path: feedback/2026-08-01-Rogue3-7-assets/candidate-token/sha256-d53cf7884f6104313dc27be575ed9315e39fdcb4952189d35866f2b2030dddad.png
+- image-identity: sha256:93a04496c03711d52198439d373f26e222bebd21210c49fbeac1f6460c76b0b2
 
 ## Diagnostics
 - none

@@ -1,8 +1,9 @@
 status=ok
 grammar-selected=Token
-production-frame=feedback/2026-08-01-Rogue3-7-assets/production-frame/sha256-40bf121e035583b47160574c47667a00974e6b636883ce27bb2acf8781791ded.png
-candidate-token=feedback/2026-08-01-Rogue3-7-assets/candidate-token/sha256-0259992c72cfda779f28c026bec0d5eebd5e5c2fcbe4293277e6ef282ffa6586.png
-candidate-badge=feedback/2026-08-01-Rogue3-7-assets/candidate-badge/sha256-75109d1a2e4b1e56a068c178cf621b9b751f1af62856da5d80719171450effcd.png
-candidate-ring=feedback/2026-08-01-Rogue3-7-assets/candidate-ring/sha256-f7c3ee66e388103350f0afe3afe325d2fd7c5d79baa134dfca31b694f139fd18.png
+production-frame=feedback/2026-08-01-Rogue3-7-assets/production-frame/sha256-d53cf7884f6104313dc27be575ed9315e39fdcb4952189d35866f2b2030dddad.png
+contact-sheet=feedback/2026-08-01-Rogue3-7-assets/contact-sheet/sha256-fd9f2980fcb2e6dcb4ae239f1761943f6c090692222ab5e545bfd2429403115d.png
+candidate-token=feedback/2026-08-01-Rogue3-7-assets/candidate-token/sha256-d53cf7884f6104313dc27be575ed9315e39fdcb4952189d35866f2b2030dddad.png
+candidate-badge=feedback/2026-08-01-Rogue3-7-assets/candidate-badge/sha256-f2bbbbcd1541296c5e3f3b3e98e62597a9e517310f693087cbcb9e3656891b00.png
+candidate-ring=feedback/2026-08-01-Rogue3-7-assets/candidate-ring/sha256-4ed5638dda70401e5575c2df78ff50699d2171804573376e178711c310d52b7e.png
 enemy-kinds=8
 legibility-accepted=True

@@ -66,12 +66,10 @@ let private evidenceDigests (catalog: Catalog.Catalog) : Catalog.EvidenceDigests
         |> sha256 }
 
 let private observedBindings =
-    bindingEvidence
-    |> List.choose (fun (element, handle, _, scene, _) ->
-        if List.isEmpty scene.Nodes then
-            None
-        else
-            Some(GameplayVisualInventory.elementId element, handle))
+    GameplayVisualInventory.representativeModels
+    |> List.collect Render.renderedElements
+    |> List.choose (fun item ->
+        if List.isEmpty item.Scene.Nodes then None else Some(item.ElementId, item.Handle))
     |> List.distinct
 
 let private runtimeAudit (catalog: Catalog.Catalog) =

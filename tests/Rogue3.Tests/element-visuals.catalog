@@ -1,9 +1,16 @@
 # fs-gg element-visual catalog v1
-Ball	shown	scene/ball
-LeftPaddle	shown	scene/left-paddle
-RightPaddle	shown	scene/right-paddle
-Score	shown	scene/score
-Playfield	shown	scene/playfield
+FloorBackground	shown	scene/floor-background
+ObstacleRock	shown	scene/obstacle/rock
+ObstacleTintedRock	shown	scene/obstacle/tintedrock
+ObstaclePot	shown	scene/obstacle/pot
+ObstacleSpikes	shown	scene/obstacle/spikes
+ObstaclePit	shown	scene/obstacle/pit
+PickupCoin1	shown	scene/pickup/coin-1
+PickupCoin3	shown	scene/pickup/coin-3
+PickupHalfRedHeart	shown	scene/pickup/half-red-heart
+PickupKey	shown	scene/pickup/key
+PickupBomb	shown	scene/pickup/bomb
+PickupSoulHeart	shown	scene/pickup/soul-heart
 EnemyGrub	shown	token/enemy/grub
 EnemyMaggot	shown	token/enemy/maggot
 EnemySpitter	shown	token/enemy/spitter
@@ -12,4 +19,13 @@ EnemyCharger	shown	token/enemy/charger
 EnemyTurret	shown	token/enemy/turret
 EnemyCaster	shown	token/enemy/caster
 EnemyBrute	shown	token/enemy/brute
+BossGnawer	shown	token/boss/gnawer
+BossHollowChoir	shown	token/boss/hollowchoir
+BossMaw	shown	token/boss/maw
+ShopItem	shown	scene/shop-item
+Shadow	shown	scene/shadow
+Player	shown	scene/player
+PlayerShot	shown	scene/player-shot
+EnemyBullet	shown	scene/enemy-bullet
 Particle	shown	effects/particle
+HudScore	shown	scene/hud-score

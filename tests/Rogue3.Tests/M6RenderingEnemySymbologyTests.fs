@@ -33,8 +33,14 @@ let m6RenderingEnemySymbologyTests =
                 Expect.equal token.Faction Faction.Enemy "all live enemies use enemy faction"
                 Expect.isGreaterThan token.Health 0.0 "live health is normalized"
                 Expect.isLessThanOrEqual token.Health 1.0 "health remains in domain")
-            let encodings = tokens |> List.map (fun t -> t.R,t.Klass,t.Sigil,t.Threat) |> List.distinct
-            Expect.equal encodings.Length roster.Length "every kind has a distinct pre-attentive encoding"
+            let encodings = tokens |> List.map (fun t -> t.Klass,t.Sigil,t.Threat,t.Speed) |> List.distinct
+            Expect.equal encodings.Length roster.Length "every kind has a distinct in-capacity pre-attentive encoding"
+            let northActor = spawn 1 999 EnemyKind.Grub (vec2 640.0 460.0)
+            let eastActor = spawn 1 1000 EnemyKind.Grub (vec2 540.0 360.0)
+            let north = Render.enemyToken 1 (vec2 640.0 360.0) northActor
+            let east = Render.enemyToken 1 (vec2 640.0 360.0) eastActor
+            Expect.floatClose Accuracy.high north.Heading 0.0 "Symbology heading zero is north"
+            Expect.floatClose Accuracy.high east.Heading (System.Math.PI/2.0) "east is a quarter turn from north"
         }
 
         test "legibility pins only the physics-faithful Size warning" {
@@ -58,6 +64,9 @@ let m6RenderingEnemySymbologyTests =
             Expect.equal advanced.AgeTicks 1 "particle age advances on the fixed tick"
             Expect.notEqual advanced.Position first.Position "velocity advances position"
             Expect.isLessThan (Render.particleOpacity advanced) (Render.particleOpacity first) "fade is monotone"
+            let expiring = { first with LifetimeTicks=1; AgeTicks=0 }
+            let expired = stepSim { initialModel with M6Particles=[ expiring ] }
+            Expect.isEmpty expired.M6Particles "a particle is culled exactly when age reaches lifetime"
         }
 
         test "room camera slide is active before 0.35 seconds and identity at 42 ticks" {

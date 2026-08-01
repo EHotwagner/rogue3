@@ -11,7 +11,7 @@ sourceAnalysis: readiness/007-m6-rendering-enemy-symbology/analysis.json
 sourceSnapshots:
   - label: analysis
     path: readiness/007-m6-rendering-enemy-symbology/analysis.json
-    digest: cef0bf40c7c970bba3401b43d2c16be1efddb9a3b6fbcbdb7c57d2042371ad92
+    digest: 0bcaa4e22f94d10524bedfd52e327a5cb61a5e5aba070886f71ba327fcb6e351
     schemaVersion: 1
   - label: checklist
     path: work/007-m6-rendering-enemy-symbology/checklist.md
@@ -46,7 +46,7 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-001]
     obligationRefs: [EV001]
-    artifacts: []
+    artifacts: [src/Rogue3/Render.fs, src/Rogue3/View.fs, tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs]
     sourceRefs:
       - kind: verification
         path: tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs
@@ -54,7 +54,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:c20e9f2facd035fe5dd112ea9d3b4a0c72ad8f79f6f5faa8b62acbe764d1574a"
+      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
       outcome: passed
       passed: 128
       failed: 0
@@ -72,7 +72,7 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-002]
     obligationRefs: [EV002]
-    artifacts: []
+    artifacts: [feedback/2026-08-01-Rogue3-7-assets/channel-map.tsv, src/Rogue3/Render.fs, tests/Rogue3.Tests/element-visuals.catalog]
     sourceRefs:
       - kind: verification
         path: tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs
@@ -80,7 +80,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:c20e9f2facd035fe5dd112ea9d3b4a0c72ad8f79f6f5faa8b62acbe764d1574a"
+      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
       outcome: passed
       passed: 128
       failed: 0
@@ -98,7 +98,7 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-003]
     obligationRefs: [EV003]
-    artifacts: []
+    artifacts: [feedback/2026-08-01-Rogue3-7-assets/legibility.txt, tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs]
     sourceRefs:
       - kind: verification
         path: tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs
@@ -106,7 +106,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:c20e9f2facd035fe5dd112ea9d3b4a0c72ad8f79f6f5faa8b62acbe764d1574a"
+      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
       outcome: passed
       passed: 128
       failed: 0
@@ -124,7 +124,7 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-004]
     obligationRefs: [EV004]
-    artifacts: []
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs]
     sourceRefs:
       - kind: verification
         path: tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs
@@ -132,7 +132,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:c20e9f2facd035fe5dd112ea9d3b4a0c72ad8f79f6f5faa8b62acbe764d1574a"
+      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
       outcome: passed
       passed: 128
       failed: 0
@@ -150,7 +150,7 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-005]
     obligationRefs: [EV005]
-    artifacts: []
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs]
     sourceRefs:
       - kind: verification
         path: tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs
@@ -158,7 +158,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:c20e9f2facd035fe5dd112ea9d3b4a0c72ad8f79f6f5faa8b62acbe764d1574a"
+      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
       outcome: passed
       passed: 128
       failed: 0
@@ -176,15 +176,15 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-006]
     obligationRefs: [EV006]
-    artifacts: []
+    artifacts: [readiness/performance-evidence.json, readiness/performance-intent.yml, src/Rogue3/PerformanceEvidence.fs]
     sourceRefs:
       - kind: verification
-        path: tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs
+        path: readiness/performance-evidence.json
     result: pass
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:c20e9f2facd035fe5dd112ea9d3b4a0c72ad8f79f6f5faa8b62acbe764d1574a"
+      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
       outcome: passed
       passed: 128
       failed: 0
@@ -202,15 +202,15 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-001]
     obligationRefs: [EV007]
-    artifacts: []
+    artifacts: [src/Rogue3/GameplayVisualInventory.fs, src/Rogue3/Model.fs, src/Rogue3/Render.fs, src/Rogue3/View.fs, tests/Rogue3.Tests/element-visuals.catalog]
     sourceRefs:
       - kind: verification
-        path: tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs
+        path: tests/Rogue3.Tests/CoverageGateTests.fs
     result: pass
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:c20e9f2facd035fe5dd112ea9d3b4a0c72ad8f79f6f5faa8b62acbe764d1574a"
+      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
       outcome: passed
       passed: 128
       failed: 0
@@ -228,15 +228,15 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-001]
     obligationRefs: [EV008]
-    artifacts: []
+    artifacts: [feedback/2026-08-01-Rogue3-7-assets/manifest.txt, readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx, readiness/performance-evidence.json]
     sourceRefs:
       - kind: verification
-        path: tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs
+        path: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
     result: pass
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:c20e9f2facd035fe5dd112ea9d3b4a0c72ad8f79f6f5faa8b62acbe764d1574a"
+      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
       outcome: passed
       passed: 128
       failed: 0
@@ -254,15 +254,15 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: []
     obligationRefs: [EV009]
-    artifacts: []
+    artifacts: [src/Rogue3/Model.fs, work/007-m6-rendering-enemy-symbology/plan.md]
     sourceRefs:
       - kind: verification
-        path: tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs
+        path: work/007-m6-rendering-enemy-symbology/plan.md
     result: pass
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:c20e9f2facd035fe5dd112ea9d3b4a0c72ad8f79f6f5faa8b62acbe764d1574a"
+      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
       outcome: passed
       passed: 128
       failed: 0
@@ -280,15 +280,15 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-001]
     obligationRefs: [EV010]
-    artifacts: []
+    artifacts: [feedback/2026-08-01-Rogue3-7-assets/manifest.txt, readiness/007-m6-rendering-enemy-symbology/ship-verdict.json, readiness/performance-evidence.json]
     sourceRefs:
       - kind: verification
-        path: tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs
+        path: readiness/007-m6-rendering-enemy-symbology/ship-verdict.json
     result: pass
     synthetic: false
     observedRun:
       source: readiness/007-m6-rendering-enemy-symbology/test-results/m6-full.trx
-      digest: "sha256:c20e9f2facd035fe5dd112ea9d3b4a0c72ad8f79f6f5faa8b62acbe764d1574a"
+      digest: "sha256:756f55614499d67c7545ca308b54dfa3ca2ae645aabf39d563ec21dddf739ecf"
       outcome: passed
       passed: 128
       failed: 0

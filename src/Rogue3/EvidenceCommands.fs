@@ -1042,38 +1042,67 @@ let m6VisualEvidence (outputDirectory: string) =
             Rogue3.Entities.spawn 2 (6000 + index) kind (vec2 (230.0 + float column * 250.0) (245.0 + float row * 250.0)))
 
     let model =
+        let shop,_,_ =
+            Rogue3.Entities.generateShop (FS.GG.Game.Core.Rng.ofSeed 0xC0FFEEUL) (Rogue3.Entities.itemPool [])
+        let shot =
+            spawnShots 1 1 (vec2 640.0 360.0) zero (vec2 1.0 0.0) basePlayerStats
+            |> List.head
+        let enemyBullet =
+            { Id=9000;Position=vec2 760.0 360.0;Velocity=zero;Radius=4.0;Damage=1;Homing=0.0;AgeTicks=0 }
         let particles =
             update (SpawnM6Particles(120, vec2 640.0 360.0, ParticleTint.Explosion)) initialModel
             |> fst
         { particles with
             M5Enemies = enemies
             M5Obstacles =
-                [ Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Rock 1
-                  Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Spikes 2
-                  Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Pit 3 ] }
+                [ Rogue3.Entities.obstacleAt (vec2 115.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Rock 1)
+                  Rogue3.Entities.obstacleAt (vec2 320.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.TintedRock 2)
+                  Rogue3.Entities.obstacleAt (vec2 520.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Pot 3)
+                  Rogue3.Entities.obstacleAt (vec2 760.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Spikes 4)
+                  Rogue3.Entities.obstacleAt (vec2 1010.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Pit 5) ]
+            M5ObstacleDrops =
+                [ Rogue3.Entities.PickupKind.Coin1; Rogue3.Entities.PickupKind.Coin3
+                  Rogue3.Entities.PickupKind.HalfRedHeart; Rogue3.Entities.PickupKind.Key
+                  Rogue3.Entities.PickupKind.Bomb; Rogue3.Entities.PickupKind.SoulHeart ]
+            M5Boss=Some(Rogue3.Entities.spawnBoss 7000 Rogue3.Entities.BossKind.Maw (vec2 1120.0 560.0))
+            M5ShopSlots=shop
+            ShotSpawns=[shot]
+            EnemyBullets=[enemyBullet] }
+        |> fun fixture -> [1..18] |> List.fold (fun state _ -> stepSim state) fixture
 
     let tokens = Rogue3.Render.enemyTokens model
     let size = { Width=1280; Height=720 }
 
-    let render name scene =
+    let renderAt renderSize name scene =
         let directory = Path.Combine(outputDirectory, name)
         Directory.CreateDirectory directory |> ignore
-        FS.GG.UI.Symbology.Render.Render.toPng size scene directory
+        FS.GG.UI.Symbology.Render.Render.toPng renderSize scene directory
+
+    let render name scene = renderAt size name scene
 
     let candidatePaths =
         [ Grammar.Token, "candidate-token"
           Grammar.Badge, "candidate-badge"
           Grammar.Ring, "candidate-ring" ]
-        |> List.map (fun (grammar, name) -> name, render name (Symbology.galleryIn grammar 4 190.0 tokens))
+        |> List.map (fun (grammar, name) ->
+            name, render name { Nodes=[ Rogue3.Render.viewIn grammar model ] })
 
     let productionPath =
         render "production-frame" { Nodes=[ Rogue3.Render.view model ] }
 
+    let contactSheetPath =
+        let frames =
+            [ Grammar.Token; Grammar.Badge; Grammar.Ring ]
+            |> List.mapi (fun index grammar ->
+                Scene.translate (float index*1280.0) 0.0 { Nodes=[ Rogue3.Render.viewIn grammar model ] })
+            |> Scene.group
+        renderAt { Width=3840;Height=720 } "contact-sheet" frames
+
     let mappingLines =
-        [ "kind\tradius\tklass\tsigil\tthreat\thealth" ]
+        [ "kind\tradius\tklass\tsigil\tthreat\tspeed\theading\thealth" ]
         @ (List.zip enemies tokens
            |> List.map (fun (enemy, token) ->
-               $"{enemy.Kind}\t{token.R:R}\t{token.Klass}\t{token.Sigil}\t{token.Threat:R}\t{token.Health:R}"))
+               $"{enemy.Kind}\t{token.R:R}\t{token.Klass}\t{token.Sigil}\t{token.Threat:R}\t{token.Speed}\t{token.Heading:R}\t{token.Health:R}"))
     File.WriteAllLines(Path.Combine(outputDirectory, "channel-map.tsv"), mappingLines)
 
     let legibility = Rogue3.Render.legibility model
@@ -1093,7 +1122,7 @@ let m6VisualEvidence (outputDirectory: string) =
           ""
           "Token is selected because M6 requires whole-body facing plus simultaneous silhouette, sigil, faction, health, and threat channels at physics-faithful radii."
           ""
-          "Badge was rejected because its screen-aligned frame weakens the required world-facing read. Ring was rejected because its radial gauge makes the compact scout/heavy silhouette distinction less immediate. Both remain rendered as faithful comparison frames."
+          "Badge was rejected because its screen-aligned frame weakens the required world-facing read. Ring was rejected because its radial gauge makes the compact scout/heavy silhouette distinction less immediate. Token, Badge, and Ring are rendered from the identical hard-content production frame, individually and in one contact sheet."
           ""
           "The accepted linter exception is Size only: physical hitbox radii intentionally exceed the grammar's separable-size capacity. No Error and no other warning class is accepted." ])
 
@@ -1101,6 +1130,7 @@ let m6VisualEvidence (outputDirectory: string) =
         [ yield "status=ok"
           yield "grammar-selected=Token"
           yield $"production-frame={productionPath}"
+          yield $"contact-sheet={contactSheetPath}"
           for name, path in candidatePaths do yield $"{name}={path}"
           yield $"enemy-kinds={tokens.Length}"
           yield $"legibility-accepted={Rogue3.Render.acceptedLegibility model}" ]
