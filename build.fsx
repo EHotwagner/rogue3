@@ -247,6 +247,7 @@ let private singleSrcProject () =
 let runPerformanceEvidence () =
     let project = singleSrcProject ()
     runProcess "PerformanceEvidence" "dotnet" (sprintf "run -c Release --project src/%s -- --performance-evidence readiness/performance-evidence.json" project)
+    runProcess "M7UiPerformanceEvidence" "dotnet" (sprintf "run -c Release --project src/%s -- --m7-ui-performance readiness/m7-ui-performance.json" project)
 
 let runPerformanceCriticRequest () =
     let project = singleSrcProject ()

@@ -1111,7 +1111,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "a1cc3428af74f51f2ca03b57d68c2e278c53d63d70e18c8a070ec02892cb9202" }
+        Authorship = Authored "d5109e71a5289d3357a6c401647f00c415e6984da10bc5b787dd5c06dc86154b" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -1144,7 +1144,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "78a7bcf43b4dd84fed4cea587844051b8293d7c8c384513fb69713ebee1e5e1e" }
+        Authorship = Authored "aa7c6c4951052bab3f4f534766a1791709b7e9439cc4eacabdeb2ee930f3aa6c" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -1180,7 +1180,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "9e078335c933002782468ab9684cfa0136565288b6e51d74b1438f2352d5b374" }
+        Authorship = Authored "088998abf3581631e72a18f5aa824f2120394689708815ff4a6885f99da19e71" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -1203,7 +1203,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "7fb325cc5aa5624029214545bc2dcf8ce3348a2c6a877177b064ed7b3f6a5939" }
+        Authorship = Authored "7cc3f002e15cb0d82444ac8183afb1b68a0f4e42e16326db3388fb3e6a005750" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN floor-generation
       { Id = "floor-generation"
@@ -1220,7 +1220,7 @@ let expectedWorkloads =
         CostDriverIds = [ "generation.floor-room-budget"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "b9f6be9e7c4b8762dbc6b3011a53c1b3e38e7ca4c28f5a9a13654fe64db98e5d" }
+        Authorship = Authored "50d2086fb5c046c99b7a9532218ac9eb4b166d911c5d56ade79b6d16d992b4d7" }
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
@@ -1306,7 +1306,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "eb512a1ccc083b181d8a42c4fc2856f01a4348668dc5c69a67b5ab3837da0e9a" }
+        Authorship = Authored "241091dbbeee344ca6190b81a9b84c27213ced1b2bd6bce7b41b9be404333a0c" }
       // WORKLOAD-SOURCE-END maximum-content
       ]
 

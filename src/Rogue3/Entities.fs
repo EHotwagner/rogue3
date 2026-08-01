@@ -277,4 +277,11 @@ let enemyDied enemyId rng room =
     let live=Set.remove enemyId room.LiveEnemyIds
     if room.Cleared || not(Set.isEmpty live) then {room with LiveEnemyIds=live},rng
     else let drop,next=rollDrop roomClearTable rng in {room with Cleared=true;LiveEnemyIds=live;Doors=room.Doors|>List.map(fun _->DoorState.Open);Drop=(if drop=PickupKind.Nothing then None else Some drop)},next
+let enemyDiedWithNothingWeight nothingWeight enemyId rng room =
+    let live=Set.remove enemyId room.LiveEnemyIds
+    if room.Cleared || not(Set.isEmpty live) then {room with LiveEnemyIds=live},rng
+    else
+        let table=roomClearTable|>List.map(fun entry->if entry.Kind=PickupKind.Nothing then {entry with Weight=max 0 nothingWeight} else entry)
+        let drop,next=rollDrop table rng
+        {room with Cleared=true;LiveEnemyIds=live;Doors=room.Doors|>List.map(fun _->DoorState.Open);Drop=(if drop=PickupKind.Nothing then None else Some drop)},next
 let bossCleared reward room = {room with Cleared=true;LiveEnemyIds=Set.empty;Doors=room.Doors|>List.map(fun _->DoorState.Open);Reward=reward;Trapdoor=true}

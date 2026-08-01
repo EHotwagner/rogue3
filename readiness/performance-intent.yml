@@ -3,7 +3,7 @@ performanceIntent:
   disposition: "active"
   targetFps: 60
   workloadIds: ["idle", "movement-aiming", "firing", "effects-fog", "floor-generation", "maximum-content"]
-  workloadDefinitionDigests: ["idle=sha256:a1cc3428af74f51f2ca03b57d68c2e278c53d63d70e18c8a070ec02892cb9202", "movement-aiming=sha256:78a7bcf43b4dd84fed4cea587844051b8293d7c8c384513fb69713ebee1e5e1e", "firing=sha256:9e078335c933002782468ab9684cfa0136565288b6e51d74b1438f2352d5b374", "effects-fog=sha256:7fb325cc5aa5624029214545bc2dcf8ce3348a2c6a877177b064ed7b3f6a5939", "floor-generation=sha256:b9f6be9e7c4b8762dbc6b3011a53c1b3e38e7ca4c28f5a9a13654fe64db98e5d", "maximum-content=sha256:eb512a1ccc083b181d8a42c4fc2856f01a4348668dc5c69a67b5ab3837da0e9a"]
+  workloadDefinitionDigests: ["idle=sha256:d5109e71a5289d3357a6c401647f00c415e6984da10bc5b787dd5c06dc86154b", "movement-aiming=sha256:aa7c6c4951052bab3f4f534766a1791709b7e9439cc4eacabdeb2ee930f3aa6c", "firing=sha256:088998abf3581631e72a18f5aa824f2120394689708815ff4a6885f99da19e71", "effects-fog=sha256:7cc3f002e15cb0d82444ac8183afb1b68a0f4e42e16326db3388fb3e6a005750", "floor-generation=sha256:50d2086fb5c046c99b7a9532218ac9eb4b166d911c5d56ade79b6d16d992b4d7", "maximum-content=sha256:241091dbbeee344ca6190b81a9b84c27213ced1b2bd6bce7b41b9be404333a0c"]
   maximumExpectedScale: "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 736 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition, and all five pre-M6 visuals"
   maxP95Ms: 16.67
   maxP99Ms: 25.0

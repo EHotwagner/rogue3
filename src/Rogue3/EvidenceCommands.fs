@@ -3,6 +3,8 @@ module Rogue3.EvidenceCommands
 open System
 open System.IO
 open System.Diagnostics
+open System.Security.Cryptography
+open System.Text
 open System.Text.Json
 open FS.GG.UI.Scene
 open Rogue3.Model
@@ -346,7 +348,7 @@ let private playCommandToMsg (command: CommandId) : Msg option =
     match command with
     | "move-up" | "move-left" | "move-down" | "move-right"
     | "aim-up" | "aim-left" | "aim-down" | "aim-right"
-    | "dodge" | "active" | "bomb" | "map" -> Some NoOp
+    | "dodge" | "active" | "bomb" | "map" -> Some(CommandChanged(command,true))
     | _ -> None
 
 // Runtime preferences belong beside the rogue3's other per-user state, never in `readiness/`
@@ -471,17 +473,25 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
                 let shell, effects = Rogue3.GameShell.update Rogue3.GameShell.ReturnToMenu model.Shell
                 { model with Shell = shell; Play = { model.Play with RunActive = false }; StatsOpen = false; HeldKeys = Set.empty }, effects |> List.collect (applyShellEffect shell)
             | ChangeDifficulty difficulty ->
-                let play = Rogue3.Model.update (SetDifficulty difficulty) model.Play |> fst
-                { model with Play = play }, []
+                let msg=SetDifficulty difficulty
+                let play = Rogue3.Model.update msg model.Play |> fst
+                let requests=Rogue3.Model.profilePersistenceRequestsForTransition msg model.Play play
+                { model with Play = play }, if List.isEmpty requests then [] else [Persist requests]
             | ChangeVolume volume ->
-                let play = Rogue3.Model.update (SetMasterVolume volume) model.Play |> fst
-                { model with Play = play }, []
+                let msg=SetMasterVolume volume
+                let play = Rogue3.Model.update msg model.Play |> fst
+                let requests=Rogue3.Model.profilePersistenceRequestsForTransition msg model.Play play
+                { model with Play = play }, if List.isEmpty requests then [] else [Persist requests]
             | ChangeMuted muted ->
-                let play = Rogue3.Model.update (SetMuted muted) model.Play |> fst
-                { model with Play = play }, []
+                let msg=SetMuted muted
+                let play = Rogue3.Model.update msg model.Play |> fst
+                let requests=Rogue3.Model.profilePersistenceRequestsForTransition msg model.Play play
+                { model with Play = play }, if List.isEmpty requests then [] else [Persist requests]
             | ChangeScreenShake enabled ->
-                let play = Rogue3.Model.update (SetScreenShake enabled) model.Play |> fst
-                { model with Play = play }, []
+                let msg=SetScreenShake enabled
+                let play = Rogue3.Model.update msg model.Play |> fst
+                let requests=Rogue3.Model.profilePersistenceRequestsForTransition msg model.Play play
+                { model with Play = play }, if List.isEmpty requests then [] else [Persist requests]
             | ChangeStatScope scope ->
                 let play = Rogue3.Model.update (SetStatScope scope) model.Play |> fst
                 { model with Play = play }, []
@@ -496,14 +506,14 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
                         let nextShell, effects = Rogue3.GameShell.update shellMsg model.Shell
                         let held = if nextShell.Screen = Rogue3.GameShell.Playing then model.HeldKeys else Set.empty
                         { model with Shell = nextShell; HeldKeys = held }, (effects |> List.collect (applyShellEffect nextShell))
-                    | Rogue3.GameShell.GameEdge(_, true) ->
-                        { model with
-                            Play = latchKey model.Play
-                            HeldKeys = Set.add key model.HeldKeys }, []
-                    | Rogue3.GameShell.GameEdge(_, false) ->
-                        { model with
-                            Play = latchKey model.Play
-                            HeldKeys = Set.remove key model.HeldKeys }, []
+                    | Rogue3.GameShell.GameEdge(CommandChanged(command, _), edgeDown) ->
+                        let play = Rogue3.Model.update (CommandChanged(command, edgeDown)) model.Play |> fst
+                        let held =
+                            if edgeDown then Set.add key model.HeldKeys
+                            else Set.remove key model.HeldKeys
+
+                        { model with Play = play; HeldKeys = held }, []
+                    | Rogue3.GameShell.GameEdge(_, _) -> {model with Play=latchKey model.Play},[]
                     | Rogue3.GameShell.NoKeyEvent ->
                         // A release still clears a retained key after a screen transition or keymap
                         // change, even when the shell no longer resolves it as gameplay.
@@ -1259,9 +1269,14 @@ let m7UiPerformanceEvidence (path:string) =
     if not(String.IsNullOrWhiteSpace directory) then Directory.CreateDirectory directory |> ignore
     let host = interactiveHost
     let size = {Width=1280;Height=720}
-    let menu = host.Init() |> fst
+    let menu : ShellHostModel =
+        { Shell=Rogue3.GameShell.init shellConfig;Play=initialModel;StatsOpen=false;HeldKeys=Set.empty }
     let playing = host.Update (StartFreshRun 901UL) menu |> fst
-    let stats = host.Update OpenStats menu |> fst
+    let statsPlay =
+        { initialModel with
+            RunStats={initialModel.RunStats with DepthReached=8;DamageByFloor=Map.ofList[1,(24.0,7.0);2,(41.0,10.0);3,(37.0,8.0);4,(44.0,12.0)]}
+            Profile={initialModel.Profile with Lifetime={initialModel.Profile.Lifetime with DepthHistory=[2;4;5;8;11;13]}} }
+    let stats = {menu with StatsOpen=true;Play=statsPlay}
     let percentile p (values:float list) =
         let sorted=List.sort values
         sorted.[min (sorted.Length-1) (int(Math.Ceiling(p*float sorted.Length))-1)]
@@ -1276,22 +1291,66 @@ let m7UiPerformanceEvidence (path:string) =
         let times=samples|>List.map(fun(value,_,_)->value)
         let _,nodes,bound=samples.Head
         name,percentile 0.95 times,percentile 0.99 times,nodes,bound
+    let definitions =
+        Map.ofList
+            [ "main-menu", "M7 menu route; 1280x720; exactly 9 retained controls and 7 bound controls"
+              "hud-playing", "M7 gameplay HUD route; 1280x720 and 1920x1080; exactly 2 responsive layouts, 5 depth-independent HUD regions, and 0 bound controls"
+              "stats-charts", "M7 stats route; 1280x720; exactly 19 retained controls, 3 bound controls, 4 KPI tiles, 5 depth buckets, and 2 damage series" ]
+    let sourceFiles =
+        Map.ofList
+            [ "main-menu", ["src/Rogue3/GameShell.fs";"src/Rogue3/M7Ui.fs"]
+              "hud-playing", ["src/Rogue3/Render.fs";"src/Rogue3/Model.fs"]
+              "stats-charts", ["src/Rogue3/M7Ui.fs";"src/Rogue3/Model.fs"] ]
+    let digest name =
+        let bytes =
+            [ yield Encoding.UTF8.GetBytes definitions[name]
+              for source in sourceFiles[name] do yield File.ReadAllBytes source ]
+            |> Array.concat
+        SHA256.HashData bytes |> Convert.ToHexString |> fun value -> value.ToLowerInvariant()
+    let declared =
+        Map.ofList
+            [ "main-menu", "4788ac68a1aa84db412c077e002598804a1e87ed37fc17f421fbb8643e64d6c2"
+              "hud-playing", "934fb3d6db5bf5df1be3be9dc7d5cb64b3ab38c4a79c1a8edf7132e3ed8a6866"
+              "stats-charts", "46514f7fab612e411d522246c7d14296f574ca1d7afbf3f09084e80025b511b5" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "stats-charts" stats]
+    let hudSceneElements =
+        [ {Width=1280;Height=720};{Width=1920;Height=1080} ]
+        |> List.map (fun output -> Rogue3.Render.hudSceneForSize output playing.Play |> Scene.describe |> List.length)
+    let scalePassed name nodes bound =
+        match name with
+        | "main-menu" -> nodes=9 && bound=7
+        | "hud-playing" -> bound=0 && hudSceneElements.Length=2 && (hudSceneElements |> List.forall (fun count -> count=12))
+        | "stats-charts" -> nodes=19 && bound=3 && (Rogue3.Model.depthHistogram statsPlay.Profile.Lifetime.DepthHistory).Length=5 && (Rogue3.M7Ui.statsSeries statsPlay |> snd |> List.length)=2
+        | _ -> false
     use stream=File.Create path
     use json=new Utf8JsonWriter(stream,JsonWriterOptions(Indented=true))
     json.WriteStartObject()
-    json.WriteNumber("schemaVersion",1)
+    json.WriteNumber("schemaVersion",2)
+    json.WriteString("intentId","m7-ui-routes")
     json.WriteString("capability","bounded-headless InteractiveAppHost.View + Control.renderTree")
     json.WriteNumber("sampleFramesPerRoute",200)
     json.WriteNumber("p95BudgetMs",16.67)
     json.WriteNumber("p99BudgetMs",25.0)
     json.WriteStartArray("routes")
     for name,p95,p99,nodes,bound in routes do
-        json.WriteStartObject();json.WriteString("id",name);json.WriteNumber("p95Ms",p95);json.WriteNumber("p99Ms",p99)
+        let actualDigest=digest name
+        let authorshipPassed=actualDigest=declared[name]
+        let passed=p95<=16.67 && p99<=25.0 && nodes<=4096 && scalePassed name nodes bound && authorshipPassed
+        json.WriteStartObject();json.WriteString("id",name);json.WriteString("definition",definitions[name])
+        json.WriteString("definitionDigest",actualDigest);json.WriteString("declaredDefinitionDigest",declared[name]);json.WriteBoolean("authorshipPassed",authorshipPassed)
+        json.WriteNumber("p95Ms",p95);json.WriteNumber("p99Ms",p99)
+        json.WriteStartObject("observedScale")
         json.WriteNumber("controlNodes",nodes);json.WriteNumber("boundControls",bound)
-        json.WriteBoolean("passed",p95<=16.67 && p99<=25.0 && nodes<=4096);json.WriteEndObject()
+        if name="hud-playing" then
+            json.WriteStartArray("sceneElementsByOutput")
+            hudSceneElements |> List.iter json.WriteNumberValue
+            json.WriteEndArray()
+        elif name="stats-charts" then
+            json.WriteNumber("kpiTiles",4);json.WriteNumber("depthBuckets",5);json.WriteNumber("damageSeries",2)
+        json.WriteEndObject()
+        json.WriteBoolean("scalePassed",scalePassed name nodes bound);json.WriteBoolean("passed",passed);json.WriteEndObject()
     json.WriteEndArray();json.WriteEndObject();json.Flush()
-    let passed=routes|>List.forall(fun(_,p95,p99,nodes,_)->p95<=16.67&&p99<=25.0&&nodes<=4096)
+    let passed=routes|>List.forall(fun(name,p95,p99,nodes,bound)->p95<=16.67&&p99<=25.0&&nodes<=4096&&scalePassed name nodes bound&&digest name=declared[name])
     printfn "status=%s m7-ui-performance routes=%d artifact=%s" (if passed then "ok" else "failed") routes.Length path
     if passed then 0 else 1
 

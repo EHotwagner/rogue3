@@ -3,6 +3,7 @@ module Rogue3.M7Ui
 open FS.GG.UI.Controls
 open FS.GG.UI.Controls.Typed
 open FS.GG.UI.DesignSystem
+open FS.GG.UI.Scene
 open Rogue3.Model
 
 module Button = FS.GG.UI.Controls.Typed.Button
@@ -10,6 +11,8 @@ module Stack = FS.GG.UI.Controls.Typed.Stack
 module TextBlock = FS.GG.UI.Controls.Typed.TextBlock
 module BarChart = FS.GG.UI.Controls.Typed.BarChart
 module LineChart = FS.GG.UI.Controls.Typed.LineChart
+module Border = FS.GG.UI.Controls.Typed.Border
+module CustomControl = FS.GG.UI.Controls.Typed.CustomControl
 
 type Actions<'msg> =
     { NewRun: 'msg
@@ -32,6 +35,26 @@ let private button id text intent message =
 
 let private text value = TextBlock.view { TextBlock.defaults with Text=value }
 let private stack children = Stack.view { Stack.defaults with Spacing=10.0; Children=children }
+let private row children = Stack.view { Stack.defaults with Orientation=StackOrientation.Horizontal;Spacing=10.0;Children=children }
+let private tile value = Border.view { Border.defaults (text value) with Thickness=1.0;Padding=12.0 }
+
+let private paletteChart model =
+    let points which =
+        model.RunStats.DamageByFloor|>Map.toList|>List.mapi(fun index (_,pair)->
+            let value=if which then fst pair else snd pair
+            {X=18.0+float index*48.0;Y=92.0-min 78.0 value})
+    let segments color values =
+        values|>List.pairwise|>List.map(fun(a,b)->Scene.line a b (Paint.stroke color 4.0))
+    let blue=Colors.rgb 42uy 120uy 214uy
+    let green=Colors.rgb 27uy 175uy 122uy
+    let scene =
+        Scene.group
+            ((segments blue (points true)) @ (segments green (points false)) @
+             [ Scene.line {X=18.0;Y=108.0} {X=48.0;Y=108.0} (Paint.stroke blue 5.0)
+               Scene.textAt {X=54.0;Y=112.0} "Dealt" blue
+               Scene.line {X=138.0;Y=108.0} {X=168.0;Y=108.0} (Paint.stroke green 5.0)
+               Scene.textAt {X=174.0;Y=112.0} "Taken" green ])
+    CustomControl.ofControl (Canvas.create [Canvas.scene scene;Attr.width 320.0;Attr.height 124.0])
 
 let private settingsRows actions model =
     let selected mode = if model.Profile.Settings.Difficulty=mode then "> " else ""
@@ -84,14 +107,15 @@ let statsView model actions =
     let depth, damage = statsSeries model
     stack
         [ text "STATS"
-          text (sprintf "DEEPEST  Fl %d" (max model.RunStats.DepthReached lifetime.DeepestFloor))
-          text (sprintf "RUNS     %d" lifetime.RunsPlayed)
-          text (sprintf "WIN %%    %.0f %%" (winRatePct lifetime))
-          text (sprintf "KILLS    %d" lifetime.TotalKills)
+          row [tile(sprintf "DEEPEST  %d" (max model.RunStats.DepthReached lifetime.DeepestFloor))
+               tile(sprintf "RUNS  %d" lifetime.RunsPlayed)
+               tile(sprintf "WIN  %.0f %%" (winRatePct lifetime))
+               tile(sprintf "KILLS  %d" lifetime.TotalKills)]
           button "scope-this-run" "This Run" ButtonIntent.Secondary (actions.Scope StatScope.ThisRun)
           button "scope-lifetime" "Lifetime" ButtonIntent.Secondary (actions.Scope StatScope.Lifetime)
           text "Run-depth distribution"
           BarChart.view { BarChart.defaults with Id=Some "depth-histogram";Series=[depth] }
           text "Damage per floor — Dealt #2a78d6 · Taken #1baf7a"
+          paletteChart model
           LineChart.view { LineChart.defaults with Id=Some "damage-per-floor";Series=damage }
           button "stats-back" "ESC — Back" ButtonIntent.Secondary actions.CloseStats ]

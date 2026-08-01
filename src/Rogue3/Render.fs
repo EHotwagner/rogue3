@@ -51,7 +51,15 @@ let hudSceneForSize (size: Size) model =
         [ for i in 0..heartCount-1 do
             let x = layout.HeartsBounds.X + float i*32.0
             let fill = if filledRed >= (i+1)*2 then color 232uy 66uy 79uy 255uy elif filledRed = i*2+1 then color 232uy 66uy 79uy 150uy else color 84uy 72uy 88uy 255uy
-            yield Scene.circle { X=x+12.0;Y=layout.HeartsBounds.Y+12.0 } 11.0 fill ]
+            yield Scene.circle { X=x+12.0;Y=layout.HeartsBounds.Y+12.0 } 11.0 fill
+          let soulCount=(model.PlayerHealth.SoulHalfHearts+1)/2
+          for i in 0..soulCount-1 do
+            let full=model.PlayerHealth.SoulHalfHearts>i*2+1
+            yield Scene.circle {X=layout.HeartsBounds.X+float(heartCount+i)*32.0+12.0;Y=layout.HeartsBounds.Y+12.0} 11.0 (color 78uy 186uy 232uy (if full then 255uy else 150uy))
+          let blackCount=(model.PlayerHealth.BlackHalfHearts+1)/2
+          for i in 0..blackCount-1 do
+            let full=model.PlayerHealth.BlackHalfHearts>i*2+1
+            yield Scene.circle {X=layout.HeartsBounds.X+float(heartCount+soulCount+i)*32.0+12.0;Y=layout.HeartsBounds.Y+12.0} 11.0 (color 38uy 30uy 48uy (if full then 255uy else 150uy)) ]
     let currency = sprintf "COIN %02d   KEY %02d   BOMB %02d" model.PlayerCurrency.Coins model.PlayerCurrency.Keys model.PlayerCurrency.Bombs
     let chargeRatio = if model.ActiveChargeMaximum<=0 then 0.0 else float model.ActiveCharge/float model.ActiveChargeMaximum
     let chargeText = sprintf "ACTIVE %d/%d" model.ActiveCharge model.ActiveChargeMaximum
@@ -59,14 +67,22 @@ let hudSceneForSize (size: Size) model =
     let mapNodes =
         revealed |> List.map (fun room ->
             let current = room.Id=model.Floor.CurrentRoom
-            let fill = if current then color 255uy 220uy 80uy 255uy else color 90uy 115uy 145uy 255uy
+            let fill =
+                if current then color 255uy 220uy 80uy 255uy else
+                match room.RoomType with
+                | FloorGeneration.Treasure -> color 255uy 190uy 64uy 255uy
+                | FloorGeneration.Shop -> color 72uy 204uy 132uy 255uy
+                | FloorGeneration.Boss -> color 220uy 66uy 79uy 255uy
+                | FloorGeneration.Secret | FloorGeneration.SuperSecret -> color 190uy 126uy 255uy 255uy
+                | _ -> color 90uy 115uy 145uy 255uy
             Scene.filledRectangle
                 { X=layout.MinimapBounds.X+56.0+float room.Cell.Col*10.0; Y=layout.MinimapBounds.Y+56.0+float room.Cell.Row*10.0; Width=8.0;Height=8.0 } fill)
     let floorName = sprintf "%d — THE BURROWS" model.FloorIndex
     Scene.group
         (heartNodes @
          [ Scene.textAt { X=layout.CurrencyBounds.X;Y=layout.CurrencyBounds.Y+18.0 } currency (color 255uy 244uy 205uy 255uy)
-           Scene.circle { X=layout.ChargeBounds.X+20.0;Y=layout.ChargeBounds.Y+20.0 } (8.0+12.0*chargeRatio) (color 42uy 120uy 214uy 220uy)
+           Scene.circle { X=layout.ChargeBounds.X+20.0;Y=layout.ChargeBounds.Y+20.0 } 15.0 (color 35uy 42uy 56uy 255uy)
+           Scene.arc {X=layout.ChargeBounds.X+3.0;Y=layout.ChargeBounds.Y+3.0;Width=34.0;Height=34.0} -90.0 (360.0*chargeRatio) (Paint.stroke (color 42uy 120uy 214uy 255uy) 5.0)
            Scene.textAt { X=layout.ChargeBounds.X-35.0;Y=layout.ChargeBounds.Y+38.0 } chargeText (color 255uy 255uy 255uy 255uy)
            Scene.filledRectangle layout.MinimapBounds (color 16uy 20uy 30uy 210uy)
            Scene.group mapNodes ] @

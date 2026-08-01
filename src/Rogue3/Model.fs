@@ -1,6 +1,7 @@
 module Rogue3.Model
 
 open System
+open System.Text.Json
 // ============================================================================================
 // GAME family — minimal, replaceable Pong-style starter (feature 220).
 //
@@ -49,6 +50,7 @@ type GamepadSnapshot =
 /// keyboard and pointer messages update the same shape one field at a time.
 type InputSnapshot =
     { Keys: Set<KeyId>
+      Commands: Set<string>
       MousePosition: Vec2 option
       MousePrimaryDown: bool
       Gamepad: GamepadSnapshot }
@@ -335,6 +337,7 @@ type Msg =
     | MovePaddle of PaddleSide * PaddleDirection
     | ViewerInput of ViewerKey * isDown: bool
     | KeyChanged of KeyId * isDown: bool
+    | CommandChanged of command:string * isDown:bool
     | PointerChanged of position: Vec2 * primaryDown: bool option
     | InputChanged of InputSnapshot
     | InteractShop of slotId: int
@@ -354,6 +357,9 @@ type Msg =
     | SetMuted of bool
     | SetScreenShake of bool
     | SetStatScope of StatScope
+    | RecordItemFound
+    | RecordCoinsCollected of int
+    | CompleteRunStats of won:bool * cause:DeathCause option
     | NoOp
 
 // Kept model-agnostic so the durable LayoutEvidence spine validates the skeleton AND a swap.
@@ -426,6 +432,9 @@ let difficultyScaling = function
         { EnemyHpScale=0.18; PostHitInvulnSeconds=0.55; DropNothingWeight=55
           ExtraStartingContainers=0; ExtraElitePerCombatRoom=1; PostBossHeal=false }
 
+let activeScaling model = model.ActiveDifficulty |> Option.defaultValue (difficultyScaling DifficultyMode.Normal)
+let difficultyHpMultiplier floor scaling = 1.0 + scaling.EnemyHpScale * float(max 1 floor)
+
 let defaultGameSettings =
     { Difficulty=DifficultyMode.Normal; MasterVolume=1.0; Muted=false; ScreenShake=true }
 
@@ -449,11 +458,15 @@ let private clampVolume value = if Double.IsFinite value then max 0.0 (min 1.0 v
 
 let encodeMetaProfile (profile: MetaProfile) =
     let difficulty = match profile.Settings.Difficulty with DifficultyMode.Easy->"easy" | DifficultyMode.Normal->"normal" | DifficultyMode.Hard->"hard"
-    sprintf "{\"format\":\"hollow-depths.meta-profile\",\"version\":1,\"difficulty\":\"%s\",\"masterVolume\":%.6f,\"muted\":%s,\"screenShake\":%s,\"runsPlayed\":%d,\"deepestFloor\":%d,\"wins\":%d,\"totalKills\":%d,\"depthHistory\":[%s]}"
+    let deathKey = function DeathCause.Enemy kind->"enemy:"+kind|DeathCause.Trap->"trap"|DeathCause.Bomb->"bomb"
+    let deaths=profile.Lifetime.DeathsByCause|>Map.toList|>List.map(fun(cause,count)->sprintf "{\"cause\":%s,\"count\":%d}" (JsonSerializer.Serialize(deathKey cause)) count)|>String.concat ","
+    let strings values=values|>Seq.sort|>Seq.map JsonSerializer.Serialize|>String.concat ","
+    sprintf "{\"format\":\"hollow-depths.meta-profile\",\"version\":1,\"difficulty\":\"%s\",\"masterVolume\":%.6f,\"muted\":%s,\"screenShake\":%s,\"runsPlayed\":%d,\"deepestFloor\":%d,\"wins\":%d,\"totalKills\":%d,\"deathCounts\":[%s],\"depthHistory\":[%s],\"unlockedItems\":[%s],\"unlockedCharacters\":[%s]}"
         difficulty profile.Settings.MasterVolume ((string profile.Settings.Muted).ToLowerInvariant())
         ((string profile.Settings.ScreenShake).ToLowerInvariant()) profile.Lifetime.RunsPlayed
         profile.Lifetime.DeepestFloor profile.Lifetime.Wins profile.Lifetime.TotalKills
-        (profile.Lifetime.DepthHistory |> List.map string |> String.concat ",")
+        deaths (profile.Lifetime.DepthHistory |> List.map string |> String.concat ",")
+        (strings profile.UnlockedItems) (strings profile.UnlockedCharacters)
 
 let profilePersistenceRequest profile =
     Persistence.save (Persistence.saveEnvelope 1 (SaveSlot "meta-profile") (encodeMetaProfile profile))
@@ -540,6 +553,7 @@ let private emptyGamepad =
 
 let emptyInputSnapshot: InputSnapshot =
     { Keys = Set.empty
+      Commands = Set.empty
       MousePosition = None
       MousePrimaryDown = false
       Gamepad = emptyGamepad }
@@ -755,14 +769,21 @@ let private activeStick vector =
     else normalizeOrZero vector
 
 let resolveInput playerPosition pressedThisTick (snapshot: InputSnapshot) =
-    let keyboardMove = vec2 (axis aKey dKey snapshot.Keys) (axis wKey sKey snapshot.Keys)
+    let commandAxis negative positive =
+        (if Set.contains positive snapshot.Commands then 1.0 else 0.0)
+        - (if Set.contains negative snapshot.Commands then 1.0 else 0.0)
+    let keyboardMove =
+        add
+            (vec2 (axis aKey dKey snapshot.Keys) (axis wKey sKey snapshot.Keys))
+            (vec2 (commandAxis "move-left" "move-right") (commandAxis "move-up" "move-down"))
+        |> normalizeOrZero
     let gamepadMove = activeStick snapshot.Gamepad.LeftStick
     let move = add keyboardMove gamepadMove |> normalizeOrZero
 
     let arrow =
-        vec2
-            (axis arrowLeftKey arrowRightKey snapshot.Keys)
-            (axis arrowUpKey arrowDownKey snapshot.Keys)
+        add
+            (vec2 (axis arrowLeftKey arrowRightKey snapshot.Keys) (axis arrowUpKey arrowDownKey snapshot.Keys))
+            (vec2 (commandAxis "aim-left" "aim-right") (commandAxis "aim-up" "aim-down"))
         |> normalizeOrZero
 
     let gamepadAim = activeStick snapshot.Gamepad.RightStick
@@ -791,6 +812,9 @@ let withKey key isDown (snapshot: InputSnapshot) =
         Keys =
             if isDown then Set.add key snapshot.Keys
             else Set.remove key snapshot.Keys }
+
+let withCommand command isDown (snapshot:InputSnapshot) =
+    { snapshot with Commands = if isDown then Set.add command snapshot.Commands else Set.remove command snapshot.Commands }
 
 let withPointer position primaryDown (snapshot: InputSnapshot) =
     { snapshot with
@@ -941,7 +965,7 @@ let private takePlayerHit damage source model =
         { model with
             PlayerHealth = health
             PlayerVelocity = add model.PlayerVelocity (scale 90.0 away)
-            PostHitInvulnTicks = postHitInvulnTicks
+            PostHitInvulnTicks = int ((activeScaling model).PostHitInvulnSeconds / fixedDt + 0.5)
             BlackHeartBursts = model.BlackHeartBursts + bursts
             RunStats = addFloorDamage model.FloorIndex 0.0 lost model.RunStats }
 
@@ -963,6 +987,7 @@ let purchaseShopSlot slotId model =
                 PlayerCurrency = currency
                 PlayerItems = items
                 PlayerStats = recomputePlayerStats items
+                RunStats = {model.RunStats with ItemsFound=model.RunStats.ItemsFound+1}
                 ShopSlots = model.ShopSlots |> List.filter (fun candidate -> candidate.Id <> slotId) }, true
 
 type DescentCarry =
@@ -980,6 +1005,7 @@ let private resolveShotCombat model =
     let grid = SpatialGrid.build spatialCellSize [ for enemy in liveEnemies -> toSimPoint enemy.Position, enemy ]
     let mutable enemies = liveEnemies |> List.map (fun enemy -> enemy.Id, enemy) |> Map.ofList
     let mutable candidates = 0
+    let mutable dealt = 0.0
     let shots =
         model.ShotSpawns
         |> List.choose (fun shot ->
@@ -996,6 +1022,8 @@ let private resolveShotCombat model =
                 match Map.tryFind enemy.Id enemies with
                 | Some current when current.HitPoints > 0.0 ->
                     let impulse = normalizeOrZero shot.Velocity |> scale shot.Knockback
+                    let applied=max 0.0 (min current.HitPoints shot.Damage)
+                    dealt <- dealt+applied
                     enemies <- Map.add enemy.Id
                         { current with
                             HitPoints = max 0.0 (current.HitPoints - shot.Damage)
@@ -1006,9 +1034,18 @@ let private resolveShotCombat model =
             let remaining = shot.HitsRemaining - hits.Length
             if remaining <= 0 then None
             else Some { shot with HitsRemaining = remaining; HitEnemyIds = hitIds })
+    let stats = addFloorDamage model.FloorIndex dealt 0.0 model.RunStats
+    let hpById = enemies |> Map.map (fun _ enemy -> enemy.HitPoints)
     { model with
         Enemies = enemies |> Map.toList |> List.map snd
+        M5Enemies =
+            model.M5Enemies
+            |> List.map (fun actor ->
+                match Map.tryFind actor.Id hpById with
+                | Some hp -> {actor with HitPoints=hp}
+                | None -> actor)
         ShotSpawns = shots
+        RunStats=stats
         TotalCombatCandidates = model.TotalCombatCandidates + candidates }
 
 let private resolveBombs model =
@@ -1119,9 +1156,20 @@ let loadM5Room roomId model =
     match Map.tryFind roomId model.Floor.Rooms with
     | None -> model
     | Some room ->
+        let scaling=activeScaling model
+        let scaleActor (actor:Rogue3.Entities.EnemyActor) =
+            let normal=Rogue3.Entities.hpScale model.FloorIndex
+            {actor with HitPoints=actor.HitPoints/normal*difficultyHpMultiplier model.FloorIndex scaling}
         let enemies =
             room.Interior.EnemyAnchors
             |> List.mapi(fun index anchor -> Rogue3.Entities.spawn model.FloorIndex (roomId*100+index+1) (m5Kind anchor.Kind) (roomPoint anchor.Cell))
+            |> List.map scaleActor
+            |> fun baseEnemies ->
+                if room.RoomType=FloorGeneration.Combat && scaling.ExtraElitePerCombatRoom>0 then
+                    [for index in 1..scaling.ExtraElitePerCombatRoom ->
+                        Rogue3.Entities.spawn model.FloorIndex (roomId*100+80+index) Rogue3.Entities.EnemyKind.Brute (vec2 (900.+float index*32.) 320.) |> scaleActor]
+                    @ baseEnemies
+                else baseEnemies
         let obstacleKinds =
             [|Rogue3.Entities.ObstacleKind.Rock;Rogue3.Entities.ObstacleKind.TintedRock;Rogue3.Entities.ObstacleKind.Pot;Rogue3.Entities.ObstacleKind.Spikes;Rogue3.Entities.ObstacleKind.Pit|]
         let typedObstacles =
@@ -1149,7 +1197,7 @@ let loadM5Room roomId model =
         let choirMembers =
             if isBoss && bossKind=Rogue3.Entities.BossKind.HollowChoir then
                 [ for index in 0..2 ->
-                    Rogue3.Entities.spawn model.FloorIndex (roomId*100+50+index) Rogue3.Entities.EnemyKind.Caster (vec2 (520.+float index*120.) 400.) ]
+                    Rogue3.Entities.spawn model.FloorIndex (roomId*100+50+index) Rogue3.Entities.EnemyKind.Caster (vec2 (520.+float index*120.) 400.) |> scaleActor ]
             else []
         let allEnemies=enemies@choirMembers
         let roomState : Rogue3.Entities.CombatRoom =
@@ -1163,7 +1211,8 @@ let loadM5Room roomId model =
             |> Rogue3.Entities.enterRoom (allEnemies|>List.map _.Id)
         let boss =
             if isBoss then
-                Some(Rogue3.Entities.spawnBoss (roomId*100) bossKind (vec2 640. 280.))
+                let value=Rogue3.Entities.spawnBoss (roomId*100) bossKind (vec2 640. 280.)
+                Some{value with HitPoints=value.HitPoints*difficultyHpMultiplier model.FloorIndex scaling}
             else None
         { model with Floor={model.Floor with CurrentRoom=roomId};M5Enemies=allEnemies;M5Boss=boss;M5ChoirMemberIds=choirMembers|>List.map _.Id|>Set.ofList;M5Room=roomState
                      M5Obstacles=typedObstacles;M5ShopSlots=shop;M5ObstacleDrops=[];Enemies=allEnemies|>List.map legacyEnemy;Obstacles=blocking
@@ -1184,7 +1233,7 @@ let damageM5Enemy enemyId damage model =
         let live=Set.union (Set.remove enemyId model.M5Room.LiveEnemyIds) childIds
         let room,rng=
             if model.M5Room.IsBoss || not(Set.isEmpty childIds) then {model.M5Room with LiveEnemyIds=live},model.DropRng
-            else Rogue3.Entities.enemyDied enemyId model.DropRng model.M5Room
+            else Rogue3.Entities.enemyDiedWithNothingWeight (activeScaling model).DropNothingWeight enemyId model.DropRng model.M5Room
         let choirDeath=Set.contains enemyId model.M5ChoirMemberIds
         let boss =
             if choirDeath then model.M5Boss|>Option.map(fun value->{value with ChoirKillTicks=(model.SimStepCount::value.ChoirKillTicks)|>List.truncate 3})
@@ -1209,7 +1258,12 @@ let damageM5Boss damage model =
         {model with M5Boss=Some{boss with HitPoints=boss.HitPoints-damage};RunStats=addFloorDamage model.FloorIndex (max 0.0 damage) 0.0 model.RunStats}
     | Some boss ->
         let room=Rogue3.Entities.bossCleared model.M5Room.Reward model.M5Room
+        let health=
+            if (activeScaling model).PostBossHeal then
+                {model.PlayerHealth with RedHalfHearts=min (model.PlayerHealth.RedContainers*2) (model.PlayerHealth.RedHalfHearts+2)}
+            else model.PlayerHealth
         {model with M5Boss=None;M5Room=room;Floor=FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor
+                    PlayerHealth=health
                     RunStats=addFloorDamage model.FloorIndex (max 0.0 (min boss.HitPoints damage)) 0.0 model.RunStats}
 
 let purchaseM5ShopSlot slotId model =
@@ -1218,7 +1272,9 @@ let purchaseM5ShopSlot slotId model =
     | Some slot ->
         let coins,keys,updated,ok=Rogue3.Entities.purchase model.PlayerCurrency.Coins model.PlayerCurrency.Keys slot
         if not ok then model else
+        let found=match slot.Offer with Rogue3.Entities.ShopOffer.Item _->1|_->0
         {model with PlayerCurrency={model.PlayerCurrency with Coins=coins;Keys=keys}
+                    RunStats={model.RunStats with ItemsFound=model.RunStats.ItemsFound+found}
                     M5ShopSlots=model.M5ShopSlots|>List.map(fun item->if item.Id=slotId then updated else item)}
 
 let damageM5Obstacle obstacleId damage model =
@@ -1344,7 +1400,8 @@ let private stepM5Entities model =
 
 let private stepInput pressedThisTick (model: Model) =
     let resolved = resolveInput model.PlayerPosition pressedThisTick model.Input.Current
-    let dodgeStarted = model.PlayerLifeState = Alive && Set.contains dodgeKey pressedThisTick && model.DodgeCooldownTicks = 0
+    let commandPressed command = Set.contains command model.Input.Current.Commands && not(Set.contains command model.Input.Previous.Commands)
+    let dodgeStarted = model.PlayerLifeState = Alive && (Set.contains dodgeKey pressedThisTick || commandPressed "dodge") && model.DodgeCooldownTicks = 0
     let moveSpeed = effectiveMoveSpeed model.PlayerStats
     let targetVelocity = scale moveSpeed resolved.Move
     let rate = if resolved.Move = zero then playerFriction else playerAcceleration
@@ -1391,7 +1448,7 @@ let private stepInput pressedThisTick (model: Model) =
     let steppedShots, wallQueries, homingQueries =
         stepShots roomBounds shotWalls model.HomingTargets shotSpawns
 
-    let bombPressed = Set.contains qKey pressedThisTick || Set.contains fKey pressedThisTick
+    let bombPressed = Set.contains qKey pressedThisTick || Set.contains fKey pressedThisTick || commandPressed "bomb"
     let bombs, currency, nextBombId =
         if bombPressed && model.PlayerCurrency.Bombs > 0 && model.PlayerLifeState = Alive then
             { Id = model.NextBombId; Position = playerPosition; FuseTicks = bombFuseTicks } :: model.Bombs,
@@ -1573,6 +1630,8 @@ let update msg model : Model * AdapterCommand<Msg> =
             Input = { moved.Input with Current = withKey (keyName key) isDown moved.Input.Current } }, Cmd.none
     | KeyChanged(key, isDown) ->
         { model with Input = { model.Input with Current = withKey key isDown model.Input.Current } }, Cmd.none
+    | CommandChanged(command,isDown) ->
+        { model with Input = { model.Input with Current = withCommand command isDown model.Input.Current } }, Cmd.none
     | PointerChanged(position, primaryDown) ->
         { model with Input = { model.Input with Current = withPointer position primaryDown model.Input.Current } }, Cmd.none
     | InputChanged snapshot ->
@@ -1634,6 +1693,24 @@ let update msg model : Model * AdapterCommand<Msg> =
     | SetScreenShake enabled ->
         { model with Profile={ model.Profile with Settings={ model.Profile.Settings with ScreenShake=enabled } } }, Cmd.none
     | SetStatScope scope -> { model with StatScope=scope }, Cmd.none
+    | RecordItemFound -> {model with RunStats={model.RunStats with ItemsFound=model.RunStats.ItemsFound+1}},Cmd.none
+    | RecordCoinsCollected count ->
+        let count=max 0 count
+        {model with RunStats={model.RunStats with CoinsCollected=model.RunStats.CoinsCollected+count}},Cmd.none
+    | CompleteRunStats(won,cause) ->
+        let kills=model.RunStats.KillsByType|>Map.values|>Seq.sum
+        let deaths =
+            match cause with
+            | None -> model.Profile.Lifetime.DeathsByCause
+            | Some value ->
+                let increment old = Some (1 + Option.defaultValue 0 old)
+                Map.change value increment model.Profile.Lifetime.DeathsByCause
+        let lifetime=model.Profile.Lifetime
+        let completed=
+            {lifetime with RunsPlayed=lifetime.RunsPlayed+1;DeepestFloor=max lifetime.DeepestFloor model.RunStats.DepthReached
+                           Wins=lifetime.Wins+(if won then 1 else 0);TotalKills=lifetime.TotalKills+kills
+                           DeathsByCause=deaths;DepthHistory=lifetime.DepthHistory@[model.RunStats.DepthReached]}
+        {model with RunActive=false;RunStats={model.RunStats with DeathCause=cause};Profile={model.Profile with Lifetime=completed}},Cmd.none
     | NoOp -> model, Cmd.none
 
 let subscriptions _ : AdapterSubscription<Msg> list = Sub.none
