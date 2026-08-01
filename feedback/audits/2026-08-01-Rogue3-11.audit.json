@@ -1,0 +1,209 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-01-Rogue3-11.md",
+  "reportSha256": "808c8f153ef263f1989c47b6163788449dc79ec3cc975c2fb166050f2712cc9b",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git show ea0dfc1:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git show cd0028f:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified"
+        },
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "63d3bc07c7045d6552827b3b5b5d1aadf170bd517dfc15eea7c05f5a79919a94"
+        },
+        {
+          "locator": "file:src/Rogue3/Determinism.fs",
+          "result": "verified",
+          "sha256": "93c4eb4b038994f956b25acb48f94667ff56fabb7dccc9d8059003d16c6fdf58"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs",
+          "result": "verified",
+          "sha256": "122443b1422056fa89e533a509684e4912bb7a322e636beac6a2be3580a2f650"
+        }
+      ],
+      "confidenceLimits": [
+        "Provenance is established from local git history in this checkout. Whether the current upstream FS.GG template ever carried the same formatter could not be checked, so the finding claims only that this product's copy did not receive it from the scaffold.",
+        "The quoted pre-repair comment exists only in history, at ea0dfc1; the working-tree file carries the repair."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-game-core/SKILL.md",
+          "result": "verified",
+          "sha256": "de45c8fcfb5510d6afa5ef584516b4938011a8207844b7eb81112119d0d02e45"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-testing/SKILL.md",
+          "result": "verified",
+          "sha256": "8e35f29eff51fca7886d4a3bc88cf6d2ab7a2c7108161476d04a54a0d4521510"
+        },
+        {
+          "locator": "command:git stash show -p stash@{0} --include-untracked",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The skills are the materialized copies in this workspace; upstream skill sources were not available, so the gap is not claimed to still exist upstream.",
+        "The first draft of this finding claimed both skills were silent on byte-identical comparison. The critic disproved that against fs-gg-testing, and the finding was narrowed to the encoding step the two skills leave between them."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs",
+          "result": "verified",
+          "sha256": "122443b1422056fa89e533a509684e4912bb7a322e636beac6a2be3580a2f650"
+        },
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "a6de2cab37967d49b3f0b148cfad17e4bc309ba11fe70accc2b427aa127a2973"
+        },
+        {
+          "locator": "file:src/Rogue3/FloorGeneration.fs",
+          "result": "verified",
+          "sha256": "ee3e698316a7fe5c26370cf9f8bb8bc81d77d0343bc5a54157edc14e8a25b580"
+        }
+      ],
+      "confidenceLimits": [
+        "Three of the four gaps were found by enumerating scenarios during authoring rather than by a failing test, and the finding now says so. Only the dead-actor gap surfaced as a test failure.",
+        "The count of four rests on treating traversal and key-unlocking as independent seams; the finding states that basis so a reader who counts the door work as one gap can see the difference."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Determinism.fs",
+          "result": "verified",
+          "sha256": "93c4eb4b038994f956b25acb48f94667ff56fabb7dccc9d8059003d16c6fdf58"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs",
+          "result": "verified",
+          "sha256": "122443b1422056fa89e533a509684e4912bb7a322e636beac6a2be3580a2f650"
+        },
+        {
+          "locator": "command:dotnet test -c Release Rogue3.slnx --filter FullyQualifiedName~M10",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:work/011-m10-acceptance-determinism/plan.md",
+          "result": "verified",
+          "sha256": "fdaacf0b1482e12fe7fe9a35e9d9234944d93d6e88d0629d8f7e3c3d38659e21"
+        },
+        {
+          "locator": "command:fsgg-sdd plan --work 011-m10-acceptance-determinism --text",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Reproducing the reclamation from the committed state requires inserting a probe line under the reclaimed heading; the critic did this in pass one, confirmed the replacement and the diagnostics, and restored the workspace. The finding discloses that route."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:work/011-m10-acceptance-determinism/evidence.yml",
+          "result": "verified",
+          "sha256": "b59e5222f42d45b602599a2d4271710a626a7061ac0d24d9eef285848a0c2611"
+        },
+        {
+          "locator": "file:readiness/011-m10-acceptance-determinism/ship-verdict.json",
+          "result": "verified",
+          "sha256": "038b29c5bce5de024cbcbc41f1e29dd910fc2aa5f76d035339e9b08e6c757caa"
+        },
+        {
+          "locator": "command:fsgg-sdd ship --work 011-m10-acceptance-determinism --text",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The cited evidence carries the stage ordering, which is the actionable half of the finding: the ship verdict is written by the terminal ship stage, two stages after evidence, so an evidence declaration cannot cite it.",
+        "The quoted diagnostic text is from the blocked run during this cycle and does not reproduce from the committed state, because the declaration was repaired and the verdict now exists. The critic reproduced the block in pass one by restoring the citation and moving the verdict aside, then restored the workspace; the finding discloses this rather than citing a command that no longer blocks."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t Verify",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git diff --stat readiness/performance-evidence.json readiness/m7-ui-performance.json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "63d3bc07c7045d6552827b3b5b5d1aadf170bd517dfc15eea7c05f5a79919a94"
+        }
+      ],
+      "confidenceLimits": [
+        "Re-measured directly on a clean tree: exactly p95Ms, p99Ms, p50Ms, allocatedBytes, receiptDigest, compositionAuthority, inputDigest and artifactDigest change, and no definitionDigest changes. The critic's pass-one claim that the UI-route definition digests moved was retracted after this measurement.",
+        "The owner split between measurement variance and identity churn is inferred from where each changing value is produced. Whether a newer FS.GG.Game.Harness stabilizes the composition authority could not be checked from this workspace.",
+        "This repository's issue tracker is enabled and empty, and no row was filed this cycle, so the disposition records a routing decision rather than an existing row."
+      ]
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "a6de2cab37967d49b3f0b148cfad17e4bc309ba11fe70accc2b427aa127a2973"
+        },
+        {
+          "locator": "command:grep -n \"let initialModelForSeed\" src/Rogue3/Model.fs",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git stash show -p stash@{0} --include-untracked",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The first draft named no function, which made the claim unfalsifiable from the report alone, and cited the rewritten Replay.fs rather than the draft. Both were corrected.",
+        "The first draft also understated how much of the prior art survived; the finding now enumerates what the committed module kept from the draft and what was replaced."
+      ]
+    }
+  ]
+}
