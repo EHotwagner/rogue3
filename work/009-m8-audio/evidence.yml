@@ -11,7 +11,7 @@ sourceAnalysis: readiness/009-m8-audio/analysis.json
 sourceSnapshots:
   - label: analysis
     path: readiness/009-m8-audio/analysis.json
-    digest: fc4aa36722d8f215b0baf05300aa5ecab57b4b55f10ee5a1f4d2be1314690698
+    digest: d7f8f97ccaae8e31870b9219058151523e3d75ca02aa60446438410cef56834c
     schemaVersion: 1
   - label: checklist
     path: work/009-m8-audio/checklist.md
@@ -54,7 +54,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
@@ -80,7 +80,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
@@ -106,7 +106,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
@@ -132,7 +132,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
@@ -158,7 +158,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
@@ -184,7 +184,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
@@ -210,7 +210,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
@@ -236,7 +236,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
@@ -262,7 +262,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
@@ -288,7 +288,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
@@ -314,7 +314,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
@@ -340,7 +340,7 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/009-m8-audio/test-results/m8-full.trx
-      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      digest: "sha256:18824bbeeea866ee344a1593d947a440ec457608cd20ab53ee1810734a37a5f0"
       outcome: passed
       passed: 145
       failed: 0
