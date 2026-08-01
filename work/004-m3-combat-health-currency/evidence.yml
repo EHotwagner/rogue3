@@ -1,0 +1,168 @@
+schemaVersion: 1
+workId: 004-m3-combat-health-currency
+stage: evidence
+status: evidenceReady
+sourceSpec: work/004-m3-combat-health-currency/spec.md
+sourceClarifications: work/004-m3-combat-health-currency/clarifications.md
+sourceChecklist: work/004-m3-combat-health-currency/checklist.md
+sourcePlan: work/004-m3-combat-health-currency/plan.md
+sourceTasks: work/004-m3-combat-health-currency/tasks.yml
+sourceAnalysis: readiness/004-m3-combat-health-currency/analysis.json
+sourceSnapshots:
+  - label: analysis
+    path: readiness/004-m3-combat-health-currency/analysis.json
+    digest: 61635b9d14f8668dbcb3d77f237092f9f7e0a168355c02e53546cd2678ffdee1
+    schemaVersion: 1
+  - label: checklist
+    path: work/004-m3-combat-health-currency/checklist.md
+    digest: aad0cc445f27996a7f74c3eea373caec1f546b37681e3408c1887be103fd54da
+    schemaVersion: 1
+  - label: clarifications
+    path: work/004-m3-combat-health-currency/clarifications.md
+    digest: 2e0baf1a9d74517014322f29a84f5c230833f1c8dc0921ece385681464a7e60f
+    schemaVersion: 1
+  - label: plan
+    path: work/004-m3-combat-health-currency/plan.md
+    digest: 640060b3a6c6659591b14e370f352c2ee5f251077dd7906927d0e40633b4131b
+    schemaVersion: 1
+  - label: spec
+    path: work/004-m3-combat-health-currency/spec.md
+    digest: 739bc976fc12daab22c106a6877d6d3f8b787539cf78efd04c1e379294ddaa40
+    schemaVersion: 1
+  - label: tasks
+    path: work/004-m3-combat-health-currency/tasks.yml
+    digest: 27e680453e4071196e98b91cc30211f4aa89a0c5fa601bbec9b9f7f3ce29b45c
+    schemaVersion: 1
+evidence:
+  - id: EV001
+    kind: verification
+    subject:
+      type: task
+      id: T001
+    taskRefs: [T001]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV001]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m3-release.trx
+      digest: "sha256:ba3e3ceb41f1fdefdafc615a46509bb237c4007fd24428b6377a7ff93d993b1e"
+      outcome: passed
+      passed: 99
+      failed: 0
+      skipped: 0
+    notes: [M3 production resolver and focused deterministic tests are green.]
+  - id: EV002
+    kind: verification
+    subject:
+      type: task
+      id: T002
+    taskRefs: [T002]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV002]
+    artifacts: [src/Rogue3/Model.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m3-release.trx
+      digest: "sha256:ba3e3ceb41f1fdefdafc615a46509bb237c4007fd24428b6377a7ff93d993b1e"
+      outcome: passed
+      passed: 99
+      failed: 0
+      skipped: 0
+    notes: [The M2 ShotHitsThisTick seam is replaced by one SpatialGrid combat contract.]
+  - id: EV003
+    kind: verification
+    subject:
+      type: task
+      id: T003
+    taskRefs: [T003]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV003]
+    artifacts: [readiness/performance-evidence.json, tests/Rogue3.Tests/TestResults/m3-release.trx]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m3-release.trx
+      digest: "sha256:ba3e3ceb41f1fdefdafc615a46509bb237c4007fd24428b6377a7ff93d993b1e"
+      outcome: passed
+      passed: 99
+      failed: 0
+      skipped: 0
+    notes: [Release tests and bounded-headless performance evidence passed.]
+  - id: EV004
+    kind: verification
+    subject:
+      type: task
+      id: T004
+    taskRefs: [T004]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV004]
+    artifacts: [tests/Rogue3.Tests/M2MovementShotTests.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m3-release.trx
+      digest: "sha256:ba3e3ceb41f1fdefdafc615a46509bb237c4007fd24428b6377a7ff93d993b1e"
+      outcome: passed
+      passed: 99
+      failed: 0
+      skipped: 0
+    notes: [Inherited behavior remains green while the temporary M2 seam is removed.]
+  - id: EV005
+    kind: verification
+    subject:
+      type: task
+      id: T005
+    taskRefs: [T005]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV005]
+    artifacts: [docs/roguelike-dungeon-crawler-roadmap.md, readiness/performance-critic-request.json, readiness/performance-intent.yml]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m3-release.trx
+      digest: "sha256:ba3e3ceb41f1fdefdafc615a46509bb237c4007fd24428b6377a7ff93d993b1e"
+      outcome: passed
+      passed: 99
+      failed: 0
+      skipped: 0
+    notes: [Generated readiness and ledger views bind the exact candidate.]
+lifecycleNotes:
+  - "Next lifecycle action: verify."

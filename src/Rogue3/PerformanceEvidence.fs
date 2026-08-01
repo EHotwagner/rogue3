@@ -39,11 +39,11 @@ let private performanceIntentSeed: PerformanceIntentDeclaration =
       TargetFps = 60
       WorkloadIds = []
       WorkloadDefinitionDigests = []
-      MaximumExpectedScale = "40 live player shots, 8 static obstacles, 30 homing targets, and all five scaffold visuals"
+      MaximumExpectedScale = "40 live player shots, 8 static obstacles, 30 live enemies/targets, 120 enemy bullets, 736 wall primitives, 2,400 homing considerations, multishot 3, and all five scaffold visuals"
       MaxP95Ms = 16.67m
       MaxP99Ms = 25.0m
       MaxCatchUpFrames = 0
-      StructuralCostBudgets = [ "scene-nodes<=4096"; "shot-spawn-history<=40" ]
+      StructuralCostBudgets = [ "scene-nodes<=4096"; "shot-spawn-history<=40"; "combat-candidates<=2520" ]
       RequiredCapability = "bounded-headless-update-and-scene-route"
       LiveCompositorRequired = false
       DeferralIssue = None
@@ -172,6 +172,24 @@ let performanceCostDrivers =
         Category = Simulation
         ScaleSource = "Model.HomingTargets exact live count"
         MaximumExpected = 30
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "state.live-enemies"
+        Category = Simulation
+        ScaleSource = "Model.Enemies exact live count"
+        MaximumExpected = 30
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "state.enemy-bullets"
+        Category = Simulation
+        ScaleSource = "Model.EnemyBullets exact live count"
+        MaximumExpected = 120
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "collision.combat-candidates"
+        Category = Simulation
+        ScaleSource = "Model.TotalCombatCandidates delta: two fixed steps query 37 spatially overlapping retained shots x 30 enemies, 30 player-contact candidates, and all 120 bullet-player broadphase candidates; all 40 shots still traverse movement/wall/homing"
+        MaximumExpected = 2520
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "scene.ball"
@@ -605,6 +623,9 @@ let private observeCostScale driverId routed beforeModel afterModel =
         | "simulation.homing-target-considerations", _, _ -> afterModel.TotalHomingQueries - beforeModel.TotalHomingQueries
         | "state.static-obstacles", _, _ -> afterModel.Obstacles.Length
         | "state.homing-targets", _, _ -> afterModel.HomingTargets.Length
+        | "state.live-enemies", _, _ -> afterModel.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.length
+        | "state.enemy-bullets", _, _ -> afterModel.EnemyBullets.Length
+        | "collision.combat-candidates", _, _ -> afterModel.TotalCombatCandidates - beforeModel.TotalCombatCandidates
         | _, Input, _ ->
             let applied =
                 if afterModel.LastResolvedInput.Move <> zero
@@ -764,8 +785,8 @@ let private normalBudget =
 /// boot `initialModel`, map timestamp-free events to production `Msg`, call production `update`,
 /// and reach a real fixed step. The measured workload below remains the longer update+view sample.
 let private performanceJourneyReceipt scenarioId boot terminalSteps script =
-    let adapter: ProductionJourney<Model, ViewerKey, Msg, unit, unit, Msg, string> =
-        { RouteId = "rogue3-m2-movement-dodge-shots-update-view"
+    let adapter: ProductionJourney<Model, ViewerKey, Vec2 * bool option, unit, unit, Msg, string> =
+        { RouteId = "rogue3-m3-combat-health-currency-update-view"
           ScenarioId = scenarioId
           TestId = $"performance-{scenarioId}"
           MaxSteps = 4
@@ -776,7 +797,7 @@ let private performanceJourneyReceipt scenarioId boot terminalSteps script =
                 | JourneyEvent.Start -> JourneyDispatch.Mapped [ Started ]
                 | JourneyEvent.KeyInput(key, pressed) -> JourneyDispatch.Mapped [ KeyChanged(keyName key, pressed) ]
                 | JourneyEvent.FixedTick -> JourneyDispatch.Mapped [ Tick fixedDt ]
-                | JourneyEvent.PointerInput message -> JourneyDispatch.Mapped [ message ]
+                | JourneyEvent.PointerInput(position, primaryDown) -> JourneyDispatch.Mapped [ PointerChanged(position, primaryDown) ]
                 | JourneyEvent.MenuAction _ -> JourneyDispatch.Unbound "menu action"
                 | JourneyEvent.Interact -> JourneyDispatch.Unbound "interact (M1)"
                 | JourneyEvent.Pause -> JourneyDispatch.Unbound "pause"
@@ -786,9 +807,9 @@ let private performanceJourneyReceipt scenarioId boot terminalSteps script =
           FixedTick = fun model -> update (Tick fixedDt) model |> fst
           ApplyEffectResult = fun _ model -> model
           IsTerminal = fun model -> model.SimStepCount >= terminalSteps
-          Fingerprint =
-            fun model ->
-                $"{model.RunSeed}|{model.SimStepCount}|{model.SimAccumulator:R}|{model.LayoutRng.State}|{model.DropRng.State}|{model.PlayerVelocity.Vx:R},{model.PlayerVelocity.Vy:R}|{model.Facing.Vx:R},{model.Facing.Vy:R}|{model.ShotSpawns.Length}|{model.TotalShotSpawns}"
+          // The opaque runner receipt binds the complete closed Model, including every M3 population,
+          // resource, timer and cost counter; the same structural closure authorship digests use.
+          Fingerprint = modelDefinitionFingerprint
           EncodeEvent = string
           EncodeFingerprint = id }
 
@@ -817,32 +838,48 @@ let private dodgeModel () =
 
 let private maximumGamepadInput =
     { emptyInputSnapshot with
-        Gamepad =
-            { LeftStick = vec2 -1.0 0.5
-              RightStick = vec2 0.75 -0.5
-              RightTrigger = 1.0
-              Buttons = Set.singleton "fire" } }
+        Keys = Set.singleton (ViewerKeyboard.toKeyId ArrowRight) }
 
 let private maximumShotHistory =
     [ 1 .. maximumShotSpawnHistory ]
     |> List.map (fun step ->
         spawnShots step step initialModel.PlayerPosition zero (vec2 1.0 0.0) { basePlayerStats with Homing = 1.0 }
-        |> List.exactlyOne)
+        |> List.exactlyOne
+        |> fun shot -> { shot with Pierce = 30; HitsRemaining = 31 })
 
 let private maximumObstacles: SimRect list =
     [ for index in 0 .. 7 -> { X = 80.0 + float index * 140.0; Y = 24.0; Width = 32.0; Height = 32.0 } ]
 
 let private maximumTargets =
-    [ for index in 0 .. 29 -> { Id = index + 1; Position = vec2 (900.0 + float (index % 5) * 8.0) (260.0 + float index * 5.0) } ]
+    [ for index in 0 .. 29 -> { Id = index + 1; Position = vec2 (644.0 + float (index % 3)) (360.0 + float (index % 3)) } ]
+
+let private maximumEnemies =
+    maximumTargets
+    |> List.map (fun target ->
+        { Id = target.Id; Position = target.Position; Velocity = zero; Radius = 64.0
+          HitPoints = 10000.0; ContactDamage = 0; LastContactTick = None; HitFlashTicks = 0 })
+
+let private maximumEnemyBullets =
+    [ for index in 0 .. 119 ->
+        // Exactly touching the player broadphase radius: returned by inclusive queryRadius, rejected
+        // by strict circleContact, so all 120 candidates remain stable across both fixed steps.
+        { Id = index + 1; Position = add initialModel.PlayerPosition (vec2 16.0 0.0); Radius = 3.0; Damage = 1 } ]
 
 let private maximumContentModel () =
     { withInput maximumGamepadInput with
         ShotSpawns = maximumShotHistory
         TotalShotSpawns = maximumShotSpawnHistory
         NextShotId = maximumShotSpawnHistory + 1
-        PlayerStats = { basePlayerStats with Homing = 1.0; Multishot = 3 }
+        PlayerStats = { basePlayerStats with Homing = 1.0; Multishot = 3; Pierce = 30 }
         Obstacles = maximumObstacles
-        HomingTargets = maximumTargets }
+        HomingTargets = maximumTargets
+        Enemies = maximumEnemies
+        EnemyBullets = maximumEnemyBullets }
+
+// Product-owned canonical representative factory at the journey boot seam. It is not the ordinary
+// player boot; its role is to make maximum authored content reachable through the same production
+// update/view composition without caller-authored receipt labels or hashes.
+let private maximumContentJourneyBoot () = maximumContentModel ()
 
 /// REQUIRED PRODUCT AUTHORING. Every untouched row is deliberately a failing placeholder.
 ///
@@ -866,7 +903,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "3401997e670f61755710abf3e81d816a40d3ddbe424ff6b9c53d1d2350f067dd" }
+        Authorship = Authored "26a72b61fe62a04f5e1663b7d203e378f18adc0264c6f65c7e24480037020dd3" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -889,7 +926,7 @@ let expectedWorkloads =
                     (fun () -> initialModel)
                     1
                     [ JourneyEvent.KeyInput(Letter 'A', true)
-                      JourneyEvent.PointerInput(PointerChanged(movementAimInput.MousePosition.Value, None))
+                      JourneyEvent.PointerInput(movementAimInput.MousePosition.Value, None)
                       JourneyEvent.FixedTick ])
         Composition = CompleteComposition
         CostDriverIds =
@@ -900,7 +937,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "03bd5109cf0a9c939d71a8b6cc9a8cf87ed1140350692dad8441e2bb6a509f32" }
+        Authorship = Authored "bca75d66ef4e717a86707a780d6389593bd3130c60718500853aca54b8109fcf" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -923,7 +960,7 @@ let expectedWorkloads =
                     firingModel
                     1
                     [ JourneyEvent.KeyInput(Letter 'A', true)
-                      JourneyEvent.PointerInput(PointerChanged(firingInput.MousePosition.Value, Some true))
+                      JourneyEvent.PointerInput(firingInput.MousePosition.Value, Some true)
                       JourneyEvent.FixedTick ])
         Composition = CompleteComposition
         CostDriverIds =
@@ -935,7 +972,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "984750124965e459571478065866e065f58a284f936a34ccc0eadfa4e295b77f" }
+        Authorship = Authored "5a531bc02b2f5575fe21802cc3e26cf74653efd1334d01f178de3f11dc698f6f" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -958,25 +995,25 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "457bb0bdbef9aee48d9f88a1327090cb93ecaad109688574301eb2cfdbb23349" }
+        Authorship = Authored "cd1f48e1df4a3d8e5d54c648214474eae7b1bc670ef0c6faba284ec12d04a2b3" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
-        Definition = "M2 maximum implemented content: 40 live homing shots, 8 static AABBs, 30 stable targets, a sampled independent-stick snapshot, production Tick(1/60), and all five scaffold visuals"
+        Definition = "M3 canonical maximum fixture through the production journey/update/view route: 40 live homing/piercing shots, 8 static AABBs, 30 live enemies/targets, 120 bullet-player broadphase candidates, held ArrowRight keyboard aim/fire routed through production input, production Tick(1/60), and all five scaffold visuals"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
         EventsPerFrame = 1
         PointerEventsPerFrame = 0
         InitialState = maximumContentModel
-        MessagesAt = (fun _ -> [ InputChanged maximumGamepadInput; Tick(1.0 / 60.0) ])
+        MessagesAt = (fun _ -> [ KeyChanged(keyName ArrowRight, true); Tick(1.0 / 60.0) ])
         Provenance =
             RunnerIssuedJourney(
                 performanceJourneyReceipt
                     "maximum-content"
-                    maximumContentModel
+                    maximumContentJourneyBoot
                     1
-                    [ JourneyEvent.PointerInput(InputChanged maximumGamepadInput)
+                    [ JourneyEvent.KeyInput(ArrowRight, true)
                       JourneyEvent.FixedTick ])
         Composition = CompleteComposition
         CostDriverIds =
@@ -988,6 +1025,9 @@ let expectedWorkloads =
               "simulation.homing-target-considerations"
               "state.static-obstacles"
               "state.homing-targets"
+              "state.live-enemies"
+              "state.enemy-bullets"
+              "collision.combat-candidates"
               "scene.ball"
               "scene.left-paddle"
               "scene.right-paddle"
@@ -995,7 +1035,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "19dd2c48d8100b55fc2079052a51b0c69a4c619a12c3b59148c41c046693c208" }
+        Authorship = Authored "e4ec8ce37cc2f71dd462154e2bc605042f1ddef2e39d6d0e38d00a5b557b37dc" }
       // WORKLOAD-SOURCE-END maximum-content
       ]
 

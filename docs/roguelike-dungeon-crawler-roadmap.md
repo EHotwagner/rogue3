@@ -32,15 +32,17 @@ Evidence (2026-08-01): focused Release M1 input 9/9 and full Release 80/80; `./f
 Evidence (2026-08-01): focused Release M2 11/11 and full Release 91/91; `./fake.sh build -t Verify` green with five authored runner-issued workloads and exact maximum-content scale (40 shots, 8 obstacles, 30 targets, 736 wall primitives, 2,400 homing considerations, multishot 3); final fresh-context performance critic supported on repair round 3; SDD verdict `readiness/003-m2-movement-dodge-shots/ship-verdict.json` is `shipReady` with 30 observed non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3-3.md`.
 
 ### M3 — Combat, health & currency
-- 🟥 Shot→enemy circle overlap: `dmg`, knockback, hit-flash, pierce decrement (§4.4)
-- 🟥 Enemy/bullet→player damage with i-frame + `0.80 s` post-hit invuln gating (§4.4, §4.6) — AC #6
-- 🟥 Half-heart health (red/soul/black), damage resolution & death at `0` (§4.6)
-- 🟥 Player stats recompute: additive-then-multiplicative phases + clamps (§4.5) — AC #3
-- 🟥 Coins/keys/bombs currencies (cap `99`), bomb drop/blast & shop purchase (§4.4, §4.7) — AC #11
-- 🟥 Contact damage on overlap: `contactDmg`, `0.5 s` per-enemy re-tick cap, knockback `90 px/s` (§4.4)
-- 🟥 `SpatialGrid.build 64.0` broadphase for shot↔enemy / bullet↔player queries (§13)
-- 🟥 Heart types: soul/black stacking, black-heart depletion burst, 12-wide display cap, descent persistence (§4.6)
-- 🟥 Bomb chain-detonation + currency cap-overflow waste (`99` cap) (§4.7, §4.4)
+- 🟩 Shot→enemy circle overlap: `dmg`, knockback, hit-flash, pierce decrement (§4.4)
+- 🟩 Enemy/bullet→player damage with i-frame + `0.80 s` post-hit invuln gating (§4.4, §4.6) — AC #6
+- 🟩 Half-heart health (red/soul/black), damage resolution & death at `0` (§4.6)
+- 🟩 Player stats recompute: additive-then-multiplicative phases + clamps (§4.5) — AC #3
+- 🟩 Coins/keys/bombs currencies (cap `99`), bomb drop/blast & shop purchase (§4.4, §4.7) — AC #11
+- 🟩 Contact damage on overlap: `contactDmg`, `0.5 s` per-enemy re-tick cap, knockback `90 px/s` (§4.4)
+- 🟩 `SpatialGrid.build 64.0` broadphase for shot↔enemy / bullet↔player queries (§13)
+- 🟩 Heart types: soul/black stacking, black-heart depletion burst, 12-wide display cap, descent persistence (§4.6)
+- 🟩 Bomb chain-detonation + currency cap-overflow waste (`99` cap) (§4.7, §4.4)
+
+Evidence (2026-08-01): focused Release M3 9/9 and full Release/Verify 99/99; five runner-issued bounded-headless workloads retain exact M2 gates (40 shots, 8 obstacles, 30 targets, 736 wall primitives, 2,400 homing considerations, multishot 3) and add 30 enemies, 120 bullets, and 2,520 exact combat candidates including 240 bullet candidates; final fresh-context performance critic supported on the third repair round; SDD verdict `readiness/004-m3-combat-health-currency/ship-verdict.json` is `shipReady` with five observed non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3-4.md`.
 
 ### M4 — Procedural floor generation
 - 🟥 Seed derivation `floorSeed = split(runSeed, floorIndex)` on `LayoutRng` stream (§4.8, §13) — AC #2

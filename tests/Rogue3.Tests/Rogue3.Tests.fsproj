@@ -19,6 +19,7 @@
     <Compile Include="BehaviorTests.fs" />
     <Compile Include="InputTests.fs" />
     <Compile Include="M2MovementShotTests.fs" />
+    <Compile Include="M3CombatHealthCurrencyTests.fs" />
     <!-- Issue #1002 (child of #991): release-lane BEHAVIOUR coverage for the generic game shell.
          Drives GameShell.fs's pure `update` + host-free seams (router, Esc routing, rebind capture,
          display->window-behaviour mapping, keymap persistence). Additive — it adds shell tests beside

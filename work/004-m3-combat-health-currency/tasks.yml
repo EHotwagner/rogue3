@@ -1,0 +1,86 @@
+schemaVersion: 1
+work:
+  id: 004-m3-combat-health-currency
+  title: "M3 combat health and currency"
+  stage: tasks
+  status: tasksReady
+  sourceSpec: work/004-m3-combat-health-currency/spec.md
+  sourceClarifications: work/004-m3-combat-health-currency/clarifications.md
+  sourceChecklist: work/004-m3-combat-health-currency/checklist.md
+  sourcePlan: work/004-m3-combat-health-currency/plan.md
+  publicOrToolFacingImpact: true
+
+sources:
+  - label: spec
+    path: work/004-m3-combat-health-currency/spec.md
+    digest: 739bc976fc12daab22c106a6877d6d3f8b787539cf78efd04c1e379294ddaa40
+    schemaVersion: 1
+  - label: clarifications
+    path: work/004-m3-combat-health-currency/clarifications.md
+    digest: 2e0baf1a9d74517014322f29a84f5c230833f1c8dc0921ece385681464a7e60f
+    schemaVersion: 1
+  - label: checklist
+    path: work/004-m3-combat-health-currency/checklist.md
+    digest: aad0cc445f27996a7f74c3eea373caec1f546b37681e3408c1887be103fd54da
+    schemaVersion: 1
+  - label: plan
+    path: work/004-m3-combat-health-currency/plan.md
+    digest: 640060b3a6c6659591b14e370f352c2ee5f251077dd7906927d0e40633b4131b
+    schemaVersion: 1
+tasks:
+  - id: T001
+    title: Implement requirement FR-001
+    status: done
+    owner: sdd
+    dependencies: []
+    requirements: [FR-001]
+    decisions: []
+    sourceIds: [AC-001, FR-001, PD-001]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV001]
+  - id: T002
+    title: Update contract surface PC-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [PC-001, PD-001]
+    requiredSkills: [fsharp]
+    requiredEvidence: [EV002]
+  - id: T003
+    title: Record verification evidence VO-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [PC-001, PD-001, VO-001]
+    requiredSkills: [automated-tests, readiness-evidence]
+    requiredEvidence: [EV003]
+  - id: T004
+    title: Handle migration posture PM-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [PC-001, PM-001]
+    requiredSkills: [schema-versioning]
+    requiredEvidence: [EV004]
+  - id: T005
+    title: Refresh generated view impact GV-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [GV-001, PD-001]
+    requiredSkills: [deterministic-json]
+    requiredEvidence: [EV005]
+acceptedDeferrals: []
+findings: []
+advisoryNotes:
+  - "Optional Governance pointers remain compatibility facts only."
+lifecycleNotes:
+  - "Next lifecycle action: fsgg-sdd analyze --work 004-m3-combat-health-currency."

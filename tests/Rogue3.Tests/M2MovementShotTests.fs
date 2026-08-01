@@ -111,17 +111,17 @@ let projectileTests =
             let unboundedRoom: Rect = { X = 0.0; Y = 0.0; Width = 5000.0; Height = 720.0 }
             let afterLifetime =
                 [ 1 .. shot.MaxAgeTicks ]
-                |> List.fold (fun current _ -> stepShots unboundedRoom [] [] Map.empty current |> fun (s, _, _) -> s) [ shot ]
+                |> List.fold (fun current _ -> stepShots unboundedRoom [] [] current |> fun (s, _, _) -> s) [ shot ]
             Expect.hasLength afterLifetime 1 "shot survives while age equals range"
-            let expired, _, _ = stepShots unboundedRoom [] [] Map.empty afterLifetime
+            let expired, _, _ = stepShots unboundedRoom [] [] afterLifetime
             Expect.isEmpty expired "shot expires when age exceeds range"
 
             let nearEdge = { shot with Position = vec2 1274.0 360.0 }
-            let left, _, _ = stepShots room [] [] Map.empty [ nearEdge ]
+            let left, _, _ = stepShots room [] [] [ nearEdge ]
             Expect.isEmpty left "no-bounce shot expires on leaving room"
 
             let bouncing = { nearEdge with BouncesRemaining = 1 }
-            let bounced, _, _ = stepShots room [] [] Map.empty [ bouncing ]
+            let bounced, _, _ = stepShots room [] [] [ bouncing ]
             Expect.hasLength bounced 1 "one remaining bounce keeps the shot"
             Expect.isLessThan bounced.Head.Velocity.Vx 0.0 "room-face bounce reflects velocity"
             Expect.equal bounced.Head.BouncesRemaining 0 "bounce budget decrements"
@@ -130,40 +130,28 @@ let projectileTests =
             let thinWall: Rect = { X = 95.0; Y = 0.0; Width = 1.0; Height = 200.0 }
             let fastStats = { basePlayerStats with ShotSpeed = 900.0; Bounce = 1 }
             let shot = spawnShots 1 1 (vec2 90.0 100.0) zero (vec2 1.0 0.0) fastStats |> List.exactlyOne
-            let stepped, queries, _ = stepShots room [ thinWall ] [] Map.empty [ shot ]
+            let stepped, queries, _ = stepShots room [ thinWall ] [] [ shot ]
             Expect.hasLength stepped 1 "swept cast observes the thin wall"
             Expect.equal queries 1 "one wall produces one exact cast"
             Expect.isLessThan stepped.Head.Velocity.Vx 0.0 "wall normal reflects velocity"
             Expect.equal stepped.Head.BouncesRemaining 0 "the only bounce is consumed"
 
-        testCase "pierce spends only distinct ordered enemy ids and expires on pierce plus one" <| fun _ ->
-            let stats = { basePlayerStats with Pierce = 2 }
-            let shot = spawnShots 1 7 (vec2 100.0 100.0) zero (vec2 1.0 0.0) stats |> List.exactlyOne
-            let once, _, _ = stepShots room [] [] (Map [ 7, [ 11 ] ]) [ shot ]
-            Expect.equal once.Head.HitsRemaining 2 "first distinct hit spends one allowance"
-            let repeat, _, _ = stepShots room [] [] (Map [ 7, [ 11 ] ]) once
-            Expect.equal repeat.Head.HitsRemaining 2 "repeat overlap with one id does not spend again"
-            let twice, _, _ = stepShots room [] [] (Map [ 7, [ 12 ] ]) repeat
-            Expect.equal twice.Head.HitsRemaining 1 "second distinct hit spends the second allowance"
-            let exhausted, _, _ = stepShots room [] [] (Map [ 7, [ 13 ] ]) twice
-            Expect.isEmpty exhausted "pierce two expires on the third distinct enemy"
-
         testCase "homing turn is capped, stable, and range still guarantees termination" <| fun _ ->
             let stats = { basePlayerStats with Homing = 1.0; Range = 0.4 }
             let shot = spawnShots 1 3 (vec2 100.0 100.0) zero (vec2 1.0 0.0) stats |> List.exactlyOne
             let targets = [ { Id = 2; Position = vec2 100.0 200.0 }; { Id = 1; Position = vec2 100.0 200.0 } ]
-            let turned, _, queries = stepShots room [] targets Map.empty [ shot ]
+            let turned, _, queries = stepShots room [] targets [ shot ]
             close 3.0 (angleDegrees turned.Head.Velocity) "homing one caps at 360 degrees/s = 3 degrees/tick"
             Expect.equal queries 2 "cost records every target considered"
             let ended =
                 [ 1 .. shot.MaxAgeTicks + 1 ]
-                |> List.fold (fun current _ -> stepShots room [] targets Map.empty current |> fun (s, _, _) -> s) [ shot ]
+                |> List.fold (fun current _ -> stepShots room [] targets current |> fun (s, _, _) -> s) [ shot ]
             Expect.isEmpty ended "homing never defeats range termination"
 
         testCase "non-finite projectile state terminates instead of poisoning the replay" <| fun _ ->
             let shot = spawnShots 1 1 zero zero (vec2 1.0 0.0) basePlayerStats |> List.exactlyOne
             let invalid = { shot with Velocity = vec2 Double.NaN 0.0 }
-            let stepped, _, _ = stepShots room [] [] Map.empty [ invalid ]
+            let stepped, _, _ = stepShots room [] [] [ invalid ]
             Expect.isEmpty stepped "invalid projectile is removed"
     ]
 

@@ -84,6 +84,59 @@ type PlayerStats =
       Homing: float
       SpeedMultiplier: float }
 
+type Stat =
+    | DamageStat | TearDelayStat | ShotSpeedStat | RangeStat | SpeedMultiplierStat
+    | MultishotStat | ShotRadiusStat | KnockbackStat | PierceStat | BounceStat | HomingStat
+
+type ModifierKind = Add | Mul
+
+type StatModifier =
+    { Stat: Stat
+      Kind: ModifierKind
+      Value: float }
+
+type PlayerItem =
+    { Id: string
+      Modifiers: StatModifier list }
+
+type Health =
+    { RedContainers: int
+      RedHalfHearts: int
+      SoulHalfHearts: int
+      BlackHalfHearts: int }
+
+type Currency = { Coins: int; Keys: int; Bombs: int }
+
+type Enemy =
+    { Id: int
+      Position: Vec2
+      Velocity: Vec2
+      Radius: float
+      HitPoints: float
+      ContactDamage: int
+      LastContactTick: int option
+      HitFlashTicks: int }
+
+type EnemyBullet =
+    { Id: int
+      Position: Vec2
+      Radius: float
+      Damage: int }
+
+type Bomb =
+    { Id: int
+      Position: Vec2
+      FuseTicks: int }
+
+type ShopCost = CoinCost of int | KeyCost of int
+
+type ShopSlot =
+    { Id: int
+      Item: PlayerItem
+      Cost: ShopCost }
+
+type PlayerLifeState = Alive | Dead
+
 type HomingTarget = { Id: int; Position: Vec2 }
 
 /// A live M2 projectile. Integer age/hit budgets make termination exact at the fixed-step boundary.
@@ -127,9 +180,18 @@ type Model =
       PlayerPosition: Vec2
       PlayerVelocity: Vec2
       PlayerStats: PlayerStats
+      PlayerItems: PlayerItem list
+      PlayerHealth: Health
+      PlayerCurrency: Currency
+      PlayerLifeState: PlayerLifeState
+      PostHitInvulnTicks: int
       Obstacles: Rect list
       HomingTargets: HomingTarget list
-      ShotHitsThisTick: Map<int, int list>
+      Enemies: Enemy list
+      EnemyBullets: EnemyBullet list
+      Bombs: Bomb list
+      ShopSlots: ShopSlot list
+      NextBombId: int
       Facing: Vec2
       LastResolvedInput: ResolvedInput
       FireCooldown: float
@@ -142,6 +204,8 @@ type Model =
       DodgeCooldownTicks: int
       TotalWallQueries: int
       TotalHomingQueries: int
+      TotalCombatCandidates: int
+      BlackHeartBursts: int
       EdgeActionCount: int }
 
 type Msg =
@@ -169,6 +233,7 @@ type Msg =
     | KeyChanged of KeyId * isDown: bool
     | PointerChanged of position: Vec2 * primaryDown: bool option
     | InputChanged of InputSnapshot
+    | InteractShop of slotId: int
     | NoOp
 
 // Kept model-agnostic so the durable LayoutEvidence spine validates the skeleton AND a swap.
@@ -210,6 +275,12 @@ let dodgeIFrameTicks = int (0.40 / fixedDt + 0.5)
 let dodgeCooldownTicks = int (0.90 / fixedDt + 0.5)
 let spreadDegrees = 18.0
 let shotVelocityInheritance = 0.25
+let postHitInvulnTicks = int (0.80 / fixedDt + 0.5)
+let contactRetickTicks = int (0.50 / fixedDt + 0.5)
+let hitFlashTicks = int (ceil (0.06 / fixedDt))
+let bombFuseTicks = int (1.50 / fixedDt + 0.5)
+let bombRadius = 90.0
+let spatialCellSize = 64.0
 
 let basePlayerStats =
     { Damage = 3.5
@@ -224,6 +295,70 @@ let basePlayerStats =
       Homing = 0.0
       SpeedMultiplier = 0.0 }
 
+let private finiteOr fallback value = if Double.IsFinite value then value else fallback
+
+let recomputePlayerStats (items: PlayerItem list) =
+    let modifiers = items |> List.collect (fun item -> item.Modifiers)
+    let apply kind stat seed =
+        modifiers
+        |> List.filter (fun modifier' -> modifier'.Kind = kind && modifier'.Stat = stat)
+        |> List.fold (fun value modifier' ->
+            let amount = finiteOr 0.0 modifier'.Value
+            match kind with Add -> value + amount | Mul -> value * (1.0 + amount)) seed
+    let effective statId seed = seed |> apply Add statId |> apply Mul statId
+    let integral statId seed = effective statId (float seed) |> Math.Round |> int
+    let tearDelay = effective TearDelayStat 12.0 |> max 1.0
+    { Damage = effective DamageStat basePlayerStats.Damage |> max 0.5
+      FireRate = 30.0 / tearDelay |> max 0.7 |> min 15.0
+      ShotSpeed = effective ShotSpeedStat basePlayerStats.ShotSpeed |> max 150.0 |> min 900.0
+      Range = effective RangeStat basePlayerStats.Range |> max 0.4 |> min 4.0
+      ShotRadius = effective ShotRadiusStat basePlayerStats.ShotRadius |> max 0.1
+      Knockback = effective KnockbackStat basePlayerStats.Knockback |> max 0.0
+      Multishot = integral MultishotStat basePlayerStats.Multishot |> max 1 |> min 12
+      Pierce = integral PierceStat basePlayerStats.Pierce |> max 0
+      Bounce = integral BounceStat basePlayerStats.Bounce |> max 0
+      Homing = effective HomingStat basePlayerStats.Homing |> max 0.0
+      SpeedMultiplier = effective SpeedMultiplierStat basePlayerStats.SpeedMultiplier |> max -0.5 |> min 1.25 }
+
+let totalHalfHearts health =
+    max 0 health.RedHalfHearts + max 0 health.SoulHalfHearts + max 0 health.BlackHalfHearts
+
+let displayedHeartHalves health =
+    min 24 (2 * (health.RedContainers |> max 0 |> min 12) + max 0 health.SoulHalfHearts + max 0 health.BlackHalfHearts)
+
+let applyDamage halfHearts health =
+    let mutable remaining = max 0 halfHearts
+    let mutable black = max 0 health.BlackHalfHearts
+    let mutable soul = max 0 health.SoulHalfHearts
+    let mutable red = max 0 health.RedHalfHearts
+    let mutable bursts = 0
+    while remaining > 0 && black > 0 do
+        black <- black - 1
+        remaining <- remaining - 1
+        if black % 2 = 0 then bursts <- bursts + 1
+    let soulTaken = min remaining soul
+    soul <- soul - soulTaken
+    remaining <- remaining - soulTaken
+    red <- max 0 (red - remaining)
+    { health with BlackHalfHearts = black; SoulHalfHearts = soul; RedHalfHearts = red }, bursts
+
+let addTemporaryHearts soul black health =
+    let room = max 0 (24 - min 24 (2 * health.RedContainers) - health.SoulHalfHearts - health.BlackHalfHearts)
+    let blackAdded = min room (max 0 black)
+    let soulAdded = min (room - blackAdded) (max 0 soul)
+    { health with
+        BlackHalfHearts = health.BlackHalfHearts + blackAdded
+        SoulHalfHearts = health.SoulHalfHearts + soulAdded }
+
+let healRed amount health =
+    { health with RedHalfHearts = min (2 * (health.RedContainers |> max 0 |> min 12)) (health.RedHalfHearts + max 0 amount) }
+
+let addRedContainer health =
+    let containers = min 12 (health.RedContainers + 1)
+    { health with RedContainers = containers; RedHalfHearts = min (2 * containers) (health.RedHalfHearts + 2) }
+
+let addCurrency amount current = min 99 (max 0 current + max 0 amount)
+
 let private servedBall =
     { Pos = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0)
       Velocity = vec2 5.0 3.0 }
@@ -234,7 +369,7 @@ let private emptyGamepad =
       RightTrigger = 0.0
       Buttons = Set.empty }
 
-let emptyInputSnapshot =
+let emptyInputSnapshot: InputSnapshot =
     { Keys = Set.empty
       MousePosition = None
       MousePrimaryDown = false
@@ -280,9 +415,18 @@ let initialModelForSeed seed =
       PlayerPosition = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0)
       PlayerVelocity = zero
       PlayerStats = basePlayerStats
+      PlayerItems = []
+      PlayerHealth = { RedContainers = 3; RedHalfHearts = 6; SoulHalfHearts = 0; BlackHalfHearts = 0 }
+      PlayerCurrency = { Coins = 0; Keys = 1; Bombs = 1 }
+      PlayerLifeState = Alive
+      PostHitInvulnTicks = 0
       Obstacles = []
       HomingTargets = []
-      ShotHitsThisTick = Map.empty
+      Enemies = []
+      EnemyBullets = []
+      Bombs = []
+      ShopSlots = []
+      NextBombId = 1
       Facing = vec2 1.0 0.0
       LastResolvedInput = emptyResolvedInput
       FireCooldown = 0.0
@@ -295,6 +439,8 @@ let initialModelForSeed seed =
       DodgeCooldownTicks = 0
       TotalWallQueries = 0
       TotalHomingQueries = 0
+      TotalCombatCandidates = 0
+      BlackHeartBursts = 0
       EdgeActionCount = 0 }
 
 let initialModel = initialModelForSeed 0xC0FFEEUL
@@ -374,6 +520,8 @@ let private arrowUpKey = keyId ArrowUp
 let private arrowDownKey = keyId ArrowDown
 let private arrowLeftKey = keyId ArrowLeft
 let private arrowRightKey = keyId ArrowRight
+let private qKey = keyId (Letter 'Q')
+let private fKey = keyId (Letter 'F')
 
 let private axis negative positive keys =
     (if Set.contains positive keys then 1.0 else 0.0)
@@ -407,7 +555,7 @@ let private activeStick vector =
     elif vector.Vx * vector.Vx + vector.Vy * vector.Vy < 0.04 then zero
     else normalizeOrZero vector
 
-let resolveInput playerPosition pressedThisTick snapshot =
+let resolveInput playerPosition pressedThisTick (snapshot: InputSnapshot) =
     let keyboardMove = vec2 (axis aKey dKey snapshot.Keys) (axis wKey sKey snapshot.Keys)
     let gamepadMove = activeStick snapshot.Gamepad.LeftStick
     let move = add keyboardMove gamepadMove |> normalizeOrZero
@@ -439,13 +587,13 @@ let resolveInput playerPosition pressedThisTick snapshot =
       FireHeld = snapshot.MousePrimaryDown || arrow <> zero || gamepadAim <> zero || trigger >= 0.5
       PressedThisTick = pressedThisTick }
 
-let withKey key isDown snapshot =
+let withKey key isDown (snapshot: InputSnapshot) =
     { snapshot with
         Keys =
             if isDown then Set.add key snapshot.Keys
             else Set.remove key snapshot.Keys }
 
-let withPointer position primaryDown snapshot =
+let withPointer position primaryDown (snapshot: InputSnapshot) =
     { snapshot with
         MousePosition = if isFinite position then Some position else snapshot.MousePosition
         MousePrimaryDown = primaryDown |> Option.defaultValue snapshot.MousePrimaryDown }
@@ -539,7 +687,7 @@ let private nearestWallHit walls (shot: ShotSpawn) nextPosition =
     |> List.tryHead
     |> Option.map (fun (_, _, hit) -> hit)
 
-let stepShots (roomBounds: Rect) (walls: Rect list) (targets: HomingTarget list) (hitsByShot: Map<int, int list>) (shots: ShotSpawn list) =
+let stepShots (roomBounds: Rect) (walls: Rect list) (targets: HomingTarget list) (shots: ShotSpawn list) =
     let mutable wallQueries = 0
     let mutable homingQueries = 0
     let stepped =
@@ -547,14 +695,8 @@ let stepShots (roomBounds: Rect) (walls: Rect list) (targets: HomingTarget list)
         |> List.choose (fun original ->
             let shot = steerShot targets original
             if shot.Homing > 0.0 then homingQueries <- homingQueries + targets.Length
-            let newHits =
-                defaultArg (Map.tryFind shot.Id hitsByShot) []
-                |> List.distinct
-                |> List.filter (fun enemyId -> not (Set.contains enemyId shot.HitEnemyIds))
-            let hitsRemaining = shot.HitsRemaining - newHits.Length
-            let hitIds = (shot.HitEnemyIds, newHits) ||> List.fold (fun ids enemyId -> Set.add enemyId ids)
             let age = shot.AgeTicks + 1
-            if hitsRemaining <= 0 || age > shot.MaxAgeTicks || not (isFinite shot.Position && isFinite shot.Velocity) then None
+            if shot.HitsRemaining <= 0 || age > shot.MaxAgeTicks || not (isFinite shot.Position && isFinite shot.Velocity) then None
             else
                 let next = add shot.Position (scale fixedDt shot.Velocity)
                 wallQueries <- wallQueries + walls.Length
@@ -563,7 +705,7 @@ let stepShots (roomBounds: Rect) (walls: Rect list) (targets: HomingTarget list)
                 | Some hit ->
                     let normal = ofSimPoint hit.Normal
                     let reflected = sub shot.Velocity (scale (2.0 * (shot.Velocity.Vx * normal.Vx + shot.Velocity.Vy * normal.Vy)) normal)
-                    Some { shot with Position = ofSimPoint hit.Point; Velocity = reflected; AgeTicks = age; HitsRemaining = hitsRemaining; HitEnemyIds = hitIds; BouncesRemaining = shot.BouncesRemaining - 1; DistanceTravelled = shot.DistanceTravelled + magnitude (sub (ofSimPoint hit.Point) shot.Position) }
+                    Some { shot with Position = ofSimPoint hit.Point; Velocity = reflected; AgeTicks = age; BouncesRemaining = shot.BouncesRemaining - 1; DistanceTravelled = shot.DistanceTravelled + magnitude (sub (ofSimPoint hit.Point) shot.Position) }
                 | None ->
                     let centre = { Center = toSimPoint next; Radius = shot.Radius }
                     let inside = Collision.clampCircleInside roomBounds centre
@@ -573,14 +715,163 @@ let stepShots (roomBounds: Rect) (walls: Rect list) (targets: HomingTarget list)
                         let hitX = inside.Center.X <> centre.Center.X
                         let hitY = inside.Center.Y <> centre.Center.Y
                         let velocity = vec2 (if hitX then -shot.Velocity.Vx else shot.Velocity.Vx) (if hitY then -shot.Velocity.Vy else shot.Velocity.Vy)
-                        Some { shot with Position = ofSimPoint inside.Center; Velocity = velocity; AgeTicks = age; HitsRemaining = hitsRemaining; HitEnemyIds = hitIds; BouncesRemaining = shot.BouncesRemaining - 1; DistanceTravelled = shot.DistanceTravelled + magnitude (sub (ofSimPoint inside.Center) shot.Position) }
+                        Some { shot with Position = ofSimPoint inside.Center; Velocity = velocity; AgeTicks = age; BouncesRemaining = shot.BouncesRemaining - 1; DistanceTravelled = shot.DistanceTravelled + magnitude (sub (ofSimPoint inside.Center) shot.Position) }
                     else
-                        Some { shot with Position = next; AgeTicks = age; HitsRemaining = hitsRemaining; HitEnemyIds = hitIds; DistanceTravelled = shot.DistanceTravelled + magnitude (sub next shot.Position) })
+                        Some { shot with Position = next; AgeTicks = age; DistanceTravelled = shot.DistanceTravelled + magnitude (sub next shot.Position) })
     stepped, wallQueries, homingQueries
 
-let private stepInput pressedThisTick model =
+let private circlesOverlap aPosition aRadius bPosition bRadius =
+    FS.GG.Game.Core.Geometry.circleContact
+        { Center = toSimPoint aPosition; Radius = aRadius }
+        { Center = toSimPoint bPosition; Radius = bRadius }
+    |> Option.isSome
+
+let private takePlayerHit damage source model =
+    if damage <= 0 || model.PlayerLifeState = Dead || model.DodgeIFrameTicks > 0 || model.PostHitInvulnTicks > 0 then model
+    else
+        let health, bursts = applyDamage damage model.PlayerHealth
+        let away = sub model.PlayerPosition source |> normalizeOrZero
+        { model with
+            PlayerHealth = health
+            PlayerVelocity = add model.PlayerVelocity (scale 90.0 away)
+            PostHitInvulnTicks = postHitInvulnTicks
+            BlackHeartBursts = model.BlackHeartBursts + bursts }
+
+let purchaseShopSlot slotId model =
+    match model.ShopSlots |> List.tryFind (fun slot -> slot.Id = slotId) with
+    | None -> model, false
+    | Some slot ->
+        let affordable, currency =
+            match slot.Cost with
+            | CoinCost cost when model.PlayerCurrency.Coins >= cost ->
+                true, { model.PlayerCurrency with Coins = model.PlayerCurrency.Coins - cost }
+            | KeyCost cost when model.PlayerCurrency.Keys >= cost ->
+                true, { model.PlayerCurrency with Keys = model.PlayerCurrency.Keys - cost }
+            | _ -> false, model.PlayerCurrency
+        if not affordable then model, false
+        else
+            let items = model.PlayerItems @ [ slot.Item ]
+            { model with
+                PlayerCurrency = currency
+                PlayerItems = items
+                PlayerStats = recomputePlayerStats items
+                ShopSlots = model.ShopSlots |> List.filter (fun candidate -> candidate.Id <> slotId) }, true
+
+type DescentCarry =
+    { Items: PlayerItem list
+      Stats: PlayerStats
+      Health: Health
+      Currency: Currency }
+
+let descentCarry model =
+    { Items = model.PlayerItems; Stats = model.PlayerStats; Health = model.PlayerHealth; Currency = model.PlayerCurrency }
+
+let private resolveShotCombat model =
+    let liveEnemies = model.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0)
+    let maxRadius = liveEnemies |> List.map (fun enemy -> max 0.0 enemy.Radius) |> List.fold max 0.0
+    let grid = SpatialGrid.build spatialCellSize [ for enemy in liveEnemies -> toSimPoint enemy.Position, enemy ]
+    let mutable enemies = liveEnemies |> List.map (fun enemy -> enemy.Id, enemy) |> Map.ofList
+    let mutable candidates = 0
+    let shots =
+        model.ShotSpawns
+        |> List.choose (fun shot ->
+            let nearby = SpatialGrid.queryRadius (toSimPoint shot.Position) (shot.Radius + maxRadius) grid
+            candidates <- candidates + nearby.Length
+            let hits =
+                nearby
+                |> List.filter (fun enemy ->
+                    not (Set.contains enemy.Id shot.HitEnemyIds)
+                    && circlesOverlap shot.Position shot.Radius enemy.Position enemy.Radius)
+                |> List.sortBy (fun enemy -> enemy.Id)
+                |> List.truncate shot.HitsRemaining
+            for enemy in hits do
+                match Map.tryFind enemy.Id enemies with
+                | Some current when current.HitPoints > 0.0 ->
+                    let impulse = normalizeOrZero shot.Velocity |> scale shot.Knockback
+                    enemies <- Map.add enemy.Id
+                        { current with
+                            HitPoints = max 0.0 (current.HitPoints - shot.Damage)
+                            Velocity = add current.Velocity impulse
+                            HitFlashTicks = hitFlashTicks } enemies
+                | _ -> ()
+            let hitIds = (shot.HitEnemyIds, hits) ||> List.fold (fun ids enemy -> Set.add enemy.Id ids)
+            let remaining = shot.HitsRemaining - hits.Length
+            if remaining <= 0 then None
+            else Some { shot with HitsRemaining = remaining; HitEnemyIds = hitIds })
+    { model with
+        Enemies = enemies |> Map.toList |> List.map snd
+        ShotSpawns = shots
+        TotalCombatCandidates = model.TotalCombatCandidates + candidates }
+
+let private resolveBombs model =
+    let aged = model.Bombs |> List.map (fun bomb -> { bomb with FuseTicks = bomb.FuseTicks - 1 })
+    let mutable pending = aged |> List.filter (fun bomb -> bomb.FuseTicks <= 0) |> List.map (fun bomb -> bomb.Id) |> Set.ofList
+    let mutable exploded = Set.empty
+    while not (Set.isEmpty pending) do
+        let id = Set.minElement pending
+        pending <- Set.remove id pending
+        if not (Set.contains id exploded) then
+            exploded <- Set.add id exploded
+            let source = aged |> List.find (fun bomb -> bomb.Id = id)
+            for other in aged do
+                if not (Set.contains other.Id exploded) && circlesOverlap source.Position bombRadius other.Position 0.1 then
+                    pending <- Set.add other.Id pending
+    let mutable result = model
+    for id in exploded |> Set.toList |> List.sort do
+        let bomb = aged |> List.find (fun candidate -> candidate.Id = id)
+        let enemies =
+            result.Enemies
+            |> List.map (fun enemy ->
+                if enemy.HitPoints > 0.0 && circlesOverlap bomb.Position bombRadius enemy.Position enemy.Radius then
+                    { enemy with HitPoints = max 0.0 (enemy.HitPoints - 40.0); HitFlashTicks = hitFlashTicks }
+                else enemy)
+        result <- { result with Enemies = enemies } |> takePlayerHit 2 bomb.Position
+    { result with Bombs = aged |> List.filter (fun bomb -> not (Set.contains bomb.Id exploded)) }
+
+let private resolveEnemyDamage model =
+    let bulletGrid = SpatialGrid.build spatialCellSize [ for bullet in model.EnemyBullets -> toSimPoint bullet.Position, bullet ]
+    let maxBulletRadius = model.EnemyBullets |> List.map (fun bullet -> max 0.0 bullet.Radius) |> List.fold max 0.0
+    let bullets = SpatialGrid.queryRadius (toSimPoint model.PlayerPosition) (playerRadius + maxBulletRadius) bulletGrid
+    let mutable result = model
+    let mutable consumed = Set.empty
+    for bullet in bullets |> List.sortBy (fun bullet -> bullet.Id) do
+        if circlesOverlap result.PlayerPosition playerRadius bullet.Position bullet.Radius then
+            let before = result.PlayerHealth
+            result <- takePlayerHit bullet.Damage bullet.Position result
+            if result.PlayerHealth <> before then consumed <- Set.add bullet.Id consumed
+    let enemyGrid = SpatialGrid.build spatialCellSize [ for enemy in result.Enemies do if enemy.HitPoints > 0.0 then toSimPoint enemy.Position, enemy ]
+    let maxEnemyRadius = result.Enemies |> List.map (fun enemy -> max 0.0 enemy.Radius) |> List.fold max 0.0
+    let contacts = SpatialGrid.queryRadius (toSimPoint result.PlayerPosition) (playerRadius + maxEnemyRadius) enemyGrid |> List.sortBy (fun enemy -> enemy.Id)
+    let mutable contactTicks = Map.empty
+    for enemy in contacts do
+        let ready = enemy.LastContactTick |> Option.forall (fun tick -> result.SimStepCount + 1 - tick >= contactRetickTicks)
+        if ready && circlesOverlap result.PlayerPosition playerRadius enemy.Position enemy.Radius then
+            let before = result.PlayerHealth
+            result <- takePlayerHit enemy.ContactDamage enemy.Position result
+            if result.PlayerHealth <> before then contactTicks <- Map.add enemy.Id (result.SimStepCount + 1) contactTicks
+    { result with
+        EnemyBullets = result.EnemyBullets |> List.filter (fun bullet -> not (Set.contains bullet.Id consumed))
+        Enemies = result.Enemies |> List.map (fun enemy ->
+            { enemy with
+                LastContactTick = Map.tryFind enemy.Id contactTicks |> Option.orElse enemy.LastContactTick
+                HitFlashTicks = max 0 (enemy.HitFlashTicks - 1) })
+        TotalCombatCandidates = result.TotalCombatCandidates + bullets.Length + contacts.Length }
+
+let private resolveCombat model =
+    let burstsBefore = model.BlackHeartBursts
+    let model = model |> resolveShotCombat |> resolveBombs |> resolveEnemyDamage
+    let burstsThisStep = model.BlackHeartBursts - burstsBefore
+    let enemies =
+        if burstsThisStep > 0 then
+            model.Enemies |> List.map (fun enemy -> { enemy with HitPoints = max 0.0 (enemy.HitPoints - 10.0 * float burstsThisStep) })
+        else model.Enemies
+    { model with
+        Enemies = enemies
+        PlayerLifeState = if totalHalfHearts model.PlayerHealth = 0 then Dead else model.PlayerLifeState }
+
+let private stepInput pressedThisTick (model: Model) =
     let resolved = resolveInput model.PlayerPosition pressedThisTick model.Input.Current
-    let dodgeStarted = Set.contains dodgeKey pressedThisTick && model.DodgeCooldownTicks = 0
+    let dodgeStarted = model.PlayerLifeState = Alive && Set.contains dodgeKey pressedThisTick && model.DodgeCooldownTicks = 0
     let moveSpeed = effectiveMoveSpeed model.PlayerStats
     let targetVelocity = scale moveSpeed resolved.Move
     let rate = if resolved.Move = zero then playerFriction else playerAcceleration
@@ -602,7 +893,7 @@ let private stepInput pressedThisTick model =
     let cadence = 1.0 / (model.PlayerStats.FireRate |> max 0.7 |> min 15.0)
 
     let shouldSpawn, nextCooldown =
-        if iFramesActive || not resolved.FireHeld || fireAim = zero then
+        if model.PlayerLifeState = Dead || iFramesActive || not resolved.FireHeld || fireAim = zero then
             false, 0.0
         elif not model.WasFiring then
             true, max 0.0 (cadence - fixedDt)
@@ -619,7 +910,15 @@ let private stepInput pressedThisTick model =
         |> List.truncate maxShotSpawnHistory
 
     let steppedShots, wallQueries, homingQueries =
-        stepShots roomBounds model.Obstacles model.HomingTargets model.ShotHitsThisTick shotSpawns
+        stepShots roomBounds model.Obstacles model.HomingTargets shotSpawns
+
+    let bombPressed = Set.contains qKey pressedThisTick || Set.contains fKey pressedThisTick
+    let bombs, currency, nextBombId =
+        if bombPressed && model.PlayerCurrency.Bombs > 0 && model.PlayerLifeState = Alive then
+            { Id = model.NextBombId; Position = playerPosition; FuseTicks = bombFuseTicks } :: model.Bombs,
+            { model.PlayerCurrency with Bombs = model.PlayerCurrency.Bombs - 1 },
+            model.NextBombId + 1
+        else model.Bombs, model.PlayerCurrency, model.NextBombId
 
     { model with
         PlayerPosition = playerPosition
@@ -630,11 +929,14 @@ let private stepInput pressedThisTick model =
         WasFiring = not iFramesActive && resolved.FireHeld && fireAim <> zero
         ShotSpawns = steppedShots
         TotalShotSpawns = model.TotalShotSpawns + spawned.Length
-        ShotHitsThisTick = Map.empty
+        Bombs = bombs
+        PlayerCurrency = currency
+        NextBombId = nextBombId
         NextShotId = model.NextShotId + spawned.Length
         DodgeRollTicks = if dodgeStarted then rollDurationTicks - 1 else max 0 (model.DodgeRollTicks - 1)
-        DodgeIFrameTicks = if dodgeStarted then dodgeIFrameTicks - 1 else max 0 (model.DodgeIFrameTicks - 1)
+        DodgeIFrameTicks = if dodgeStarted then dodgeIFrameTicks else model.DodgeIFrameTicks
         DodgeCooldownTicks = if dodgeStarted then dodgeCooldownTicks - 1 else max 0 (model.DodgeCooldownTicks - 1)
+        PostHitInvulnTicks = max 0 (model.PostHitInvulnTicks - 1)
         // Each player axis performs one swept cast, then slideCircle's X and Y contact folds.
         TotalWallQueries = model.TotalWallQueries + wallQueries + 6 * model.Obstacles.Length
         TotalHomingQueries = model.TotalHomingQueries + homingQueries
@@ -644,7 +946,8 @@ let private stepInput pressedThisTick model =
 // score and re-serve on a miss. Positions/velocities are `Vec2`, advanced with `add`/`scale`; the
 // ball always stays inside the playfield after the step. This is your `stepSim` — edit it freely.
 let private stepSimWithInput pressedThisTick model =
-    let model = stepInput pressedThisTick model
+    let model = stepInput pressedThisTick model |> resolveCombat
+    let model = { model with DodgeIFrameTicks = max 0 (model.DodgeIFrameTicks - 1) }
     let ball = model.Ball
     let next = add ball.Pos ball.Velocity // one unit step (dt folded into velocity units)
 
@@ -692,7 +995,7 @@ let stepSim model = stepSimWithInput Set.empty model
 // whole number of `simInterval` steps out of it, and run `stepSim` that many times. `FixedStep.drain`
 // is a pure FS.GG.Game.Core primitive (no wall-clock read), so a scripted `dt` sequence replays
 // byte-identically. This is the accumulator + stepSim pattern — the shape most games want on Tick.
-let private advanceSim dtSeconds model =
+let private advanceSim dtSeconds (model: Model) =
     let struct (steps, accumulator) =
         FixedStep.drainWith maxFrameTime fixedDt dtSeconds model.SimAccumulator
     let currentKeys = Set.union model.Input.Current.Keys model.Input.Current.Gamepad.Buttons
@@ -744,6 +1047,7 @@ let update msg model : Model * AdapterCommand<Msg> =
         { model with Input = { model.Input with Current = withPointer position primaryDown model.Input.Current } }, Cmd.none
     | InputChanged snapshot ->
         { model with Input = { model.Input with Current = snapshot } }, Cmd.none
+    | InteractShop slotId -> purchaseShopSlot slotId model |> fst, Cmd.none
     | NoOp -> model, Cmd.none
 
 let subscriptions _ : AdapterSubscription<Msg> list = Sub.none

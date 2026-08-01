@@ -3,12 +3,12 @@ performanceIntent:
   disposition: "active"
   targetFps: 60
   workloadIds: ["idle", "movement-aiming", "firing", "effects-fog", "maximum-content"]
-  workloadDefinitionDigests: ["idle=sha256:3401997e670f61755710abf3e81d816a40d3ddbe424ff6b9c53d1d2350f067dd", "movement-aiming=sha256:03bd5109cf0a9c939d71a8b6cc9a8cf87ed1140350692dad8441e2bb6a509f32", "firing=sha256:984750124965e459571478065866e065f58a284f936a34ccc0eadfa4e295b77f", "effects-fog=sha256:457bb0bdbef9aee48d9f88a1327090cb93ecaad109688574301eb2cfdbb23349", "maximum-content=sha256:19dd2c48d8100b55fc2079052a51b0c69a4c619a12c3b59148c41c046693c208"]
-  maximumExpectedScale: "40 live player shots, 8 static obstacles, 30 homing targets, and all five scaffold visuals"
+  workloadDefinitionDigests: ["idle=sha256:26a72b61fe62a04f5e1663b7d203e378f18adc0264c6f65c7e24480037020dd3", "movement-aiming=sha256:bca75d66ef4e717a86707a780d6389593bd3130c60718500853aca54b8109fcf", "firing=sha256:5a531bc02b2f5575fe21802cc3e26cf74653efd1334d01f178de3f11dc698f6f", "effects-fog=sha256:cd1f48e1df4a3d8e5d54c648214474eae7b1bc670ef0c6faba284ec12d04a2b3", "maximum-content=sha256:e4ec8ce37cc2f71dd462154e2bc605042f1ddef2e39d6d0e38d00a5b557b37dc"]
+  maximumExpectedScale: "40 live player shots, 8 static obstacles, 30 live enemies/targets, 120 enemy bullets, 736 wall primitives, 2,400 homing considerations, multishot 3, and all five scaffold visuals"
   maxP95Ms: 16.67
   maxP99Ms: 25.0
   maxCatchUpFrames: 0
-  structuralCostBudgets: ["scene-nodes\u003C=4096", "shot-spawn-history\u003C=40"]
+  structuralCostBudgets: ["scene-nodes\u003C=4096", "shot-spawn-history\u003C=40", "combat-candidates\u003C=2520"]
   requiredCapability: "bounded-headless-update-and-scene-route"
   liveCompositorRequired: false
   evidenceRefs: ["readiness/performance-evidence.json"]

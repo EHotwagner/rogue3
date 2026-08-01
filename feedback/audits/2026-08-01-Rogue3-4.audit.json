@@ -1,0 +1,51 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-01-Rogue3-4.md",
+  "reportSha256": "91cf9255c4da61f2738f7bf2565ee366e3ab8dde3313b4dcaad737f912bc1085",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:src/Rogue3/Model.fs", "result": "verified", "sha256": "9ca9cbe2e46662baf5fb42a59d9ebc8b1c659277d2ce479c03368cb50f6e269f" },
+        { "locator": "file:tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs", "result": "verified", "sha256": "4481a91a0f7a50585bc14205a62690354e32cbb1e6df8d91c426b61605face15" },
+        { "locator": "command:dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "The exact cited command passed 99/99 against the current candidate; no landing commit existed during critique.",
+        "Runtime compositor behavior was not exercised."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:src/Rogue3/PerformanceEvidence.fs", "result": "verified", "sha256": "9e0c02639ff63358c34161670c1aef282ad2e4cd1be010af17ecb69e9d4086b6" },
+        { "locator": "file:readiness/performance-evidence.json", "result": "verified", "sha256": "ac2ca0581e3cf2cd8ab91e67385bad460a67ffddf881012e40d2dc65c8e3ca0a" },
+        { "locator": "file:readiness/performance-critic-request.json", "result": "verified", "sha256": "f027a3f010f4f2466e216988e44bb45d872396d39e81d7abc2cfe5db0451cd84" }
+      ],
+      "confidenceLimits": [
+        "This combines recurring M2 exact-counter and complete-model closure root causes; M3 adds bullet-query evidence.",
+        "The rejected first M3 artifact was not retained, so it cannot be reconstructed independently.",
+        "Attributable external review at a landing commit remains outside the no-remote checkout."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "command:git remote -v", "result": "verified" },
+        { "locator": "file:readiness/004-m3-combat-health-currency/ship-verdict.json", "result": "verified", "sha256": "892d8024a6f6bc35b97c05a24618b5c1bf274775144e27e283929caa0459589f" }
+      ],
+      "confidenceLimits": [
+        "This is the same environment boundary recorded by prior Rogue3 feedback.",
+        "External PR, review, merge, and post-merge state cannot be checked without a remote."
+      ]
+    }
+  ]
+}
