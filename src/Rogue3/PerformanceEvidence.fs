@@ -39,7 +39,7 @@ let private performanceIntentSeed: PerformanceIntentDeclaration =
       TargetFps = 60
       WorkloadIds = []
       WorkloadDefinitionDigests = []
-      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 736 wall primitives, 2,400 homing considerations, multishot 3, and all five pre-M6 visuals"
+      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 736 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition, and all five pre-M6 visuals"
       MaxP95Ms = 16.67m
       MaxP99Ms = 25.0m
       MaxCatchUpFrames = 0
@@ -264,12 +264,78 @@ let performanceCostDrivers =
         MaximumExpected = 1
         VisualElement = Some "Playfield"
         Disposition = RequiredIn [ "idle"; "movement-aiming"; "firing"; "effects-fog"; "maximum-content" ] }
-      { Id = "effects.rogue3"
+      { Id = "effects.pooled-particles"
         Category = EffectsParticles
-        ScaleSource = "starter has no effect/particle system; replace this disposition when one is added"
+        ScaleSource = "Model.M6Particles exact retained live count after production update applies the hard pool cap"
+        MaximumExpected = 600
+        VisualElement = Some "Particle"
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "scene.m6-enemy-grub"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.EnemyGrub production token binding"
+        MaximumExpected = 1
+        VisualElement = Some "EnemyGrub"
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "scene.m6-enemy-maggot"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.EnemyMaggot production token binding"
+        MaximumExpected = 1
+        VisualElement = Some "EnemyMaggot"
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "scene.m6-enemy-spitter"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.EnemySpitter production token binding"
+        MaximumExpected = 1
+        VisualElement = Some "EnemySpitter"
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "scene.m6-enemy-fly"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.EnemyFly production token binding"
+        MaximumExpected = 1
+        VisualElement = Some "EnemyFly"
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "scene.m6-enemy-charger"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.EnemyCharger production token binding"
+        MaximumExpected = 1
+        VisualElement = Some "EnemyCharger"
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "scene.m6-enemy-turret"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.EnemyTurret production token binding"
+        MaximumExpected = 1
+        VisualElement = Some "EnemyTurret"
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "scene.m6-enemy-caster"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.EnemyCaster production token binding"
+        MaximumExpected = 1
+        VisualElement = Some "EnemyCaster"
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "scene.m6-enemy-brute"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.EnemyBrute production token binding"
+        MaximumExpected = 1
+        VisualElement = Some "EnemyBrute"
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "scene.m6-enemy-symbols"
+        Category = SceneRender
+        ScaleSource = "Rogue3.Render.enemyTokens exact live M5 enemy projection spanning every EnemyKind"
+        MaximumExpected = 8
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "scene.m6-ordered-layers"
+        Category = SceneRender
+        ScaleSource = "Rogue3.Render.layers exact back-to-front layer count consumed by production View.view"
+        MaximumExpected = 11
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "scene.m6-camera-transition"
+        Category = SceneRender
+        ScaleSource = "Model.M6CameraTransition active flag sampled through production view"
         MaximumExpected = 1
         VisualElement = None
-        Disposition = NonPerformance "no effect/particle system exists in the generated starter" }
+        Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "host.presentation"
         Category = HostPresentation
         ScaleSource = "protected live-compositor host"
@@ -675,6 +741,11 @@ let private observeCostScale driverId routed beforeModel afterModel =
         | "state.m5-shop-slots", _, _ -> afterModel.M5ShopSlots.Length
         | "boss.m5-pattern-emissions", _, _ -> afterModel.M5BossPatternEmissions - beforeModel.M5BossPatternEmissions
         | "collision.combat-candidates", _, _ -> afterModel.TotalCombatCandidates - beforeModel.TotalCombatCandidates
+        | "effects.pooled-particles", _, _ -> afterModel.M6Particles.Length
+        | "scene.m6-enemy-symbols", _, _ ->
+            afterModel.M5Enemies |> List.map _.Kind |> List.distinct |> List.length
+        | "scene.m6-ordered-layers", _, _ -> Rogue3.Render.layers afterModel |> List.length
+        | "scene.m6-camera-transition", _, _ -> if afterModel.M6CameraTransition.IsSome then 1 else 0
         | _, Input, _ ->
             let applied =
                 if afterModel.LastResolvedInput.Move <> zero
@@ -854,6 +925,8 @@ let private performanceJourneyReceipt scenarioId boot terminalSteps script =
                 | JourneyEvent.FixedTick -> JourneyDispatch.Mapped [ Tick fixedDt ]
                 | JourneyEvent.PointerInput(position, primaryDown) -> JourneyDispatch.Mapped [ PointerChanged(position, primaryDown) ]
                 | JourneyEvent.MenuAction _ -> JourneyDispatch.Unbound "menu action"
+                | JourneyEvent.Interact when scenarioId = "maximum-content" ->
+                    JourneyDispatch.Mapped [ BeginM6RoomTransition RoomSlideDirection.East ]
                 | JourneyEvent.Interact -> JourneyDispatch.Mapped [ DescendFloor ]
                 | JourneyEvent.Pause -> JourneyDispatch.Unbound "pause"
                 | JourneyEvent.Resume -> JourneyDispatch.Unbound "resume"
@@ -934,6 +1007,17 @@ let private maximumM5ShopSlots =
     let slots,_,_ = Rogue3.Entities.generateShop (FS.GG.Game.Core.Rng.ofSeed 0xA55AUL) (Rogue3.Entities.itemPool [])
     slots
 
+let private maximumM6Particles =
+    [ for index in 1 .. m6MaxParticles ->
+        { Id = index
+          Position = vec2 (80.0 + float (index % 40) * 28.0) (80.0 + float (index / 40) * 28.0)
+          Velocity = zero
+          LifetimeTicks = 10000
+          AgeTicks = 0
+          Radius = 3.0 + float (index % 3)
+          Shape = if index % 2 = 0 then ParticleShape.Circle else ParticleShape.Quad
+          Tint = if index % 3 = 0 then ParticleTint.Death elif index % 3 = 1 then ParticleTint.Muzzle else ParticleTint.Explosion } ]
+
 let private maximumContentModel () =
     let maw = Rogue3.Entities.spawnBoss 9999 Rogue3.Entities.BossKind.Maw (vec2 1000. 600.)
     { withInput maximumGamepadInput with
@@ -949,6 +1033,9 @@ let private maximumContentModel () =
         M5Obstacles = maximumM5Obstacles
         M5ShopSlots = maximumM5ShopSlots
         M5Boss = Some {maw with HitPoints=100.0;Phase=3;PatternTicksLeft=1}
+        M6Particles = maximumM6Particles
+        M6NextParticleId = m6MaxParticles + 1
+        M6CameraTransition = Some { Direction=RoomSlideDirection.East; ElapsedTicks=0 }
         M5Room =
           { IsBoss=true; Cleared=false; Doors=[Rogue3.Entities.DoorState.BossSealed]
             LiveEnemyIds=maximumM5Enemies |> List.map _.Id |> Set.ofList
@@ -984,7 +1071,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "0347a57aa32add17ce8bbd9189378c361fc06d98bf27d542876a6f18a73098ec" }
+        Authorship = Authored "bf5e56c1fb9e42c3498b55f0b0a2f3568530f89ee1f6473328c6e259e6f3cf4d" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -1018,7 +1105,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "271db2e24b6d37377f228ab148523d2de236b99e75cd1e57260a5b7f1b2ce5be" }
+        Authorship = Authored "21b42bfb2f14d40644ffc8182f8aa03e4b675a9a6858398e958af8700b6dd3dd" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -1053,7 +1140,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "864fd3f47443ae5927776af271fe29ac40e392f2773427b72000d1db63d3c19b" }
+        Authorship = Authored "680084863495e9b80d03d12f28864c187c8af62e31a964cbee8c60b964c6125e" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -1076,7 +1163,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "2303b00e1b6c8ec06daa2ed0d42c40a29e779937fe4af66c45ec30593e7706fc" }
+        Authorship = Authored "11337ed5e348d27bc4ceec762630b7af782e7342e022ac6fe05e7e95756d1a4e" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN floor-generation
       { Id = "floor-generation"
@@ -1093,25 +1180,30 @@ let expectedWorkloads =
         CostDriverIds = [ "generation.floor-room-budget"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "87fe0acab01f5bad59587ba87c42aa50e3525a9f6798d125f9208d5a9a5b520b" }
+        Authorship = Authored "d719972ac49c11958e611d87988c846eb27efe096f4e37eb8f97d04208666d88" }
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
-        Definition = "M5 canonical maximum fixture through production journey/update/view: previous 40-shot/8-AABB/30-target/120-bullet load plus 30 live M5 actors spanning all eight kinds and two fixed-step AI transitions (60 decisions), all five typed obstacles, one sealed boss room, three deterministic shop slots, held ArrowRight input, Tick(1/60), and all pre-M6 visuals"
+        Definition = "M6 canonical maximum fixture through production journey/update/view: inherited M5 maximum combat plus eight live enemy symbols, exactly 600 retained particles, eleven ordered render layers, and one active 0.35-second room camera transition"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
         EventsPerFrame = 1
         PointerEventsPerFrame = 0
         InitialState = maximumContentModel
-        MessagesAt = (fun _ -> [ KeyChanged(keyName ArrowRight, true); Tick(1.0 / 60.0) ])
+        MessagesAt =
+            (fun _ ->
+                [ BeginM6RoomTransition RoomSlideDirection.East
+                  KeyChanged(keyName ArrowRight, true)
+                  Tick(1.0 / 60.0) ])
         Provenance =
             RunnerIssuedJourney(
                 performanceJourneyReceipt
                     "maximum-content"
                     maximumContentJourneyBoot
                     1
-                    [ JourneyEvent.KeyInput(ArrowRight, true)
+                    [ JourneyEvent.Interact
+                      JourneyEvent.KeyInput(ArrowRight, true)
                       JourneyEvent.FixedTick ])
         Composition = CompleteComposition
         CostDriverIds =
@@ -1132,6 +1224,18 @@ let expectedWorkloads =
               "state.m5-shop-slots"
               "boss.m5-pattern-emissions"
               "collision.combat-candidates"
+              "effects.pooled-particles"
+              "scene.m6-enemy-grub"
+              "scene.m6-enemy-maggot"
+              "scene.m6-enemy-spitter"
+              "scene.m6-enemy-fly"
+              "scene.m6-enemy-charger"
+              "scene.m6-enemy-turret"
+              "scene.m6-enemy-caster"
+              "scene.m6-enemy-brute"
+              "scene.m6-enemy-symbols"
+              "scene.m6-ordered-layers"
+              "scene.m6-camera-transition"
               "scene.ball"
               "scene.left-paddle"
               "scene.right-paddle"
@@ -1139,7 +1243,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "1c2bbde56342446ce6121897ec93b7ed9c9a37930f8b4d122f2095486f6a48b6" }
+        Authorship = Authored "f731929cb0cb20309d153ae248321e45d3a28955d11c653c200521c554963c20" }
       // WORKLOAD-SOURCE-END maximum-content
       ]
 

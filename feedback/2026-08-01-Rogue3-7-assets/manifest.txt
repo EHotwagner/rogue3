@@ -1,0 +1,8 @@
+status=ok
+grammar-selected=Token
+production-frame=feedback/2026-08-01-Rogue3-7-assets/production-frame/sha256-40bf121e035583b47160574c47667a00974e6b636883ce27bb2acf8781791ded.png
+candidate-token=feedback/2026-08-01-Rogue3-7-assets/candidate-token/sha256-0259992c72cfda779f28c026bec0d5eebd5e5c2fcbe4293277e6ef282ffa6586.png
+candidate-badge=feedback/2026-08-01-Rogue3-7-assets/candidate-badge/sha256-75109d1a2e4b1e56a068c178cf621b9b751f1af62856da5d80719171450effcd.png
+candidate-ring=feedback/2026-08-01-Rogue3-7-assets/candidate-ring/sha256-f7c3ee66e388103350f0afe3afe325d2fd7c5d79baa134dfca31b694f139fd18.png
+enemy-kinds=8
+legibility-accepted=True

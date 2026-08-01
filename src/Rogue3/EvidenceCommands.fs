@@ -13,6 +13,7 @@ open FS.GG.UI.DesignSystem
 open FS.GG.UI.Themes.Default
 open FS.GG.UI.KeyboardInput
 open FS.GG.UI.SkiaViewer
+open FS.GG.UI.Symbology
 open Rogue3.WindowOptions
 
 let writeGeneratedEvidenceLines (path: string) echoToStdout exitCode lines =
@@ -1030,6 +1031,83 @@ let windowDiagnostics (evidencePath: string) =
     lines |> List.iter (printfn "%s")
     0
 
+let m6VisualEvidence (outputDirectory: string) =
+    Directory.CreateDirectory outputDirectory |> ignore
+
+    let enemies =
+        Rogue3.Entities.roster
+        |> List.mapi (fun index kind ->
+            let column = index % 4
+            let row = index / 4
+            Rogue3.Entities.spawn 2 (6000 + index) kind (vec2 (230.0 + float column * 250.0) (245.0 + float row * 250.0)))
+
+    let model =
+        let particles =
+            update (SpawnM6Particles(120, vec2 640.0 360.0, ParticleTint.Explosion)) initialModel
+            |> fst
+        { particles with
+            M5Enemies = enemies
+            M5Obstacles =
+                [ Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Rock 1
+                  Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Spikes 2
+                  Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Pit 3 ] }
+
+    let tokens = Rogue3.Render.enemyTokens model
+    let size = { Width=1280; Height=720 }
+
+    let render name scene =
+        let directory = Path.Combine(outputDirectory, name)
+        Directory.CreateDirectory directory |> ignore
+        FS.GG.UI.Symbology.Render.Render.toPng size scene directory
+
+    let candidatePaths =
+        [ Grammar.Token, "candidate-token"
+          Grammar.Badge, "candidate-badge"
+          Grammar.Ring, "candidate-ring" ]
+        |> List.map (fun (grammar, name) -> name, render name (Symbology.galleryIn grammar 4 190.0 tokens))
+
+    let productionPath =
+        render "production-frame" { Nodes=[ Rogue3.Render.view model ] }
+
+    let mappingLines =
+        [ "kind\tradius\tklass\tsigil\tthreat\thealth" ]
+        @ (List.zip enemies tokens
+           |> List.map (fun (enemy, token) ->
+               $"{enemy.Kind}\t{token.R:R}\t{token.Klass}\t{token.Sigil}\t{token.Threat:R}\t{token.Health:R}"))
+    File.WriteAllLines(Path.Combine(outputDirectory, "channel-map.tsv"), mappingLines)
+
+    let legibility = Rogue3.Render.legibility model
+    let findingLines =
+        legibility.Findings
+        |> List.map (fun finding -> $"{finding.Severity}\t{finding.Channel}\t{finding.Message}")
+    File.WriteAllLines(
+        Path.Combine(outputDirectory, "legibility.txt"),
+        [ yield $"accepted={Rogue3.Render.acceptedLegibility model}"
+          yield $"verdict={legibility.Verdict}"
+          yield $"findings={legibility.Findings.Length}"
+          yield! findingLines ])
+
+    File.WriteAllLines(
+        Path.Combine(outputDirectory, "selection-rationale.md"),
+        [ "# M6 grammar selection"
+          ""
+          "Token is selected because M6 requires whole-body facing plus simultaneous silhouette, sigil, faction, health, and threat channels at physics-faithful radii."
+          ""
+          "Badge was rejected because its screen-aligned frame weakens the required world-facing read. Ring was rejected because its radial gauge makes the compact scout/heavy silhouette distinction less immediate. Both remain rendered as faithful comparison frames."
+          ""
+          "The accepted linter exception is Size only: physical hitbox radii intentionally exceed the grammar's separable-size capacity. No Error and no other warning class is accepted." ])
+
+    let manifest =
+        [ yield "status=ok"
+          yield "grammar-selected=Token"
+          yield $"production-frame={productionPath}"
+          for name, path in candidatePaths do yield $"{name}={path}"
+          yield $"enemy-kinds={tokens.Length}"
+          yield $"legibility-accepted={Rogue3.Render.acceptedLegibility model}" ]
+    File.WriteAllLines(Path.Combine(outputDirectory, "manifest.txt"), manifest)
+    manifest |> List.iter (printfn "%s")
+    0
+
 let tryRunEvidenceCommand args =
     match args with
     | "--layout-evidence" :: path :: width :: height :: _ ->
@@ -1070,6 +1148,8 @@ let tryRunEvidenceCommand args =
         Some(Rogue3.PerformanceEvidence.writePerformanceCriticRequest "readiness/performance-critic-request.json")
     | "--performance-intent" :: path :: _ -> Some(Rogue3.PerformanceEvidence.writePerformanceIntentDeclaration path)
     | "--performance-intent" :: _ -> Some(Rogue3.PerformanceEvidence.writePerformanceIntentDeclaration "readiness/performance-intent.yml")
+    | "--m6-visual-evidence" :: path :: _ -> Some(m6VisualEvidence path)
+    | "--m6-visual-evidence" :: _ -> Some(m6VisualEvidence "feedback/2026-08-01-Rogue3-7-assets")
     | "--pixel-readback-evidence" :: path :: _ -> Some(visualEvidence "--pixel-readback-evidence" "command=--pixel-readback-evidence" Hash "pixel-readback" "evidence-kind=pixel-readback" "screenshot-unavailable" path)
     | "--pixel-readback-evidence" :: _ -> Some(visualEvidence "--pixel-readback-evidence" "command=--pixel-readback-evidence" Hash "pixel-readback" "evidence-kind=pixel-readback" "screenshot-unavailable" "readiness/game-pixel-readback-evidence.txt")
     | _ -> None

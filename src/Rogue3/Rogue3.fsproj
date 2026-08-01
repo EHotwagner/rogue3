@@ -39,6 +39,7 @@
     <Compile Include="Entities.fs" />
     <Compile Include="FloorGeneration.fs" />
     <Compile Include="Model.fs" />
+    <Compile Include="Render.fs" />
     <!-- Rendering#1071: the independent, runtime-owned gameplay-visual inventory and handle
          registry. Compiles after Model (its projections read gameplay state) and before View, which
          consumes the same projection the visual-coverage gate audits. Game-only inside the file. -->

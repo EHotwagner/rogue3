@@ -36,7 +36,7 @@ let private runtimeFrames =
     |> List.map (fun model ->
         let projected = GameplayVisualInventory.project model
         let actualView = View.view model
-        let expectedView = projected |> List.map _.Scene |> Group
+        let expectedView = Render.view model
         let frame = { Nodes = [ actualView ] }
         model, projected, actualView, expectedView, (SceneCodec.export frame).CanonicalBytes)
 
@@ -146,7 +146,7 @@ let coverageGateTests =
 
         test "representative states traverse View.view and yield non-empty runtime frames" {
             for _, projected, actual, expected, _ in runtimeFrames do
-                Expect.equal actual expected "View.view must consume the audited projection without a parallel renderer"
+                Expect.equal actual expected "View.view must consume the production M6 renderer"
 
                 for item in projected do
                     Expect.isNonEmpty item.Scene.Nodes $"{GameplayVisualInventory.elementId item.Element} must produce real Scene nodes"

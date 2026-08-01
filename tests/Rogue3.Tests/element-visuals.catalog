@@ -4,3 +4,12 @@ LeftPaddle	shown	scene/left-paddle
 RightPaddle	shown	scene/right-paddle
 Score	shown	scene/score
 Playfield	shown	scene/playfield
+EnemyGrub	shown	token/enemy/grub
+EnemyMaggot	shown	token/enemy/maggot
+EnemySpitter	shown	token/enemy/spitter
+EnemyFly	shown	token/enemy/fly
+EnemyCharger	shown	token/enemy/charger
+EnemyTurret	shown	token/enemy/turret
+EnemyCaster	shown	token/enemy/caster
+EnemyBrute	shown	token/enemy/brute
+Particle	shown	effects/particle

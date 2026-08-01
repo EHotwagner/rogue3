@@ -141,6 +141,29 @@ type ShopSlot =
 
 type PlayerLifeState = Alive | Dead
 
+[<RequireQualifiedAccess>]
+type ParticleShape = Circle | Quad
+
+[<RequireQualifiedAccess>]
+type ParticleTint = Death | Muzzle | Explosion
+
+type M6Particle =
+    { Id: int
+      Position: Vec2
+      Velocity: Vec2
+      LifetimeTicks: int
+      AgeTicks: int
+      Radius: float
+      Shape: ParticleShape
+      Tint: ParticleTint }
+
+[<RequireQualifiedAccess>]
+type RoomSlideDirection = North | East | South | West
+
+type M6CameraTransition =
+    { Direction: RoomSlideDirection
+      ElapsedTicks: int }
+
 type HomingTarget = { Id: int; Position: Vec2 }
 
 /// A live M2 projectile. Integer age/hit budgets make termination exact at the fixed-step boundary.
@@ -226,7 +249,10 @@ type Model =
       TotalHomingQueries: int
       TotalCombatCandidates: int
       BlackHeartBursts: int
-      EdgeActionCount: int }
+      EdgeActionCount: int
+      M6Particles: M6Particle list
+      M6NextParticleId: int
+      M6CameraTransition: M6CameraTransition option }
 
 type Msg =
     /// The program started, and `initialModel` is the state it started in (issue #458).
@@ -262,6 +288,8 @@ type Msg =
     | DamageM5Boss of damage:float
     | InteractM5Shop of slotId:int
     | DamageM5Obstacle of obstacleId:int * damage:int
+    | SpawnM6Particles of count:int * origin:Vec2 * tint:ParticleTint
+    | BeginM6RoomTransition of RoomSlideDirection
     | NoOp
 
 // Kept model-agnostic so the durable LayoutEvidence spine validates the skeleton AND a swap.
@@ -488,7 +516,10 @@ let initialModelForSeed seed =
       TotalHomingQueries = 0
       TotalCombatCandidates = 0
       BlackHeartBursts = 0
-      EdgeActionCount = 0 }
+      EdgeActionCount = 0
+      M6Particles = []
+      M6NextParticleId = 1
+      M6CameraTransition = None }
 
 let initialModel = initialModelForSeed 0xC0FFEEUL
 
@@ -1261,8 +1292,50 @@ let private stepInput pressedThisTick (model: Model) =
 // Pure fixed step: integrate the ball by one step, bounce off the top/bottom walls and the paddles,
 // score and re-serve on a miss. Positions/velocities are `Vec2`, advanced with `add`/`scale`; the
 // ball always stays inside the playfield after the step. This is your `stepSim` — edit it freely.
+let m6MaxParticles = 600
+let m6CameraDurationTicks = 42 // 0.35 s * 120 Hz
+
+let private stepM6Presentation model =
+    let particles =
+        model.M6Particles
+        |> List.choose (fun particle ->
+            let age = particle.AgeTicks + 1
+            if age >= particle.LifetimeTicks then None
+            else
+                Some
+                    { particle with
+                        Position = add particle.Position (scale fixedDt particle.Velocity)
+                        AgeTicks = age })
+    let transition =
+        model.M6CameraTransition
+        |> Option.bind (fun camera ->
+            let elapsed = camera.ElapsedTicks + 1
+            if elapsed >= m6CameraDurationTicks then None
+            else Some { camera with ElapsedTicks = elapsed })
+    { model with M6Particles = particles; M6CameraTransition = transition }
+
+let private spawnM6Particles count origin tint model =
+    let requested = max 0 count
+    let spawned =
+        [ for offset in 0 .. requested - 1 do
+              let id = model.M6NextParticleId + offset
+              let angle = float (id % 16) * Math.PI / 8.0
+              let speed = 40.0 + float (id % 5) * 12.0
+              yield
+                  { Id = id
+                    Position = origin
+                    Velocity = vec2 (cos angle * speed) (sin angle * speed)
+                    LifetimeTicks = 60 + id % 60
+                    AgeTicks = 0
+                    Radius = 2.0 + float (id % 3)
+                    Shape = if id % 2 = 0 then ParticleShape.Circle else ParticleShape.Quad
+                    Tint = tint } ]
+    { model with
+        M6Particles = (model.M6Particles @ spawned) |> List.rev |> List.truncate m6MaxParticles |> List.rev
+        M6NextParticleId = model.M6NextParticleId + requested }
+
 let private stepSimWithInput pressedThisTick model =
-    let model = stepInput pressedThisTick model |> resolveCombat |> stepM5Entities
+    let model = stepInput pressedThisTick model |> resolveCombat |> stepM5Entities |> stepM6Presentation
     let model = { model with DodgeIFrameTicks = max 0 (model.DodgeIFrameTicks - 1) }
     let ball = model.Ball
     let next = add ball.Pos ball.Velocity // one unit step (dt folded into velocity units)
@@ -1394,6 +1467,9 @@ let update msg model : Model * AdapterCommand<Msg> =
     | DamageM5Boss damage -> damageM5Boss damage model, Cmd.none
     | InteractM5Shop slotId -> purchaseM5ShopSlot slotId model, Cmd.none
     | DamageM5Obstacle(obstacleId,damage) -> damageM5Obstacle obstacleId damage model,Cmd.none
+    | SpawnM6Particles(count, origin, tint) -> spawnM6Particles count origin tint model, Cmd.none
+    | BeginM6RoomTransition direction ->
+        { model with M6CameraTransition = Some { Direction = direction; ElapsedTicks = 0 } }, Cmd.none
     | NoOp -> model, Cmd.none
 
 let subscriptions _ : AdapterSubscription<Msg> list = Sub.none

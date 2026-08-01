@@ -5,8 +5,10 @@ module Rogue3.GameplayVisualInventory
 // declares the gameplay elements that MUST receive one and supplies the projection the real View uses.
 
 open FS.GG.UI.Scene
+open FS.GG.UI.Symbology
 open Microsoft.FSharp.Reflection
 open Rogue3.Model
+open Rogue3.Geometry
 
 type GameplayVisualElement =
     | Ball
@@ -14,6 +16,9 @@ type GameplayVisualElement =
     | RightPaddle
     | Score
     | Playfield
+    | EnemyGrub | EnemyMaggot | EnemySpitter | EnemyFly
+    | EnemyCharger | EnemyTurret | EnemyCaster | EnemyBrute
+    | Particle
 
 let all =
     FSharpType.GetUnionCases typeof<GameplayVisualElement>
@@ -27,6 +32,15 @@ let elementId =
     | RightPaddle -> "RightPaddle"
     | Score -> "Score"
     | Playfield -> "Playfield"
+    | EnemyGrub -> "EnemyGrub"
+    | EnemyMaggot -> "EnemyMaggot"
+    | EnemySpitter -> "EnemySpitter"
+    | EnemyFly -> "EnemyFly"
+    | EnemyCharger -> "EnemyCharger"
+    | EnemyTurret -> "EnemyTurret"
+    | EnemyCaster -> "EnemyCaster"
+    | EnemyBrute -> "EnemyBrute"
+    | Particle -> "Particle"
 
 type VisualBinding =
     { Element: GameplayVisualElement
@@ -60,6 +74,17 @@ let private playfieldFill: Color =
 let private stepped = stepSim initialModel
 let private movedLeft = movePaddle LeftSide PaddleDown initialModel
 let private scored = { initialModel with LeftScore = initialModel.LeftScore + 1 }
+let private m6ParticleModel = update (SpawnM6Particles(1, initialModel.PlayerPosition, ParticleTint.Explosion)) initialModel |> fst
+let private enemyKind = function
+    | EnemyGrub -> Some Rogue3.Entities.EnemyKind.Grub
+    | EnemyMaggot -> Some Rogue3.Entities.EnemyKind.Maggot
+    | EnemySpitter -> Some Rogue3.Entities.EnemyKind.Spitter
+    | EnemyFly -> Some Rogue3.Entities.EnemyKind.Fly
+    | EnemyCharger -> Some Rogue3.Entities.EnemyKind.Charger
+    | EnemyTurret -> Some Rogue3.Entities.EnemyKind.Turret
+    | EnemyCaster -> Some Rogue3.Entities.EnemyKind.Caster
+    | EnemyBrute -> Some Rogue3.Entities.EnemyKind.Brute
+    | _ -> None
 
 let private binding =
     function
@@ -108,6 +133,21 @@ let private binding =
           Project =
             fun model ->
                 { Nodes = [ Rectangle((0.0, 0.0, model.Playfield.Vx, model.Playfield.Vy), playfieldFill) ] } }
+    | Particle ->
+        { Element = Particle
+          Handle = "effects/particle"
+          RequiredStates = [ "spawned", m6ParticleModel ]
+          Project = fun model -> model.M6Particles |> List.map Rogue3.Render.particleScene |> Scene.group }
+    | element ->
+        let kind = enemyKind element |> Option.get
+        let actor = Rogue3.Entities.spawn 1 100 kind (vec2 300.0 300.0)
+        let state = { initialModel with M5Enemies = [ actor ] }
+        { Element = element
+          Handle = "token/enemy/" + (elementId element).Substring(5).ToLowerInvariant()
+          RequiredStates = [ "roster", state ]
+          Project = fun model ->
+              let live = model.M5Enemies |> List.tryFind (fun candidate -> candidate.Kind = kind) |> Option.defaultValue actor
+              Symbology.token (Rogue3.Render.enemyToken model.FloorIndex live) }
 
 let bindings = all |> List.map binding
 
@@ -116,7 +156,11 @@ let registeredBindings =
     |> List.map (fun item -> elementId item.Element, item.Handle)
 
 let representativeModels =
-    [ initialModel; stepped; movedLeft; scored ]
+    let rosterModel =
+        Rogue3.Entities.roster
+        |> List.mapi (fun index kind -> Rogue3.Entities.spawn 1 (200+index) kind (vec2 (180.0+float index*100.0) 300.0))
+        |> fun enemies -> { m6ParticleModel with M5Enemies=enemies }
+    [ initialModel; stepped; movedLeft; scored; rosterModel ]
 
 let project (model: Model) : RuntimeProjection list =
     bindings

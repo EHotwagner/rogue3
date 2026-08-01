@@ -3,8 +3,8 @@ performanceIntent:
   disposition: "active"
   targetFps: 60
   workloadIds: ["idle", "movement-aiming", "firing", "effects-fog", "floor-generation", "maximum-content"]
-  workloadDefinitionDigests: ["idle=sha256:0347a57aa32add17ce8bbd9189378c361fc06d98bf27d542876a6f18a73098ec", "movement-aiming=sha256:271db2e24b6d37377f228ab148523d2de236b99e75cd1e57260a5b7f1b2ce5be", "firing=sha256:864fd3f47443ae5927776af271fe29ac40e392f2773427b72000d1db63d3c19b", "effects-fog=sha256:2303b00e1b6c8ec06daa2ed0d42c40a29e779937fe4af66c45ec30593e7706fc", "floor-generation=sha256:87fe0acab01f5bad59587ba87c42aa50e3525a9f6798d125f9208d5a9a5b520b", "maximum-content=sha256:1c2bbde56342446ce6121897ec93b7ed9c9a37930f8b4d122f2095486f6a48b6"]
-  maximumExpectedScale: "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 736 wall primitives, 2,400 homing considerations, multishot 3, and all five pre-M6 visuals"
+  workloadDefinitionDigests: ["idle=sha256:bf5e56c1fb9e42c3498b55f0b0a2f3568530f89ee1f6473328c6e259e6f3cf4d", "movement-aiming=sha256:21b42bfb2f14d40644ffc8182f8aa03e4b675a9a6858398e958af8700b6dd3dd", "firing=sha256:680084863495e9b80d03d12f28864c187c8af62e31a964cbee8c60b964c6125e", "effects-fog=sha256:11337ed5e348d27bc4ceec762630b7af782e7342e022ac6fe05e7e95756d1a4e", "floor-generation=sha256:d719972ac49c11958e611d87988c846eb27efe096f4e37eb8f97d04208666d88", "maximum-content=sha256:f731929cb0cb20309d153ae248321e45d3a28955d11c653c200521c554963c20"]
+  maximumExpectedScale: "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 736 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition, and all five pre-M6 visuals"
   maxP95Ms: 16.67
   maxP99Ms: 25.0
   maxCatchUpFrames: 0

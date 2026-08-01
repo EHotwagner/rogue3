@@ -1,0 +1,9 @@
+kind	radius	klass	sigil	threat	health
+Grub	12	Mobile	Ring	0.25	1
+Maggot	9	Scout	Ring	0.25	1
+Spitter	14	Mobile	Bolt	0.5	1
+Fly	8	Scout	Ring	0.25	1
+Charger	16	Mobile	Fang	0.75	1
+Turret	18	Heavy	Bolt	0.75	1
+Caster	13	Mobile	Bolt	0.75	1
+Brute	22	Heavy	Fang	1	1

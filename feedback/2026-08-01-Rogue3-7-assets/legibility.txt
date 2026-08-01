@@ -1,0 +1,4 @@
+accepted=True
+verdict=HasWarnings
+findings=1
+Warning	Size	Size overloaded: 8 distinct levels used, capacity 4
