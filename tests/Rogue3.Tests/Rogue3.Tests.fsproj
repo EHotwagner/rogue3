@@ -24,6 +24,7 @@
     <Compile Include="M5EntitiesBossRoomsTests.fs" />
     <Compile Include="M6RenderingEnemySymbologyTests.fs" />
     <Compile Include="M7UiMenusStatsTests.fs" />
+    <Compile Include="M8AudioTests.fs" />
     <!-- Issue #1002 (child of #991): release-lane BEHAVIOUR coverage for the generic game shell.
          Drives GameShell.fs's pure `update` + host-free seams (router, Esc routing, rebind capture,
          display->window-behaviour mapping, keymap persistence). Additive — it adds shell tests beside

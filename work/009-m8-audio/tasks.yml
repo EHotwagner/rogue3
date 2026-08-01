@@ -1,0 +1,156 @@
+schemaVersion: 1
+work:
+  id: 009-m8-audio
+  title: "M8 Audio"
+  stage: tasks
+  status: tasksReady
+  sourceSpec: work/009-m8-audio/spec.md
+  sourceClarifications: work/009-m8-audio/clarifications.md
+  sourceChecklist: work/009-m8-audio/checklist.md
+  sourcePlan: work/009-m8-audio/plan.md
+  publicOrToolFacingImpact: true
+
+sources:
+  - label: spec
+    path: work/009-m8-audio/spec.md
+    digest: 1cd0875903f04c738a90c6fea3d1b020c4ae266968440c9db5cda6ab83b0537d
+    schemaVersion: 1
+  - label: clarifications
+    path: work/009-m8-audio/clarifications.md
+    digest: 8f22524bdf8abba6ad6ed2cfa6a32bc0e9800d77471ee7046747bf8a67056964
+    schemaVersion: 1
+  - label: checklist
+    path: work/009-m8-audio/checklist.md
+    digest: f6b49f9b6eb8b915437583bc6acdc9a2dbf7507abfec0c66f0de10ad2e5697aa
+    schemaVersion: 1
+  - label: plan
+    path: work/009-m8-audio/plan.md
+    digest: ce4ee260c3893354ec1235a3791ea878d4c621637e5c40d3f26cc99ce6b4a979
+    schemaVersion: 1
+tasks:
+  - id: T001
+    title: Implement requirement FR-001
+    status: done
+    owner: sdd
+    dependencies: []
+    requirements: [FR-001]
+    decisions: []
+    sourceIds: [AC-001, FR-001, PD-001]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV001]
+  - id: T002
+    title: Implement requirement FR-002
+    status: done
+    owner: sdd
+    dependencies: []
+    requirements: [FR-002]
+    decisions: []
+    sourceIds: [AC-002, FR-002, PD-002]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV002]
+  - id: T003
+    title: Implement requirement FR-003
+    status: done
+    owner: sdd
+    dependencies: []
+    requirements: [FR-003]
+    decisions: []
+    sourceIds: [AC-003, FR-003, PD-003]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV003]
+  - id: T004
+    title: Implement requirement FR-004
+    status: done
+    owner: sdd
+    dependencies: []
+    requirements: [FR-004]
+    decisions: []
+    sourceIds: [AC-004, FR-004, PD-004]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV004]
+  - id: T005
+    title: Implement clarification decision DEC-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: [DEC-001]
+    sourceIds: [DEC-001]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV005]
+  - id: T006
+    title: Implement clarification decision DEC-002
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: [DEC-002]
+    sourceIds: [DEC-002]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV006]
+  - id: T007
+    title: Implement clarification decision DEC-003
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: [DEC-003]
+    sourceIds: [DEC-003]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV007]
+  - id: T008
+    title: Implement clarification decision DEC-004
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: [DEC-004]
+    sourceIds: [DEC-004]
+    requiredSkills: [fsharp, implementation]
+    requiredEvidence: [EV008]
+  - id: T009
+    title: Update contract surface PC-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [PC-001, PD-001]
+    requiredSkills: [fsharp]
+    requiredEvidence: [EV009]
+  - id: T010
+    title: Record verification evidence VO-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [PC-001, PD-001, VO-001]
+    requiredSkills: [automated-tests, readiness-evidence]
+    requiredEvidence: [EV010]
+  - id: T011
+    title: Handle migration posture PM-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [PC-001, PM-001]
+    requiredSkills: [schema-versioning]
+    requiredEvidence: [EV011]
+  - id: T012
+    title: Refresh generated view impact GV-001
+    status: done
+    owner: sdd
+    dependencies: [T001]
+    requirements: []
+    decisions: []
+    sourceIds: [GV-001, PD-001]
+    requiredSkills: [deterministic-json]
+    requiredEvidence: [EV012]
+acceptedDeferrals: []
+findings: []
+advisoryNotes:
+  - "Optional Governance pointers remain compatibility facts only."
+lifecycleNotes:
+  - "Next lifecycle action: fsgg-sdd analyze --work 009-m8-audio."

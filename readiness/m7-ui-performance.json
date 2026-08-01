@@ -12,8 +12,8 @@
       "definitionDigest": "13de109dbf6efa7ad540e5835f11bf858c66cf2a21bc81b408b3680b6885274c",
       "declaredDefinitionDigest": "13de109dbf6efa7ad540e5835f11bf858c66cf2a21bc81b408b3680b6885274c",
       "authorshipPassed": true,
-      "p95Ms": 0.3717,
-      "p99Ms": 0.5989,
+      "p95Ms": 0.3849,
+      "p99Ms": 0.647,
       "observedScale": {
         "controlNodes": 9,
         "boundControls": 7
@@ -24,11 +24,11 @@
     {
       "id": "hud-playing",
       "definition": "M7 gameplay HUD route; 1280x720 and 1920x1080; exactly hearts/currency/active-charge/minimap/floor-name regions and 0 bound controls",
-      "definitionDigest": "2dc71ebdfdc119144c42256a493a4252854f63443ac53c5262d27cc48781800d",
-      "declaredDefinitionDigest": "2dc71ebdfdc119144c42256a493a4252854f63443ac53c5262d27cc48781800d",
+      "definitionDigest": "ee87e8f62d8410327eb17a104f898a8742557dd59b3658feec83a9cb765082d1",
+      "declaredDefinitionDigest": "ee87e8f62d8410327eb17a104f898a8742557dd59b3658feec83a9cb765082d1",
       "authorshipPassed": true,
-      "p95Ms": 0.0591,
-      "p99Ms": 0.0712,
+      "p95Ms": 0.0605,
+      "p99Ms": 0.0682,
       "observedScale": {
         "controlNodes": 1,
         "boundControls": 0,
@@ -125,11 +125,11 @@
     {
       "id": "stats-charts",
       "definition": "M7 stats route; 1280x720; exactly 19 retained controls, 3 bound controls, deepest/runs/win-rate/kills KPI tiles, 5 depth buckets, and 2 damage series",
-      "definitionDigest": "e8fb3ffff7518987a34b6b3a687944d26e5f062d36c3d1229a1d24636daf987f",
-      "declaredDefinitionDigest": "e8fb3ffff7518987a34b6b3a687944d26e5f062d36c3d1229a1d24636daf987f",
+      "definitionDigest": "9660d11af9c68ffc9866df9f062c1e89627e9e9bdd22968a6343e79b56903ac1",
+      "declaredDefinitionDigest": "9660d11af9c68ffc9866df9f062c1e89627e9e9bdd22968a6343e79b56903ac1",
       "authorshipPassed": true,
-      "p95Ms": 1.1447,
-      "p99Ms": 1.2049,
+      "p95Ms": 1.1252,
+      "p99Ms": 1.2195,
       "observedScale": {
         "controlNodes": 19,
         "boundControls": 3,

@@ -466,15 +466,23 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
                     | Rogue3.GameShell.Start, Rogue3.GameShell.MainMenu, Rogue3.GameShell.Playing ->
                         Rogue3.Model.update (StartRun (model.Play.RunSeed + 1UL)) model.Play |> fst
                     | _ -> model.Play
+                let audio =
+                    match shellMsg, model.Shell.Screen, nextShell.Screen with
+                    | Rogue3.GameShell.Start, Rogue3.GameShell.MainMenu, Rogue3.GameShell.Playing ->
+                        Rogue3.AudioCues.forTransition (StartRun (model.Play.RunSeed + 1UL)) model.Play transitionedPlay
+                    | _ -> []
                 let play =
                     if model.Shell.Screen=Rogue3.GameShell.Playing && nextShell.Screen<>Rogue3.GameShell.Playing then
                         clearHeldGameplayCommands model.Shell model.HeldKeys transitionedPlay
                     else transitionedPlay
-                { model with Shell = nextShell; Play = play; StatsOpen = false; HeldKeys = held }, (effects |> List.collect (applyShellEffect nextShell))
+                let hostEffects = effects |> List.collect (applyShellEffect nextShell)
+                { model with Shell = nextShell; Play = play; StatsOpen = false; HeldKeys = held }, hostEffects @ (if List.isEmpty audio then [] else [ PlayAudio audio ])
             | StartFreshRun seed ->
                 let shell, effects = Rogue3.GameShell.update Rogue3.GameShell.Start model.Shell
                 let play = Rogue3.Model.update (StartRun seed) model.Play |> fst
-                { model with Shell = shell; Play = play; StatsOpen = false; HeldKeys = Set.empty }, effects |> List.collect (applyShellEffect shell)
+                let cues = Rogue3.AudioCues.forTransition (StartRun seed) model.Play play
+                let hostEffects = effects |> List.collect (applyShellEffect shell)
+                { model with Shell = shell; Play = play; StatsOpen = false; HeldKeys = Set.empty }, hostEffects @ (if List.isEmpty cues then [] else [ PlayAudio cues ])
             | ContinueRun ->
                 let shell, effects = Rogue3.GameShell.update Rogue3.GameShell.Start model.Shell
                 { model with Shell = shell; StatsOpen = false; HeldKeys = Set.empty }, effects |> List.collect (applyShellEffect shell)
@@ -494,12 +502,14 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
                 let msg=SetMasterVolume volume
                 let play = Rogue3.Model.update msg model.Play |> fst
                 let requests=Rogue3.Model.profilePersistenceRequestsForTransition msg model.Play play
-                { model with Play = play }, if List.isEmpty requests then [] else [Persist requests]
+                let cues=Rogue3.AudioCues.forTransition msg model.Play play
+                { model with Play = play }, (if List.isEmpty requests then [] else [Persist requests]) @ (if List.isEmpty cues then [] else [PlayAudio cues])
             | ChangeMuted muted ->
                 let msg=SetMuted muted
                 let play = Rogue3.Model.update msg model.Play |> fst
                 let requests=Rogue3.Model.profilePersistenceRequestsForTransition msg model.Play play
-                { model with Play = play }, if List.isEmpty requests then [] else [Persist requests]
+                let cues=Rogue3.AudioCues.forTransition msg model.Play play
+                { model with Play = play }, (if List.isEmpty requests then [] else [Persist requests]) @ (if List.isEmpty cues then [] else [PlayAudio cues])
             | ChangeScreenShake enabled ->
                 let msg=SetScreenShake enabled
                 let play = Rogue3.Model.update msg model.Play |> fst
@@ -1327,8 +1337,8 @@ let m7UiPerformanceEvidence (path:string) =
     let declared =
         Map.ofList
             [ "main-menu", "13de109dbf6efa7ad540e5835f11bf858c66cf2a21bc81b408b3680b6885274c"
-              "hud-playing", "2dc71ebdfdc119144c42256a493a4252854f63443ac53c5262d27cc48781800d"
-              "stats-charts", "e8fb3ffff7518987a34b6b3a687944d26e5f062d36c3d1229a1d24636daf987f" ]
+              "hud-playing", "ee87e8f62d8410327eb17a104f898a8742557dd59b3658feec83a9cb765082d1"
+              "stats-charts", "9660d11af9c68ffc9866df9f062c1e89627e9e9bdd22968a6343e79b56903ac1" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "stats-charts" stats]
     let outputs = [ {Width=1280;Height=720};{Width=1920;Height=1080} ]
     let hudSceneElements = outputs |> List.map (fun output -> Rogue3.Render.hudSceneForSize output playing.Play |> Scene.describe |> List.length)

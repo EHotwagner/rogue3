@@ -93,17 +93,96 @@ let resolver: AssetResolver =
 // Controls starter a cue seam; a seam without `Started` would have reproduced #458 one profile over.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-let private scored (previous: Model) (next: Model) =
-    next.LeftScore > previous.LeftScore || next.RightScore > previous.RightScore
+let private sfx id volume = Audio.playSfx (SoundId id) volume
 
-/// A bounce is the frame the ball reverses along either axis — off a wall or off a paddle.
-/// `before * after < 0.0` is "strictly opposite signs": a component that was or becomes zero is a
-/// ball starting or stopping along that axis, not a reflection. (`sign 0.0 = 0`, so comparing signs
-/// would call that a bounce.)
-let private bounced (previous: Model) (next: Model) =
-    let reversed (before: float) (after: float) = before * after < 0.0
-    reversed previous.Ball.Velocity.Vx next.Ball.Velocity.Vx
-    || reversed previous.Ball.Velocity.Vy next.Ball.Velocity.Vy
+let private forAudioEvent = function
+    | AudioEvent.ShotFired -> sfx "shot-fire" 0.55
+    | AudioEvent.ShotHit -> sfx "shot-hit" 0.7
+    | AudioEvent.EnemyDied -> sfx "enemy-death" 0.75
+    | AudioEvent.PlayerHit -> sfx "player-hit" 0.9
+    | AudioEvent.PlayerDied -> sfx "player-death" 1.0
+    | AudioEvent.DodgeRolled -> sfx "dodge-roll" 0.6
+    | AudioEvent.BombExploded -> sfx "bomb-explosion" 0.95
+
+type private MusicContext =
+    | Title
+    | Floor of int
+    | Shop
+    | Boss
+    | GameOver
+    | Victory
+
+let private roomType model =
+    model.Floor.Rooms
+    |> Map.tryFind model.Floor.CurrentRoom
+    |> Option.map _.RoomType
+
+let private musicContext model =
+    if not model.RunActive then Title
+    else
+        match roomType model with
+        | Some FloorGeneration.Shop -> Shop
+        | Some FloorGeneration.Boss -> Boss
+        | _ -> Floor model.FloorIndex
+
+let private track = function
+    | Title -> TrackId "title-theme"
+    | Floor index -> TrackId $"floor-{max 1 index}-theme"
+    | Shop -> TrackId "shop-theme"
+    | Boss -> TrackId "boss-theme"
+    | GameOver -> TrackId "game-over"
+    | Victory -> TrackId "victory"
+
+let private effectiveVolume model =
+    if model.Profile.Settings.Muted then 0.0
+    else Audio.clampVolume model.Profile.Settings.MasterVolume
+
+let private musicForTransition msg previous next =
+    let before = musicContext previous
+    let after =
+        match msg with
+        | CompleteRunStats(won, _) -> if won then Victory else GameOver
+        | _ -> musicContext next
+    match msg with
+    | Started -> [ Audio.playMusic (track Title) true ]
+    | _ when before <> after -> [ Audio.stopMusic; Audio.playMusic (track after) true ]
+    | _ -> []
+
+let private pickupCues previous next =
+    [ if next.PlayerCurrency.Coins > previous.PlayerCurrency.Coins then yield sfx "pickup-coin" 0.7
+      if next.PlayerCurrency.Keys > previous.PlayerCurrency.Keys then yield sfx "pickup-key" 0.7
+      if next.PlayerCurrency.Bombs > previous.PlayerCurrency.Bombs then yield sfx "pickup-bomb" 0.7
+      if totalHalfHearts next.PlayerHealth > totalHalfHearts previous.PlayerHealth then yield sfx "pickup-heart" 0.7
+      if List.length next.PlayerItems > List.length previous.PlayerItems then yield sfx "item-pickup" 0.85 ]
+
+let private doorAndBossCues previous next =
+    let locked = function
+        | Rogue3.Entities.DoorState.LockedClear
+        | Rogue3.Entities.DoorState.BossSealed -> true
+        | Rogue3.Entities.DoorState.Open -> false
+    let beforeLocked = previous.M5Room.Doors |> List.exists locked
+    let afterLocked = next.M5Room.Doors |> List.exists locked
+    [ if not beforeLocked && afterLocked then yield sfx "door-lock" 0.7
+      if beforeLocked && not afterLocked then yield sfx "door-unlock" 0.7
+      if previous.M5Boss.IsNone && next.M5Boss.IsSome then yield sfx "boss-intro" 1.0
+      match previous.M5Boss, next.M5Boss with
+      | Some before, Some after when after.Phase > before.Phase -> yield sfx "boss-phase" 0.9
+      | Some _, None -> yield sfx "boss-death" 1.0
+      | _ -> () ]
+
+let private directEventCues msg previous next =
+    [ match msg with
+      | DamageM5Enemy(enemyId, _) when next.M5Enemies <> previous.M5Enemies ->
+          yield sfx "shot-hit" 0.7
+          if previous.M5Enemies |> List.exists (fun enemy -> enemy.Id = enemyId)
+             && next.M5Enemies |> List.forall (fun enemy -> enemy.Id <> enemyId) then
+              yield sfx "enemy-death" 0.75
+      | DamageM5Boss _ when next.M5Boss <> previous.M5Boss -> yield sfx "shot-hit" 0.7
+      | RecordCoinsCollected count when count > 0 -> yield sfx "pickup-coin" 0.7
+      | RecordItemFound -> yield sfx "item-pickup" 0.85
+      | InteractM5Shop _ when next.RunStats.ItemsFound > previous.RunStats.ItemsFound -> yield sfx "item-pickup" 0.85
+      | DescendFloor -> yield sfx "floor-descend" 0.8
+      | _ -> () ]
 
 /// What this rogue3 asks to hear when `msg` takes it from `previous` to `next`.
 /// Return `[]` for a silent transition. Effects play in list order.
@@ -111,25 +190,19 @@ let private bounced (previous: Model) (next: Model) =
 /// Drop a WAV at `assets/audio/<id>.wav` and you hear it; leave it out and the request is recorded
 /// but silent. Add your own cases — this is your file.
 let forTransition (msg: Msg) (previous: Model) (next: Model) : AudioEffect list =
-    match msg with
-    // The scaffold ships this seam WIRED rather than empty, for the same reason #245 shipped the
-    // bounce/score cues wired: a seam demonstrated is a seam an author trusts and edits, and a seam
-    // that emits nothing is one nobody can tell is broken. (It is also what gives the regression test
-    // in Rogue3.Tests a real failure leg — with `[]` here, a test asserting "Init emits the cues"
-    // passes whether or not `Init` is wired to the seam at all, which is how this class of bug
-    // survives its own fix.)
-    //
-    // Silent until you drop `assets/audio/start.wav` — an unresolved id is a recorded no-op, never an
-    // error. Replace this with whatever YOUR initial state implies (restored volume, resumed music).
-    | Started -> [ Audio.playSfx (SoundId "start") 0.5 ]
-    // NET-DIFF BOUNDARY: one `Tick` drains a WHOLE run of fixed sim steps (Model.advanceSim runs
-    // `stepSim` that many times), so `previous`/`next` straddle the entire drain — an event that both
-    // appears AND disappears inside that one host frame nets to no diff here and never cues. The real
-    // cues are safe (a score persists to the next frame; a bounce reverses and stays reversed), but a
-    // same-frame spawn+consume cue would silently not fire — cue it from its own `Msg` instead.
-    //
-    // A score resets the ball, which also reverses it — so score wins over bounce, and only one
-    // sound plays on that frame.
-    | Tick _ when scored previous next -> [ Audio.playSfx (SoundId "score") 0.9 ]
-    | Tick _ when bounced previous next -> [ Audio.playSfx (SoundId "bounce") 0.6 ]
-    | _ -> []
+    let volume =
+        match msg with
+        | Started
+        | SetMasterVolume _
+        | SetMuted _ -> [ Audio.setMasterVolume (effectiveVolume next) ]
+        | _ -> []
+    let fixedStepEvents =
+        match msg with
+        | Tick _ -> next.AudioEvents |> List.map forAudioEvent
+        | _ -> []
+    volume
+    @ fixedStepEvents
+    @ directEventCues msg previous next
+    @ pickupCues previous next
+    @ doorAndBossCues previous next
+    @ musicForTransition msg previous next

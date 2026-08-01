@@ -6,7 +6,7 @@ Absent OPTIONAL artifacts (interactive launch/image/window/…, profile-dependen
 failures. The required headless baseline (layout + scene evidence) MUST be present, however —
 its absence is a product-evidence defect (evidence-output-contract.md §EvidenceGraph).
 
-- readiness files present: 34
+- readiness files present: 27
 - recognized evidence nodes: 2
 
 ## Sensed readiness files
@@ -16,32 +16,25 @@ its absence is a product-evidence defect (evidence-output-contract.md §Evidence
 - `readiness/003-m2-movement-dodge-shots/ship-verdict.json`
 - `readiness/004-m3-combat-health-currency/ship-verdict.json`
 - `readiness/005-m4-procedural-floor-generation/ship-verdict.json`
-- `readiness/006-m5-entities-bosses-rooms/agent-commands/claude/commands.md`
-- `readiness/006-m5-entities-bosses-rooms/agent-commands/claude/guidance.json`
-- `readiness/006-m5-entities-bosses-rooms/agent-commands/claude/skills.md`
-- `readiness/006-m5-entities-bosses-rooms/agent-commands/codex/commands.md`
-- `readiness/006-m5-entities-bosses-rooms/agent-commands/codex/guidance.json`
-- `readiness/006-m5-entities-bosses-rooms/agent-commands/codex/skills.md`
-- `readiness/006-m5-entities-bosses-rooms/analysis.json`
-- `readiness/006-m5-entities-bosses-rooms/governance-handoff.json`
 - `readiness/006-m5-entities-bosses-rooms/implementation-critic-history.md`
 - `readiness/006-m5-entities-bosses-rooms/ship-verdict.json`
-- `readiness/006-m5-entities-bosses-rooms/ship.json`
-- `readiness/006-m5-entities-bosses-rooms/summary.md`
-- `readiness/006-m5-entities-bosses-rooms/verify.json`
-- `readiness/006-m5-entities-bosses-rooms/work-model.json`
+- `readiness/007-m6-rendering-enemy-symbology/ship-verdict.json`
+- `readiness/008-m7-ui-menus-stats/ship-verdict.json`
+- `readiness/009-m8-audio/analysis.json`
+- `readiness/009-m8-audio/test-results/m8-focused.trx`
+- `readiness/009-m8-audio/test-results/m8-full.trx`
 - `readiness/evidence-audit.md`
 - `readiness/evidence-graph.md`
 - `readiness/headless-scene-evidence.txt`
 - `readiness/layout-evidence.txt`
 - `readiness/logs/Dev.txt`
 - `readiness/logs/GeneratedGuidanceCheck.txt`
-- `readiness/logs/PerformanceCriticRequest.txt`
+- `readiness/logs/M7UiPerformanceEvidence.txt`
 - `readiness/logs/PerformanceEvidence.txt`
 - `readiness/logs/PerformanceIntent.txt`
 - `readiness/logs/TemplateDrift.txt`
 - `readiness/logs/Test.txt`
-- `readiness/logs/Verify.txt`
+- `readiness/m7-ui-performance.json`
 - `readiness/performance-critic-request.json`
 - `readiness/performance-evidence.json`
 - `readiness/performance-intent.yml`

@@ -144,6 +144,18 @@ type ShopSlot =
 
 type PlayerLifeState = Alive | Dead
 
+/// Ordered, transient facts produced while one host update drains fixed simulation steps.
+/// AudioCues translates these values at the effect boundary; the simulation never touches a device.
+[<RequireQualifiedAccess>]
+type AudioEvent =
+    | ShotFired
+    | ShotHit
+    | EnemyDied
+    | PlayerHit
+    | PlayerDied
+    | DodgeRolled
+    | BombExploded
+
 [<RequireQualifiedAccess>]
 type DifficultyMode = Easy | Normal | Hard
 
@@ -312,7 +324,8 @@ type Model =
       StatScope: StatScope
       ActiveCharge: int
       ActiveChargeMaximum: int
-      FloorNameTicks: int }
+      FloorNameTicks: int
+      AudioEvents: AudioEvent list }
 
 type Msg =
     /// The program started, and `initialModel` is the state it started in (issue #458).
@@ -654,7 +667,8 @@ let initialModelForSeed seed =
       StatScope = StatScope.ThisRun
       ActiveCharge = 2
       ActiveChargeMaximum = 6
-      FloorNameTicks = 240 }
+      FloorNameTicks = 240
+      AudioEvents = [] }
 
 let initialModel = initialModelForSeed 0xC0FFEEUL
 
@@ -956,6 +970,9 @@ let private addFloorDamage floor dealt taken (stats: RunStats) =
         DamageTaken=stats.DamageTaken+taken
         DamageByFloor=Map.add floor (oldDealt+dealt,oldTaken+taken) stats.DamageByFloor }
 
+let private withAudioEvent event model =
+    { model with AudioEvents = model.AudioEvents @ [ event ] }
+
 let private takePlayerHit damage source model =
     if damage <= 0 || model.PlayerLifeState = Dead || model.DodgeIFrameTicks > 0 || model.PostHitInvulnTicks > 0 then model
     else
@@ -968,6 +985,7 @@ let private takePlayerHit damage source model =
             PostHitInvulnTicks = int ((activeScaling model).PostHitInvulnSeconds / fixedDt + 0.5)
             BlackHeartBursts = model.BlackHeartBursts + bursts
             RunStats = addFloorDamage model.FloorIndex 0.0 lost model.RunStats }
+        |> withAudioEvent AudioEvent.PlayerHit
 
 let purchaseShopSlot slotId model =
     match model.ShopSlots |> List.tryFind (fun slot -> slot.Id = slotId) with
@@ -1006,6 +1024,7 @@ let private resolveShotCombat model =
     let mutable enemies = liveEnemies |> List.map (fun enemy -> enemy.Id, enemy) |> Map.ofList
     let mutable candidates = 0
     let mutable dealt = 0.0
+    let mutable hitCount = 0
     let shots =
         model.ShotSpawns
         |> List.choose (fun shot ->
@@ -1021,6 +1040,7 @@ let private resolveShotCombat model =
             for enemy in hits do
                 match Map.tryFind enemy.Id enemies with
                 | Some current when current.HitPoints > 0.0 ->
+                    hitCount <- hitCount + 1
                     let impulse = normalizeOrZero shot.Velocity |> scale shot.Knockback
                     let applied=max 0.0 (min current.HitPoints shot.Damage)
                     dealt <- dealt+applied
@@ -1046,7 +1066,8 @@ let private resolveShotCombat model =
                 | None -> actor)
         ShotSpawns = shots
         RunStats=stats
-        TotalCombatCandidates = model.TotalCombatCandidates + candidates }
+        TotalCombatCandidates = model.TotalCombatCandidates + candidates
+        AudioEvents = model.AudioEvents @ List.replicate hitCount AudioEvent.ShotHit }
 
 let private resolveBombs model =
     let aged = model.Bombs |> List.map (fun bomb -> { bomb with FuseTicks = bomb.FuseTicks - 1 })
@@ -1077,7 +1098,9 @@ let private resolveBombs model =
                 let typed=result.M5Obstacles|>List.filter(fun value->value.Id<>obstacle.Id)|>fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
                 let blocking=typed|>List.filter(fun value->Rogue3.Entities.blocksMovement Rogue3.Entities.MovementClass.Grounded value.Kind)|>List.map(fun value->toSimRect value.Position 40.0 40.0)
                 result <- {result with M5Obstacles=typed;Obstacles=blocking;DropRng=rng;M5ObstacleDrops=drop|>Option.map(fun value->result.M5ObstacleDrops@[value])|>Option.defaultValue result.M5ObstacleDrops}
-    { result with Bombs = aged |> List.filter (fun bomb -> not (Set.contains bomb.Id exploded)) }
+    { result with
+        Bombs = aged |> List.filter (fun bomb -> not (Set.contains bomb.Id exploded))
+        AudioEvents = result.AudioEvents @ List.replicate exploded.Count AudioEvent.BombExploded }
 
 let private resolveEnemyDamage model =
     let bulletGrid = SpatialGrid.build spatialCellSize [ for bullet in model.EnemyBullets -> toSimPoint bullet.Position, bullet ]
@@ -1110,6 +1133,8 @@ let private resolveEnemyDamage model =
 
 let private resolveCombat model =
     let burstsBefore = model.BlackHeartBursts
+    let aliveBefore = model.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.map _.Id |> Set.ofList
+    let lifeBefore = model.PlayerLifeState
     let enemyBullets =
         model.EnemyBullets
         |> List.choose(fun bullet->
@@ -1131,9 +1156,17 @@ let private resolveCombat model =
         if burstsThisStep > 0 then
             model.Enemies |> List.map (fun enemy -> { enemy with HitPoints = max 0.0 (enemy.HitPoints - 10.0 * float burstsThisStep) })
         else model.Enemies
-    { model with
-        Enemies = enemies
-        PlayerLifeState = if totalHalfHearts model.PlayerHealth = 0 then Dead else model.PlayerLifeState }
+    let resolved =
+        { model with
+            Enemies = enemies
+            PlayerLifeState = if totalHalfHearts model.PlayerHealth = 0 then Dead else model.PlayerLifeState }
+    let aliveAfter = resolved.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.map _.Id |> Set.ofList
+    let deathCount = Set.difference aliveBefore aliveAfter |> Set.count
+    let events =
+        resolved.AudioEvents
+        @ List.replicate deathCount AudioEvent.EnemyDied
+        @ (if lifeBefore = Alive && resolved.PlayerLifeState = Dead then [ AudioEvent.PlayerDied ] else [])
+    { resolved with AudioEvents = events }
 
 let private m5Kind = function
     | FloorGeneration.Grub -> Rogue3.Entities.EnemyKind.Grub
@@ -1477,7 +1510,11 @@ let private stepInput pressedThisTick (model: Model) =
             // Each player axis performs one swept cast, then slideCircle's X and Y contact folds.
             TotalWallQueries = model.TotalWallQueries + wallQueries + 6 * model.Obstacles.Length
             TotalHomingQueries = model.TotalHomingQueries + homingQueries
-            EdgeActionCount = model.EdgeActionCount + Set.count pressedThisTick }
+            EdgeActionCount = model.EdgeActionCount + Set.count pressedThisTick
+            AudioEvents =
+                model.AudioEvents
+                @ (if shouldSpawn then [ AudioEvent.ShotFired ] else [])
+                @ (if dodgeStarted then [ AudioEvent.DodgeRolled ] else []) }
     model.M5Obstacles
     |> List.filter(fun obstacle->Rogue3.Entities.spikeDamage obstacle.Kind>0 && circlesOverlap steppedModel.PlayerPosition playerRadius obstacle.Position 20.0)
     |> List.fold(fun current obstacle->takePlayerHit (Rogue3.Entities.spikeDamage obstacle.Kind) obstacle.Position current) steppedModel
@@ -1586,7 +1623,7 @@ let private advanceSim dtSeconds (model: Model) =
 
     let stepped =
         // mutable: a single unaliased accumulator over a fixed step count is plainer than a fold here.
-        let mutable m = model
+        let mutable m = { model with AudioEvents = [] }
         for stepIndex in 1..steps do
             m <- stepSimWithInput (if stepIndex = 1 then pressedThisTick else Set.empty) m
         m

@@ -1,0 +1,350 @@
+schemaVersion: 1
+workId: 009-m8-audio
+stage: evidence
+status: evidenceReady
+sourceSpec: work/009-m8-audio/spec.md
+sourceClarifications: work/009-m8-audio/clarifications.md
+sourceChecklist: work/009-m8-audio/checklist.md
+sourcePlan: work/009-m8-audio/plan.md
+sourceTasks: work/009-m8-audio/tasks.yml
+sourceAnalysis: readiness/009-m8-audio/analysis.json
+sourceSnapshots:
+  - label: analysis
+    path: readiness/009-m8-audio/analysis.json
+    digest: fc4aa36722d8f215b0baf05300aa5ecab57b4b55f10ee5a1f4d2be1314690698
+    schemaVersion: 1
+  - label: checklist
+    path: work/009-m8-audio/checklist.md
+    digest: f6b49f9b6eb8b915437583bc6acdc9a2dbf7507abfec0c66f0de10ad2e5697aa
+    schemaVersion: 1
+  - label: clarifications
+    path: work/009-m8-audio/clarifications.md
+    digest: 8f22524bdf8abba6ad6ed2cfa6a32bc0e9800d77471ee7046747bf8a67056964
+    schemaVersion: 1
+  - label: plan
+    path: work/009-m8-audio/plan.md
+    digest: ce4ee260c3893354ec1235a3791ea878d4c621637e5c40d3f26cc99ce6b4a979
+    schemaVersion: 1
+  - label: spec
+    path: work/009-m8-audio/spec.md
+    digest: 1cd0875903f04c738a90c6fea3d1b020c4ae266968440c9db5cda6ab83b0537d
+    schemaVersion: 1
+  - label: tasks
+    path: work/009-m8-audio/tasks.yml
+    digest: f1d88c80cee972de12ee804ad9d240a3f1e9934cfecb0dedfca7caf40d477378
+    schemaVersion: 1
+evidence:
+  - id: EV001
+    kind: verification
+    subject:
+      type: task
+      id: T001
+    taskRefs: [T001]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV001]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV002
+    kind: verification
+    subject:
+      type: task
+      id: T002
+    taskRefs: [T002]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV002]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV003
+    kind: verification
+    subject:
+      type: task
+      id: T003
+    taskRefs: [T003]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV003]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV004
+    kind: verification
+    subject:
+      type: task
+      id: T004
+    taskRefs: [T004]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV004]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV005
+    kind: verification
+    subject:
+      type: task
+      id: T005
+    taskRefs: [T005]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV005]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV006
+    kind: verification
+    subject:
+      type: task
+      id: T006
+    taskRefs: [T006]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV006]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV007
+    kind: verification
+    subject:
+      type: task
+      id: T007
+    taskRefs: [T007]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV007]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV008
+    kind: verification
+    subject:
+      type: task
+      id: T008
+    taskRefs: [T008]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV008]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV009
+    kind: verification
+    subject:
+      type: task
+      id: T009
+    taskRefs: [T009]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV009]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV010
+    kind: verification
+    subject:
+      type: task
+      id: T010
+    taskRefs: [T010]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV010]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV011
+    kind: verification
+    subject:
+      type: task
+      id: T011
+    taskRefs: [T011]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV011]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV012
+    kind: verification
+    subject:
+      type: task
+      id: T012
+    taskRefs: [T012]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV012]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M8AudioTests.fs]
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/M8AudioTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/009-m8-audio/test-results/m8-full.trx
+      digest: "sha256:c7f76f343ad6479774e197dfa1e500f687f8c3855cbb16948838c0937d436243"
+      outcome: passed
+      passed: 145
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+lifecycleNotes:
+  - "Next lifecycle action: verify."
