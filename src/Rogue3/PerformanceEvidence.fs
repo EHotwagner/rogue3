@@ -407,7 +407,10 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "secret-reveal" ] }
       { Id = "state.placed-bombs"
         Category = Simulation
-        ScaleSource = "Model.Bombs live fused count carried into one fixed step's chain-detonation resolution"
+        // The product's own bound is the 99 currency cap; this representative workload carries 48
+        // live fuses, which is what the observed gate can honestly assert. Raise both together if a
+        // workload ever exercises the full cap.
+        ScaleSource = "Model.Bombs live fused count carried into one fixed step's chain-detonation resolution; the representative workload holds 48 of the product's 99-bomb cap"
         MaximumExpected = 48
         VisualElement = None
         Disposition = RequiredIn [ "secret-reveal" ] }
