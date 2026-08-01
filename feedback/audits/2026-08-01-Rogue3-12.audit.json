@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-01-Rogue3-12.md",
-  "reportSha256": "92cdb493f14c1635385bea918c1fdf43bf37e8bb25c85f9b11c7342aa9aa345c",
+  "reportSha256": "35e4f57d1bd256fcc58a737acec24be06fd13906a0ad4fcdd9efead8b30508bb",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -13,7 +13,7 @@
         {
           "locator": "file:docs/roguelike-dungeon-crawler-roadmap.md",
           "result": "verified",
-          "sha256": "43655139510aab9b9456d06d78e91d3a3990dc7a38d296df6dc2c66d4f4e3527"
+          "sha256": "071c767013d14a4e24c6c599a3a442814d7bc5ddd5686b5e40a1389a4d6a1ee0"
         },
         {
           "locator": "file:tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs",
@@ -103,7 +103,7 @@
         {
           "locator": "file:docs/roguelike-dungeon-crawler-roadmap.md",
           "result": "verified",
-          "sha256": "43655139510aab9b9456d06d78e91d3a3990dc7a38d296df6dc2c66d4f4e3527"
+          "sha256": "071c767013d14a4e24c6c599a3a442814d7bc5ddd5686b5e40a1389a4d6a1ee0"
         }
       ],
       "confidenceLimits": [
@@ -201,7 +201,7 @@
         {
           "locator": "file:docs/roguelike-dungeon-crawler-roadmap.md",
           "result": "verified",
-          "sha256": "43655139510aab9b9456d06d78e91d3a3990dc7a38d296df6dc2c66d4f4e3527"
+          "sha256": "071c767013d14a4e24c6c599a3a442814d7bc5ddd5686b5e40a1389a4d6a1ee0"
         }
       ],
       "confidenceLimits": [
@@ -240,11 +240,49 @@
         {
           "locator": "file:docs/roguelike-dungeon-crawler-roadmap.md",
           "result": "verified",
-          "sha256": "43655139510aab9b9456d06d78e91d3a3990dc7a38d296df6dc2c66d4f4e3527"
+          "sha256": "071c767013d14a4e24c6c599a3a442814d7bc5ddd5686b5e40a1389a4d6a1ee0"
         }
       ],
       "confidenceLimits": [
         "Locator kind corrected from issue: to pr: after the critic found that #4 does not resolve as an issue. The branch collision is verifiable from the merged pull request's headRefName."
+      ]
+    },
+    {
+      "id": "§4.13",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "pr:EHotwagner/rogue3#6",
+          "result": "verified"
+        },
+        {
+          "locator": "file:docs/roguelike-dungeon-crawler-roadmap.md",
+          "result": "verified",
+          "sha256": "071c767013d14a4e24c6c599a3a442814d7bc5ddd5686b5e40a1389a4d6a1ee0"
+        }
+      ],
+      "confidenceLimits": [
+        "Reproduced against merged commits by both the coordinator and the author: the validator exits 1 on main after 6ed6809 and 0 on 3178477, the only difference being two lines of the cited roadmap file. This audit is the remediation, so the validator now reports a pass; the failure reproduces by mutating any cited file."
+      ]
+    },
+    {
+      "id": "§4.14",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate feedback/2026-08-01-Rogue3-12.md --audit feedback/audits/2026-08-01-Rogue3-12.audit.json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "982f6fdd9f9fbe5c95faec14b14494b05ccafc449846f5f42138772bc89275bf"
+        }
+      ],
+      "confidenceLimits": [
+        "The stale-digest failure was observed on stdout with exit code 1 before this rebinding. The cited command now exits 0, so the failure mode reproduces by mutating a cited file rather than by running the command as written."
       ]
     }
   ]
