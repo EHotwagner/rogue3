@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-01-Rogue3-10.md",
-  "reportSha256": "ff888ec6d01684c9773806e15185d4e6f891c2f6feafede15546c363af1963a6",
+  "reportSha256": "88e2e2df9c8221e1ef3f53c5ce6e60fd2243eec241014bccfc0e48afe82b7838",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
