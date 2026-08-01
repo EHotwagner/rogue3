@@ -27,6 +27,8 @@ jobs:
         with:
           dotnet-version: 10.0.302
       - name: Restore
-        run: dotnet restore Rogue3.slnx
+        run: >-
+          dotnet restore Rogue3.slnx
+          -p:_FSharpCoreLibraryPacksFolder=${{ github.workspace }}/.nuget/disabled-fsharp-library-packs
       - name: Test Release candidate
         run: dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release --no-restore
