@@ -22,12 +22,14 @@ Evidence (2026-08-01): focused Release 24/24 and full Release 71/71; `./fake.sh 
 Evidence (2026-08-01): focused Release M1 input 9/9 and full Release 80/80; `./fake.sh build -t Verify` green with 80/80 plus five authored bounded-headless workloads; SDD verdict `readiness/002-m1-input-twin-stick-control/ship-verdict.json` is `shipReady` with 26 observed, non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3-2.md`. Keyboard and coordinate-bearing pointer samples traverse the pinned live shell host; the pure gamepad snapshot contract is green, while native gamepad polling remains a package-host release obligation because the pinned host exposes no gamepad seam.
 
 ### M2 — Movement, dodge & shots
-- 🟥 Velocity lerp (`accel`/`friction`) + diagonal normalization, speed clamp (§4.1)
-- 🟥 Axis-separated wall/obstacle sweep, circle hitbox `r = 13` (§4.1)
-- 🟥 Dodge roll: i-frames, velocity impulse, `0.90 s` cooldown, fire lockout (§4.2)
-- 🟥 Stat-derived shots (dmg/fireRate/shotSpeed/range/size) + velocity inheritance (§4.3)
-- 🟥 Multishot `18°` spread fan centered on aim (§4.3) — AC #4
-- 🟥 Shot lifetime/range, bounce, pierce & homing termination (§4.3) — AC #10
+- 🟩 Velocity lerp (`accel`/`friction`) + diagonal normalization, speed clamp (§4.1)
+- 🟩 Axis-separated wall/obstacle sweep, circle hitbox `r = 13` (§4.1)
+- 🟩 Dodge roll: i-frames, velocity impulse, `0.90 s` cooldown, fire lockout (§4.2)
+- 🟩 Stat-derived shots (dmg/fireRate/shotSpeed/range/size) + velocity inheritance (§4.3)
+- 🟩 Multishot `18°` spread fan centered on aim (§4.3) — AC #4
+- 🟩 Shot lifetime/range, bounce, pierce & homing termination (§4.3) — AC #10
+
+Evidence (2026-08-01): focused Release M2 11/11 and full Release 91/91; `./fake.sh build -t Verify` green with five authored runner-issued workloads and exact maximum-content scale (40 shots, 8 obstacles, 30 targets, 736 wall primitives, 2,400 homing considerations, multishot 3); final fresh-context performance critic supported on repair round 3; SDD verdict `readiness/003-m2-movement-dodge-shots/ship-verdict.json` is `shipReady` with 30 observed non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3-3.md`.
 
 ### M3 — Combat, health & currency
 - 🟥 Shot→enemy circle overlap: `dmg`, knockback, hit-flash, pierce decrement (§4.4)

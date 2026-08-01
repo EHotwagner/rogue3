@@ -71,10 +71,41 @@ type ResolvedInput =
       FireHeld: bool
       PressedThisTick: Set<KeyId> }
 
-/// M1's deterministic fire event. M2 promotes these spawn intents to full projectile entities.
+type PlayerStats =
+    { Damage: float
+      FireRate: float
+      ShotSpeed: float
+      Range: float
+      ShotRadius: float
+      Knockback: float
+      Multishot: int
+      Pierce: int
+      Bounce: int
+      Homing: float
+      SpeedMultiplier: float }
+
+type HomingTarget = { Id: int; Position: Vec2 }
+
+/// A live M2 projectile. Integer age/hit budgets make termination exact at the fixed-step boundary.
 type ShotSpawn =
-    { Direction: Vec2
+    { Id: int
+      Position: Vec2
+      Direction: Vec2
       Velocity: Vec2
+      Damage: float
+      FireRate: float
+      Speed: float
+      Range: float
+      Radius: float
+      Knockback: float
+      Pierce: int
+      HitsRemaining: int
+      BouncesRemaining: int
+      Homing: float
+      AgeTicks: int
+      MaxAgeTicks: int
+      DistanceTravelled: float
+      HitEnemyIds: Set<int>
       SimStep: int }
 
 type Model =
@@ -95,12 +126,22 @@ type Model =
       Input: InputState
       PlayerPosition: Vec2
       PlayerVelocity: Vec2
+      PlayerStats: PlayerStats
+      Obstacles: Rect list
+      HomingTargets: HomingTarget list
+      ShotHitsThisTick: Map<int, int list>
       Facing: Vec2
       LastResolvedInput: ResolvedInput
       FireCooldown: float
       WasFiring: bool
       ShotSpawns: ShotSpawn list
       TotalShotSpawns: int
+      NextShotId: int
+      DodgeRollTicks: int
+      DodgeIFrameTicks: int
+      DodgeCooldownTicks: int
+      TotalWallQueries: int
+      TotalHomingQueries: int
       EdgeActionCount: int }
 
 type Msg =
@@ -159,6 +200,29 @@ let fixedDt = 1.0 / 120.0
 let maxSteps = 5
 let simInterval = fixedDt
 let maxFrameTime = float maxSteps * fixedDt
+let playerRadius = 13.0
+let basePlayerSpeed = 240.0
+let playerAcceleration = 2400.0
+let playerFriction = 3000.0
+let rollSpeed = 460.0
+let rollDurationTicks = int (0.45 / fixedDt + 0.5)
+let dodgeIFrameTicks = int (0.40 / fixedDt + 0.5)
+let dodgeCooldownTicks = int (0.90 / fixedDt + 0.5)
+let spreadDegrees = 18.0
+let shotVelocityInheritance = 0.25
+
+let basePlayerStats =
+    { Damage = 3.5
+      FireRate = 2.5
+      ShotSpeed = 420.0
+      Range = 1.6
+      ShotRadius = 5.0
+      Knockback = 40.0
+      Multishot = 1
+      Pierce = 0
+      Bounce = 0
+      Homing = 0.0
+      SpeedMultiplier = 0.0 }
 
 let private servedBall =
     { Pos = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0)
@@ -215,12 +279,22 @@ let initialModelForSeed seed =
       Input = emptyInputState
       PlayerPosition = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0)
       PlayerVelocity = zero
+      PlayerStats = basePlayerStats
+      Obstacles = []
+      HomingTargets = []
+      ShotHitsThisTick = Map.empty
       Facing = vec2 1.0 0.0
       LastResolvedInput = emptyResolvedInput
       FireCooldown = 0.0
       WasFiring = false
       ShotSpawns = []
       TotalShotSpawns = 0
+      NextShotId = 1
+      DodgeRollTicks = 0
+      DodgeIFrameTicks = 0
+      DodgeCooldownTicks = 0
+      TotalWallQueries = 0
+      TotalHomingQueries = 0
       EdgeActionCount = 0 }
 
 let initialModel = initialModelForSeed 0xC0FFEEUL
@@ -310,6 +384,24 @@ let normalizeOrZero vector =
     if not (isFinite vector) || magnitudeSquared <= 1e-12 then zero
     else scale (1.0 / sqrt magnitudeSquared) vector
 
+let magnitude vector =
+    if not (isFinite vector) then 0.0
+    else sqrt (vector.Vx * vector.Vx + vector.Vy * vector.Vy)
+
+let clampMagnitude maximum vector =
+    let maximum = if Double.IsFinite maximum then max 0.0 maximum else 0.0
+    let length = magnitude vector
+    if length <= maximum || length <= 1e-12 then vector
+    else scale (maximum / length) vector
+
+let approachVector maximumDelta target current =
+    let delta = sub target current
+    add current (clampMagnitude maximumDelta delta)
+
+let effectiveMoveSpeed stats =
+    let multiplier = if Double.IsFinite stats.SpeedMultiplier then stats.SpeedMultiplier else 0.0
+    basePlayerSpeed * (1.0 + multiplier) |> max 120.0 |> min 540.0
+
 let private activeStick vector =
     if not (isFinite vector) then zero
     elif vector.Vx * vector.Vx + vector.Vy * vector.Vy < 0.04 then zero
@@ -361,39 +453,191 @@ let withPointer position primaryDown snapshot =
 let fireCadence = 1.0 / 2.5
 let playerInputSpeed = 240.0
 let shotSpeed = 420.0
-let maxShotSpawnHistory = 64
+let maxShotSpawnHistory = 40
+
+let private dodgeKey = keyId Space
+
+let private rotateDegrees degrees vector =
+    let radians = degrees * Math.PI / 180.0
+    let c, s = cos radians, sin radians
+    vec2 (vector.Vx * c - vector.Vy * s) (vector.Vx * s + vector.Vy * c)
+
+let private centeredDirections count aim =
+    let count = count |> max 1 |> min 12
+    if count = 1 then [ normalizeOrZero aim ]
+    else
+        [ for index in 0 .. count - 1 do
+              let offset = -spreadDegrees / 2.0 + spreadDegrees * float index / float (count - 1)
+              rotateDegrees offset aim |> normalizeOrZero ]
+
+let spawnShots simStep nextId position playerVelocity aim stats =
+    let speed = if Double.IsFinite stats.ShotSpeed then stats.ShotSpeed |> max 150.0 |> min 900.0 else 420.0
+    let range = if Double.IsFinite stats.Range then stats.Range |> max 0.4 |> min 4.0 else 1.6
+    let radius = if Double.IsFinite stats.ShotRadius then max 0.1 stats.ShotRadius else 5.0
+    let fireRate = if Double.IsFinite stats.FireRate then stats.FireRate |> max 0.7 |> min 15.0 else 2.5
+    centeredDirections stats.Multishot aim
+    |> List.mapi (fun index direction ->
+        { Id = nextId + index
+          Position = position
+          Direction = direction
+          Velocity = add (scale speed direction) (scale shotVelocityInheritance playerVelocity)
+          Damage = if Double.IsFinite stats.Damage then max 0.5 stats.Damage else 3.5
+          FireRate = fireRate
+          Speed = speed
+          Range = range
+          Radius = radius
+          Knockback = if Double.IsFinite stats.Knockback then max 0.0 stats.Knockback else 0.0
+          Pierce = max 0 stats.Pierce
+          HitsRemaining = max 0 stats.Pierce + 1
+          BouncesRemaining = max 0 stats.Bounce
+          Homing = if Double.IsFinite stats.Homing then max 0.0 stats.Homing else 0.0
+          AgeTicks = 0
+          MaxAgeTicks = int (floor (range / fixedDt + 1e-9))
+          DistanceTravelled = 0.0
+          HitEnemyIds = Set.empty
+          SimStep = simStep })
+
+let private nearestTarget (shot: ShotSpawn) (targets: HomingTarget list) =
+    targets
+    |> List.filter (fun target -> isFinite target.Position)
+    |> List.sortBy (fun target ->
+        let delta = sub target.Position shot.Position
+        delta.Vx * delta.Vx + delta.Vy * delta.Vy, target.Id)
+    |> List.tryHead
+
+let private steerShot (targets: HomingTarget list) (shot: ShotSpawn) =
+    if shot.Homing <= 0.0 then shot
+    else
+        match nearestTarget shot targets with
+        | None -> shot
+        | Some target ->
+            let desired = sub target.Position shot.Position |> normalizeOrZero
+            let current = normalizeOrZero shot.Velocity
+            if desired = zero || current = zero then shot
+            else
+                let cross = current.Vx * desired.Vy - current.Vy * desired.Vx
+                let dot = current.Vx * desired.Vx + current.Vy * desired.Vy |> max -1.0 |> min 1.0
+                let signed = atan2 cross dot
+                let cap = shot.Homing * 2.0 * Math.PI * fixedDt
+                let turn = signed |> max (-cap) |> min cap
+                let speed = magnitude shot.Velocity
+                { shot with Velocity = rotateDegrees (turn * 180.0 / Math.PI) current |> scale speed }
+
+let private expandedRect radius (wall: Rect) : Rect =
+    { X = wall.X - radius
+      Y = wall.Y - radius
+      Width = wall.Width + 2.0 * radius
+      Height = wall.Height + 2.0 * radius }
+
+let private nearestWallHit walls (shot: ShotSpawn) nextPosition =
+    walls
+    |> List.mapi (fun index wall ->
+        FS.GG.Game.Core.Geometry.segmentAabbHit (toSimPoint shot.Position) (toSimPoint nextPosition) (expandedRect shot.Radius wall)
+        |> Option.map (fun hit -> hit.T, index, hit))
+    |> List.choose id
+    |> List.sortBy (fun (t, index, _) -> t, index)
+    |> List.tryHead
+    |> Option.map (fun (_, _, hit) -> hit)
+
+let stepShots (roomBounds: Rect) (walls: Rect list) (targets: HomingTarget list) (hitsByShot: Map<int, int list>) (shots: ShotSpawn list) =
+    let mutable wallQueries = 0
+    let mutable homingQueries = 0
+    let stepped =
+        shots
+        |> List.choose (fun original ->
+            let shot = steerShot targets original
+            if shot.Homing > 0.0 then homingQueries <- homingQueries + targets.Length
+            let newHits =
+                defaultArg (Map.tryFind shot.Id hitsByShot) []
+                |> List.distinct
+                |> List.filter (fun enemyId -> not (Set.contains enemyId shot.HitEnemyIds))
+            let hitsRemaining = shot.HitsRemaining - newHits.Length
+            let hitIds = (shot.HitEnemyIds, newHits) ||> List.fold (fun ids enemyId -> Set.add enemyId ids)
+            let age = shot.AgeTicks + 1
+            if hitsRemaining <= 0 || age > shot.MaxAgeTicks || not (isFinite shot.Position && isFinite shot.Velocity) then None
+            else
+                let next = add shot.Position (scale fixedDt shot.Velocity)
+                wallQueries <- wallQueries + walls.Length
+                match nearestWallHit walls shot next with
+                | Some hit when shot.BouncesRemaining <= 0 -> None
+                | Some hit ->
+                    let normal = ofSimPoint hit.Normal
+                    let reflected = sub shot.Velocity (scale (2.0 * (shot.Velocity.Vx * normal.Vx + shot.Velocity.Vy * normal.Vy)) normal)
+                    Some { shot with Position = ofSimPoint hit.Point; Velocity = reflected; AgeTicks = age; HitsRemaining = hitsRemaining; HitEnemyIds = hitIds; BouncesRemaining = shot.BouncesRemaining - 1; DistanceTravelled = shot.DistanceTravelled + magnitude (sub (ofSimPoint hit.Point) shot.Position) }
+                | None ->
+                    let centre = { Center = toSimPoint next; Radius = shot.Radius }
+                    let inside = Collision.clampCircleInside roomBounds centre
+                    let leftRoom = inside.Center <> centre.Center
+                    if leftRoom && shot.BouncesRemaining <= 0 then None
+                    elif leftRoom then
+                        let hitX = inside.Center.X <> centre.Center.X
+                        let hitY = inside.Center.Y <> centre.Center.Y
+                        let velocity = vec2 (if hitX then -shot.Velocity.Vx else shot.Velocity.Vx) (if hitY then -shot.Velocity.Vy else shot.Velocity.Vy)
+                        Some { shot with Position = ofSimPoint inside.Center; Velocity = velocity; AgeTicks = age; HitsRemaining = hitsRemaining; HitEnemyIds = hitIds; BouncesRemaining = shot.BouncesRemaining - 1; DistanceTravelled = shot.DistanceTravelled + magnitude (sub (ofSimPoint inside.Center) shot.Position) }
+                    else
+                        Some { shot with Position = next; AgeTicks = age; HitsRemaining = hitsRemaining; HitEnemyIds = hitIds; DistanceTravelled = shot.DistanceTravelled + magnitude (sub next shot.Position) })
+    stepped, wallQueries, homingQueries
 
 let private stepInput pressedThisTick model =
     let resolved = resolveInput model.PlayerPosition pressedThisTick model.Input.Current
-    let playerVelocity = scale playerInputSpeed resolved.Move
+    let dodgeStarted = Set.contains dodgeKey pressedThisTick && model.DodgeCooldownTicks = 0
+    let moveSpeed = effectiveMoveSpeed model.PlayerStats
+    let targetVelocity = scale moveSpeed resolved.Move
+    let rate = if resolved.Move = zero then playerFriction else playerAcceleration
+    let controlDelta =
+        if model.DodgeRollTicks > 0 then rollSpeed * fixedDt / 0.45
+        else rate * fixedDt
+    let controlledVelocity =
+        approachVector controlDelta targetVelocity model.PlayerVelocity
+        |> fun velocity -> if model.DodgeRollTicks > 0 then velocity else clampMagnitude moveSpeed velocity
+    let rollDirection = if resolved.Move <> zero then resolved.Move else normalizeOrZero model.Facing
+    let playerVelocity = if dodgeStarted then scale rollSpeed rollDirection else controlledVelocity
+    let displacement = scale fixedDt playerVelocity
+    let playerCircle = { Center = toSimPoint model.PlayerPosition; Radius = playerRadius }
+    let roomBounds: Rect = { X = 0.0; Y = 0.0; Width = model.Playfield.Vx; Height = model.Playfield.Vy }
+    let movedPlayer = Collision.sweepCircle (Some roomBounds) model.Obstacles playerCircle (toSimPoint displacement)
+    let playerPosition = ofSimPoint movedPlayer.Center
     let fireAim = if resolved.Aim = zero then normalizeOrZero model.Facing else resolved.Aim
+    let iFramesActive = dodgeStarted || model.DodgeIFrameTicks > 0
+    let cadence = 1.0 / (model.PlayerStats.FireRate |> max 0.7 |> min 15.0)
 
     let shouldSpawn, nextCooldown =
-        if not resolved.FireHeld || fireAim = zero then
+        if iFramesActive || not resolved.FireHeld || fireAim = zero then
             false, 0.0
         elif not model.WasFiring then
-            true, max 0.0 (fireCadence - fixedDt)
+            true, max 0.0 (cadence - fixedDt)
         elif model.FireCooldown <= fixedDt + 1e-12 then
-            true, max 0.0 (model.FireCooldown + fireCadence - fixedDt)
+            true, max 0.0 (model.FireCooldown + cadence - fixedDt)
         else
             false, model.FireCooldown - fixedDt
 
+    let spawned =
+        if shouldSpawn then spawnShots (model.SimStepCount + 1) model.NextShotId playerPosition playerVelocity fireAim model.PlayerStats
+        else []
     let shotSpawns =
-        if shouldSpawn then
-            { Direction = fireAim
-              Velocity = add (scale shotSpeed fireAim) (scale 0.25 playerVelocity)
-              SimStep = model.SimStepCount + 1 } :: model.ShotSpawns
-            |> List.truncate maxShotSpawnHistory
-        else model.ShotSpawns
+        spawned @ model.ShotSpawns
+        |> List.truncate maxShotSpawnHistory
+
+    let steppedShots, wallQueries, homingQueries =
+        stepShots roomBounds model.Obstacles model.HomingTargets model.ShotHitsThisTick shotSpawns
 
     { model with
+        PlayerPosition = playerPosition
         PlayerVelocity = playerVelocity
         Facing = if resolved.Aim = zero then model.Facing else resolved.Aim
         LastResolvedInput = resolved
         FireCooldown = nextCooldown
-        WasFiring = resolved.FireHeld && fireAim <> zero
-        ShotSpawns = shotSpawns
-        TotalShotSpawns = model.TotalShotSpawns + if shouldSpawn then 1 else 0
+        WasFiring = not iFramesActive && resolved.FireHeld && fireAim <> zero
+        ShotSpawns = steppedShots
+        TotalShotSpawns = model.TotalShotSpawns + spawned.Length
+        ShotHitsThisTick = Map.empty
+        NextShotId = model.NextShotId + spawned.Length
+        DodgeRollTicks = if dodgeStarted then rollDurationTicks - 1 else max 0 (model.DodgeRollTicks - 1)
+        DodgeIFrameTicks = if dodgeStarted then dodgeIFrameTicks - 1 else max 0 (model.DodgeIFrameTicks - 1)
+        DodgeCooldownTicks = if dodgeStarted then dodgeCooldownTicks - 1 else max 0 (model.DodgeCooldownTicks - 1)
+        // Each player axis performs one swept cast, then slideCircle's X and Y contact folds.
+        TotalWallQueries = model.TotalWallQueries + wallQueries + 6 * model.Obstacles.Length
+        TotalHomingQueries = model.TotalHomingQueries + homingQueries
         EdgeActionCount = model.EdgeActionCount + Set.count pressedThisTick }
 
 // Pure fixed step: integrate the ball by one step, bounce off the top/bottom walls and the paddles,

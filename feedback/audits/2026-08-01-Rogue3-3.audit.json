@@ -1,0 +1,79 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-01-Rogue3-3.md",
+  "reportSha256": "fffeec5f8fc9248aa81352f81b590183eb3edcb529e24ce5497785b1f38edbb4",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git show 1bb46524864753b18275311441a650f4bce2b261:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified"
+        },
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "f8a50e2d8b905fade32334b06bae01a664ba9d0696567871ea63e55cd0851a5a"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M2MovementShotTests.fs",
+          "result": "verified",
+          "sha256": "fd3a545a8becd93467ca08fde4371da12a4e161e7b18efe4e02c20d22da8b08f"
+        }
+      ],
+      "confidenceLimits": [
+        "The precise earlier execution delta was not retained and is not promoted in the durable report.",
+        "Current upstream generator-template persistence was not reverified; the local generated-product repair is verified."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:readiness/performance-evidence.json",
+          "result": "verified",
+          "sha256": "30cc7cdf5d0537e5adab8189bb0642e9bfd7f019b7ba0e487ecebdfd21f8a151"
+        },
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "f8a50e2d8b905fade32334b06bae01a664ba9d0696567871ea63e55cd0851a5a"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M2MovementShotTests.fs",
+          "result": "verified",
+          "sha256": "fd3a545a8becd93467ca08fde4371da12a4e161e7b18efe4e02c20d22da8b08f"
+        }
+      ],
+      "confidenceLimits": [
+        "Evidence is bounded-headless; compositor presentation and dropped-frame metrics remain unsupported.",
+        "The pattern is verified on pinned FS.GG.Game.Harness 0.12.0."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git remote -v",
+          "result": "verified"
+        },
+        {
+          "locator": "file:readiness/003-m2-movement-dodge-shots/ship-verdict.json",
+          "result": "verified",
+          "sha256": "2a9a1d94939c1d25ed45d7725aff1a84b5c2d100c102c585d33670b3c96ad09d"
+        }
+      ],
+      "confidenceLimits": [
+        "No external PR, review, merge, or post-merge state can be checked without a remote."
+      ]
+    }
+  ]
+}

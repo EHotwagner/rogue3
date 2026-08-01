@@ -12,13 +12,13 @@ its absence is a product-evidence defect (evidence-output-contract.md §Evidence
 ## Sensed readiness files
 
 - `readiness/001-m0-scaffold-fixed-step-loop/ship-verdict.json`
-- `readiness/002-m1-input-twin-stick-control/analysis.json`
-- `readiness/002-m1-input-twin-stick-control/governance-handoff.json`
 - `readiness/002-m1-input-twin-stick-control/ship-verdict.json`
-- `readiness/002-m1-input-twin-stick-control/ship.json`
-- `readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx`
-- `readiness/002-m1-input-twin-stick-control/verify.json`
-- `readiness/002-m1-input-twin-stick-control/work-model.json`
+- `readiness/003-m2-movement-dodge-shots/analysis.json`
+- `readiness/003-m2-movement-dodge-shots/governance-handoff.json`
+- `readiness/003-m2-movement-dodge-shots/ship-verdict.json`
+- `readiness/003-m2-movement-dodge-shots/ship.json`
+- `readiness/003-m2-movement-dodge-shots/verify.json`
+- `readiness/003-m2-movement-dodge-shots/work-model.json`
 - `readiness/evidence-audit.md`
 - `readiness/evidence-graph.md`
 - `readiness/headless-scene-evidence.txt`

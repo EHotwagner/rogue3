@@ -59,11 +59,11 @@ let inputTests =
             let after = initialModel |> apply (InputChanged input) |> tick fixedDt
             let shot = after.ShotSpawns |> List.exactlyOne
 
-            close -240.0 after.PlayerVelocity.Vx "A produces leftward player velocity"
+            close -20.0 after.PlayerVelocity.Vx "A accelerates left by 2400 px/s2 for one fixed step"
             close 0.0 after.PlayerVelocity.Vy "left movement is cardinal"
             close 1.0 shot.Direction.Vx "mouse aim remains right independently of movement"
             close 0.0 shot.Direction.Vy "rightward shot is cardinal"
-            close 360.0 shot.Velocity.Vx "420 aim speed inherits 0.25 * -240 player velocity"
+            close 415.0 shot.Velocity.Vx "420 aim speed inherits 0.25 * the current -20 player velocity"
             close 0.0 shot.Velocity.Vy "velocity inheritance does not rotate the shot"
         }
 
@@ -131,7 +131,9 @@ let inputTests =
                 [ 1..3100 ]
                 |> List.fold (fun model _ -> tick fixedDt model) (apply (InputChanged held) initialModel)
             Expect.isGreaterThan longHeld.TotalShotSpawns maxShotSpawnHistory "the monotonic counter observes emissions beyond retained history"
-            Expect.equal longHeld.ShotSpawns.Length maxShotSpawnHistory "shot intents retain a bounded 64-entry history"
+            Expect.isNonEmpty longHeld.ShotSpawns "held fire retains currently live projectiles"
+            Expect.isLessThanOrEqual longHeld.ShotSpawns.Length maxShotSpawnHistory "live range-bounded projectiles remain below the safety cap"
+            Expect.isTrue (longHeld.ShotSpawns |> List.forall (fun shot -> shot.AgeTicks <= shot.MaxAgeTicks)) "every retained projectile remains within range"
         }
 
         test "the production shell host carries raw key down, held ticks, and key up" {
@@ -147,7 +149,8 @@ let inputTests =
 
             Expect.isTrue (first.Play.PlayerVelocity.Vx < 0.0) "native down reaches first production fixed tick"
             Expect.isTrue (second.Play.PlayerVelocity.Vx < 0.0) "held snapshot reaches the second fixed tick"
-            Expect.equal stopped.Play.PlayerVelocity zero "native up clears movement before the following fixed tick"
+            close -15.0 stopped.Play.PlayerVelocity.Vx "native up applies one fixed step of 3000 px/s2 friction"
+            close 0.0 stopped.Play.PlayerVelocity.Vy "release does not introduce another axis"
         }
 
         test "coordinate-bearing pointer interactions map to pointer snapshot messages" {

@@ -257,3 +257,39 @@ module Collision =
         match bounds with
         | Some b -> clampCircleInside b afterY
         | None -> afterY
+
+    /// Axis-separated swept movement for a fast-enough circular player. Each axis casts the centre
+    /// against every wall expanded by the circle radius and stops at the nearest stable-order hit,
+    /// then the ordinary circle contact fold removes any starting overlap. This keeps the responsive
+    /// X-then-Y slide policy while preventing even a thin obstacle from being crossed in one step.
+    let sweepCircle (bounds: Rect option) (walls: Rect list) (c: Circle) (displacement: Point) : Circle =
+        let radius = finiteDim c.Radius
+        let expanded (wall: Rect) : Rect =
+            { X = wall.X - radius
+              Y = wall.Y - radius
+              Width = finiteDim wall.Width + 2.0 * radius
+              Height = finiteDim wall.Height + 2.0 * radius }
+
+        let sweepAxis (delta: Point) (circle: Circle) =
+            let target =
+                { X = circle.Center.X + finiteDim delta.X
+                  Y = circle.Center.Y + finiteDim delta.Y }
+            let nearest =
+                walls
+                |> List.mapi (fun index wall ->
+                    Geometry.segmentAabbHit circle.Center target (expanded wall)
+                    |> Option.map (fun hit -> hit.T, index, hit.Point))
+                |> List.choose id
+                |> List.sortBy (fun (t, index, _) -> t, index)
+                |> List.tryHead
+            let moved =
+                match nearest with
+                | Some(_, _, point) -> { circle with Center = point }
+                | None -> { circle with Center = target }
+            slideCircle None walls moved { X = 0.0; Y = 0.0 }
+
+        let afterX = sweepAxis { X = displacement.X; Y = 0.0 } c
+        let afterY = sweepAxis { X = 0.0; Y = displacement.Y } afterX
+        match bounds with
+        | Some b -> clampCircleInside b afterY
+        | None -> afterY

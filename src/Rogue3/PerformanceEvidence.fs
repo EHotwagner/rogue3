@@ -39,11 +39,11 @@ let private performanceIntentSeed: PerformanceIntentDeclaration =
       TargetFps = 60
       WorkloadIds = []
       WorkloadDefinitionDigests = []
-      MaximumExpectedScale = "64 retained shot-spawn intents plus all five scaffold visuals"
+      MaximumExpectedScale = "40 live player shots, 8 static obstacles, 30 homing targets, and all five scaffold visuals"
       MaxP95Ms = 16.67m
       MaxP99Ms = 25.0m
       MaxCatchUpFrames = 0
-      StructuralCostBudgets = [ "scene-nodes<=4096"; "shot-spawn-history<=64" ]
+      StructuralCostBudgets = [ "scene-nodes<=4096"; "shot-spawn-history<=40" ]
       RequiredCapability = "bounded-headless-update-and-scene-route"
       LiveCompositorRequired = false
       DeferralIssue = None
@@ -141,13 +141,37 @@ let performanceCostDrivers =
       { Id = "simulation.shot-spawn"
         Category = Simulation
         ScaleSource = "Model.TotalShotSpawns delta across one sampled production frame"
-        MaximumExpected = 1
+        MaximumExpected = 3
         VisualElement = None
         Disposition = RequiredIn [ "firing"; "maximum-content" ] }
-      { Id = "state.shot-spawn-history"
+      { Id = "state.live-player-shots"
         Category = Simulation
-        ScaleSource = "Model.ShotSpawns retained bounded history"
-        MaximumExpected = 64
+        ScaleSource = "Model.ShotSpawns live range-bounded projectile count"
+        MaximumExpected = 40
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "collision.shot-wall-queries"
+        Category = Simulation
+        ScaleSource = "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once and perform two player-axis casts plus four slide contact folds against 8 stable AABBs"
+        MaximumExpected = 736
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "simulation.homing-target-considerations"
+        Category = Simulation
+        ScaleSource = "Model.TotalHomingQueries delta: two fixed steps each consider 30 stable targets for 40 homing shots"
+        MaximumExpected = 2400
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "state.static-obstacles"
+        Category = Simulation
+        ScaleSource = "Model.Obstacles exact live count"
+        MaximumExpected = 8
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
+      { Id = "state.homing-targets"
+        Category = Simulation
+        ScaleSource = "Model.HomingTargets exact live count"
+        MaximumExpected = 30
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "scene.ball"
@@ -426,6 +450,18 @@ let private workloadSourceFingerprint id =
             |> sha256Text
             |> Some
 
+let private modelDefinitionFingerprint (model: Model) =
+    // Model is a closed structural record: %A covers every field recursively, with Set/Map in their
+    // deterministic comparison order. Normalizing newlines makes the digest stable across hosts.
+    sprintf "%A" model |> _.Replace("\r\n", "\n") |> sha256Text
+
+let private messageDefinitionFingerprint (workload: Workload) =
+    [ for frame in 0 .. max workload.WarmupFrames workload.SampleFrames - 1 ->
+          frame, workload.MessagesAt frame ]
+    |> sprintf "%A"
+    |> _.Replace("\r\n", "\n")
+    |> sha256Text
+
 let definitionDigest workload =
     let budget =
         workload.Budget
@@ -435,6 +471,8 @@ let definitionDigest workload =
     let executableSource =
         workloadSourceFingerprint workload.Id
         |> Option.defaultValue "missing-workload-source-block"
+    let initialState = workload.InitialState() |> modelDefinitionFingerprint
+    let messageState = messageDefinitionFingerprint workload
 
     let structuralBudgets = String.concat "," performanceIntentSeed.StructuralCostBudgets
 
@@ -447,7 +485,7 @@ let definitionDigest workload =
     let costDriverIds = String.concat "," workload.CostDriverIds
 
     let canonical =
-        $"{workload.Id}|{workload.Definition}|{classToken workload.Classification}|{workload.WarmupFrames}|{workload.SampleFrames}|{workload.EventsPerFrame}|{workload.PointerEventsPerFrame}|{provenanceDefinitionToken workload.Provenance}|{compositionToken workload.Composition}|{costDriverIds}|{budget}|{intentPolicy}|{executableSource}"
+        $"{workload.Id}|{workload.Definition}|{classToken workload.Classification}|{workload.WarmupFrames}|{workload.SampleFrames}|{workload.EventsPerFrame}|{workload.PointerEventsPerFrame}|{provenanceDefinitionToken workload.Provenance}|{compositionToken workload.Composition}|{costDriverIds}|{budget}|{intentPolicy}|{executableSource}|initial={initialState}|messages={messageState}"
 
     sha256Text canonical
 
@@ -562,7 +600,11 @@ let private observeCostScale driverId routed beforeModel afterModel =
         match driver.Id, driver.Category, driver.VisualElement with
         | "simulation.fixed-step", _, _ -> afterModel.SimStepCount - beforeModel.SimStepCount
         | "simulation.shot-spawn", _, _ -> afterModel.TotalShotSpawns - beforeModel.TotalShotSpawns
-        | "state.shot-spawn-history", _, _ -> afterModel.ShotSpawns.Length
+        | "state.live-player-shots", _, _ -> afterModel.ShotSpawns.Length
+        | "collision.shot-wall-queries", _, _ -> afterModel.TotalWallQueries - beforeModel.TotalWallQueries
+        | "simulation.homing-target-considerations", _, _ -> afterModel.TotalHomingQueries - beforeModel.TotalHomingQueries
+        | "state.static-obstacles", _, _ -> afterModel.Obstacles.Length
+        | "state.homing-targets", _, _ -> afterModel.HomingTargets.Length
         | _, Input, _ ->
             let applied =
                 if afterModel.LastResolvedInput.Move <> zero
@@ -718,12 +760,12 @@ let private normalBudget =
       MaximumShotSpawnHistory = maximumShotSpawnHistory
       AllowSustainedCatchUp = performanceIntentSeed.MaxCatchUpFrames > 0 }
 
-/// Bind every M1 performance workload to a runner-issued receipt over the shipped composition:
+/// Bind every M2 performance workload to a runner-issued receipt over the shipped composition:
 /// boot `initialModel`, map timestamp-free events to production `Msg`, call production `update`,
 /// and reach a real fixed step. The measured workload below remains the longer update+view sample.
 let private performanceJourneyReceipt scenarioId boot terminalSteps script =
     let adapter: ProductionJourney<Model, ViewerKey, Msg, unit, unit, Msg, string> =
-        { RouteId = "rogue3-m1-input-update-view"
+        { RouteId = "rogue3-m2-movement-dodge-shots-update-view"
           ScenarioId = scenarioId
           TestId = $"performance-{scenarioId}"
           MaxSteps = 4
@@ -766,6 +808,13 @@ let private firingInput = { movementAimInput with MousePrimaryDown = true }
 
 let private withInput snapshot = update (InputChanged snapshot) initialModel |> fst
 
+let private firingModel () =
+    { initialModel with PlayerStats = { basePlayerStats with Multishot = 3 } }
+
+let private dodgeModel () =
+    let dodgeInput = { emptyInputSnapshot with Keys = Set.singleton (ViewerKeyboard.toKeyId Space) }
+    { initialModel with Input = { initialModel.Input with Current = dodgeInput } }
+
 let private maximumGamepadInput =
     { emptyInputSnapshot with
         Gamepad =
@@ -777,14 +826,23 @@ let private maximumGamepadInput =
 let private maximumShotHistory =
     [ 1 .. maximumShotSpawnHistory ]
     |> List.map (fun step ->
-        { Direction = vec2 1.0 0.0
-          Velocity = vec2 shotSpeed 0.0
-          SimStep = step })
+        spawnShots step step initialModel.PlayerPosition zero (vec2 1.0 0.0) { basePlayerStats with Homing = 1.0 }
+        |> List.exactlyOne)
+
+let private maximumObstacles: SimRect list =
+    [ for index in 0 .. 7 -> { X = 80.0 + float index * 140.0; Y = 24.0; Width = 32.0; Height = 32.0 } ]
+
+let private maximumTargets =
+    [ for index in 0 .. 29 -> { Id = index + 1; Position = vec2 (900.0 + float (index % 5) * 8.0) (260.0 + float index * 5.0) } ]
 
 let private maximumContentModel () =
     { withInput maximumGamepadInput with
         ShotSpawns = maximumShotHistory
-        TotalShotSpawns = maximumShotSpawnHistory }
+        TotalShotSpawns = maximumShotSpawnHistory
+        NextShotId = maximumShotSpawnHistory + 1
+        PlayerStats = { basePlayerStats with Homing = 1.0; Multishot = 3 }
+        Obstacles = maximumObstacles
+        HomingTargets = maximumTargets }
 
 /// REQUIRED PRODUCT AUTHORING. Every untouched row is deliberately a failing placeholder.
 ///
@@ -795,7 +853,7 @@ let private maximumContentModel () =
 let expectedWorkloads =
     [ // WORKLOAD-SOURCE-BEGIN idle
       { Id = "idle"
-        Definition = "M0 idle: production Tick(1/60) drains two 120 Hz steps, then builds the complete logical view"
+        Definition = "M2 idle: production Tick(1/60) drains two 120 Hz movement/projectile steps with no actors, then builds the complete logical view"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
@@ -808,11 +866,11 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "45474b7e8792f0ff61ec9b4c81529b817d7442bb18dae601ac4423ed5a8efc40" }
+        Authorship = Authored "3401997e670f61755710abf3e81d816a40d3ddbe424ff6b9c53d1d2350f067dd" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
-        Definition = "M1 movement+aiming: sampled production A-key and pointer messages are resolved independently across two 120 Hz steps, then the complete logical view is built"
+        Definition = "M2 movement+aiming: sampled production A-key and pointer messages drive acceleration and independent aim across two 120 Hz steps, then build the complete logical view"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
@@ -842,17 +900,17 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "a01223405c60d116bb411fd936158afeaabd839c57e8e824c82cd8b669b64433" }
+        Authorship = Authored "03bd5109cf0a9c939d71a8b6cc9a8cf87ed1140350692dad8441e2bb6a509f32" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
-        Definition = "M1 firing: sampled production A-key and primary-pointer messages drive deterministic auto-fire, AC9 velocity inheritance, and two 120 Hz steps before the complete logical view"
+        Definition = "M2 firing: sampled production A-key and primary-pointer messages drive acceleration, centered three-shot multishot, velocity inheritance, and two 120 Hz projectile steps before the complete logical view"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
         EventsPerFrame = 2
         PointerEventsPerFrame = 1
-        InitialState = (fun () -> initialModel)
+        InitialState = firingModel
         MessagesAt =
             (fun _ ->
                 [ KeyChanged(keyName (Letter 'A'), true)
@@ -862,7 +920,7 @@ let expectedWorkloads =
             RunnerIssuedJourney(
                 performanceJourneyReceipt
                     "firing"
-                    (fun () -> initialModel)
+                    firingModel
                     1
                     [ JourneyEvent.KeyInput(Letter 'A', true)
                       JourneyEvent.PointerInput(PointerChanged(firingInput.MousePosition.Value, Some true))
@@ -877,34 +935,34 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "c6616402d587ba6210b2a0ad590c4db70fc24285e69cb14d9e76167d5e5e7752" }
+        Authorship = Authored "984750124965e459571478065866e065f58a284f936a34ccc0eadfa4e295b77f" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
-        Definition = "M1 future-effects throughput baseline: two explicit production Tick(1/120) messages plus one complete logical view; effects and fog arrive in later milestones"
+        Definition = "M2 dodge commitment: a boot-latched Space edge starts one roll, then two production Tick(1/120) messages advance i-frame, roll, and cooldown timers before one complete logical view"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
         EventsPerFrame = 0
         PointerEventsPerFrame = 0
-        InitialState = (fun () -> initialModel)
+        InitialState = dodgeModel
         MessagesAt = (fun _ -> [ Tick fixedDt; Tick fixedDt ])
         Provenance =
             RunnerIssuedJourney(
                 performanceJourneyReceipt
                     "effects-fog"
-                    (fun () -> initialModel)
+                    dodgeModel
                     2
                     [ JourneyEvent.FixedTick; JourneyEvent.FixedTick ])
         Composition = CompleteComposition
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "019b59ff79f6f129383edfae1ee6f669b269a5a306f5d6d275eaa1a6b3c7b6f3" }
+        Authorship = Authored "457bb0bdbef9aee48d9f88a1327090cb93ecaad109688574301eb2cfdbb23349" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
-        Definition = "M1 maximum implemented content: 64 retained shot intents plus a sampled independent-stick gamepad snapshot, production Tick(1/60), capped auto-fire history, and all five scaffold visuals"
+        Definition = "M2 maximum implemented content: 40 live homing shots, 8 static AABBs, 30 stable targets, a sampled independent-stick snapshot, production Tick(1/60), and all five scaffold visuals"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
@@ -925,7 +983,11 @@ let expectedWorkloads =
             [ "simulation.fixed-step"
               "input.snapshot-resolution"
               "simulation.shot-spawn"
-              "state.shot-spawn-history"
+              "state.live-player-shots"
+              "collision.shot-wall-queries"
+              "simulation.homing-target-considerations"
+              "state.static-obstacles"
+              "state.homing-targets"
               "scene.ball"
               "scene.left-paddle"
               "scene.right-paddle"
@@ -933,7 +995,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "358e22d33ee90c51cfcbe92715a2b7d7dca49dd676cdf26ca9a4f0e97c0d2577" }
+        Authorship = Authored "19dd2c48d8100b55fc2079052a51b0c69a4c619a12c3b59148c41c046693c208" }
       // WORKLOAD-SOURCE-END maximum-content
       ]
 
@@ -995,7 +1057,9 @@ let private costDriverProblems (results: WorkloadResult list) =
                           $"cost driver '{driver.Id}' is unbound from required workload '{workloadId}'"
 
                       let observed = result.ObservedScale |> Map.tryFind driver.Id |> Option.defaultValue 0
-                      if observed < driver.MaximumExpected then
+                      if workloadId = "maximum-content" && observed <> driver.MaximumExpected then
+                          $"cost driver '{driver.Id}' maximum scale must be exact in workload '{workloadId}': expected {driver.MaximumExpected} from {driver.ScaleSource}, observed {observed}"
+                      elif observed < driver.MaximumExpected then
                           $"cost driver '{driver.Id}' maximum scale is underrepresented in workload '{workloadId}': expected {driver.MaximumExpected} from {driver.ScaleSource}, observed {observed}"
                   | Some _, None -> $"cost driver '{driver.Id}' has no result for required workload '{workloadId}'"
       for workload in expectedWorkloads do
