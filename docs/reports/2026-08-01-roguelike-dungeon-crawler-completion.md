@@ -171,9 +171,25 @@ Not the workers' word — re-run against merged paths on `main`:
 - All seven M10 roadmap rows 🟩 with an `Evidence (2026-08-01)` paragraph in the M0–M9 style.
 - `readiness/011-m10-acceptance-determinism/ship-verdict.json` → `shipReady`, 24/24 supported and
   observed, zero blocking findings.
-- **All 11 cycles** pass all three fail-closed validators — `validate-checkpoints`,
-  `validate --audit`, and `validate-feedback-state.py` with the four required phases. 11/11 PASS,
-  every exit code 0. Envelope counts match JSONL line counts in every cycle.
+- **All 11 cycles** pass `validate-checkpoints` and `validate-feedback-state.py` with the four
+  required phases, exit code 0 in every case. Envelope counts match JSONL line counts in every cycle.
+
+  > **Correction (2026-08-02).** As first published, this bullet also claimed all 11 cycles passed
+  > `validate --audit` with "11/11 PASS, every exit code 0". **That claim was false, and the method
+  > that produced it was wrong.** The sweep read `$?` after a `| tail -1` pipeline, which reports the
+  > exit status of `tail`, not of the validator. Because the tool prints its failures as ordinary
+  > stdout lines in the same `feedback-tool:` register as its success line, a failing run looked
+  > identical to a passing one. Re-run against `main` at `d626d0e` capturing true exit codes, the
+  > report/audit validator **fails for 11 of the 12 cycles**, with 51 stale evidence digests in total
+  > (`-8` alone has 11, `-11` has 8); only the M11 cycle, whose audit was deliberately rebound, passes.
+  >
+  > The staleness is structural rather than a defect in those cycles: an audit binds a `sha256` over
+  > each `file:` locator, and later milestones legitimately change the files earlier cycles cite. Each
+  > cycle's binding was accurate when it was accepted. What cannot now be re-established from the tree
+  > is that it *was* accurate then, because the evidence is digest-bound to a moving tree — so treat
+  > the original acceptance as the record and this re-run as evidence about the mechanism, not about
+  > those cycles' quality. See `feedback/2026-08-01-Rogue3-12.md` §4.13 (a docs-only follow-up
+  > invalidating a merged cycle's binding) and §4.14 (the validator's failure output reading as a pass).
 
 ## 7. What a human should look at
 
@@ -214,7 +230,17 @@ The lesson is narrow and worth keeping: an unverified claim in a handoff brief c
 worker real time and is indistinguishable, on arrival, from a verified one. Handoff claims should
 carry their evidence or be marked unverified.
 
-A second, smaller one: this run began under `work-board`, which found the coordination board wired
+A second, and worse, one: **the host's own acceptance gate did not work, and this report published its
+output as proof.** The 11-cycle validator sweep behind §6 read `$?` after a `| tail -1` pipeline, so it
+reported `tail`'s exit status rather than the validator's, and 11 failing cycles were recorded as
+passing. The gate that the whole loop treats as fail-closed was, as operated here, fail-open. It was
+caught only because a worker re-ran one artefact by hand and got a different answer than the host had.
+Two lessons, and the second is the load-bearing one: never read an exit code through a pipeline; and a
+verification claim is only as good as the mechanism that produced it, which means the mechanism itself
+needs checking against a known-failing case before its results are published. This report asserted a
+verification it had not actually performed.
+
+A third, smaller one: this run began under `work-board`, which found the coordination board wired
 (`FS-GG`/`Coordination`) but holding **zero rows for this repository** — the engine reports no board
 row names `rogue3`, and `gh issue list` returns nothing. The board-driven loop had nothing to schedule.
 The markdown roadmap was the real ledger, so the run switched to `work-roadmap`. A workspace whose
@@ -228,7 +254,9 @@ and is not.
 - **SDD:** 11/11 `shipReady`, 177/177 observed obligations, 0 self-attested.
 - **Tests:** Release/Verify 183/183 on `main`; seven bounded-headless workloads and four UI routes
   green.
-- **Feedback:** 11/11 cycles validated, 53 checkpoints dispositioned, 39 findings.
+- **Feedback:** 11/11 cycles validated at their own acceptance, 53 checkpoints dispositioned, 39
+  findings. Re-running the report/audit validator today fails for 11 of 12 cycles on stale evidence
+  digests — see the correction in §6; the mechanism, not the cycles, is what that measures.
 - **Open follow-ups:** 3 — the §4.7 evidence-reproducibility routing decision, the FS.GG review-limit
   guidance contradiction, and the two declared in-tree workarounds.
 - **Aggregate avoidable cost:** dominated by evidence rework, not by code. Repair rounds clustered in
