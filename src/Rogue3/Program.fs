@@ -133,6 +133,8 @@ let main args =
         // FS.GG.Audio packages and then launched via `Viewer.runApp`, wiring none of them).
         use audioBackend = FS.GG.Audio.Host.OpenAlBackend.create Rogue3.AudioCues.resolver
         let audioSink = FS.GG.Audio.Host.Audio.play audioBackend
+        use profileStore = new Rogue3.ProfileStore.Store(Rogue3.ProfileStore.platformProfilePath(), TimeSpan.FromMilliseconds 250.0)
+        let interactiveHost = Rogue3.EvidenceCommands.createInteractiveHost profileStore
 
         // Per-family governed default launch (feature 086, FR-004/005/006, D6):
         // POINTER-HOST family (CONTROLS + GAME): a pointer-aware persistent host — a mouse click on a

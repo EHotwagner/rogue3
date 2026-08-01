@@ -442,7 +442,7 @@ let pointerInteractionToMsg interaction =
 // `Playing` (the play `view`, carried through the render path by a `canvas` control). `generatedHost`
 // above is retained for the headless evidence commands — the keyboard host is not removed, it is the
 // per-profile evidence host, mirroring the `app` family (feature 086, FR-006).
-let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
+let private interactiveHostCore: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
     { Init =
         fun () ->
             let shell = loadShellSettings (Rogue3.GameShell.init shellConfig)
@@ -569,7 +569,11 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
                     let applyPlay (play, effects) msg =
                         let nextPlay, _ = Rogue3.Model.update msg play
                         let cues = Rogue3.AudioCues.forTransition msg play nextPlay
-                        nextPlay, (if List.isEmpty cues then effects else effects @ [ PlayAudio cues ])
+                        let persistence=Rogue3.Model.profilePersistenceRequestsForTransition msg play nextPlay
+                        nextPlay,
+                            effects
+                            @ (if List.isEmpty persistence then [] else [Persist persistence])
+                            @ (if List.isEmpty cues then [] else [ PlayAudio cues ])
 
                     let afterHeld, heldEffects =
                         model.HeldKeys
@@ -619,6 +623,27 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
       MapKeyChord = fun _ _ -> None
       OnFrameMetrics = ignore
       Diagnostics = Viewer.defaultDiagnostics }
+
+let interactiveHost = interactiveHostCore
+
+/// Production shell boundary: boot-load the profile and realize debounced save requests in the
+/// product-owned backend. The Controls pointer host has no persistence-aware launcher, so this
+/// wrapper interprets Persist before the retained host returns effects to that launcher.
+let createInteractiveHost (store:Rogue3.ProfileStore.Store) : InteractiveAppHost<ShellHostModel,ShellHostMsg> =
+    { interactiveHostCore with
+        Init = fun () ->
+            let model,effects=interactiveHostCore.Init()
+            let play=
+                match store.Load() with
+                | Rogue3.ProfileStore.Loaded profile -> Rogue3.Model.update (ProfileLoaded profile) model.Play|>fst
+                | Rogue3.ProfileStore.Absent
+                | Rogue3.ProfileStore.Unreadable _ -> model.Play
+            let audio=Rogue3.AudioCues.forTransition Started play play
+            {model with Play=play},(effects|>List.filter(function PlayAudio _->false|_->true))@[PlayAudio audio]
+        Update = fun msg model ->
+            let next,effects=interactiveHostCore.Update msg model
+            if effects|>List.exists(function Persist _->true|_->false) then store.Request next.Play.Profile
+            next,effects|>List.filter(function Persist _->false|_->true) }
 
 let defaultCommand = "dotnet run --project src/Rogue3/Rogue3.fsproj"
 
@@ -1347,9 +1372,9 @@ let m7UiPerformanceEvidence (path:string) =
         SHA256.HashData bytes |> Convert.ToHexString |> fun value -> value.ToLowerInvariant()
     let declared =
         Map.ofList
-            [ "main-menu", "13de109dbf6efa7ad540e5835f11bf858c66cf2a21bc81b408b3680b6885274c"
-              "hud-playing", "ee87e8f62d8410327eb17a104f898a8742557dd59b3658feec83a9cb765082d1"
-              "stats-charts", "9660d11af9c68ffc9866df9f062c1e89627e9e9bdd22968a6343e79b56903ac1" ]
+            [ "main-menu", "1d3cc11cefdbbef210140a17bef2665d511a1b3fc223a041cc35adcdedd918d9"
+              "hud-playing", "81787204d03efcce495d65a2907ff428a7fb96814447f3e57fbf7d75964b005d"
+              "stats-charts", "e51137fa26510724884cc233f31e00c165be3eb871cf028f72694ac779373adb" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "stats-charts" stats]
     let outputs = [ {Width=1280;Height=720};{Width=1920;Height=1080} ]
     let hudSceneElements = outputs |> List.map (fun output -> Rogue3.Render.hudSceneForSize output playing.Play |> Scene.describe |> List.length)

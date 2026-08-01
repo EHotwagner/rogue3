@@ -92,10 +92,12 @@ Evidence (2026-08-01): full Release 140/140 and focused M7 12/12; six governed b
 Evidence (2026-08-01): focused M8 5/5 and full Release/Verify 145/145; all 18 §10 cue IDs/volumes, ordered stop-before-loop replacements through the production shell, and clamp/mute requests are asserted at `AudioEvidence.Requested`; six unchanged-scale governed workloads pass, with maximum-content p95 15.9476 ms and p99 18.4669 ms; exact implementation SHA `b92e48e754368b4eafe57b3bb13e21235f956fe6` was accepted by independent functional and performance critics; SDD verdict `readiness/009-m8-audio/ship-verdict.json` is `shipReady` with 12/12 supported and observed obligations and zero synthetic/deferred/stale/missing evidence. Delivery is local-only because this checkout has no configured remote; device/speaker playback is not claimed.
 
 ### M9 — Win/loss & permadeath
-- 🟥 Final-boss (Floor 6) defeat → `Victory` screen + unlock (§11)
-- 🟥 Permadeath at `0` half-hearts → `GameOver`, run discarded (§11) — AC #7
-- 🟥 Run-score tally + end-of-run meta-progression unlock evaluation (§11, §4.10)
-- 🟥 `MetaProfile` JSON persistence: debounced, atomic temp-file+rename, load on boot (§13, §7.5)
+- 🟩 Final-boss (Floor 6) defeat → `Victory` screen + unlock (§11)
+- 🟩 Permadeath at `0` half-hearts → `GameOver`, run discarded (§11) — AC #7
+- 🟩 Run-score tally + end-of-run meta-progression unlock evaluation (§11, §4.10)
+- 🟩 `MetaProfile` JSON persistence: debounced, atomic temp-file+rename, load on boot (§13, §7.5)
+
+Evidence (2026-08-01): focused Release 5/5 and full Release/Verify 150/150; production floor-6 boss damage and fixed-step lethal health resolve once to visible scored Victory/GameOver summaries, discard transient run state, evaluate milestone unlocks, request terminal audio, and persist best-by-seed/lifetime profile facts. A unique system temporary directory proves two queued profiles debounce to one latest-value write, sibling temp creation plus atomic rename, no leftover temp, supported boot load, and absent/malformed/unsupported-version fallback without touching user data. Six governed workloads and three UI routes pass (maximum-content p95 15.4966 ms, p99 17.9762 ms); SDD verdict `readiness/010-m9-win-loss-permadeath/ship-verdict.json` is `shipReady` with 9/9 observed obligations. Cycle feedback is `feedback/2026-08-01-Rogue3-10.md`. Delivery is local-only because this checkout has no configured remote.
 
 ### M10 — Acceptance & determinism
 - 🟥 All 24 acceptance scenarios green (§14)

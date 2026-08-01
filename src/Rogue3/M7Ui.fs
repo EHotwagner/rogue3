@@ -39,8 +39,9 @@ let private row children = Stack.view { Stack.defaults with Orientation=StackOri
 let private tile value = Border.view { Border.defaults (text value) with Thickness=1.0;Padding=12.0 }
 
 let private paletteChart model =
+    let runStats=model.LastRunSummary|>Option.map _.Stats|>Option.defaultValue model.RunStats
     let points which =
-        model.RunStats.DamageByFloor|>Map.toList|>List.mapi(fun index (_,pair)->
+        runStats.DamageByFloor|>Map.toList|>List.mapi(fun index (_,pair)->
             let value=if which then fst pair else snd pair
             {X=18.0+float index*48.0;Y=92.0-min 78.0 value})
     let segments color values =
@@ -86,9 +87,10 @@ let shellView shellDispatch config (shell:Rogue3.GameShell.Model) (model:Model) 
     Rogue3.GameShell.viewWithRows shellDispatch config shell extras
 
 let statsSeries model =
+    let runStats=model.LastRunSummary|>Option.map _.Stats|>Option.defaultValue model.RunStats
     let depthValues =
         match model.StatScope with
-        | StatScope.ThisRun -> [model.RunStats.DepthReached]
+        | StatScope.ThisRun -> [runStats.DepthReached]
         | StatScope.Lifetime -> model.Profile.Lifetime.DepthHistory
     let bucketCounts = depthHistogram depthValues
     let buckets = ["1-3";"4-6";"7-9";"10-12";"13+"]
@@ -96,7 +98,7 @@ let statsSeries model =
         { Name="Run depth #2a78d6"
           Points=List.map3 (fun i label count -> { X=float i;Y=float count;Label=Some label }) [1..5] buckets bucketCounts }
     let damagePoints which =
-        model.RunStats.DamageByFloor |> Map.toList |> List.map (fun (floor,(dealt,taken))->
+        runStats.DamageByFloor |> Map.toList |> List.map (fun (floor,(dealt,taken))->
             { X=float floor;Y=(if which then dealt else taken);Label=Some(string floor) })
     depth,
     [ { Name="Dealt #2a78d6";Points=damagePoints true }
@@ -104,7 +106,8 @@ let statsSeries model =
 
 let statsKpis model =
     let lifetime = model.Profile.Lifetime
-    [ "deepest", sprintf "DEEPEST  %d" (max model.RunStats.DepthReached lifetime.DeepestFloor)
+    let runDepth=model.LastRunSummary|>Option.map(fun summary->summary.Stats.DepthReached)|>Option.defaultValue model.RunStats.DepthReached
+    [ "deepest", sprintf "DEEPEST  %d" (max runDepth lifetime.DeepestFloor)
       "runs", sprintf "RUNS  %d" lifetime.RunsPlayed
       "win-rate", sprintf "WIN  %.0f %%" (winRatePct lifetime)
       "kills", sprintf "KILLS  %d" lifetime.TotalKills ]

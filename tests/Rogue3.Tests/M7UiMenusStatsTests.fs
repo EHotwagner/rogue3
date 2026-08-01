@@ -148,7 +148,9 @@ let m7UiMenusStatsTests =
             let stats = {initialModel.RunStats with DepthReached=7;KillsByType=Map.ofList [Entities.EnemyKind.Fly,3]}
             let model = {initialModel with RunStats=stats;RunActive=true}
             let updated = model |> update RecordItemFound |> fst |> update (RecordCoinsCollected 6) |> fst |> update (CompleteRunStats(false,Some DeathCause.Trap)) |> fst
-            Expect.equal (updated.RunStats.ItemsFound,updated.RunStats.CoinsCollected,updated.RunStats.DeathCause) (1,6,Some DeathCause.Trap) "run counters and cause are recorded"
+            let completed=updated.LastRunSummary.Value.Stats
+            Expect.equal (completed.ItemsFound,completed.CoinsCollected,completed.DeathCause) (1,6,Some DeathCause.Trap) "run counters and cause are snapshotted before permadeath discards active state"
+            Expect.equal updated.RunStats emptyRunStats "the terminal transition does not retain active run statistics"
             Expect.equal (updated.Profile.Lifetime.RunsPlayed,updated.Profile.Lifetime.DeepestFloor,updated.Profile.Lifetime.TotalKills) (1,7,3) "lifetime totals fold the completed run"
             Expect.equal updated.Profile.Lifetime.DeathsByCause[DeathCause.Trap] 1 "death cause is counted"
         }

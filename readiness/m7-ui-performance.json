@@ -9,11 +9,11 @@
     {
       "id": "main-menu",
       "definition": "M7 menu route; 1280x720; exactly 9 retained controls and 7 bound controls",
-      "definitionDigest": "13de109dbf6efa7ad540e5835f11bf858c66cf2a21bc81b408b3680b6885274c",
-      "declaredDefinitionDigest": "13de109dbf6efa7ad540e5835f11bf858c66cf2a21bc81b408b3680b6885274c",
+      "definitionDigest": "1d3cc11cefdbbef210140a17bef2665d511a1b3fc223a041cc35adcdedd918d9",
+      "declaredDefinitionDigest": "1d3cc11cefdbbef210140a17bef2665d511a1b3fc223a041cc35adcdedd918d9",
       "authorshipPassed": true,
-      "p95Ms": 0.4175,
-      "p99Ms": 0.591,
+      "p95Ms": 0.3764,
+      "p99Ms": 0.6559,
       "observedScale": {
         "controlNodes": 9,
         "boundControls": 7
@@ -24,11 +24,11 @@
     {
       "id": "hud-playing",
       "definition": "M7 gameplay HUD route; 1280x720 and 1920x1080; exactly hearts/currency/active-charge/minimap/floor-name regions and 0 bound controls",
-      "definitionDigest": "ee87e8f62d8410327eb17a104f898a8742557dd59b3658feec83a9cb765082d1",
-      "declaredDefinitionDigest": "ee87e8f62d8410327eb17a104f898a8742557dd59b3658feec83a9cb765082d1",
+      "definitionDigest": "81787204d03efcce495d65a2907ff428a7fb96814447f3e57fbf7d75964b005d",
+      "declaredDefinitionDigest": "81787204d03efcce495d65a2907ff428a7fb96814447f3e57fbf7d75964b005d",
       "authorshipPassed": true,
-      "p95Ms": 0.0606,
-      "p99Ms": 0.0707,
+      "p95Ms": 0.0599,
+      "p99Ms": 0.0697,
       "observedScale": {
         "controlNodes": 1,
         "boundControls": 0,
@@ -125,11 +125,11 @@
     {
       "id": "stats-charts",
       "definition": "M7 stats route; 1280x720; exactly 19 retained controls, 3 bound controls, deepest/runs/win-rate/kills KPI tiles, 5 depth buckets, and 2 damage series",
-      "definitionDigest": "9660d11af9c68ffc9866df9f062c1e89627e9e9bdd22968a6343e79b56903ac1",
-      "declaredDefinitionDigest": "9660d11af9c68ffc9866df9f062c1e89627e9e9bdd22968a6343e79b56903ac1",
+      "definitionDigest": "e51137fa26510724884cc233f31e00c165be3eb871cf028f72694ac779373adb",
+      "declaredDefinitionDigest": "e51137fa26510724884cc233f31e00c165be3eb871cf028f72694ac779373adb",
       "authorshipPassed": true,
-      "p95Ms": 1.1655,
-      "p99Ms": 1.2668,
+      "p95Ms": 1.2077,
+      "p99Ms": 1.3098,
       "observedScale": {
         "controlNodes": 19,
         "boundControls": 3,

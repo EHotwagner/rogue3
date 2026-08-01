@@ -329,7 +329,22 @@ let renderedElementsIn grammar model : RenderedElement list =
                     (model.M6Particles |> List.map particleScene |> Scene.group)
 
       yield rendered "HudScore" "scene/hud-score" RenderLayer.Hud
-                (hudSceneForSize { Width=1280;Height=720 } model) ]
+                (hudSceneForSize { Width=1280;Height=720 } model)
+
+      match model.LastRunSummary,model.RunOutcome with
+      | Some summary,Some outcome ->
+          let heading=match outcome with RunOutcome.Victory->"VICTORY"|RunOutcome.GameOver->"GAME OVER"
+          let unlocks=if summary.UnlocksEarned.IsEmpty then "Unlocks: none" else "Unlocks: "+String.concat ", " summary.UnlocksEarned
+          yield rendered "RunResultOverlay" "scene/run-result" RenderLayer.ScreenOverlays
+                    (Scene.group
+                        [ Scene.filledRectangle {X=250.0;Y=150.0;Width=780.0;Height=420.0} (color 12uy 10uy 18uy 235uy)
+                          Scene.textAt {X=520.0;Y=220.0} heading (color 255uy 220uy 90uy 255uy)
+                          Scene.textAt {X=470.0;Y=280.0} (sprintf "SCORE  %d" summary.Score) (color 255uy 255uy 255uy 255uy)
+                          Scene.textAt {X=390.0;Y=330.0} (sprintf "Floors %d   Bosses %d   Kills %d" summary.FloorsCleared summary.BossKills summary.EnemyKills) (color 195uy 194uy 183uy 255uy)
+                          Scene.textAt {X=390.0;Y=375.0} (sprintf "Coins %d   Items %d   No-hit floors %d" summary.CoinsCollected summary.ItemsCollected summary.NoHitFloors) (color 195uy 194uy 183uy 255uy)
+                          Scene.textAt {X=390.0;Y=425.0} unlocks (color 126uy 227uy 255uy 255uy)
+                          Scene.textAt {X=440.0;Y=500.0} "New Run · Retry Seed · Title" (color 255uy 255uy 255uy 255uy) ])
+      | _ -> () ]
 
 let renderedElements model = renderedElementsIn Grammar.Token model
 

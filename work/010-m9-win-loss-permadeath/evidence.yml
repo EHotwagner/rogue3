@@ -1,0 +1,254 @@
+schemaVersion: 1
+workId: 010-m9-win-loss-permadeath
+stage: evidence
+status: evidenceReady
+sourceSpec: work/010-m9-win-loss-permadeath/spec.md
+sourceClarifications: work/010-m9-win-loss-permadeath/clarifications.md
+sourceChecklist: work/010-m9-win-loss-permadeath/checklist.md
+sourcePlan: work/010-m9-win-loss-permadeath/plan.md
+sourceTasks: work/010-m9-win-loss-permadeath/tasks.yml
+sourceAnalysis: readiness/010-m9-win-loss-permadeath/analysis.json
+sourceSnapshots:
+  - label: analysis
+    path: readiness/010-m9-win-loss-permadeath/analysis.json
+    digest: c9471fde4772f229225760b26c84746b4ef2deb210eab295af814f352b2f122d
+    schemaVersion: 1
+  - label: checklist
+    path: work/010-m9-win-loss-permadeath/checklist.md
+    digest: 70b19829a32be063c37cd8b82aec6613e5958e701a1e9627f0150ed38925419c
+    schemaVersion: 1
+  - label: clarifications
+    path: work/010-m9-win-loss-permadeath/clarifications.md
+    digest: b4d5b73eb33bc39313d47880fb986ee470314357479c060407032448567b5beb
+    schemaVersion: 1
+  - label: plan
+    path: work/010-m9-win-loss-permadeath/plan.md
+    digest: 25838a1207c36beac4ac3e6218fd59df71b8859831b0e97d83fc46f1f5cdfa57
+    schemaVersion: 1
+  - label: spec
+    path: work/010-m9-win-loss-permadeath/spec.md
+    digest: fdb71afd34012a88309c13c93a7cfc2c0b4917575e2f0678e069ece842ce4500
+    schemaVersion: 1
+  - label: tasks
+    path: work/010-m9-win-loss-permadeath/tasks.yml
+    digest: 37a3e7eaf61d46c910bca1c096e1c92db1f711be522790acdd2d12bb714bcfaa
+    schemaVersion: 1
+evidence:
+  - id: EV001
+    kind: verification
+    subject:
+      type: task
+      id: T001
+    taskRefs: [T001]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV001]
+    artifacts: [tests/Rogue3.Tests/M9WinLossPermadeathTests.fs, tests/Rogue3.Tests/TestResults/m9-release-final.trx]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
+      digest: "sha256:2b41d3c58efb53499ef091f66c84ad5407882b0c141a7aacc362e1664362a385"
+      outcome: passed
+      passed: 150
+      failed: 0
+      skipped: 0
+    notes: [Production floor-6 boss damage yields Victory, and audio., discard, persistence request, rendering, score summary, unlock]
+  - id: EV002
+    kind: verification
+    subject:
+      type: task
+      id: T002
+    taskRefs: [T002]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV002]
+    artifacts: [tests/Rogue3.Tests/M9WinLossPermadeathTests.fs, tests/Rogue3.Tests/TestResults/m9-release-final.trx]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
+      digest: "sha256:2b41d3c58efb53499ef091f66c84ad5407882b0c141a7aacc362e1664362a385"
+      outcome: passed
+      passed: 150
+      failed: 0
+      skipped: 0
+    notes: [Production fixed-step zero-health resolution yields GameOver, and terminal audio., discard, unlock evaluation]
+  - id: EV003
+    kind: verification
+    subject:
+      type: task
+      id: T003
+    taskRefs: [T003]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV003]
+    artifacts: [tests/Rogue3.Tests/M9WinLossPermadeathTests.fs, tests/Rogue3.Tests/TestResults/m9-release-final.trx]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
+      digest: "sha256:2b41d3c58efb53499ef091f66c84ad5407882b0c141a7aacc362e1664362a385"
+      outcome: passed
+      passed: 150
+      failed: 0
+      skipped: 0
+    notes: ["Exact §11 score formula", and idempotent end-run tally are asserted., best-by-seed, score independence]
+  - id: EV004
+    kind: verification
+    subject:
+      type: task
+      id: T004
+    taskRefs: [T004]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV004]
+    artifacts: [src/Rogue3/ProfileStore.fs, tests/Rogue3.Tests/M9WinLossPermadeathTests.fs, tests/Rogue3.Tests/TestResults/m9-release-final.trx]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
+      digest: "sha256:2b41d3c58efb53499ef091f66c84ad5407882b0c141a7aacc362e1664362a385"
+      outcome: passed
+      passed: 150
+      failed: 0
+      skipped: 0
+    notes: [A unique system temporary directory proves debounce, and safe fallbacks without user data., atomic rename, boot load, round-trip, sibling temp creation]
+  - id: EV005
+    kind: verification
+    subject:
+      type: task
+      id: T005
+    taskRefs: [T005]
+    requirementRefs: [FR-005]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV005]
+    artifacts: [src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M9WinLossPermadeathTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
+      digest: "sha256:2b41d3c58efb53499ef091f66c84ad5407882b0c141a7aacc362e1664362a385"
+      outcome: passed
+      passed: 150
+      failed: 0
+      skipped: 0
+    notes: [Production overlay, and shell-side realization of profile saves are observed., terminal tracks]
+  - id: EV006
+    kind: verification
+    subject:
+      type: task
+      id: T006
+    taskRefs: [T006]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-002, PD-003, PD-004, PD-005]
+    obligationRefs: [EV006]
+    artifacts: [src/Rogue3/AudioCues.fs, src/Rogue3/EvidenceCommands.fs, src/Rogue3/Model.fs, src/Rogue3/ProfileStore.fs, src/Rogue3/Program.fs, src/Rogue3/Render.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
+      digest: "sha256:2b41d3c58efb53499ef091f66c84ad5407882b0c141a7aacc362e1664362a385"
+      outcome: passed
+      passed: 150
+      failed: 0
+      skipped: 0
+    notes: [The product-owned terminal/profile contract is implemented without framework surface changes.]
+  - id: EV007
+    kind: verification
+    subject:
+      type: task
+      id: T007
+    taskRefs: [T007]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-002, PD-003, PD-004, PD-005]
+    obligationRefs: [EV007]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, tests/Rogue3.Tests/TestResults/m9-release-final.trx]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
+      digest: "sha256:2b41d3c58efb53499ef091f66c84ad5407882b0c141a7aacc362e1664362a385"
+      outcome: passed
+      passed: 150
+      failed: 0
+      skipped: 0
+    notes: [Focused Release 5/5, and three UI routes pass., full Release and Verify 150/150, six workloads]
+  - id: EV008
+    kind: verification
+    subject:
+      type: task
+      id: T008
+    taskRefs: [T008]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV008]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/ProfileStore.fs, tests/Rogue3.Tests/M9WinLossPermadeathTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
+      digest: "sha256:2b41d3c58efb53499ef091f66c84ad5407882b0c141a7aacc362e1664362a385"
+      outcome: passed
+      passed: 150
+      failed: 0
+      skipped: 0
+    notes: ["Version 1 round-trips; absent", and unsupported versions fall back explicitly without destructive migration., malformed]
+  - id: EV009
+    kind: verification
+    subject:
+      type: task
+      id: T009
+    taskRefs: [T009]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-004]
+    obligationRefs: [EV009]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, readiness/performance-intent.yml]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: tests/Rogue3.Tests/TestResults/m9-release-final.trx
+      digest: "sha256:2b41d3c58efb53499ef091f66c84ad5407882b0c141a7aacc362e1664362a385"
+      outcome: passed
+      passed: 150
+      failed: 0
+      skipped: 0
+    notes: [Typed performance declarations and evidence were regenerated after the model-shape change and are current and green.]
+lifecycleNotes:
+  - "Next lifecycle action: verify."

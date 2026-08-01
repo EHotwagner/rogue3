@@ -118,8 +118,11 @@ let private roomType model =
     |> Option.map _.RoomType
 
 let private musicContext model =
-    if not model.RunActive then Title
-    else
+    match model.RunOutcome with
+    | Some RunOutcome.GameOver -> GameOver
+    | Some RunOutcome.Victory -> Victory
+    | None when not model.RunActive -> Title
+    | None ->
         match roomType model with
         | Some FloorGeneration.Shop -> Shop
         | Some FloorGeneration.Boss -> Boss

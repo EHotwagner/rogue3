@@ -181,6 +181,8 @@ type StatScope = ThisRun | Lifetime
 
 type RunStats =
     { DepthReached: int
+      FloorsCleared: int
+      BossKills: int
       KillsByType: Map<Rogue3.Entities.EnemyKind, int>
       ItemsFound: int
       CoinsCollected: int
@@ -203,7 +205,25 @@ type MetaProfile =
     { Settings: GameSettings
       Lifetime: LifetimeStats
       UnlockedItems: Set<string>
-      UnlockedCharacters: Set<string> }
+      UnlockedCharacters: Set<string>
+      BestScoresBySeed: Map<uint64, int> }
+
+[<RequireQualifiedAccess>]
+type RunOutcome = GameOver | Victory
+
+type RunSummary =
+    { Outcome: RunOutcome
+      Seed: uint64
+      FloorsCleared: int
+      BossKills: int
+      EnemyKills: int
+      CoinsCollected: int
+      ItemsCollected: int
+      RunSeconds: float
+      NoHitFloors: int
+      Score: int
+      UnlocksEarned: string list
+      Stats: RunStats }
 
 [<RequireQualifiedAccess>]
 type ParticleShape = Circle | Quad
@@ -321,6 +341,8 @@ type Model =
       RunStats: RunStats
       ActiveDifficulty: DifficultyScaling option
       RunActive: bool
+      RunOutcome: RunOutcome option
+      LastRunSummary: RunSummary option
       StatScope: StatScope
       ActiveCharge: int
       ActiveChargeMaximum: int
@@ -373,6 +395,7 @@ type Msg =
     | RecordItemFound
     | RecordCoinsCollected of int
     | CompleteRunStats of won:bool * cause:DeathCause option
+    | ProfileLoaded of MetaProfile
     | NoOp
 
 // Kept model-agnostic so the durable LayoutEvidence spine validates the skeleton AND a swap.
@@ -452,13 +475,13 @@ let defaultGameSettings =
     { Difficulty=DifficultyMode.Normal; MasterVolume=1.0; Muted=false; ScreenShake=true }
 
 let emptyRunStats =
-    { DepthReached=1; KillsByType=Map.empty; ItemsFound=0; CoinsCollected=0; RunSeconds=0.0
+    { DepthReached=1; FloorsCleared=0; BossKills=0; KillsByType=Map.empty; ItemsFound=0; CoinsCollected=0; RunSeconds=0.0
       DamageDealt=0.0; DamageTaken=0.0; DamageByFloor=Map.empty; DeathCause=None; Character="Delver" }
 
 let defaultMetaProfile =
     { Settings=defaultGameSettings
       Lifetime={ RunsPlayed=0; DeepestFloor=0; Wins=0; TotalKills=0; DeathsByCause=Map.empty; DepthHistory=[] }
-      UnlockedItems=Set.empty; UnlockedCharacters=Set.singleton "delver" }
+      UnlockedItems=Set.empty; UnlockedCharacters=Set.singleton "delver"; BestScoresBySeed=Map.empty }
 
 let winRatePct lifetime =
     if lifetime.RunsPlayed <= 0 then 0.0 else 100.0 * float lifetime.Wins / float lifetime.RunsPlayed
@@ -474,19 +497,51 @@ let encodeMetaProfile (profile: MetaProfile) =
     let deathKey = function DeathCause.Enemy kind->"enemy:"+kind|DeathCause.Trap->"trap"|DeathCause.Bomb->"bomb"
     let deaths=profile.Lifetime.DeathsByCause|>Map.toList|>List.map(fun(cause,count)->sprintf "{\"cause\":%s,\"count\":%d}" (JsonSerializer.Serialize(deathKey cause)) count)|>String.concat ","
     let strings values=values|>Seq.sort|>Seq.map JsonSerializer.Serialize|>String.concat ","
-    sprintf "{\"format\":\"hollow-depths.meta-profile\",\"version\":1,\"difficulty\":\"%s\",\"masterVolume\":%.6f,\"muted\":%s,\"screenShake\":%s,\"runsPlayed\":%d,\"deepestFloor\":%d,\"wins\":%d,\"totalKills\":%d,\"deathCounts\":[%s],\"depthHistory\":[%s],\"unlockedItems\":[%s],\"unlockedCharacters\":[%s]}"
+    let scores=profile.BestScoresBySeed|>Map.toList|>List.map(fun(seed,score)->sprintf "{\"seed\":\"%d\",\"score\":%d}" seed score)|>String.concat ","
+    sprintf "{\"format\":\"hollow-depths.meta-profile\",\"version\":1,\"difficulty\":\"%s\",\"masterVolume\":%.6f,\"muted\":%s,\"screenShake\":%s,\"runsPlayed\":%d,\"deepestFloor\":%d,\"wins\":%d,\"totalKills\":%d,\"deathCounts\":[%s],\"depthHistory\":[%s],\"unlockedItems\":[%s],\"unlockedCharacters\":[%s],\"bestScoresBySeed\":[%s]}"
         difficulty profile.Settings.MasterVolume ((string profile.Settings.Muted).ToLowerInvariant())
         ((string profile.Settings.ScreenShake).ToLowerInvariant()) profile.Lifetime.RunsPlayed
         profile.Lifetime.DeepestFloor profile.Lifetime.Wins profile.Lifetime.TotalKills
         deaths (profile.Lifetime.DepthHistory |> List.map string |> String.concat ",")
-        (strings profile.UnlockedItems) (strings profile.UnlockedCharacters)
+        (strings profile.UnlockedItems) (strings profile.UnlockedCharacters) scores
+
+let tryDecodeMetaProfile (payload:string) : Result<MetaProfile,string> =
+    try
+        use document=JsonDocument.Parse payload
+        let root=document.RootElement
+        let text (name:string) = root.GetProperty(name).GetString()
+        let number (name:string) = root.GetProperty(name).GetInt32()
+        if text "format" <> "hollow-depths.meta-profile" then Error "unsupported profile format"
+        elif number "version" <> 1 then Error "unsupported profile version"
+        else
+            let difficulty =
+                match text "difficulty" with
+                | "easy" -> DifficultyMode.Easy | "hard" -> DifficultyMode.Hard | _ -> DifficultyMode.Normal
+            let deathCause (value:string) =
+                if value.StartsWith("enemy:",StringComparison.Ordinal) then DeathCause.Enemy(value.Substring(6))
+                elif value="trap" then DeathCause.Trap else DeathCause.Bomb
+            let deaths =
+                root.GetProperty("deathCounts").EnumerateArray()
+                |> Seq.map(fun item->deathCause(item.GetProperty("cause").GetString()),item.GetProperty("count").GetInt32()) |> Map.ofSeq
+            let intList (name:string)=root.GetProperty(name).EnumerateArray()|>Seq.map(fun (item:JsonElement)->item.GetInt32())|>Seq.toList
+            let stringSet (name:string)=root.GetProperty(name).EnumerateArray()|>Seq.map(fun (item:JsonElement)->item.GetString())|>Set.ofSeq
+            let scores =
+                match root.TryGetProperty("bestScoresBySeed") with
+                | true, values -> values.EnumerateArray() |> Seq.map(fun item->UInt64.Parse(item.GetProperty("seed").GetString()),item.GetProperty("score").GetInt32()) |> Map.ofSeq
+                | _ -> Map.empty
+            Ok
+                { Settings={Difficulty=difficulty;MasterVolume=root.GetProperty("masterVolume").GetDouble()|>clampVolume;Muted=root.GetProperty("muted").GetBoolean();ScreenShake=root.GetProperty("screenShake").GetBoolean()}
+                  Lifetime={RunsPlayed=number "runsPlayed";DeepestFloor=number "deepestFloor";Wins=number "wins";TotalKills=number "totalKills";DeathsByCause=deaths;DepthHistory=intList "depthHistory"}
+                  UnlockedItems=stringSet "unlockedItems";UnlockedCharacters=stringSet "unlockedCharacters";BestScoresBySeed=scores }
+    with ex -> Error ex.Message
 
 let profilePersistenceRequest profile =
     Persistence.save (Persistence.saveEnvelope 1 (SaveSlot "meta-profile") (encodeMetaProfile profile))
 
 let profilePersistenceRequestsForTransition msg previous next =
     match msg with
-    | SetDifficulty _ | SetMasterVolume _ | SetMuted _ | SetScreenShake _ when previous.Profile <> next.Profile ->
+    | ProfileLoaded _ -> []
+    | _ when previous.Profile <> next.Profile ->
         [ profilePersistenceRequest next.Profile ]
     | _ -> []
 
@@ -664,6 +719,8 @@ let initialModelForSeed seed =
       RunStats = emptyRunStats
       ActiveDifficulty = None
       RunActive = false
+      RunOutcome = None
+      LastRunSummary = None
       StatScope = StatScope.ThisRun
       ActiveCharge = 2
       ActiveChargeMaximum = 6
@@ -1297,7 +1354,8 @@ let damageM5Boss damage model =
             else model.PlayerHealth
         {model with M5Boss=None;M5Room=room;Floor=FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor
                     PlayerHealth=health
-                    RunStats=addFloorDamage model.FloorIndex (max 0.0 (min boss.HitPoints damage)) 0.0 model.RunStats}
+                    RunStats={addFloorDamage model.FloorIndex (max 0.0 (min boss.HitPoints damage)) 0.0 model.RunStats with
+                                BossKills=model.RunStats.BossKills+1;FloorsCleared=max model.RunStats.FloorsCleared model.FloorIndex}}
 
 let purchaseM5ShopSlot slotId model =
     match model.M5ShopSlots|>List.tryFind(fun slot->slot.Id=slotId) with
@@ -1643,6 +1701,56 @@ let private advanceSim dtSeconds (model: Model) =
                     Previous = model.Input.Current
                     PressedThisTick = pressedThisTick } }
 
+let runScore (stats:RunStats) =
+    let kills=stats.KillsByType|>Map.values|>Seq.sum
+    let noHitFloors=
+        [1..max 0 stats.FloorsCleared]
+        |> List.filter(fun floor->Map.tryFind floor stats.DamageByFloor|>Option.map snd|>Option.defaultValue 0.0<=0.0)
+        |> List.length
+    stats.FloorsCleared*1000 + stats.BossKills*2000 + kills*10 + stats.CoinsCollected*5
+    + stats.ItemsFound*250 + max 0 (30000-int(floor stats.RunSeconds)*20) + noHitFloors*1500
+
+let private evaluateUnlocks won stats profile =
+    [ if stats.DepthReached>=3 && not(Set.contains "cracked-lens" profile.UnlockedItems) then "cracked-lens"
+      if stats.BossKills>=3 && not(Set.contains "glass-cannon" profile.UnlockedItems) then "glass-cannon"
+      if won && not(Set.contains "abyssal-crown" profile.UnlockedItems) then "abyssal-crown" ]
+
+let finishRun won cause model =
+    if not model.RunActive || model.RunOutcome.IsSome then model
+    else
+        let stats={model.RunStats with DeathCause=cause}
+        let kills=stats.KillsByType|>Map.values|>Seq.sum
+        let score=runScore stats
+        let unlocks=evaluateUnlocks won stats model.Profile
+        let deaths =
+            match cause with
+            | None -> model.Profile.Lifetime.DeathsByCause
+            | Some value -> Map.change value (fun old->Some(1+Option.defaultValue 0 old)) model.Profile.Lifetime.DeathsByCause
+        let lifetime=model.Profile.Lifetime
+        let completed=
+            {lifetime with RunsPlayed=lifetime.RunsPlayed+1;DeepestFloor=max lifetime.DeepestFloor stats.DepthReached
+                           Wins=lifetime.Wins+(if won then 1 else 0);TotalKills=lifetime.TotalKills+kills
+                           DeathsByCause=deaths;DepthHistory=lifetime.DepthHistory@[stats.DepthReached]}
+        let profile=
+            {model.Profile with Lifetime=completed
+                                UnlockedItems=Set.union model.Profile.UnlockedItems (Set.ofList unlocks)
+                                BestScoresBySeed=Map.change model.RunSeed (fun old->Some(max score (Option.defaultValue 0 old))) model.Profile.BestScoresBySeed}
+        let noHitFloors=
+            [1..max 0 stats.FloorsCleared]
+            |> List.filter(fun floor->Map.tryFind floor stats.DamageByFloor|>Option.map snd|>Option.defaultValue 0.0<=0.0)|>List.length
+        let outcome=if won then RunOutcome.Victory else RunOutcome.GameOver
+        let summary={Outcome=outcome;Seed=model.RunSeed;FloorsCleared=stats.FloorsCleared;BossKills=stats.BossKills
+                     EnemyKills=kills;CoinsCollected=stats.CoinsCollected;ItemsCollected=stats.ItemsFound
+                     RunSeconds=stats.RunSeconds;NoHitFloors=noHitFloors;Score=score;UnlocksEarned=unlocks;Stats=stats}
+        let discarded=initialModelForSeed model.RunSeed
+        {discarded with Profile=profile;RunActive=false;RunOutcome=Some outcome;LastRunSummary=Some summary
+                        RunStats=emptyRunStats;AudioEvents=model.AudioEvents}
+
+let private finishDeathIfNeeded model =
+    if model.RunActive && (model.PlayerLifeState=Dead || totalHalfHearts model.PlayerHealth=0) then
+        finishRun false (model.RunStats.DeathCause |> Option.orElse(Some(DeathCause.Enemy "unknown"))) model
+    else model
+
 let init () : Model * AdapterCommand<Msg> = initialModel, Cmd.none
 
 let update msg model : Model * AdapterCommand<Msg> =
@@ -1651,7 +1759,7 @@ let update msg model : Model * AdapterCommand<Msg> =
     // `initialModel` already did. Its whole job is to give the cue seam a transition to look at, so
     // keep this a no-op and put what you want to happen at startup in `AudioCues.forTransition`.
     | Started -> model, Cmd.none
-    | Tick dtSeconds -> advanceSim dtSeconds model, Cmd.none
+    | Tick dtSeconds -> advanceSim dtSeconds model |> finishDeathIfNeeded, Cmd.none
     | MovePaddle(side, direction) -> movePaddle side direction model, Cmd.none
     | ViewerInput(key, isDown) ->
         let moved =
@@ -1702,8 +1810,12 @@ let update msg model : Model * AdapterCommand<Msg> =
             FloorNameTicks = 240
             PlayerPosition = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0) }, Cmd.none
     | EnterM5Room roomId -> loadM5Room roomId model, Cmd.none
-    | DamageM5Enemy(enemyId,damage) -> damageM5Enemy enemyId damage model, Cmd.none
-    | DamageM5Boss damage -> damageM5Boss damage model, Cmd.none
+    | DamageM5Enemy(enemyId,damage) ->
+        let next=damageM5Enemy enemyId damage model
+        if model.FloorIndex=6 && model.M5Boss.IsSome && next.M5Boss.IsNone then finishRun true None next,Cmd.none else next,Cmd.none
+    | DamageM5Boss damage ->
+        let next=damageM5Boss damage model
+        if model.FloorIndex=6 && model.M5Boss.IsSome && next.M5Boss.IsNone then finishRun true None next,Cmd.none else next,Cmd.none
     | InteractM5Shop slotId -> purchaseM5ShopSlot slotId model, Cmd.none
     | DamageM5Obstacle(obstacleId,damage) -> damageM5Obstacle obstacleId damage model,Cmd.none
     | SpawnM6Particles(count, origin, tint) -> spawnM6Particles count origin tint model, Cmd.none
@@ -1716,6 +1828,8 @@ let update msg model : Model * AdapterCommand<Msg> =
             Profile=model.Profile
             ActiveDifficulty=Some scaling
             RunActive=true
+            RunOutcome=None
+            LastRunSummary=model.LastRunSummary
             RunStats={ emptyRunStats with Character=model.RunStats.Character }
             PlayerHealth=
                 { started.PlayerHealth with
@@ -1734,20 +1848,8 @@ let update msg model : Model * AdapterCommand<Msg> =
     | RecordCoinsCollected count ->
         let count=max 0 count
         {model with RunStats={model.RunStats with CoinsCollected=model.RunStats.CoinsCollected+count}},Cmd.none
-    | CompleteRunStats(won,cause) ->
-        let kills=model.RunStats.KillsByType|>Map.values|>Seq.sum
-        let deaths =
-            match cause with
-            | None -> model.Profile.Lifetime.DeathsByCause
-            | Some value ->
-                let increment old = Some (1 + Option.defaultValue 0 old)
-                Map.change value increment model.Profile.Lifetime.DeathsByCause
-        let lifetime=model.Profile.Lifetime
-        let completed=
-            {lifetime with RunsPlayed=lifetime.RunsPlayed+1;DeepestFloor=max lifetime.DeepestFloor model.RunStats.DepthReached
-                           Wins=lifetime.Wins+(if won then 1 else 0);TotalKills=lifetime.TotalKills+kills
-                           DeathsByCause=deaths;DepthHistory=lifetime.DepthHistory@[model.RunStats.DepthReached]}
-        {model with RunActive=false;RunStats={model.RunStats with DeathCause=cause};Profile={model.Profile with Lifetime=completed}},Cmd.none
+    | CompleteRunStats(won,cause) -> finishRun won cause model,Cmd.none
+    | ProfileLoaded profile -> {model with Profile=profile},Cmd.none
     | NoOp -> model, Cmd.none
 
 let subscriptions _ : AdapterSubscription<Msg> list = Sub.none
