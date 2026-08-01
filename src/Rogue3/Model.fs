@@ -35,6 +35,48 @@ type PaddleDirection =
     | PaddleUp
     | PaddleDown
 
+/// One controller poll captured by the host edge. Values remain raw in [-1,1]; resolution applies
+/// deadzones and normalization inside the pure fixed-step transition.
+type GamepadSnapshot =
+    { LeftStick: Vec2
+      RightStick: Vec2
+      RightTrigger: float
+      Buttons: Set<KeyId> }
+
+/// Device state sampled independently from simulation. `InputChanged` replaces this whole value;
+/// keyboard and pointer messages update the same shape one field at a time.
+type InputSnapshot =
+    { Keys: Set<KeyId>
+      MousePosition: Vec2 option
+      MousePrimaryDown: bool
+      Gamepad: GamepadSnapshot }
+
+/// The current/previous pair is the replay contract. `PressedThisTick` is derived only when a Tick
+/// actually drains a fixed step, then current becomes previous after all drained steps complete.
+type InputState =
+    { Current: InputSnapshot
+      Previous: InputSnapshot
+      PressedThisTick: Set<KeyId> }
+
+type AimSource =
+    | NoAim
+    | ArrowAim
+    | MouseAim
+    | GamepadAim
+
+type ResolvedInput =
+    { Move: Vec2
+      Aim: Vec2
+      AimSource: AimSource
+      FireHeld: bool
+      PressedThisTick: Set<KeyId> }
+
+/// M1's deterministic fire event. M2 promotes these spawn intents to full projectile entities.
+type ShotSpawn =
+    { Direction: Vec2
+      Velocity: Vec2
+      SimStep: int }
+
 type Model =
     { Ball: Ball
       LeftPaddleY: float
@@ -49,7 +91,17 @@ type Model =
       RunSeed: uint64
       LayoutRng: Rng // layout/template stream; combat must never advance it
       DropRng: Rng // drop/AI-variance stream; layout must never advance it
-      LastInput: ViewerKey option }
+      LastInput: ViewerKey option
+      Input: InputState
+      PlayerPosition: Vec2
+      PlayerVelocity: Vec2
+      Facing: Vec2
+      LastResolvedInput: ResolvedInput
+      FireCooldown: float
+      WasFiring: bool
+      ShotSpawns: ShotSpawn list
+      TotalShotSpawns: int
+      EdgeActionCount: int }
 
 type Msg =
     /// The program started, and `initialModel` is the state it started in (issue #458).
@@ -73,6 +125,9 @@ type Msg =
     | Tick of dtSeconds: float
     | MovePaddle of PaddleSide * PaddleDirection
     | ViewerInput of ViewerKey * isDown: bool
+    | KeyChanged of KeyId * isDown: bool
+    | PointerChanged of position: Vec2 * primaryDown: bool option
+    | InputChanged of InputSnapshot
     | NoOp
 
 // Kept model-agnostic so the durable LayoutEvidence spine validates the skeleton AND a swap.
@@ -109,6 +164,30 @@ let private servedBall =
     { Pos = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0)
       Velocity = vec2 5.0 3.0 }
 
+let private emptyGamepad =
+    { LeftStick = zero
+      RightStick = zero
+      RightTrigger = 0.0
+      Buttons = Set.empty }
+
+let emptyInputSnapshot =
+    { Keys = Set.empty
+      MousePosition = None
+      MousePrimaryDown = false
+      Gamepad = emptyGamepad }
+
+let emptyInputState =
+    { Current = emptyInputSnapshot
+      Previous = emptyInputSnapshot
+      PressedThisTick = Set.empty }
+
+let private emptyResolvedInput =
+    { Move = zero
+      Aim = zero
+      AimSource = NoAim
+      FireHeld = false
+      PressedThisTick = Set.empty }
+
 /// Derive independent deterministic layout and combat/drop streams from one serializable run seed.
 /// The fixed split order is part of the replay contract.
 let rngStreams seed =
@@ -132,7 +211,17 @@ let initialModelForSeed seed =
       RunSeed = seed
       LayoutRng = layoutRng
       DropRng = dropRng
-      LastInput = None }
+      LastInput = None
+      Input = emptyInputState
+      PlayerPosition = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0)
+      PlayerVelocity = zero
+      Facing = vec2 1.0 0.0
+      LastResolvedInput = emptyResolvedInput
+      FireCooldown = 0.0
+      WasFiring = false
+      ShotSpawns = []
+      TotalShotSpawns = 0
+      EdgeActionCount = 0 }
 
 let initialModel = initialModelForSeed 0xC0FFEEUL
 
@@ -202,10 +291,116 @@ let private paddleForKey key =
     | ArrowDown -> Some(RightSide, PaddleDown)
     | _ -> None
 
+let private keyId key = ViewerKeyboard.toKeyId key
+let private wKey = keyId (Letter 'W')
+let private aKey = keyId (Letter 'A')
+let private sKey = keyId (Letter 'S')
+let private dKey = keyId (Letter 'D')
+let private arrowUpKey = keyId ArrowUp
+let private arrowDownKey = keyId ArrowDown
+let private arrowLeftKey = keyId ArrowLeft
+let private arrowRightKey = keyId ArrowRight
+
+let private axis negative positive keys =
+    (if Set.contains positive keys then 1.0 else 0.0)
+    - (if Set.contains negative keys then 1.0 else 0.0)
+
+let normalizeOrZero vector =
+    let magnitudeSquared = vector.Vx * vector.Vx + vector.Vy * vector.Vy
+    if not (isFinite vector) || magnitudeSquared <= 1e-12 then zero
+    else scale (1.0 / sqrt magnitudeSquared) vector
+
+let private activeStick vector =
+    if not (isFinite vector) then zero
+    elif vector.Vx * vector.Vx + vector.Vy * vector.Vy < 0.04 then zero
+    else normalizeOrZero vector
+
+let resolveInput playerPosition pressedThisTick snapshot =
+    let keyboardMove = vec2 (axis aKey dKey snapshot.Keys) (axis wKey sKey snapshot.Keys)
+    let gamepadMove = activeStick snapshot.Gamepad.LeftStick
+    let move = add keyboardMove gamepadMove |> normalizeOrZero
+
+    let arrow =
+        vec2
+            (axis arrowLeftKey arrowRightKey snapshot.Keys)
+            (axis arrowUpKey arrowDownKey snapshot.Keys)
+        |> normalizeOrZero
+
+    let gamepadAim = activeStick snapshot.Gamepad.RightStick
+    let mouseAim =
+        snapshot.MousePosition
+        |> Option.map (fun cursor -> sub cursor playerPosition |> normalizeOrZero)
+        |> Option.defaultValue zero
+
+    let aim, source =
+        if arrow <> zero then arrow, ArrowAim
+        elif gamepadAim <> zero then gamepadAim, GamepadAim
+        elif mouseAim <> zero then mouseAim, MouseAim
+        else zero, NoAim
+
+    let trigger =
+        if Double.IsFinite snapshot.Gamepad.RightTrigger then snapshot.Gamepad.RightTrigger else 0.0
+
+    { Move = move
+      Aim = aim
+      AimSource = source
+      FireHeld = snapshot.MousePrimaryDown || arrow <> zero || gamepadAim <> zero || trigger >= 0.5
+      PressedThisTick = pressedThisTick }
+
+let withKey key isDown snapshot =
+    { snapshot with
+        Keys =
+            if isDown then Set.add key snapshot.Keys
+            else Set.remove key snapshot.Keys }
+
+let withPointer position primaryDown snapshot =
+    { snapshot with
+        MousePosition = if isFinite position then Some position else snapshot.MousePosition
+        MousePrimaryDown = primaryDown |> Option.defaultValue snapshot.MousePrimaryDown }
+
+let fireCadence = 1.0 / 2.5
+let playerInputSpeed = 240.0
+let shotSpeed = 420.0
+let maxShotSpawnHistory = 64
+
+let private stepInput pressedThisTick model =
+    let resolved = resolveInput model.PlayerPosition pressedThisTick model.Input.Current
+    let playerVelocity = scale playerInputSpeed resolved.Move
+    let fireAim = if resolved.Aim = zero then normalizeOrZero model.Facing else resolved.Aim
+
+    let shouldSpawn, nextCooldown =
+        if not resolved.FireHeld || fireAim = zero then
+            false, 0.0
+        elif not model.WasFiring then
+            true, max 0.0 (fireCadence - fixedDt)
+        elif model.FireCooldown <= fixedDt + 1e-12 then
+            true, max 0.0 (model.FireCooldown + fireCadence - fixedDt)
+        else
+            false, model.FireCooldown - fixedDt
+
+    let shotSpawns =
+        if shouldSpawn then
+            { Direction = fireAim
+              Velocity = add (scale shotSpeed fireAim) (scale 0.25 playerVelocity)
+              SimStep = model.SimStepCount + 1 } :: model.ShotSpawns
+            |> List.truncate maxShotSpawnHistory
+        else model.ShotSpawns
+
+    { model with
+        PlayerVelocity = playerVelocity
+        Facing = if resolved.Aim = zero then model.Facing else resolved.Aim
+        LastResolvedInput = resolved
+        FireCooldown = nextCooldown
+        WasFiring = resolved.FireHeld && fireAim <> zero
+        ShotSpawns = shotSpawns
+        TotalShotSpawns = model.TotalShotSpawns + if shouldSpawn then 1 else 0
+        EdgeActionCount = model.EdgeActionCount + Set.count pressedThisTick }
+
 // Pure fixed step: integrate the ball by one step, bounce off the top/bottom walls and the paddles,
 // score and re-serve on a miss. Positions/velocities are `Vec2`, advanced with `add`/`scale`; the
 // ball always stays inside the playfield after the step. This is your `stepSim` — edit it freely.
-let stepSim model =
+let private stepSimWithInput pressedThisTick model =
+    let model = stepInput pressedThisTick model
     let ball = model.Ball
     let next = add ball.Pos ball.Velocity // one unit step (dt folded into velocity units)
 
@@ -247,6 +442,8 @@ let stepSim model =
 
     { stepped with SimStepCount = model.SimStepCount + 1 }
 
+let stepSim model = stepSimWithInput Set.empty model
+
 // Fixed-timestep advance: fold the host's real elapsed `dt` into the carried accumulator, drain the
 // whole number of `simInterval` steps out of it, and run `stepSim` that many times. `FixedStep.drain`
 // is a pure FS.GG.Game.Core primitive (no wall-clock read), so a scripted `dt` sequence replays
@@ -254,17 +451,26 @@ let stepSim model =
 let private advanceSim dtSeconds model =
     let struct (steps, accumulator) =
         FixedStep.drainWith maxFrameTime fixedDt dtSeconds model.SimAccumulator
+    let currentKeys = Set.union model.Input.Current.Keys model.Input.Current.Gamepad.Buttons
+    let previousKeys = Set.union model.Input.Previous.Keys model.Input.Previous.Gamepad.Buttons
+    let pressedThisTick = Set.difference currentKeys previousKeys
 
     let stepped =
         // mutable: a single unaliased accumulator over a fixed step count is plainer than a fold here.
         let mutable m = model
-        for _ in 1..steps do
-            m <- stepSim m
+        for stepIndex in 1..steps do
+            m <- stepSimWithInput (if stepIndex = 1 then pressedThisTick else Set.empty) m
         m
 
     { stepped with
         SimAccumulator = accumulator
-        TickCount = model.TickCount + 1 }
+        TickCount = model.TickCount + 1
+        Input =
+            if steps = 0 then model.Input
+            else
+                { model.Input with
+                    Previous = model.Input.Current
+                    PressedThisTick = pressedThisTick } }
 
 let init () : Model * AdapterCommand<Msg> = initialModel, Cmd.none
 
@@ -285,7 +491,15 @@ let update msg model : Model * AdapterCommand<Msg> =
             else
                 model
 
-        { moved with LastInput = Some key }, Cmd.none
+        { moved with
+            LastInput = Some key
+            Input = { moved.Input with Current = withKey (keyName key) isDown moved.Input.Current } }, Cmd.none
+    | KeyChanged(key, isDown) ->
+        { model with Input = { model.Input with Current = withKey key isDown model.Input.Current } }, Cmd.none
+    | PointerChanged(position, primaryDown) ->
+        { model with Input = { model.Input with Current = withPointer position primaryDown model.Input.Current } }, Cmd.none
+    | InputChanged snapshot ->
+        { model with Input = { model.Input with Current = snapshot } }, Cmd.none
     | NoOp -> model, Cmd.none
 
 let subscriptions _ : AdapterSubscription<Msg> list = Sub.none

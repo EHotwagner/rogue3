@@ -15,9 +15,11 @@ This local roadmap is the implementation ledger for the source specification. Mi
 Evidence (2026-08-01): focused Release 24/24 and full Release 71/71; `./fake.sh build -t Verify` green with five bounded-headless workloads; SDD verdict `readiness/001-m0-scaffold-fixed-step-loop/ship-verdict.json` is `shipReady` with 21 observed, non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3.md`.
 
 ### M1 — Input & twin-stick control
-- 🟥 `InputState` snapshot + `PressedThisTick` edge set `(currentKeys − previousKeys)` (§3, §7.3)
-- 🟥 Keyboard/mouse + gamepad move & aim, fully decoupled (§3) — AC #9
-- 🟥 Auto-repeat fire cadence + 8-way arrow-aim snap vs 360° analog aim (§3, §4.3)
+- 🟩 `InputState` snapshot + `PressedThisTick` edge set `(currentKeys − previousKeys)` (§3, §7.3)
+- 🟩 Keyboard/mouse + gamepad move & aim, fully decoupled (§3) — AC #9
+- 🟩 Auto-repeat fire cadence + 8-way arrow-aim snap vs 360° analog aim (§3, §4.3)
+
+Evidence (2026-08-01): focused Release M1 input 9/9 and full Release 80/80; `./fake.sh build -t Verify` green with 80/80 plus five authored bounded-headless workloads; SDD verdict `readiness/002-m1-input-twin-stick-control/ship-verdict.json` is `shipReady` with 26 observed, non-synthetic obligations; cycle feedback is `feedback/2026-08-01-Rogue3-2.md`. Keyboard and coordinate-bearing pointer samples traverse the pinned live shell host; the pure gamepad snapshot contract is green, while native gamepad polling remains a package-host release obligation because the pinned host exposes no gamepad seam.
 
 ### M2 — Movement, dodge & shots
 - 🟥 Velocity lerp (`accel`/`friction`) + diagonal normalization, speed clamp (§4.1)

@@ -4,6 +4,7 @@ open System
 open System.IO
 open FS.GG.UI.Scene
 open Rogue3.Model
+open Rogue3.Geometry
 open Rogue3.View
 open Rogue3.LayoutEvidence
 open FS.GG.UI.Controls
@@ -394,6 +395,17 @@ let private applyShellEffect (shell: Rogue3.GameShell.Model) (effect: Rogue3.Gam
 
     viewerEffectsForShellEffect effect
 
+/// Translate every coordinate-bearing Controls pointer interaction the pinned shell host exposes.
+/// Continuous unpressed hover moves and native gamepad polls are not members of InteractiveAppHost;
+/// the product keeps those capability limits explicit instead of inventing evidence for them.
+let pointerInteractionToMsg interaction =
+    match interaction with
+    | HoverEnter(_, x, y) -> Some(PointerChanged(vec2 x y, None))
+    | PressedDown(_, PointerButton.Primary, x, y) -> Some(PointerChanged(vec2 x y, Some true))
+    | ReleasedUp(_, PointerButton.Primary, x, y) -> Some(PointerChanged(vec2 x y, Some false))
+    | DragMove(_, PointerButton.Primary, x, y) -> Some(PointerChanged(vec2 x y, Some true))
+    | _ -> None
+
 // FR-004/FR-006 (086, D6) + #991/#1000: the game family's governed default is now the pointer-aware
 // persistent host, booting the shell. It renders the shell menu chrome while not `Playing` (the typed
 // Controls tree the shell authors, lowered with `Widget.toControl`) and the play scene while
@@ -421,19 +433,30 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
                 let held = if nextShell.Screen = Rogue3.GameShell.Playing then model.HeldKeys else Set.empty
                 { model with Shell = nextShell; HeldKeys = held }, (effects |> List.collect (applyShellEffect nextShell))
             | RawKeyChanged(key, isDown) ->
+                let latchKey play = Rogue3.Model.update (KeyChanged(key, isDown)) play |> fst
+
                 match Rogue3.GameShell.routeKeyEvent playCommandToMsg key isDown model.Shell with
                 | Rogue3.GameShell.ShellEdge shellMsg ->
                     let nextShell, effects = Rogue3.GameShell.update shellMsg model.Shell
                     let held = if nextShell.Screen = Rogue3.GameShell.Playing then model.HeldKeys else Set.empty
                     { model with Shell = nextShell; HeldKeys = held }, (effects |> List.collect (applyShellEffect nextShell))
                 | Rogue3.GameShell.GameEdge(_, true) ->
-                    { model with HeldKeys = Set.add key model.HeldKeys }, []
+                    { model with
+                        Play = latchKey model.Play
+                        HeldKeys = Set.add key model.HeldKeys }, []
                 | Rogue3.GameShell.GameEdge(_, false) ->
-                    { model with HeldKeys = Set.remove key model.HeldKeys }, []
+                    { model with
+                        Play = latchKey model.Play
+                        HeldKeys = Set.remove key model.HeldKeys }, []
                 | Rogue3.GameShell.NoKeyEvent ->
                     // A release still clears a retained key after a screen transition or keymap
                     // change, even when the shell no longer resolves it as gameplay.
-                    if isDown then model, [] else { model with HeldKeys = Set.remove key model.HeldKeys }, []
+                    let play =
+                        if model.Shell.Screen = Rogue3.GameShell.Playing then latchKey model.Play
+                        else model.Play
+
+                    if isDown then { model with Play = play }, []
+                    else { model with Play = play; HeldKeys = Set.remove key model.HeldKeys }, []
             | PlayDispatch playMsg ->
                 // Live play only advances while the shell is on the `Playing` screen — the menu, the
                 // pause overlay and the settings screen freeze the world behind them.
@@ -472,7 +495,7 @@ let interactiveHost: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
         // The menu buttons carry their own authored `OnClick` bindings (the shell's `view`), and
         // `routeInteractivePointer` dispatches those directly — authored bindings win, and `MapPointer`
         // is only the fallback for unbound pointer interactions, of which the shell menu has none.
-        fun _ -> None
+        fun interaction -> pointerInteractionToMsg interaction |> Option.map PlayDispatch
       Tick = fun elapsed -> tick elapsed |> Option.map PlayDispatch
       MapKeyChord = fun _ _ -> None
       OnFrameMetrics = ignore
@@ -1050,4 +1073,3 @@ let tryRunEvidenceCommand args =
     | "--pixel-readback-evidence" :: path :: _ -> Some(visualEvidence "--pixel-readback-evidence" "command=--pixel-readback-evidence" Hash "pixel-readback" "evidence-kind=pixel-readback" "screenshot-unavailable" path)
     | "--pixel-readback-evidence" :: _ -> Some(visualEvidence "--pixel-readback-evidence" "command=--pixel-readback-evidence" Hash "pixel-readback" "evidence-kind=pixel-readback" "screenshot-unavailable" "readiness/game-pixel-readback-evidence.txt")
     | _ -> None
-

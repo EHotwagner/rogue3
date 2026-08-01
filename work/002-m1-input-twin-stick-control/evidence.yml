@@ -1,0 +1,714 @@
+schemaVersion: 1
+workId: 002-m1-input-twin-stick-control
+stage: evidence
+status: evidenceReady
+sourceSpec: work/002-m1-input-twin-stick-control/spec.md
+sourceClarifications: work/002-m1-input-twin-stick-control/clarifications.md
+sourceChecklist: work/002-m1-input-twin-stick-control/checklist.md
+sourcePlan: work/002-m1-input-twin-stick-control/plan.md
+sourceTasks: work/002-m1-input-twin-stick-control/tasks.yml
+sourceAnalysis: readiness/002-m1-input-twin-stick-control/analysis.json
+sourceSnapshots:
+  - label: analysis
+    path: readiness/002-m1-input-twin-stick-control/analysis.json
+    digest: 657a2c2f84a9ceace39133ec24b9327b06de8bdca679897c22135992dbb1664b
+    schemaVersion: 1
+  - label: checklist
+    path: work/002-m1-input-twin-stick-control/checklist.md
+    digest: 52dc9e746d8062a7a432547121ea39e3867b619c0e13b2b4e395680b2872efea
+    schemaVersion: 1
+  - label: clarifications
+    path: work/002-m1-input-twin-stick-control/clarifications.md
+    digest: e9293f4e11720c999e1a53dbf2d2b7a781a35e1cf031d47bf7774e4479fe3531
+    schemaVersion: 1
+  - label: plan
+    path: work/002-m1-input-twin-stick-control/plan.md
+    digest: 77b0b2fb974fbf7b3df1988c8de1b50ff546be87718e9a1231188c82312ac28f
+    schemaVersion: 1
+  - label: spec
+    path: work/002-m1-input-twin-stick-control/spec.md
+    digest: ecafb44648006f3661e78a5b7341330a8752f6ba7a18ce6c91993fd2c92fed77
+    schemaVersion: 1
+  - label: tasks
+    path: work/002-m1-input-twin-stick-control/tasks.yml
+    digest: 2e71eecce555c21ef03d1ffc18a10b5c0b1755cc6b8efef529d8a0139154092d
+    schemaVersion: 1
+evidence:
+  - id: EV001
+    kind: verification
+    subject:
+      type: task
+      id: T001
+    taskRefs: [T001]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV001]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV002
+    kind: verification
+    subject:
+      type: task
+      id: T002
+    taskRefs: [T002]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV002]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV003
+    kind: verification
+    subject:
+      type: task
+      id: T003
+    taskRefs: [T003]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV003]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV004
+    kind: verification
+    subject:
+      type: task
+      id: T004
+    taskRefs: [T004]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV004]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV005
+    kind: verification
+    subject:
+      type: task
+      id: T005
+    taskRefs: [T005]
+    requirementRefs: [FR-005]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV005]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV006
+    kind: verification
+    subject:
+      type: task
+      id: T006
+    taskRefs: [T006]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV006]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV007
+    kind: verification
+    subject:
+      type: task
+      id: T007
+    taskRefs: [T007]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV007]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV008
+    kind: verification
+    subject:
+      type: task
+      id: T008
+    taskRefs: [T008]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV008]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV009
+    kind: verification
+    subject:
+      type: task
+      id: T009
+    taskRefs: [T009]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV009]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV010
+    kind: verification
+    subject:
+      type: task
+      id: T010
+    taskRefs: [T010]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV010]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV011
+    kind: verification
+    subject:
+      type: task
+      id: T011
+    taskRefs: [T011]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV011]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV012
+    kind: verification
+    subject:
+      type: task
+      id: T012
+    taskRefs: [T012]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV012]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV013
+    kind: verification
+    subject:
+      type: task
+      id: T013
+    taskRefs: [T013]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV013]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV014
+    kind: verification
+    subject:
+      type: task
+      id: T014
+    taskRefs: [T014]
+    requirementRefs: [FR-005]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV014]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV015
+    kind: verification
+    subject:
+      type: task
+      id: T015
+    taskRefs: [T015]
+    requirementRefs: [FR-001, FR-002, FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-006]
+    obligationRefs: [EV015]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV016
+    kind: verification
+    subject:
+      type: task
+      id: T016
+    taskRefs: [T016]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-002, PD-003, PD-004]
+    obligationRefs: [EV016]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV017
+    kind: verification
+    subject:
+      type: task
+      id: T017
+    taskRefs: [T017]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV017]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV018
+    kind: verification
+    subject:
+      type: task
+      id: T018
+    taskRefs: [T018]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV018]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV019
+    kind: verification
+    subject:
+      type: task
+      id: T019
+    taskRefs: [T019]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002, PD-003]
+    obligationRefs: [EV019]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV020
+    kind: verification
+    subject:
+      type: task
+      id: T020
+    taskRefs: [T020]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV020]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV021
+    kind: verification
+    subject:
+      type: task
+      id: T021
+    taskRefs: [T021]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV021]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV022
+    kind: verification
+    subject:
+      type: task
+      id: T022
+    taskRefs: [T022]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-006]
+    obligationRefs: [EV022]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV023
+    kind: verification
+    subject:
+      type: task
+      id: T023
+    taskRefs: [T023]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV023]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV024
+    kind: verification
+    subject:
+      type: task
+      id: T024
+    taskRefs: [T024]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV024]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV025
+    kind: verification
+    subject:
+      type: task
+      id: T025
+    taskRefs: [T025]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV025]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+  - id: EV026
+    kind: verification
+    subject:
+      type: task
+      id: T026
+    taskRefs: [T026]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV026]
+    artifacts: []
+    sourceRefs:
+      - kind: verification
+        path: tests/Rogue3.Tests/InputTests.fs
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/002-m1-input-twin-stick-control/test-results/m1-full.trx
+      digest: "sha256:b0cca3b717f1c834a8d738744144bc143cc4839cd2614bc45aca2b9d84376c3b"
+      outcome: passed
+      passed: 80
+      failed: 0
+      skipped: 0
+    notes: [Evidence required before verify.]
+lifecycleNotes:
+  - "Next lifecycle action: verify."

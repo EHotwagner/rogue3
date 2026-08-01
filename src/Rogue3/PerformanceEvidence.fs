@@ -14,6 +14,7 @@ open FS.GG.Game.Harness
 open FS.GG.UI.KeyboardInput
 open FS.GG.UI.Scene
 open Rogue3.Model
+open Rogue3.Geometry
 open Rogue3.View
 
 type WorkloadClass =
@@ -26,6 +27,7 @@ type Budget =
     { P95Ms: float
       P99Ms: float
       MaximumSceneNodes: int
+      MaximumShotSpawnHistory: int
       AllowSustainedCatchUp: bool }
 
 /// The one rogue3-authored performance policy. This is the published Contracts 7.x shape used by
@@ -37,11 +39,11 @@ let private performanceIntentSeed: PerformanceIntentDeclaration =
       TargetFps = 60
       WorkloadIds = []
       WorkloadDefinitionDigests = []
-      MaximumExpectedScale = "maximum-content workload"
+      MaximumExpectedScale = "64 retained shot-spawn intents plus all five scaffold visuals"
       MaxP95Ms = 16.67m
       MaxP99Ms = 25.0m
       MaxCatchUpFrames = 0
-      StructuralCostBudgets = [ "scene-nodes<=4096" ]
+      StructuralCostBudgets = [ "scene-nodes<=4096"; "shot-spawn-history<=64" ]
       RequiredCapability = "bounded-headless-update-and-scene-route"
       LiveCompositorRequired = false
       DeferralIssue = None
@@ -59,6 +61,18 @@ let private maximumSceneNodes =
         | _ -> None)
     |> Option.defaultWith (fun () ->
         invalidOp "performance intent must declare structuralCostBudgets entry 'scene-nodes<=<positive integer>'")
+
+let private maximumShotSpawnHistory =
+    performanceIntentSeed.StructuralCostBudgets
+    |> List.tryPick (fun entry ->
+        match entry.Split("<=", StringSplitOptions.TrimEntries) with
+        | [| "shot-spawn-history"; value |] ->
+            match Int32.TryParse value with
+            | true, parsed when parsed > 0 -> Some parsed
+            | _ -> None
+        | _ -> None)
+    |> Option.defaultWith (fun () ->
+        invalidOp "performance intent must declare structuralCostBudgets entry 'shot-spawn-history<=<positive integer>'")
 
 /// A deliberate acknowledgement that a representative workload is rogue3-authored.
 ///
@@ -114,16 +128,28 @@ type PerformanceCostDriver =
 let performanceCostDrivers =
     [ { Id = "simulation.fixed-step"
         Category = Simulation
-        ScaleSource = "Model; one shipped update per sampled frame"
-        MaximumExpected = 1
+        ScaleSource = "Model.SimStepCount delta; Tick(1/60) drains two shipped 120 Hz fixed steps"
+        MaximumExpected = 2
         VisualElement = None
         Disposition = RequiredIn [ "idle"; "movement-aiming"; "firing"; "effects-fog"; "maximum-content" ] }
-      { Id = "input.viewer-route"
+      { Id = "input.snapshot-resolution"
         Category = Input
-        ScaleSource = "shipped host-input mapping and routed-input receipt"
+        ScaleSource = "Model.SimStepCount delta while a sampled key/pointer/gamepad snapshot is active; resolution runs once per fixed step"
+        MaximumExpected = 2
+        VisualElement = None
+        Disposition = RequiredIn [ "movement-aiming"; "firing"; "maximum-content" ] }
+      { Id = "simulation.shot-spawn"
+        Category = Simulation
+        ScaleSource = "Model.TotalShotSpawns delta across one sampled production frame"
         MaximumExpected = 1
         VisualElement = None
-        Disposition = RequiredIn [ "movement-aiming"; "firing" ] }
+        Disposition = RequiredIn [ "firing"; "maximum-content" ] }
+      { Id = "state.shot-spawn-history"
+        Category = Simulation
+        ScaleSource = "Model.ShotSpawns retained bounded history"
+        MaximumExpected = 64
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "scene.ball"
         Category = SceneRender
         ScaleSource = "GameplayVisualInventory.Ball"
@@ -178,7 +204,7 @@ type Workload =
       EventsPerFrame: int
       PointerEventsPerFrame: int
       InitialState: unit -> Model
-      MessageAt: int -> Msg
+      MessagesAt: int -> Msg list
       Provenance: WorkloadProvenance
       Composition: CompositionClaim
       CostDriverIds: string list
@@ -204,6 +230,7 @@ type WorkloadResult =
       ObservedPointerEventCount: int
       RawInputSampleCount: int
       SceneNodeCount: int
+      ShotSpawnHistoryCount: int
       ObservedScale: Map<string, int>
       AllocatedBytes: int64
       Verdict: Verdict }
@@ -368,7 +395,7 @@ let private countOccurrences (needle: string) (text: string) =
     loop 0 0
 
 /// Fingerprint the executable source block for one workload. This binds the declaration to the
-/// actual InitialState/MessageAt code rather than trusting its prose. The declaration itself is
+/// actual InitialState/MessagesAt code rather than trusting its prose. The declaration itself is
 /// normalized to a sentinel so copying the emitted digest into `Authored` is not circular.
 let private workloadSourceFingerprint id =
     let sourcePath = Path.Combine(__SOURCE_DIRECTORY__, "PerformanceEvidence.fs")
@@ -402,7 +429,7 @@ let private workloadSourceFingerprint id =
 let definitionDigest workload =
     let budget =
         workload.Budget
-        |> Option.map (fun b -> $"{b.P95Ms:R}|{b.P99Ms:R}|{b.MaximumSceneNodes}|{b.AllowSustainedCatchUp}")
+        |> Option.map (fun b -> $"{b.P95Ms:R}|{b.P99Ms:R}|{b.MaximumSceneNodes}|{b.MaximumShotSpawnHistory}|{b.AllowSustainedCatchUp}")
         |> Option.defaultValue "none"
 
     let executableSource =
@@ -450,7 +477,7 @@ let private linkedDebtReference (debt: string) =
 /// Expected-workload budget semantics. A linked debt permits deliberate BASELINE CAPTURE, not
 /// acceptance: its artifact is retained, but Test/Verify still fail until the active target passes.
 /// Only normal-play workloads are budget gates; other classes remain separately classified evidence.
-let evaluateBudget workload p95 p99 catchUpFrames sceneNodes =
+let evaluateBudget workload p95 p99 catchUpFrames sceneNodes shotSpawnHistory =
     let budgetVerdict =
         match workload.Classification, workload.Budget with
         | NormalPlay, None ->
@@ -464,6 +491,8 @@ let evaluateBudget workload p95 p99 catchUpFrames sceneNodes =
                       $"p99 {p99:F3} ms exceeds {budget.P99Ms:F3} ms"
                   if sceneNodes > budget.MaximumSceneNodes then
                       $"scene nodes {sceneNodes} exceed {budget.MaximumSceneNodes}"
+                  if shotSpawnHistory > budget.MaximumShotSpawnHistory then
+                      $"shot-spawn history {shotSpawnHistory} exceeds {budget.MaximumShotSpawnHistory}"
                   if catchUpFrames > performanceIntentSeed.MaxCatchUpFrames then
                       $"sustained catch-up observed in {catchUpFrames} frame(s), exceeding declared maximum {performanceIntentSeed.MaxCatchUpFrames}" ]
 
@@ -512,23 +541,38 @@ let evaluateAuthorship workload =
 
 let private observeRoutedStimulus message =
     match message with
-    | ViewerInput _ ->
+    | ViewerInput _
+    | KeyChanged _
+    | InputChanged _ ->
         { Events = 1
           PointerEvents = 0
+          RawInputSamples = 1 }
+    | PointerChanged _ ->
+        { Events = 1
+          PointerEvents = 1
           RawInputSamples = 1 }
     | _ ->
         { Events = 0
           PointerEvents = 0
           RawInputSamples = 0 }
 
-let private observeCostScale driverId routed model =
+let private observeCostScale driverId routed beforeModel afterModel =
     match performanceCostDrivers |> List.tryFind (fun driver -> driver.Id = driverId) with
     | Some driver ->
-        match driver.Category, driver.VisualElement with
-        | Simulation, _ -> 1
-        | Input, _ -> routed.RawInputSamples
-        | (SceneRender | UiControl), Some elementId ->
-            GameplayVisualInventory.project model
+        match driver.Id, driver.Category, driver.VisualElement with
+        | "simulation.fixed-step", _, _ -> afterModel.SimStepCount - beforeModel.SimStepCount
+        | "simulation.shot-spawn", _, _ -> afterModel.TotalShotSpawns - beforeModel.TotalShotSpawns
+        | "state.shot-spawn-history", _, _ -> afterModel.ShotSpawns.Length
+        | _, Input, _ ->
+            let applied =
+                if afterModel.LastResolvedInput.Move <> zero
+                   || afterModel.LastResolvedInput.Aim <> zero
+                   || afterModel.LastResolvedInput.FireHeld then
+                    afterModel.SimStepCount - beforeModel.SimStepCount
+                else 0
+            max routed.RawInputSamples applied
+        | _, (SceneRender | UiControl), Some elementId ->
+            GameplayVisualInventory.project afterModel
             |> List.filter (fun item -> GameplayVisualInventory.elementId item.Element = elementId)
             |> List.length
         | _ -> 0
@@ -538,39 +582,50 @@ let private runWorkload workload =
     let mutable model = workload.InitialState()
 
     for frame in 0 .. max 0 (workload.WarmupFrames - 1) do
-        model <- fst (update (workload.MessageAt frame) model)
+        for message in workload.MessagesAt frame do
+            model <- fst (update message model)
         view model |> ignore
 
     let samples = ResizeArray<float>()
     let beforeBytes = GC.GetAllocatedBytesForCurrentThread()
     let mutable sceneNodes = 0
+    let mutable shotSpawnHistory = model.ShotSpawns.Length
     let mutable catchUp = 0
     let mutable observedEvents = 0
     let mutable observedPointerEvents = 0
     let mutable rawInputSamples = 0
     let mutable observedScale = Map.empty
-    let targetFrameMs = 1000.0 / float performanceIntentSeed.TargetFps
-
     for frame in 0 .. max 0 (workload.SampleFrames - 1) do
         let sw = Stopwatch.StartNew()
-        let message = workload.MessageAt frame
-        model <- fst (update message model)
+        let beforeModel = model
+        let messages = workload.MessagesAt frame
+        for message in messages do
+            model <- fst (update message model)
         let scene = view model
         sw.Stop()
-        let routed = observeRoutedStimulus message
+        let routed =
+            messages
+            |> List.map observeRoutedStimulus
+            |> List.fold (fun total item ->
+                { Events = total.Events + item.Events
+                  PointerEvents = total.PointerEvents + item.PointerEvents
+                  RawInputSamples = total.RawInputSamples + item.RawInputSamples })
+                { Events = 0; PointerEvents = 0; RawInputSamples = 0 }
         observedEvents <- observedEvents + routed.Events
         observedPointerEvents <- observedPointerEvents + routed.PointerEvents
         rawInputSamples <- rawInputSamples + routed.RawInputSamples
         observedScale <-
             workload.CostDriverIds
             |> List.fold (fun scales id ->
-                let count = observeCostScale id routed model
+                let count = observeCostScale id routed beforeModel model
                 scales
                 |> Map.change id (fun previous -> Some(max count (previous |> Option.defaultValue 0)))) observedScale
         samples.Add sw.Elapsed.TotalMilliseconds
         sceneNodes <- max sceneNodes (Scene.describe { Nodes = [ scene ] } |> List.length)
+        shotSpawnHistory <- max shotSpawnHistory model.ShotSpawns.Length
 
-        if sw.Elapsed.TotalMilliseconds > targetFrameMs then
+        // Catch-up is simulation backlog, not wall-clock slowness (which p95/p99 report).
+        if model.SimAccumulator + 1e-12 >= fixedDt then
             catchUp <- catchUp + 1
 
     let allocated = GC.GetAllocatedBytesForCurrentThread() - beforeBytes
@@ -582,7 +637,7 @@ let private runWorkload workload =
     let digest = definitionDigest workload
     let authorshipVerdict = evaluateAuthorship workload
     let provenanceVerdict = evaluateProvenance workload
-    let budgetVerdict = evaluateBudget workload p95 p99 catchUp sceneNodes
+    let budgetVerdict = evaluateBudget workload p95 p99 catchUp sceneNodes shotSpawnHistory
     let declaredEvents = workload.SampleFrames * workload.EventsPerFrame
     let declaredPointerEvents = workload.SampleFrames * workload.PointerEventsPerFrame
     let routeReasons =
@@ -606,6 +661,7 @@ let private runWorkload workload =
       ObservedPointerEventCount = observedPointerEvents
       RawInputSampleCount = rawInputSamples
       SceneNodeCount = sceneNodes
+      ShotSpawnHistoryCount = shotSpawnHistory
       ObservedScale = observedScale
       AllocatedBytes = allocated
       Verdict =
@@ -659,25 +715,26 @@ let private normalBudget =
     { P95Ms = float performanceIntentSeed.MaxP95Ms
       P99Ms = float performanceIntentSeed.MaxP99Ms
       MaximumSceneNodes = maximumSceneNodes
+      MaximumShotSpawnHistory = maximumShotSpawnHistory
       AllowSustainedCatchUp = performanceIntentSeed.MaxCatchUpFrames > 0 }
 
-/// Bind every M0 performance workload to a runner-issued receipt over the shipped composition:
+/// Bind every M1 performance workload to a runner-issued receipt over the shipped composition:
 /// boot `initialModel`, map timestamp-free events to production `Msg`, call production `update`,
 /// and reach a real fixed step. The measured workload below remains the longer update+view sample.
-let private performanceJourneyReceipt scenarioId =
-    let adapter: ProductionJourney<Model, ViewerKey, unit, unit, unit, Msg, string> =
-        { RouteId = "rogue3-m0-update-view"
+let private performanceJourneyReceipt scenarioId boot terminalSteps script =
+    let adapter: ProductionJourney<Model, ViewerKey, Msg, unit, unit, Msg, string> =
+        { RouteId = "rogue3-m1-input-update-view"
           ScenarioId = scenarioId
           TestId = $"performance-{scenarioId}"
           MaxSteps = 4
-          Boot = fun () -> initialModel
+          Boot = boot
           MapEvent =
             fun event _ ->
                 match event with
                 | JourneyEvent.Start -> JourneyDispatch.Mapped [ Started ]
-                | JourneyEvent.KeyInput(key, pressed) -> JourneyDispatch.Mapped [ ViewerInput(key, pressed) ]
+                | JourneyEvent.KeyInput(key, pressed) -> JourneyDispatch.Mapped [ KeyChanged(keyName key, pressed) ]
                 | JourneyEvent.FixedTick -> JourneyDispatch.Mapped [ Tick fixedDt ]
-                | JourneyEvent.PointerInput _ -> JourneyDispatch.Unbound "pointer input (M1)"
+                | JourneyEvent.PointerInput message -> JourneyDispatch.Mapped [ message ]
                 | JourneyEvent.MenuAction _ -> JourneyDispatch.Unbound "menu action"
                 | JourneyEvent.Interact -> JourneyDispatch.Unbound "interact (M1)"
                 | JourneyEvent.Pause -> JourneyDispatch.Unbound "pause"
@@ -686,23 +743,52 @@ let private performanceJourneyReceipt scenarioId =
           Update = fun message model -> update message model |> fst
           FixedTick = fun model -> update (Tick fixedDt) model |> fst
           ApplyEffectResult = fun _ model -> model
-          IsTerminal = fun model -> model.SimStepCount >= 1
+          IsTerminal = fun model -> model.SimStepCount >= terminalSteps
           Fingerprint =
             fun model ->
-                $"{model.RunSeed}|{model.SimStepCount}|{model.SimAccumulator:R}|{model.LayoutRng.State}|{model.DropRng.State}"
+                $"{model.RunSeed}|{model.SimStepCount}|{model.SimAccumulator:R}|{model.LayoutRng.State}|{model.DropRng.State}|{model.PlayerVelocity.Vx:R},{model.PlayerVelocity.Vy:R}|{model.Facing.Vx:R},{model.Facing.Vy:R}|{model.ShotSpawns.Length}|{model.TotalShotSpawns}"
           EncodeEvent = string
           EncodeFingerprint = id }
 
     Journey.runScriptWithIdentity
         $"{scenarioId}-one-fixed-step"
-        "model.SimStepCount>=1"
+        $"model.SimStepCount>={terminalSteps}"
         adapter
-        [ JourneyEvent.FixedTick ]
+        script
     |> fun run -> run.Receipt
+
+let private movementAimInput =
+    { emptyInputSnapshot with
+        Keys = Set.singleton (ViewerKeyboard.toKeyId (Letter 'A'))
+        MousePosition = Some(vec2 (playfieldWidth / 2.0 + 100.0) (playfieldHeight / 2.0)) }
+
+let private firingInput = { movementAimInput with MousePrimaryDown = true }
+
+let private withInput snapshot = update (InputChanged snapshot) initialModel |> fst
+
+let private maximumGamepadInput =
+    { emptyInputSnapshot with
+        Gamepad =
+            { LeftStick = vec2 -1.0 0.5
+              RightStick = vec2 0.75 -0.5
+              RightTrigger = 1.0
+              Buttons = Set.singleton "fire" } }
+
+let private maximumShotHistory =
+    [ 1 .. maximumShotSpawnHistory ]
+    |> List.map (fun step ->
+        { Direction = vec2 1.0 0.0
+          Velocity = vec2 shotSpeed 0.0
+          SimStep = step })
+
+let private maximumContentModel () =
+    { withInput maximumGamepadInput with
+        ShotSpawns = maximumShotHistory
+        TotalShotSpawns = maximumShotSpawnHistory }
 
 /// REQUIRED PRODUCT AUTHORING. Every untouched row is deliberately a failing placeholder.
 ///
-/// For each row: replace `InitialState` and `MessageAt` with representative rogue3 state/messages,
+/// For each row: replace `InitialState` and `MessagesAt` with representative rogue3 state/messages,
 /// rewrite `Definition` to name that route, run PerformanceEvidence once, review the emitted
 /// `definitionDigest`, then change `Placeholder` to `Authored "<digest>"`. The measurement always
 /// drives the real `update` + scene `view` route; there is no local statistics-only escape hatch.
@@ -716,90 +802,130 @@ let expectedWorkloads =
         EventsPerFrame = 0
         PointerEventsPerFrame = 0
         InitialState = (fun () -> initialModel)
-        MessageAt = (fun _ -> Tick(1.0 / 60.0))
-        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "idle")
+        MessagesAt = (fun _ -> [ Tick(1.0 / 60.0) ])
+        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "idle" (fun () -> initialModel) 1 [ JourneyEvent.FixedTick ])
         Composition = CompleteComposition
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "19a2ca8497cd8ae8df35e4da8d0446cb539a1960c9f339514e21373528eb9983" }
+        Authorship = Authored "45474b7e8792f0ff61ec9b4c81529b817d7442bb18dae601ac4423ed5a8efc40" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
-        Definition = "M0 routed-input seam: production ViewerInput(W,true) plus complete logical view; analog aiming arrives in M1"
+        Definition = "M1 movement+aiming: sampled production A-key and pointer messages are resolved independently across two 120 Hz steps, then the complete logical view is built"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
-        EventsPerFrame = 1
-        PointerEventsPerFrame = 0
+        EventsPerFrame = 2
+        PointerEventsPerFrame = 1
         InitialState = (fun () -> initialModel)
-        MessageAt =
-          (fun _ -> ViewerInput(Letter 'W', true))
-        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "movement-aiming")
+        MessagesAt =
+            (fun _ ->
+                [ KeyChanged(keyName (Letter 'A'), true)
+                  PointerChanged(movementAimInput.MousePosition.Value, None)
+                  Tick(1.0 / 60.0) ])
+        Provenance =
+            RunnerIssuedJourney(
+                performanceJourneyReceipt
+                    "movement-aiming"
+                    (fun () -> initialModel)
+                    1
+                    [ JourneyEvent.KeyInput(Letter 'A', true)
+                      JourneyEvent.PointerInput(PointerChanged(movementAimInput.MousePosition.Value, None))
+                      JourneyEvent.FixedTick ])
         Composition = CompleteComposition
         CostDriverIds =
             [ "simulation.fixed-step"
-              "input.viewer-route"
+              "input.snapshot-resolution"
               "scene.ball"
               "scene.left-paddle"
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "c5fd9e99b5f2b56544f31ccb43f117251d80cbed262d7451020f08c04db1d132" }
+        Authorship = Authored "a01223405c60d116bb411fd936158afeaabd839c57e8e824c82cd8b669b64433" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
-        Definition = "M0 future-fire input seam: production ViewerInput(Space,true) plus complete logical view; firing entities arrive in M1/M2"
+        Definition = "M1 firing: sampled production A-key and primary-pointer messages drive deterministic auto-fire, AC9 velocity inheritance, and two 120 Hz steps before the complete logical view"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
-        EventsPerFrame = 1
-        PointerEventsPerFrame = 0
+        EventsPerFrame = 2
+        PointerEventsPerFrame = 1
         InitialState = (fun () -> initialModel)
-        MessageAt = (fun _ -> ViewerInput(Space, true))
-        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "firing")
+        MessagesAt =
+            (fun _ ->
+                [ KeyChanged(keyName (Letter 'A'), true)
+                  PointerChanged(firingInput.MousePosition.Value, Some true)
+                  Tick(1.0 / 60.0) ])
+        Provenance =
+            RunnerIssuedJourney(
+                performanceJourneyReceipt
+                    "firing"
+                    (fun () -> initialModel)
+                    1
+                    [ JourneyEvent.KeyInput(Letter 'A', true)
+                      JourneyEvent.PointerInput(PointerChanged(firingInput.MousePosition.Value, Some true))
+                      JourneyEvent.FixedTick ])
         Composition = CompleteComposition
         CostDriverIds =
             [ "simulation.fixed-step"
-              "input.viewer-route"
+              "input.snapshot-resolution"
+              "simulation.shot-spawn"
               "scene.ball"
               "ui.score"
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "3c55e47739ac7ed4dbf4d7d6a7a59f3945b4d411ff45e36d4fe216441240fcea" }
+        Authorship = Authored "c6616402d587ba6210b2a0ad590c4db70fc24285e69cb14d9e76167d5e5e7752" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
-        Definition = "M0 future-effects baseline: production Tick(1/60) plus complete logical view; effects and fog arrive in later milestones"
+        Definition = "M1 future-effects throughput baseline: two explicit production Tick(1/120) messages plus one complete logical view; effects and fog arrive in later milestones"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
         EventsPerFrame = 0
         PointerEventsPerFrame = 0
         InitialState = (fun () -> initialModel)
-        MessageAt = (fun _ -> Tick(1.0 / 60.0))
-        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "effects-fog")
+        MessagesAt = (fun _ -> [ Tick fixedDt; Tick fixedDt ])
+        Provenance =
+            RunnerIssuedJourney(
+                performanceJourneyReceipt
+                    "effects-fog"
+                    (fun () -> initialModel)
+                    2
+                    [ JourneyEvent.FixedTick; JourneyEvent.FixedTick ])
         Composition = CompleteComposition
         CostDriverIds = [ "simulation.fixed-step"; "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "84166d3f6fcb5007c24c01f89a6173c6ff655350cedd2b0379bd495251a2b917" }
+        Authorship = Authored "019b59ff79f6f129383edfae1ee6f669b269a5a306f5d6d275eaa1a6b3c7b6f3" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
-        Definition = "M0 maximum implemented content: production Tick(1/60), split RNG state, and all five scaffold-preserved visual elements"
+        Definition = "M1 maximum implemented content: 64 retained shot intents plus a sampled independent-stick gamepad snapshot, production Tick(1/60), capped auto-fire history, and all five scaffold visuals"
         Classification = NormalPlay
         WarmupFrames = 20
         SampleFrames = 120
-        EventsPerFrame = 0
+        EventsPerFrame = 1
         PointerEventsPerFrame = 0
-        InitialState = (fun () -> initialModel)
-        MessageAt = (fun _ -> Tick(1.0 / 60.0))
-        Provenance = RunnerIssuedJourney(performanceJourneyReceipt "maximum-content")
+        InitialState = maximumContentModel
+        MessagesAt = (fun _ -> [ InputChanged maximumGamepadInput; Tick(1.0 / 60.0) ])
+        Provenance =
+            RunnerIssuedJourney(
+                performanceJourneyReceipt
+                    "maximum-content"
+                    maximumContentModel
+                    1
+                    [ JourneyEvent.PointerInput(InputChanged maximumGamepadInput)
+                      JourneyEvent.FixedTick ])
         Composition = CompleteComposition
         CostDriverIds =
             [ "simulation.fixed-step"
+              "input.snapshot-resolution"
+              "simulation.shot-spawn"
+              "state.shot-spawn-history"
               "scene.ball"
               "scene.left-paddle"
               "scene.right-paddle"
@@ -807,7 +933,7 @@ let expectedWorkloads =
               "scene.playfield" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "bf8f24421afbd3c8ab7582f21ec6d8e305d16f4b43299b498777e6942fa67e1c" }
+        Authorship = Authored "358e22d33ee90c51cfcbe92715a2b7d7dca49dd676cdf26ca9a4f0e97c0d2577" }
       // WORKLOAD-SOURCE-END maximum-content
       ]
 
@@ -914,7 +1040,7 @@ let private criticInputDigest (results: WorkloadResult list) coverageProblems =
                 |> List.map (fun (id, count) -> $"{id}={count}")
                 |> String.concat ","
             let reasons = String.concat "," result.Verdict.Reasons
-            $"{result.Workload.Id}|p50={result.P50Ms:R}|p95={result.P95Ms:R}|p99={result.P99Ms:R}|updates={result.UpdateCount}|present={capabilityMetricToken result.PresentCount}|catchup={result.CatchUpFrames}|drops={capabilityMetricToken result.DroppedFrames}|declaredEvents={result.DeclaredEventCount}|observedEvents={result.ObservedEventCount}|declaredPointers={result.DeclaredPointerEventCount}|observedPointers={result.ObservedPointerEventCount}|rawInputs={result.RawInputSampleCount}|sceneNodes={result.SceneNodeCount}|allocated={result.AllocatedBytes}|scale={observedScale}|passed={result.Verdict.Passed}|reasons={reasons}")
+            $"{result.Workload.Id}|p50={result.P50Ms:R}|p95={result.P95Ms:R}|p99={result.P99Ms:R}|updates={result.UpdateCount}|present={capabilityMetricToken result.PresentCount}|catchup={result.CatchUpFrames}|drops={capabilityMetricToken result.DroppedFrames}|declaredEvents={result.DeclaredEventCount}|observedEvents={result.ObservedEventCount}|declaredPointers={result.DeclaredPointerEventCount}|observedPointers={result.ObservedPointerEventCount}|rawInputs={result.RawInputSampleCount}|sceneNodes={result.SceneNodeCount}|shotHistory={result.ShotSpawnHistoryCount}|allocated={result.AllocatedBytes}|scale={observedScale}|passed={result.Verdict.Passed}|reasons={reasons}")
         |> String.concat ";"
     let packages =
         declaredPackageVersions ()
@@ -1170,6 +1296,7 @@ let writeExpectedWorkloadEvidence (path: string) =
         json.WriteNumber("declaredPointerEventCount", result.DeclaredPointerEventCount)
         json.WriteNumber("observedPointerEventCount", result.ObservedPointerEventCount)
         json.WriteNumber("rawInputSampleCount", result.RawInputSampleCount)
+        json.WriteNumber("shotSpawnHistoryCount", result.ShotSpawnHistoryCount)
         json.WriteNumber("allocatedBytes", result.AllocatedBytes)
         json.WriteStartObject("observedScale")
         result.ObservedScale |> Map.iter (fun name value -> json.WriteNumber(name, value))

@@ -1,0 +1,73 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-01-Rogue3-2.md",
+  "reportSha256": "670507da154efd0989ab797ced71255c2dc48f10f0a7dc038e1f83ed2ee85e49",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:docs/api-surface/Controls.Elmish/ControlsElmish.fsi", "result": "verified", "sha256": "f24b8a83bdd7a69f01314f7753abceded5f750d845bd6c4a597b466e3166d080" },
+        { "locator": "url:https://github.com/FS-GG/FS.GG.Game/blob/main/docs/TestSpecs/Games/roguelike-dungeon-crawler.md", "result": "verified" },
+        { "locator": "command:dotnet package search FS.GG.UI.Controls.Elmish --exact-match --source https://api.nuget.org/v3/index.json --format json", "result": "verified" },
+        { "locator": "issue:FS-GG/FS.GG.Rendering#974", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "The upstream specification explicitly requires once-per-frame gamepad polling and independent analog controls.",
+        "The current InteractiveAppHost public record has no gamepad producer or polling field.",
+        "FS.GG.UI 0.21.1 was the latest public nuget.org release returned on 2026-08-01.",
+        "Closed issue #974 addressed host-wiring documentation, not a native gamepad seam; native device polling was not exercised."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:docs/api-surface/SkiaViewer/SkiaViewer.fsi", "result": "verified", "sha256": "9dd5427829652f35bc5bc6a18927fe135e952fa48344c08b0f548281e3f77109" },
+        { "locator": "file:docs/api-surface/Controls.Elmish/ControlsElmish.fsi", "result": "verified", "sha256": "f24b8a83bdd7a69f01314f7753abceded5f750d845bd6c4a597b466e3166d080" },
+        { "locator": "file:docs/api-surface/Controls/Pointer.fsi", "result": "verified", "sha256": "ca131da17e95e9267266c0ddcb22d852b0aa6c792192aea91aafb4e1636bb8fa" },
+        { "locator": "issue:FS-GG/FS.GG.Rendering#1040", "result": "verified" },
+        { "locator": "issue:FS-GG/FS.GG.Rendering#1044", "result": "verified" },
+        { "locator": "command:dotnet package search FS.GG.UI.Controls.Elmish --exact-match --source https://api.nuget.org/v3/index.json --format json", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "The lower InteractiveViewerHost exposes raw ViewerPointerInput, coalescing policies, counters, and pointer-paced runners.",
+        "InteractiveAppHost exposes only PointerInteraction to product fallback code; that union has no bare same-control move.",
+        "Issue #1040 and merged PR #1044 delivered lower-viewer pacing; a live 1,000-move Controls-composition run was not performed."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:src/Rogue3/PerformanceEvidence.fs", "result": "verified", "sha256": "82683752f6e2d60733f67470d03d3a0e79e7175b46da4ddc6ca6f2b0dba75b5b" },
+        { "locator": "file:readiness/performance-evidence.json", "result": "verified", "sha256": "ca29ee69ac42c3cbbe347eb8563d972f219b3e7c30a62e789a8a22d631bf5044" },
+        { "locator": "file:tests/Rogue3.Tests/InputTests.fs", "result": "verified", "sha256": "78d409613d45ebbd2eb27abd6e7b56f81e8be138f09a8cff8b6b45147f9d16a6" }
+      ],
+      "confidenceLimits": [
+        "All five workload definition digests match and all five final verdicts are green.",
+        "Exact scales are two fixed steps, two input resolutions where required, one maximum per-frame shot emission, and a 64-entry retained history.",
+        "The evidence is bounded-headless and does not establish native-input or compositor performance."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "command:git remote -v", "result": "verified" },
+        { "locator": "file:readiness/002-m1-input-twin-stick-control/ship-verdict.json", "result": "verified", "sha256": "12af3e909cb48a648ed77852f9db7795da1a228f6aebabda8c5ef94507b64553" }
+      ],
+      "confidenceLimits": [
+        "git remote -v exited successfully with empty output.",
+        "The local generated verdict is shipReady with 26 observed, zero self-attested evidence declarations and no blocking findings.",
+        "The same no-remote PR/merge boundary was already recorded in the M0 report."
+      ]
+    }
+  ]
+}
