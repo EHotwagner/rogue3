@@ -191,6 +191,10 @@ let private doorAndBossCues previous next =
     let afterLocked = next.M5Room.Doors |> List.exists locked
     [ if not beforeLocked && afterLocked then yield sfx "door-lock" 0.7
       if beforeLocked && not afterLocked then yield sfx "door-unlock" 0.7
+      // M11: derived from the TRANSITION, not from a message. A player descends by pressing interact
+      // on a trapdoor, which resolves inside a fixed step, so `msg` is `Tick` and never `DescendFloor`.
+      // A refused descent moves no floor index and is therefore silent for free.
+      if next.FloorIndex > previous.FloorIndex then yield sfx "floor-descend" 0.8
       if previous.M5Boss.IsNone && next.M5Boss.IsSome then yield sfx "boss-intro" 1.0
       match previous.M5Boss, next.M5Boss with
       | Some before, Some after when after.Phase > before.Phase -> yield sfx "boss-phase" 0.9
@@ -207,7 +211,10 @@ let private directEventCues msg previous next =
       | DamageM5Boss _ when next.M5Boss <> previous.M5Boss -> yield sfx "shot-hit" 0.7
       | RecordCoinsCollected count when count > 0 -> yield sfx "pickup-coin" 0.7
       | RecordItemFound -> yield sfx "item-pickup" 0.85
-      | DescendFloor -> yield sfx "floor-descend" 0.8
+      // NOTE: `floor-descend` is NOT cued here. It is STATE-DERIVED in `doorAndBossCues`, because
+      // M11's production route reaches a descent from inside a `Tick` — the audio seam never sees a
+      // `DescendFloor` message on a real descent, so a message-keyed cue would be audible only to a
+      // test that dispatched it. That is the exact defect this milestone exists to close.
       | _ -> () ]
 
 /// What this rogue3 asks to hear when `msg` takes it from `previous` to `next`.

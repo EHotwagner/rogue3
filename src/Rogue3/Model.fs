@@ -335,6 +335,9 @@ type Model =
       /// Pending secret/adjacent pairs examined by the §14.14 blast scan. A deterministic cost
       /// counter for the `secret-reveal` performance workload, not gameplay state.
       TotalSecretRevealCandidates: int
+      /// Doorway sensors examined by the M11 fixed-step door scan. A deterministic cost counter for
+      /// the `simulation.door-sensor-candidates` driver, bounded by the four walls of a room.
+      TotalDoorSensorQueries: int
       BlackHeartBursts: int
       EdgeActionCount: int
       M6Particles: M6Particle list
@@ -462,6 +465,51 @@ let wallMidpoint direction =
     | FloorGeneration.East -> vec2 playfieldWidth (playfieldHeight / 2.0)
     | FloorGeneration.South -> vec2 (playfieldWidth / 2.0) playfieldHeight
     | FloorGeneration.West -> vec2 0.0 (playfieldHeight / 2.0)
+
+// ------------------------------------------------------------------------------------------------
+// M11 doorway geometry. A room has at most one door per wall (two rooms cannot share a grid edge in
+// two directions), so a door's `Direction` fully determines where it sits: centred on that wall.
+//
+// THE SENSOR MUST BE SHALLOWER THAN THE ARRIVAL CLEARANCE. A crossing lands the player
+// `doorwayClearance` inside the destination's reciprocal doorway; if the sensor reached that far the
+// arrival would immediately re-trigger and the player would bounce between two rooms forever.
+// ------------------------------------------------------------------------------------------------
+
+/// Half the width of a doorway opening along its wall, in logical room units.
+let doorwayHalfSpan = 56.0
+
+/// How far into the room a doorway sensor reaches. Strictly less than `doorwayClearance`.
+let doorwaySensorDepth = 14.0
+
+/// How far inside the destination a crossing lands the player, measured from the wall it entered
+/// through. The player radius plus a margin, so the arrival never overlaps the wall it came through.
+let doorwayClearance = playerRadius + 4.0
+
+/// Wall-normal distance from `position` to the wall `direction` names, and the lateral offset from
+/// that wall's midpoint. Together they place a point relative to one doorway.
+let doorwayOffsets direction (position: Vec2) =
+    match direction with
+    | FloorGeneration.North -> position.Vy, position.Vx - playfieldWidth / 2.0
+    | FloorGeneration.South -> playfieldHeight - position.Vy, position.Vx - playfieldWidth / 2.0
+    | FloorGeneration.West -> position.Vx, position.Vy - playfieldHeight / 2.0
+    | FloorGeneration.East -> playfieldWidth - position.Vx, position.Vy - playfieldHeight / 2.0
+
+/// True when `position` is standing in the doorway on the wall `direction` names.
+let doorwaySensorContains direction position =
+    let depth, lateral = doorwayOffsets direction position
+    depth >= 0.0 && depth <= doorwaySensorDepth && abs lateral <= doorwayHalfSpan
+
+/// The drawn trapdoor sits at the centre of the room it belongs to, so it reads as a floor feature
+/// a player walks onto rather than a decoration parked near the HUD. Rendering and the `DescendFloor`
+/// guard consume this one record, so the fixture a player sees is the fixture the guard tests.
+let trapdoorHalfWidth = 44.0
+let trapdoorHalfHeight = 26.0
+let trapdoorCenter = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0)
+
+/// True when the player standing at `position` is on the trapdoor.
+let trapdoorContains (position: Vec2) =
+    abs (position.Vx - trapdoorCenter.Vx) <= trapdoorHalfWidth
+    && abs (position.Vy - trapdoorCenter.Vy) <= trapdoorHalfHeight
 
 let basePlayerStats =
     { Damage = 3.5
@@ -730,6 +778,7 @@ let initialModelForSeed seed =
       TotalHomingQueries = 0
       TotalCombatCandidates = 0
       TotalSecretRevealCandidates = 0
+      TotalDoorSensorQueries = 0
       BlackHeartBursts = 0
       EdgeActionCount = 0
       M6Particles = []
@@ -747,7 +796,10 @@ let initialModelForSeed seed =
       FloorNameTicks = 240
       AudioEvents = [] }
 
-let initialModel = initialModelForSeed 0xC0FFEEUL
+// `initialModel` is deliberately NOT defined here any more. M11: the state a player boots into must
+// have the starting room LOADED — its doors, obstacles and fixtures derived from the floor graph
+// through the same `loadM5Room` seam every other room uses. Hand-writing an empty `M5Room` here is
+// what made the starting room a sealed box. The binding now lives immediately after `loadM5Room`.
 
 /// Uniform centered logical-canvas transform used for world-to-screen presentation.
 type WorldScreenTransform =
@@ -826,6 +878,10 @@ let private arrowLeftKey = keyId ArrowLeft
 let private arrowRightKey = keyId ArrowRight
 let private qKey = keyId (Letter 'Q')
 let private fKey = keyId (Letter 'F')
+/// The interact key. `EvidenceCommands.shellConfig` already binds `E` to the rebindable `active`
+/// command; before M11 neither the key nor the command was read by anything, so no key a player could
+/// press reached a door or a trapdoor.
+let private eKey = keyId (Letter 'E')
 
 let private axis negative positive keys =
     (if Set.contains positive keys then 1.0 else 0.0)
@@ -1365,13 +1421,19 @@ let loadM5Room roomId model =
             else []
         let allEnemies=enemies@choirMembers
         let roomState : Rogue3.Entities.CombatRoom =
+            // `Doors` here is the DERIVED COMBAT-LOCK PROJECTION of `room.Doors` (§M11 one-door
+            // model): one entry per floor-graph door, in the same order, carrying only whether combat
+            // has sealed the room. Direction and door state live on `room.Doors` and nowhere else,
+            // and `Render` zips the two lists by index.
             { Rogue3.Entities.CombatRoom.IsBoss=isBoss
               Rogue3.Entities.CombatRoom.Cleared=room.Cleared
               Rogue3.Entities.CombatRoom.Doors=room.Doors|>List.map(fun _->Rogue3.Entities.DoorState.Open)
               Rogue3.Entities.CombatRoom.LiveEnemyIds=allEnemies|>List.map _.Id|>Set.ofList
               Rogue3.Entities.CombatRoom.Drop=None
               Rogue3.Entities.CombatRoom.Reward=(if isBoss then reward else None)
-              Rogue3.Entities.CombatRoom.Trapdoor=false }
+              // M11: the trapdoor is durable FLOOR state, so a room that records the fixture presents
+              // it every time it is entered — not only in the session whose boss died.
+              Rogue3.Entities.CombatRoom.Trapdoor=(room.Fixtures |> List.contains FloorGeneration.Trapdoor) }
             |> Rogue3.Entities.enterRoom (allEnemies|>List.map _.Id)
         let boss =
             if isBoss && not room.Cleared then
@@ -1381,6 +1443,14 @@ let loadM5Room roomId model =
         { model with Floor={model.Floor with CurrentRoom=roomId};M5Enemies=allEnemies;M5Boss=boss;M5ChoirMemberIds=choirMembers|>List.map _.Id|>Set.ofList;M5Room=roomState
                      M5Obstacles=typedObstacles;M5ShopSlots=shop;M5ObstacleDrops=[];Enemies=allEnemies|>List.map legacyEnemy;Obstacles=blocking
                      EnemyBullets=[];ShotSpawns=[] }
+
+/// The state a player actually boots into for `seed`: the generated floor with its START room
+/// LOADED. Before M11 the boot model hand-wrote `M5Room` with `Doors=[]` and `Trapdoor=false`, so the
+/// first room a player ever saw had no exits by construction — the room was a sealed box and the
+/// renderer was telling the truth about it.
+let bootModelForSeed seed = initialModelForSeed seed |> loadM5Room 0
+
+let initialModel = bootModelForSeed 0xC0FFEEUL
 
 let damageM5Enemy enemyId damage model =
     match model.M5Enemies |> List.tryFind(fun actor->actor.Id=enemyId) with
@@ -1738,11 +1808,84 @@ let private stepSimWithInput pressedThisTick model =
 
 let stepSim model = stepSimWithInput Set.empty model
 
+/// True on the rising edge of the interact input, from either the raw `E` key or the rebindable
+/// `active` command the shell routes.
+///
+/// `isFirstStep` is load-bearing. `advanceSim` rotates `Input.Previous` only AFTER the whole step
+/// loop, so the command comparison stays true on every step of a multi-step host frame; the raw-key
+/// arm is already gated because `advanceSim` passes an empty pressed-set after the first step. Both
+/// arms must agree, or one host frame would raise the same edge up to five times.
+let private interactPressed isFirstStep pressedThisTick (model: Model) =
+    Set.contains eKey pressedThisTick
+    || (isFirstStep
+        && Set.contains "active" model.Input.Current.Commands
+        && not (Set.contains "active" model.Input.Previous.Commands))
+
+/// True when the current room's derived combat lock has sealed the doorway at `index`.
+let private doorwaySealed index (model: Model) =
+    match List.tryItem index model.M5Room.Doors with
+    | None
+    | Some Rogue3.Entities.DoorState.Open -> false
+    | Some _ -> true
+
+/// True when `roomId` records the trapdoor fixture AND the loaded room agrees.
+let trapdoorPresent (model: Model) =
+    model.M5Room.Trapdoor
+    && (match Map.tryFind model.Floor.CurrentRoom model.Floor.Rooms with
+        | Some room -> room.Fixtures |> List.contains FloorGeneration.Trapdoor
+        | None -> false)
+
+/// True when the player may descend: the room depicts a trapdoor and the player is standing on it.
+let canDescend (model: Model) = trapdoorPresent model && trapdoorContains model.PlayerPosition
+
+// ------------------------------------------------------------------------------------------------
+// M11: the missing link. This is what turns "the player walked into a doorway" or "the player pressed
+// interact on a trapdoor" into a production `Msg`.
+//
+// It RAISES the same messages a test or a journey raises — it does not re-implement the transition.
+// `advanceSim` folds them through `update`, so there is exactly one traversal transition in the
+// product, `Replay` needs no new entry kind, and a crossing replays from `KeyChanged` + `Tick` alone.
+// ------------------------------------------------------------------------------------------------
+let playerRoomIntentsIn isFirstStep pressedThisTick (model: Model) : Model * Msg list =
+    let doors =
+        match Map.tryFind model.Floor.CurrentRoom model.Floor.Rooms with
+        | Some room -> room.Doors
+        | None -> []
+
+    let scanned = { model with TotalDoorSensorQueries = model.TotalDoorSensorQueries + doors.Length }
+
+    let doorIntents =
+        doors
+        |> List.indexed
+        |> List.tryFind (fun (_, door) -> doorwaySensorContains door.Direction model.PlayerPosition)
+        |> Option.map (fun (index, door) ->
+            if doorwaySealed index model then []
+            else
+                match door.State with
+                | FloorGeneration.Open
+                | FloorGeneration.BossDoor -> [ TraverseDoor door.ToRoom ]
+                // Walking into a key door with a key spends it and opens the pair. Crossing happens on
+                // a later step, because the traversal arm above only accepts an already-usable door.
+                | FloorGeneration.LockedKey when model.PlayerCurrency.Keys > 0 -> [ UnlockDoor door.ToRoom ]
+                | FloorGeneration.LockedKey
+                | FloorGeneration.HiddenWall -> [])
+        |> Option.defaultValue []
+
+    let descentIntents =
+        // `DescendFloor` replaces every room-local collection but does not load a room, so the route
+        // follows it with the production room-entry message. Both are guarded reducers.
+        if interactPressed isFirstStep pressedThisTick model && canDescend model then [ DescendFloor; EnterM5Room 0 ]
+        else []
+
+    scanned, doorIntents @ descentIntents
+
+let playerRoomIntents pressedThisTick model = playerRoomIntentsIn true pressedThisTick model
+
 // Fixed-timestep advance: fold the host's real elapsed `dt` into the carried accumulator, drain the
 // whole number of `simInterval` steps out of it, and run `stepSim` that many times. `FixedStep.drain`
 // is a pure FS.GG.Game.Core primitive (no wall-clock read), so a scripted `dt` sequence replays
 // byte-identically. This is the accumulator + stepSim pattern — the shape most games want on Tick.
-let private advanceSim dtSeconds (model: Model) =
+let private advanceSim (dispatch: Msg -> Model -> Model) dtSeconds (model: Model) =
     let struct (steps, accumulator) =
         FixedStep.drainWith maxFrameTime fixedDt dtSeconds model.SimAccumulator
     let currentKeys = Set.union model.Input.Current.Keys model.Input.Current.Gamepad.Buttons
@@ -1757,7 +1900,12 @@ let private advanceSim dtSeconds (model: Model) =
         let hadFinalBoss = model.FloorIndex=6 && model.M5Boss.IsSome
         for stepIndex in 1..steps do
             if not terminalStep then
-                m <- stepSimWithInput (if stepIndex = 1 then pressedThisTick else Set.empty) m
+                let pressed = if stepIndex = 1 then pressedThisTick else Set.empty
+                m <- stepSimWithInput pressed m
+                // Apply this step's player intents BEFORE the next step, so a crossing relocates the
+                // player immediately and the same doorway cannot fire twice inside one host frame.
+                let scanned, intents = playerRoomIntentsIn (stepIndex = 1) pressed m
+                m <- intents |> List.fold (fun state message -> dispatch message state) scanned
                 executed <- executed+1
                 terminalStep <-
                     (m.PlayerLifeState=Dead || totalHalfHearts m.PlayerHealth=0)
@@ -1831,7 +1979,10 @@ let private finishDeathIfNeeded model =
 
 let init () : Model * AdapterCommand<Msg> = initialModel, Cmd.none
 
-let update msg model : Model * AdapterCommand<Msg> =
+// `rec` because M11's fixed step raises production messages and `advanceSim` folds them through this
+// same function. That is the point: there is ONE traversal transition, and the route a player takes
+// reaches it by dispatching the very message the acceptance tests dispatch.
+let rec update msg model : Model * AdapterCommand<Msg> =
     match msg with
     // Identity (issue #458). `Started` ANNOUNCES the initial state; it does not build it —
     // `initialModel` already did. Its whole job is to give the cue seam a transition to look at, so
@@ -1839,7 +1990,7 @@ let update msg model : Model * AdapterCommand<Msg> =
     | Started -> model, Cmd.none
     | Tick _ when model.RunOutcome.IsSome -> model, Cmd.none
     | Tick dtSeconds ->
-        let advanced=advanceSim dtSeconds model |> finishDeathIfNeeded
+        let advanced=advanceSim (fun message state -> update message state |> fst) dtSeconds model |> finishDeathIfNeeded
         let terminal=
             if advanced.RunActive && model.FloorIndex=6 && model.M5Boss.IsSome && advanced.M5Boss.IsNone then
                 finishRun true None advanced
@@ -1896,24 +2047,35 @@ let update msg model : Model * AdapterCommand<Msg> =
             let wall = wallMidpoint opposite
             let inward =
                 match opposite with
-                | FloorGeneration.North -> vec2 0.0 (playerRadius + 4.0)
-                | FloorGeneration.East -> vec2 -(playerRadius + 4.0) 0.0
-                | FloorGeneration.South -> vec2 0.0 -(playerRadius + 4.0)
-                | FloorGeneration.West -> vec2 (playerRadius + 4.0) 0.0
+                | FloorGeneration.North -> vec2 0.0 doorwayClearance
+                | FloorGeneration.East -> vec2 -doorwayClearance 0.0
+                | FloorGeneration.South -> vec2 0.0 -doorwayClearance
+                | FloorGeneration.West -> vec2 doorwayClearance 0.0
             let slide =
                 match direction with
                 | FloorGeneration.North -> RoomSlideDirection.North
                 | FloorGeneration.East -> RoomSlideDirection.East
                 | FloorGeneration.South -> RoomSlideDirection.South
                 | FloorGeneration.West -> RoomSlideDirection.West
+            // NOTE: no camera transition is started here, and that is deliberate. `Render.cameraOffset`
+            // begins a slide ONE FULL ROOM away (M6's contract, asserted in M6RenderingEnemySymbologyTests)
+            // and nothing draws the room being left, so the first frames of a slide are an empty screen.
+            // Nothing dispatched `TraverseDoor` before M11, so that had never been seen; making
+            // traversal reachable would have shipped a 0.35 s blank screen on every door a player
+            // crosses. Rendering both rooms through a slide is real work and is on the roadmap.
+            ignore slide
+
             loadM5Room
                 roomId
                 { model with
                     Floor = floor
-                    PlayerPosition = add wall inward
-                    M6CameraTransition = Some { Direction = slide; ElapsedTicks = 0 } }, Cmd.none
+                    PlayerPosition = add wall inward }, Cmd.none
     | BossCleared roomId ->
         { model with Floor = FloorGeneration.clearBoss roomId model.Floor }, Cmd.none
+    // §M11: a descent is guarded by the state it DEPICTS. Before this the reducer descended
+    // unconditionally from anywhere — which is why level progression's journeys passed from a
+    // trapdoor-less starting room.
+    | DescendFloor when not (canDescend model) -> model, Cmd.none
     | DescendFloor ->
         let nextIndex = model.FloorIndex + 1
         let generated = FloorGeneration.generateWithPool model.RunSeed nextIndex model.M5ItemPool
@@ -1951,7 +2113,8 @@ let update msg model : Model * AdapterCommand<Msg> =
         { model with M6CameraTransition = Some { Direction = direction; ElapsedTicks = 0 } }, Cmd.none
     | StartRun seed ->
         let scaling = difficultyScaling model.Profile.Settings.Difficulty
-        let started = initialModelForSeed seed
+        // M11: start the run in a LOADED start room, through the same seam every other room uses.
+        let started = bootModelForSeed seed
         { started with
             Profile=model.Profile
             ActiveDifficulty=Some scaling

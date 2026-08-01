@@ -204,6 +204,15 @@ let generateWithPool runSeed floorIndex initialItemPool =
         cardinal
         |> List.choose (fun d -> Map.tryFind (cellKey (addCell cell d)) cells)
         |> List.iter (fun (adjacentId,_,_,_) -> pending <- Map.add (struct (adjacentId, secretId)) secretId pending)
+    // M11: a still-hidden secret is reachable through a HIDDEN WALL, which is a real door record and
+    // a real graph adjacency — not an absence. The wall is drawn (a cracked seam a player can see and
+    // aim a bomb at) and `tryTraverseDoor` refuses it, because it accepts only `Open` and `BossDoor`.
+    // Committing the adjacency here keeps the "no door without its graph adjacency" invariant true
+    // for hidden walls too, and lets `revealSecret` FLIP the pair rather than grow a second one.
+    for KeyValue(struct (adjacentId, secretId), _) in pending do
+        graph <- addEdge adjacentId secretId graph
+    let isPendingSecret a b =
+        Map.containsKey (struct (a, b)) pending || Map.containsKey (struct (b, a)) pending
     let mutable rooms = Map.empty
     let fallbackReward () =
         let choices = [| Rogue3.Entities.PickupKind.Coin3; Rogue3.Entities.PickupKind.Key; Rogue3.Entities.PickupKind.Bomb; Rogue3.Entities.PickupKind.SoulHeart |]
@@ -239,7 +248,8 @@ let generateWithPool runSeed floorIndex initialItemPool =
                 // one key opens both records. Locking only the approach to the treasure room left a
                 // half-locked pair that no single unlock transition could resolve.
                 let state =
-                    if otherKind = Boss || kind = Boss then BossDoor
+                    if isPendingSecret id other then HiddenWall
+                    elif otherKind = Boss || kind = Boss then BossDoor
                     elif otherKind = Treasure || kind = Treasure then LockedKey
                     else Open
                 { ToRoom = other; Direction = direction cell otherCell; State = state })
@@ -255,9 +265,16 @@ let revealSecret adjacentRoom secretRoom floor =
     else
         let a = floor.Rooms.[adjacentRoom]
         let s = floor.Rooms.[secretRoom]
-        let aDoor = { ToRoom=secretRoom; Direction=direction a.Cell s.Cell; State=Open }
-        let sDoor = { ToRoom=adjacentRoom; Direction=direction s.Cell a.Cell; State=Open }
-        let rooms = floor.Rooms |> Map.add adjacentRoom { a with Doors=aDoor::a.Doors } |> Map.add secretRoom { s with Hidden=false; Doors=sDoor::s.Doors }
+        // M11: generation already wrote the reciprocal HIDDEN WALL pair, so the reveal FLIPS those
+        // records rather than prepending a second pair — otherwise a revealed secret would carry two
+        // doors to the same room, one of them permanently impassable. The prepend survives only as a
+        // fallback for a hand-built floor whose hidden-wall pair was never generated.
+        let openTowards target (doors: Door list) =
+            if doors |> List.exists (fun door -> door.ToRoom = target && door.State = HiddenWall) then
+                doors |> List.map (fun door -> if door.ToRoom = target && door.State = HiddenWall then { door with State = Open } else door)
+            elif doors |> List.exists (fun door -> door.ToRoom = target) then doors
+            else { ToRoom = target; Direction = direction floor.Rooms.[if target = secretRoom then adjacentRoom else secretRoom].Cell floor.Rooms.[target].Cell; State = Open } :: doors
+        let rooms = floor.Rooms |> Map.add adjacentRoom { a with Doors=openTowards secretRoom a.Doors } |> Map.add secretRoom { s with Hidden=false; Doors=openTowards adjacentRoom s.Doors }
         { floor with Rooms=rooms; Graph=addEdge adjacentRoom secretRoom floor.Graph; PendingSecrets=floor.PendingSecrets |> Map.remove (struct(adjacentRoom,secretRoom)); MapRevealed=Set.add secretRoom floor.MapRevealed }
 
 /// Record that an obstacle was destroyed in `roomId`, so a later visit rebuilds the room without it.

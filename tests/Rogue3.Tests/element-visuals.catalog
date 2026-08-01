@@ -24,11 +24,16 @@ BossHollowChoir	shown	token/boss/hollowchoir
 BossMaw	shown	token/boss/maw
 ShopItem	shown	scene/shop-item
 DoorOpen	shown	scene/door/open
+DoorLockedKey	shown	scene/door/locked-key
+DoorBossDoor	shown	scene/door/boss-door
+DoorHiddenWall	shown	scene/door/hidden-wall
 DoorLockedClear	shown	scene/door/locked-clear
 DoorBossSealed	shown	scene/door/boss-sealed
+RoomWalls	shown	scene/room-walls
 RoomDrop	shown	scene/room-drop
 RoomReward	shown	scene/room-reward
 Trapdoor	shown	scene/trapdoor
+TrapdoorReady	shown	scene/trapdoor-ready
 Shadow	shown	scene/shadow
 Player	shown	scene/player
 PlayerShot	shown	scene/player-shot

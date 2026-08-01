@@ -16,7 +16,11 @@ type GameplayVisualElement =
     | EnemyGrub | EnemyMaggot | EnemySpitter | EnemyFly
     | EnemyCharger | EnemyTurret | EnemyCaster | EnemyBrute
     | BossGnawer | BossHollowChoir | BossMaw
-    | ShopItem | DoorOpen | DoorLockedClear | DoorBossSealed
+    | ShopItem
+    // M11: one element per door PRESENTATION. The first three come from the floor graph's own
+    // `DoorState`; the last two are the room's combat lock, which hides whatever the graph says.
+    | DoorOpen | DoorLockedKey | DoorBossDoor | DoorHiddenWall | DoorLockedClear | DoorBossSealed
+    | RoomWalls | TrapdoorReady
     | RoomDrop | RoomReward | Trapdoor | Shadow | Player | PlayerShot | EnemyBullet | PlacedBomb | Particle | HudScore | RunResultOverlay
 
 let all =
@@ -52,8 +56,13 @@ let handle = function
     | BossMaw -> "token/boss/maw"
     | ShopItem -> "scene/shop-item"
     | DoorOpen -> "scene/door/open"
+    | DoorLockedKey -> "scene/door/locked-key"
+    | DoorBossDoor -> "scene/door/boss-door"
+    | DoorHiddenWall -> "scene/door/hidden-wall"
     | DoorLockedClear -> "scene/door/locked-clear"
     | DoorBossSealed -> "scene/door/boss-sealed"
+    | RoomWalls -> "scene/room-walls"
+    | TrapdoorReady -> "scene/trapdoor-ready"
     | RoomDrop -> "scene/room-drop"
     | RoomReward -> "scene/room-reward"
     | Trapdoor -> "scene/trapdoor"
@@ -112,8 +121,26 @@ let private playerShot =
 let private enemyBullet =
     { Id=1;Position=vec2 760.0 360.0;Velocity=zero;Radius=4.0;Damage=1;Homing=0.0;AgeTicks=0 }
 
-let private roomWith doors drop reward trapdoor =
-    { initialModel.M5Room with Doors=doors;Drop=drop;Reward=reward;Trapdoor=trapdoor }
+/// A production model standing in the current floor room, rewritten to carry `doorStates` on the
+/// FLOOR GRAPH plus the derived combat `locks`. M11 renders doors from the graph, so a visual fixture
+/// that only set the cosmetic `M5Room.Doors` list would prove nothing about what a player sees.
+let private roomShowing doorStates locks trapdoor drop reward =
+    let model = initialModel
+    let roomId = model.Floor.CurrentRoom
+    let room = model.Floor.Rooms.[roomId]
+    let doors =
+        doorStates
+        |> List.mapi (fun index (direction, state) ->
+            { FloorGeneration.ToRoom = 500 + index
+              FloorGeneration.Direction = direction
+              FloorGeneration.State = state })
+    let fixtures =
+        if trapdoor && not (room.Fixtures |> List.contains FloorGeneration.Trapdoor) then
+            room.Fixtures @ [ FloorGeneration.Trapdoor ]
+        else room.Fixtures
+    { model with
+        Floor = { model.Floor with Rooms = Map.add roomId { room with Doors = doors; Fixtures = fixtures } model.Floor.Rooms }
+        M5Room = { model.M5Room with Doors = locks; Drop = drop; Reward = reward; Trapdoor = trapdoor } }
 
 let private evidenceModel element =
     match kindOfEnemy element, kindOfBoss element, kindOfObstacle element, kindOfPickup element with
@@ -127,18 +154,37 @@ let private evidenceModel element =
     | _ ->
         match element with
         | ShopItem -> { initialModel with M5ShopSlots=sampleShopSlots }
-        | DoorOpen -> { initialModel with M5Room=roomWith [DoorState.Open] None None false }
-        | DoorLockedClear -> { initialModel with M5Room=roomWith [DoorState.LockedClear] None None false }
-        | DoorBossSealed -> { initialModel with M5Room=roomWith [DoorState.BossSealed] None None false }
-        | RoomDrop -> { initialModel with M5Room=roomWith [] (Some PickupKind.Key) None false }
-        | RoomReward -> { initialModel with M5Room=roomWith [] None (Some baseItems.Head) false }
-        | Trapdoor -> { initialModel with M5Room=roomWith [] None None true }
+        | DoorOpen -> roomShowing [ FloorGeneration.North, FloorGeneration.Open ] [ DoorState.Open ] false None None
+        | DoorLockedKey -> roomShowing [ FloorGeneration.East, FloorGeneration.LockedKey ] [ DoorState.Open ] false None None
+        | DoorBossDoor -> roomShowing [ FloorGeneration.South, FloorGeneration.BossDoor ] [ DoorState.Open ] false None None
+        | DoorHiddenWall -> roomShowing [ FloorGeneration.West, FloorGeneration.HiddenWall ] [ DoorState.Open ] false None None
+        | DoorLockedClear -> roomShowing [ FloorGeneration.North, FloorGeneration.Open ] [ DoorState.LockedClear ] false None None
+        | DoorBossSealed -> roomShowing [ FloorGeneration.North, FloorGeneration.BossDoor ] [ DoorState.BossSealed ] false None None
+        | RoomWalls -> roomShowing [ FloorGeneration.North, FloorGeneration.Open; FloorGeneration.East, FloorGeneration.LockedKey ] [ DoorState.Open; DoorState.Open ] false None None
+        | RoomDrop -> roomShowing [] [] false (Some PickupKind.Key) None
+        | RoomReward -> roomShowing [] [] false None (Some baseItems.Head)
+        | Trapdoor -> roomShowing [] [] true None None
+        // The ready state must be a model the DESCENT GUARD accepts, not merely one that
+        // carries the fixture: the player has to be standing on the trapdoor.
+        | TrapdoorReady ->
+            roomShowing [] [] true None None
+            |> fun model -> { model with PlayerPosition = trapdoorCenter }
         | PlayerShot -> { initialModel with ShotSpawns=[ playerShot ] }
         | EnemyBullet -> { initialModel with EnemyBullets=[ enemyBullet ] }
         | PlacedBomb ->
             { initialModel with Bombs=[ {Id=1;Position=vec2 700.0 390.0;FuseTicks=bombFuseTicks} ] }
         | Particle -> update (SpawnM6Particles(1, vec2 640.0 360.0, ParticleTint.Explosion)) initialModel |> fst
-        | HudScore -> { initialModel with LeftScore=7;RightScore=3 }
+        // `LeftScore`/`RightScore` are the Pong starter's fields and the HUD reads NEITHER, so the
+        // previous representative state was a no-op that exercised nothing it claimed to. Vary
+        // what the HUD actually draws: hearts of all three kinds, currency, charge and a
+        // multi-room minimap.
+        | HudScore ->
+            { initialModel with
+                PlayerHealth = { RedContainers=4; RedHalfHearts=5; SoulHalfHearts=3; BlackHalfHearts=2 }
+                PlayerCurrency = { Coins=42; Keys=3; Bombs=7 }
+                ActiveCharge = 4
+                FloorNameTicks = 120
+                Floor = { initialModel.Floor with MapRevealed = initialModel.Floor.Rooms |> Map.toList |> List.map fst |> Set.ofList } }
         | RunResultOverlay ->
             finishRun false (Some DeathCause.Trap) { initialModel with RunActive=true;RunStats={emptyRunStats with DepthReached=3} }
         | FloorBackground | Shadow | Player -> initialModel
