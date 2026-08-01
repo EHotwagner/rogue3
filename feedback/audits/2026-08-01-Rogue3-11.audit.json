@@ -139,12 +139,12 @@
         {
           "locator": "file:work/011-m10-acceptance-determinism/evidence.yml",
           "result": "verified",
-          "sha256": "b59e5222f42d45b602599a2d4271710a626a7061ac0d24d9eef285848a0c2611"
+          "sha256": "cea3aef9ddd8fe22468651c8aa3cb98a8d89ec38c6e161b1329f32f917057e0c"
         },
         {
           "locator": "file:readiness/011-m10-acceptance-determinism/ship-verdict.json",
           "result": "verified",
-          "sha256": "038b29c5bce5de024cbcbc41f1e29dd910fc2aa5f76d035339e9b08e6c757caa"
+          "sha256": "3719cbc595a8d4989109f117f0065beb1075c7642518f3c607090f599796e14e"
         },
         {
           "locator": "command:fsgg-sdd ship --work 011-m10-acceptance-determinism --text",

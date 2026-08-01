@@ -417,7 +417,7 @@ evidence:
       passed: 183
       failed: 0
       skipped: 0
-    notes: ["The added secret-reveal workload detonates exactly one staggered-fuse bomb per sampled fixed step at maximum content, observing one scanned pending pair per step, three live pending secrets and 48 placed bombs, at p95 4.7482 ms and p99 5.7418 ms with zero catch-up frames; the six existing workloads keep their identities and exact scale gates."]
+    notes: ["The added secret-reveal workload detonates exactly one staggered-fuse bomb per sampled fixed step at maximum content, observing one scanned pending pair per step, three live pending secrets and 48 placed bombs, with zero catch-up frames and p95 4.5793 ms and p99 6.0677 ms in the committed artifact. Percentiles are re-measured on every regeneration, so the structural counters rather than the timings are the durable gate. The six existing workloads keep their identities and exact scale gates."]
   - id: EV017
     kind: verification
     subject:
