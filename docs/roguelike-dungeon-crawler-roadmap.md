@@ -86,8 +86,10 @@ Evidence (2026-08-01): full Release 128/128; six runner-issued bounded-headless 
 Evidence (2026-08-01): full Release 140/140 and focused M7 12/12; six governed bounded-headless workloads plus fail-closed menu/HUD/stats routes green; responsive HUD rasters at 1280×720 and 1920×1080 have non-overlapping anchors, and the stats raster shows four KPI tiles, five depth buckets, and distinct Dealt/Taken traces; exact implementation SHA `99a0c2d5458c1889e420b28b5941273359f51521` was accepted by independent functional and performance critics; SDD verdict `readiness/008-m7-ui-menus-stats/ship-verdict.json` is `shipReady` with 17/17 supported and observed obligations. Delivery is local-only because this checkout has no configured remote.
 
 ### M8 — Audio
-- 🟥 `AudioEffect` cues per event, `Audio.interpret` → `AudioEvidence.Requested` (§10)
-- 🟥 Per-context music loop (one track at a time), volume clamp `[0,1]` + mute (§10)
+- 🟩 `AudioEffect` cues per event, `Audio.interpret` → `AudioEvidence.Requested` (§10)
+- 🟩 Per-context music loop (one track at a time), volume clamp `[0,1]` + mute (§10)
+
+Evidence (2026-08-01): focused M8 5/5 and full Release/Verify 145/145; all 18 §10 cue IDs/volumes, ordered stop-before-loop replacements through the production shell, and clamp/mute requests are asserted at `AudioEvidence.Requested`; six unchanged-scale governed workloads pass, with maximum-content p95 15.9476 ms and p99 18.4669 ms; exact implementation SHA `b92e48e754368b4eafe57b3bb13e21235f956fe6` was accepted by independent functional and performance critics; SDD verdict `readiness/009-m8-audio/ship-verdict.json` is `shipReady` with 12/12 supported and observed obligations and zero synthetic/deferred/stale/missing evidence. Delivery is local-only because this checkout has no configured remote; device/speaker playback is not claimed.
 
 ### M9 — Win/loss & permadeath
 - 🟥 Final-boss (Floor 6) defeat → `Victory` screen + unlock (§11)
