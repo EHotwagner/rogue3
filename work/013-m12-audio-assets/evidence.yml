@@ -11,27 +11,27 @@ sourceAnalysis: readiness/013-m12-audio-assets/analysis.json
 sourceSnapshots:
   - label: analysis
     path: readiness/013-m12-audio-assets/analysis.json
-    digest: d4b8b441b67b45f285da3f3b59a03efbe5d931316fb52ec268797b7b633f917a
+    digest: adefd62d34864621cb486a7efad34d07052017f2d4feb692f7ce484dcd93ba14
     schemaVersion: 1
   - label: checklist
     path: work/013-m12-audio-assets/checklist.md
-    digest: aed8c3ca2abd9c547b4f55d57cefc2082f39eb6b384e55d311f6eb8bce93d645
+    digest: afa903638a4423442ae7c6468fc4f8e8272a16a8ac0852d39f398196cb028e2d
     schemaVersion: 1
   - label: clarifications
     path: work/013-m12-audio-assets/clarifications.md
-    digest: 8eebe640835bcf472881f7af1645a36575d78f02e13b8737fd24c29fc4718cc4
+    digest: c8d0dfd03aacf1d763a830b5b4154cba08b71a1e99cd7f68f6b01064cb49bedf
     schemaVersion: 1
   - label: plan
     path: work/013-m12-audio-assets/plan.md
-    digest: a44fd7c804549c631fe1acd45443a6365f3d764daec1f771389163d30c4b91df
+    digest: 228b088e5c56df4e3c85989f681c0de114517437c8118d93e6cf2208a67de65f
     schemaVersion: 1
   - label: spec
     path: work/013-m12-audio-assets/spec.md
-    digest: 86441e841e5defdfb5f4652208bc0d83ca4917ab1c223a8db77fca724fe3598f
+    digest: 3302dd80da2b5e61eedb0ac2d87293268cabf9f4401ce7aa5ff634092dbf6316
     schemaVersion: 1
   - label: tasks
     path: work/013-m12-audio-assets/tasks.yml
-    digest: 4ae2ce1a05d6b665bd684f58c293b9883728f5f15016c05a64c9089f03e03dbb
+    digest: 6fb9c711b2c7086785addfdee3b7fde6edffefb49851ea00a699dc2d4bf9cb80
     schemaVersion: 1
 evidence:
   - id: EV001
@@ -41,7 +41,7 @@ evidence:
       id: T001
     taskRefs: [T001]
     requirementRefs: [FR-001]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-001]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: []
@@ -52,12 +52,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["AC-001. Rogue3.AudioCueIds is the single declaration: it exports one named string per cue id plus floorTheme, and sounds/tracks are built from those same values. AudioCues.fs builds every SoundId and TrackId from it and holds no cue id literal of its own; scripts/generate-audio-assets.fsx loops over the same lists; M12AudioAssetTests enumerates them too. No cue id string is written into the test."]
+    notes: ["AC-001. Rogue3.AudioCueIds is the single declaration: it exports one named string per cue id plus floorTheme, and sounds/tracks are built from those same values. AudioCues.fs builds every SoundId and TrackId from it, scripts/generate-audio-assets.fsx loops over it, and M12AudioAssetTests enumerates it. No cue id LIST is written into the test; the only id strings the test names are the two floor-theme boundary spellings it deliberately pins (floor-1-theme, floor-6-theme), so a silent change to the id scheme is caught."]
   - id: EV002
     kind: verification
     subject:
@@ -65,7 +65,7 @@ evidence:
       id: T002
     taskRefs: [T002]
     requirementRefs: [FR-002]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-002]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: []
@@ -76,9 +76,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["AC-002. Every one of the 29 declared ids resolves to Some bytes through Rogue3.AudioCues.resolver, the exact value Program.fs:134 hands to OpenAlBackend.create. Sounds go through ResolveSound and tracks through ResolveTrack, so both halves of AssetResolver are exercised rather than one standing in for the other."]
@@ -89,7 +89,7 @@ evidence:
       id: T003
     taskRefs: [T003]
     requirementRefs: [FR-003]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-003]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: []
@@ -100,9 +100,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["AC-003. The resolved bytes are parsed by the shipped FS.GG.Audio.Host.Wav.tryParse - the same structural parse the OpenAL backend applies before upload - and every asset reports FormatTag = Wav.FormatPcm, Channels 1, BitsPerSample 16 and a non-empty data chunk. A zero-byte or non-PCM placeholder fails: the scenario asserts an empty byte array and arbitrary ASCII both return not-wav."]
@@ -113,7 +113,7 @@ evidence:
       id: T004
     taskRefs: [T004]
     requirementRefs: [FR-004]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-004]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: []
@@ -124,12 +124,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["AC-004. The gate is shown to discriminate rather than assumed to. The same predicate applied to the undeclared id m12-id-that-has-no-asset returns Error unresolved through both ResolveSound and ResolveTrack, and the failure message names every id that failed and why. Mutation-checked twice against the live tree: removing readiness/013-m12-audio-assets/audio-asset-evidence.txt reds three of the seven scenarios naming title-theme, and truncating shot-fire.wav to zero bytes reds them naming not-wav (0 bytes)."]
+    notes: ["AC-004. The gate is shown to discriminate rather than assumed to. The same predicate applied to the undeclared id m12-id-that-has-no-asset returns Error unresolved through both ResolveSound and ResolveTrack, and empty and arbitrary bytes return not-wav. Mutation-checked against the live tree, each mutation applied and reverted: deleting assets/audio/title-theme.wav reds three of the nine scenarios naming title-theme; truncating shot-fire.wav to zero bytes reds them with not-wav (0 bytes); replacing one AudioCueIds reference in AudioCues.fs with an inline literal reds two, naming the literal; and reverting AudioCues.track to its pre-M12 interpolated form reds two, naming the interpolated id and the undeclared floor-9-theme."]
   - id: EV005
     kind: verification
     subject:
@@ -137,7 +137,7 @@ evidence:
       id: T005
     taskRefs: [T005]
     requirementRefs: [FR-005]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-005]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: []
@@ -148,12 +148,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["AC-005. The drift scan reads src/Rogue3/AudioCues.fs from the repository root resolved by walking up from the test assembly, fails rather than skipping if it cannot find it, strips comment text outside string literals, and asserts every remaining SoundId, TrackId or sfx literal is a value AudioCueIds exports. The scanner is proved on a four-line fixture first, so an empty report is trusted only once the regex is known to work. Mutation-checked: replacing one AudioCueIds reference with an inline literal reds this scenario naming the literal."]
+    notes: ["AC-005. The drift scan reads every .fs under src/Rogue3/ from the repository root resolved by walking up from the test assembly, fails rather than skipping if it cannot find it, asserts it found a populated source directory containing AudioCues.fs, strips comment text outside string literals, and requires three empty sets: no plain cue id literal at all, no interpolated cue id, and no sprintf/String.Format construction. The scanner is proved on a five-line fixture first, so an empty report is trusted only once the regex is known to work."]
   - id: EV006
     kind: verification
     subject:
@@ -161,7 +161,7 @@ evidence:
       id: T006
     taskRefs: [T006]
     requirementRefs: [FR-006]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-006]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: []
@@ -172,12 +172,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["AC-006. AudioCueIds.floorTheme clamps into [1, floorThemeCount] so the parameterized family is total by construction. The scenario evaluates it across -3 .. 12 and asserts every result is in AudioCueIds.tracks, that floor 1 and floor 6 keep their authored ids, and that indices outside the range reuse the nearest floor's loop rather than falling silent. Before this, AudioCues.track interpolated an unbounded index and a seventh floor would have requested an undeclared track."]
+    notes: ["AC-006. AudioCueIds.floorTheme clamps into [1, floorThemeCount] so the family is total by construction, proved across -3 .. 12. Totality of the declaration is not enough on its own, so the shipped public cue map AudioCues.replaceWithCurrentMusic is driven at every index in -2 .. 9 and every track it requests must be declared: reverting AudioCues.track to its pre-M12 interpolated form left every other scenario green precisely because the declaration was still total while nothing consulted it."]
   - id: EV007
     kind: verification
     subject:
@@ -185,7 +185,7 @@ evidence:
       id: T007
     taskRefs: [T007]
     requirementRefs: [FR-007]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-007]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: []
@@ -196,12 +196,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["AC-007. dotnet fsi scripts/generate-audio-assets.fsx wrote exactly 29 .wav files, one per declared id and no others, totalling 2,311,678 bytes. Reproducibility is asserted as a test rather than claimed: for every declared id the bytes on disk equal AudioSynthesis.render id, computed from compiled product source, in both Debug and Release. AudioSynthesis uses no libm call - a polynomial sine, polynomial envelopes and an integer LCG - so the comparison holds across platforms and runtimes rather than only on the machine that generated the files."]
+    notes: ["AC-007. dotnet fsi scripts/generate-audio-assets.fsx wrote exactly 29 .wav files, one per declared id, totalling 2,311,678 bytes, and re-running it produced no diff. Reproducibility is asserted as a test rather than claimed: for every declared id the bytes on disk equal AudioSynthesis.render id, computed from compiled product source, in the committed Release run. Both directions of 'and no others' are asserted against the committed directory: every declared id has a file, and no file in assets/audio is undeclared. AudioSynthesis uses no libm call - a polynomial sine, polynomial envelopes and an integer LCG - so the comparison holds across platforms, which the ubuntu-latest CI run confirms against files generated on Arch."]
   - id: EV008
     kind: verification
     subject:
@@ -209,7 +209,7 @@ evidence:
       id: T008
     taskRefs: [T008]
     requirementRefs: [FR-008]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-008]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: []
@@ -220,9 +220,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["AC-008. AudioCues resolution probes the process working directory and then AppContext.BaseDirectory, and both project files copy assets/audio/*.wav beside their assembly. Proved from a foreign directory: the shipped binary run with working-directory=/tmp/.../scratchpad and base-directory=.../bin/Release/net10.0/ reported resolved=29 unresolved=0. Before this the product was audible only when launched from the one directory the assets sat beside."]
@@ -233,7 +233,7 @@ evidence:
       id: T009
     taskRefs: [T009]
     requirementRefs: [FR-009]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-009]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: []
@@ -244,12 +244,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["AC-009. The shipped build was launched as a player launches it - dotnet run --project src/Rogue3, a real window on the host compositor - and printed NO FS.GG.Audio.Host unresolved-asset line, where the identical command at 059e993 printed the title-theme miss. The new --audio-asset-evidence command, built through the exact OpenAlBackend.create Rogue3.AudioCues.resolver expression Program.fs uses, reports backend-kind=DeviceBacked and resolved=29 unresolved=0. The status= line could not be captured on this host because the persistent launch returns only when its window closes and the Wayland surface cannot be closed programmatically; the full attempt log and the disclosure are in the launch evidence."]
+    notes: ["AC-009. The shipped build was launched as a player launches it - dotnet run --project src/Rogue3 - and printed NO FS.GG.Audio.Host unresolved-asset line, where the identical command at 059e993 printed the title-theme miss. Both captures are committed verbatim as launch-output-before.txt and launch-output-after.txt. Window and first-frame evidence is separate and also committed: launch-mode-evidence.txt records window-opened=true, first-frame-presented=True, renderer-mode=OpenGL from the self-closing --launch-evidence route, which carries no audio sink. The new --audio-asset-evidence command, built through the exact OpenAlBackend.create Rogue3.AudioCues.resolver expression Program.fs uses, reports backend-kind=DeviceBacked and resolved=29 unresolved=0. The player-launch status= line could not be captured on this host and the reason and every attempt are recorded in launch-evidence.md."]
   - id: EV010
     kind: verification
     subject:
@@ -257,7 +257,7 @@ evidence:
       id: T010
     taskRefs: [T010]
     requirementRefs: [FR-010]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-010]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: []
@@ -268,12 +268,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["AC-010. Full Release suite 206/206 passed, up from 199 by exactly the seven new M12 scenarios, with every M8 requested-cue expectation, the M10 determinism and replay obligations and the M11 playability route unchanged. All seven workload definition digests and all four UI-route definition digests are byte-identical to 059e993; the only movement in the regenerated artifacts is run-scoped timings, allocatedBytes, the per-process compositionAuthority GUID and the receipt digests computed over them."]
+    notes: ["AC-010. Full Release suite 208/208 passed, up from 199 by exactly the nine new M12 scenarios, with every M8 requested-cue expectation, the M10 determinism and replay obligations and the M11 playability route unchanged. All seven workload definition digests and all four UI-route definition digests are byte-identical to origin/main; the only movement in the regenerated artifacts is run-scoped timings, allocatedBytes, the per-process compositionAuthority GUID and the receipt digests computed over them."]
   - id: EV011
     kind: verification
     subject:
@@ -292,9 +292,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["DEC-001. The declaration lives in its own dependency-free module compiled first, because AudioCues.fs opens four packages and the model and therefore cannot be #loaded by dotnet fsi. One declaration, three consumers, no second list."]
@@ -316,9 +316,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["DEC-002. Six floor themes, matching the product's own FloorIndex=6 victory condition, with floorTheme clamping into that range so the family is total."]
@@ -340,9 +340,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["DEC-003. The assets are committed rather than generated at build time, and the synthesis lives in compiled product source so the guard can re-derive every byte. Nothing is downloaded and no third-party licence enters the tree."]
@@ -364,9 +364,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["DEC-004. Resolves to a real asset means Some bytes that Wav.tryParse accepts as PCM, mono, 16-bit with a non-empty data chunk - not File.Exists. Mono is required because OpenAL spatializes per source and plays a stereo buffer centred."]
@@ -388,12 +388,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["DEC-005. Audibility evidence is three-part - the live launch with no unresolved-asset diagnostic, the shipped binary's own resolution ledger reporting a device-backed backend, and the headless guard - and the limit is disclosed: that a speaker physically moved is not claimed."]
+    notes: ["DEC-005. Audibility evidence is three-part and its limits are disclosed: the live launch with no unresolved-asset diagnostic, the shipped binary's own resolution ledger reporting a device-backed backend, and the headless guard. Not claimed: that a speaker moved, and that the device accepted the bytes - --audio-asset-evidence resolves and parses but plays nothing, so no buffer is uploaded."]
   - id: EV016
     kind: verification
     subject:
@@ -412,9 +412,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["DEC-006. The guard is its own file, tests/Rogue3.Tests/M12AudioAssetTests.fs, compiled after M11's. M8AudioTests.fs is unchanged and still asserts what the product requests."]
@@ -436,12 +436,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["DEC-007. The drift check is a comment-stripping source scan with its scanner proved on a fixture, not a grep: AudioCues.fs's own doc comments carry two cue id literals the product never requests."]
+    notes: ["DEC-007. The drift check is a comment-stripping scan over all product source with its scanner proved on a fixture, not a grep, and it rejects the interpolated and sprintf forms outright because a value unknown until run time cannot be compared with the declaration. AudioCues.fs's own doc comments carry cue id literals the product never requests, which is why comment stripping is load-bearing rather than tidy."]
   - id: EV018
     kind: verification
     subject:
@@ -460,9 +460,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["DEC-008. No digest was re-derived. Every authored workload and UI-route definition digest was asserted unchanged at the candidate, because this work item adds no model field, no reducer change and no rendered element."]
@@ -484,9 +484,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["DEC-009. Two search roots in order, working directory then AppContext.BaseDirectory, with the assets copied to both build outputs. assetRoot keeps its literal value and meaning; only the search gains a second root."]
@@ -508,9 +508,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["DEC-010. The synthesized assets are placeholders in fidelity and not in function, and that is recorded openly in the clarifications, in AudioSynthesis.fs's own header and as a roadmap row, rather than left for a reviewer to discover."]
@@ -521,7 +521,7 @@ evidence:
       id: T021
     taskRefs: [T021]
     requirementRefs: [FR-001]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-001]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-001]
@@ -532,9 +532,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PD-001. src/Rogue3/AudioCueIds.fs added and compiled first in Rogue3.fsproj. It opens nothing, exports one named value per id plus floorThemeCount, floorTheme, sounds, tracks and all."]
@@ -545,7 +545,7 @@ evidence:
       id: T022
     taskRefs: [T022]
     requirementRefs: [FR-001]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-001]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-002]
@@ -556,9 +556,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PD-002. AudioCues.fs builds every SoundId and TrackId from AudioCueIds. Cue values - volumes, ordering and the diff-derived transitions - are untouched, which is why all 199 pre-existing tests including every M8 exact-value expectation pass unchanged."]
@@ -569,7 +569,7 @@ evidence:
       id: T023
     taskRefs: [T023]
     requirementRefs: [FR-006]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-006]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-003]
@@ -580,9 +580,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PD-003. floorThemeCount = 6 and floorTheme clamps, so AudioCues.track can no longer name a track the declaration does not export."]
@@ -593,7 +593,7 @@ evidence:
       id: T024
     taskRefs: [T024]
     requirementRefs: [FR-007]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-007]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-004]
@@ -604,9 +604,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PD-004. src/Rogue3/AudioSynthesis.fs added: a BCL-only pure render : string -> byte[] over oscillators, linear-attack polynomial-release envelopes, seeded integer noise and, for the eleven tracks, a four-second 120 BPM loop over a per-track scale. It raises on an id AudioCueIds does not export."]
@@ -617,7 +617,7 @@ evidence:
       id: T025
     taskRefs: [T025]
     requirementRefs: [FR-007]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-007]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-005]
@@ -628,9 +628,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PD-005. scripts/generate-audio-assets.fsx added: it #loads the two product modules and loops over the declaration. It contains no cue id and no synthesis, and reports undeclared stray .wav files rather than deleting them."]
@@ -641,7 +641,7 @@ evidence:
       id: T026
     taskRefs: [T026]
     requirementRefs: [FR-007]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-007]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-006]
@@ -652,12 +652,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["PD-006. 29 .wav files committed under assets/audio/, 2,311,678 bytes: eighteen sfx from 4 KB to 62 KB and eleven four-second loops of 176,444 bytes each. The guard proves each equals AudioSynthesis.render of its id, so a hand-edited or truncated asset reds the suite."]
+    notes: ["PD-006. 29 .wav files committed under assets/audio/, 2,311,678 bytes: eighteen sfx from 0.09 s to 1.40 s (4 KB to 62 KB) and eleven four-second loops of 176,444 bytes each. PCM compresses poorly - gzip -6 over the set is 2,093,358 bytes - so the pack goes from 1.63 MiB to roughly 3.6 MiB, about 2.2x. The guard proves each file equals AudioSynthesis.render of its id and that no undeclared file sits beside them."]
   - id: EV027
     kind: verification
     subject:
@@ -665,7 +665,7 @@ evidence:
       id: T027
     taskRefs: [T027]
     requirementRefs: [FR-008]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-008]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-007]
@@ -676,9 +676,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PD-007. tryReadAsset probes two roots and both project files carry Content items copying assets/audio/*.wav to their output with the assets/audio/ shape preserved by Link."]
@@ -689,7 +689,7 @@ evidence:
       id: T028
     taskRefs: [T028]
     requirementRefs: [FR-002, FR-003]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-002, AC-003]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-008]
@@ -700,9 +700,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PD-008. The first scenario enumerates AudioCueIds.sounds and AudioCueIds.tracks, resolves each through Rogue3.AudioCues.resolver, and asserts Wav.tryParse accepts the bytes as PCM mono 16-bit with non-empty data. It also asserts the covered count equals the declaration's own length, so a shrunk declaration cannot make the gate vacuous."]
@@ -713,7 +713,7 @@ evidence:
       id: T029
     taskRefs: [T029]
     requirementRefs: [FR-004]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-004]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-009]
@@ -724,9 +724,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PD-009. The negative control runs through the same resolver and the same predicate and must fail, and the scenario asserts it does. Mutation-checked against the live tree twice."]
@@ -737,7 +737,7 @@ evidence:
       id: T030
     taskRefs: [T030]
     requirementRefs: [FR-005]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-005]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-010]
@@ -748,12 +748,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["PD-010. The drift scan locates its source or fails, strips comments outside string literals, proves its scanner on a fixture holding a live literal, a commented literal, a trailing-comment literal and the real doc-comment line, and additionally asserts AudioCues.fs still references AudioCueIds so a rewrite off the declaration cannot pass by having no literals."]
+    notes: ["PD-010. The scan covers every .fs under src/Rogue3/, locates its source or fails, strips comments outside string literals, proves its scanner on a fixture holding a live literal, a commented literal, a trailing-comment literal, the real doc-comment line and an interpolated track id, and then requires no plain literal, no interpolated cue id and no sprintf construction anywhere. It additionally asserts AudioCues.fs still references AudioCueIds so a rewrite off the declaration cannot pass by having no literals."]
   - id: EV031
     kind: verification
     subject:
@@ -761,7 +761,7 @@ evidence:
       id: T031
     taskRefs: [T031]
     requirementRefs: [FR-007]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-007]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-011]
@@ -772,12 +772,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["PD-011. Reproducibility and declaration well-formedness are asserted: bytes on disk equal the compiled synthesis for all 29 ids, the ids are distinct across sounds and tracks, every id is a lowercase slug safe as a file name, and the sound and track counts match the cue map."]
+    notes: ["PD-011. Reproducibility and declaration well-formedness are asserted: bytes on disk equal the compiled synthesis for all 29 ids, the ids are distinct across sounds and tracks, every id is a lowercase slug safe as a file name, the sound and track counts match the cue map, and assets/audio contains exactly the declared file set and nothing else."]
   - id: EV032
     kind: verification
     subject:
@@ -785,7 +785,7 @@ evidence:
       id: T032
     taskRefs: [T032]
     requirementRefs: [FR-006]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-006]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-012]
@@ -796,12 +796,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: [PD-012. floorTheme is evaluated across -3 .. 12 and every result is a declared track.]
+    notes: ["PD-012. floorTheme is evaluated across -3 .. 12 and every result is a declared track; and the shipped AudioCues.replaceWithCurrentMusic is driven across -2 .. 9 with every requested track required to be declared, so a cue map that stops consulting the declaration is caught rather than hidden by a declaration that is still total."]
   - id: EV033
     kind: verification
     subject:
@@ -809,7 +809,7 @@ evidence:
       id: T033
     taskRefs: [T033]
     requirementRefs: [FR-009]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-009]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-013]
@@ -820,12 +820,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["PD-013. --audio-asset-evidence added to EvidenceCommands.fs. It builds the backend through the exact expression Program.fs uses, reports Backend.kindOf, one line per declared id with resolution, byte length and parsed channels/bits/rate, and an explicit unresolved count; a non-zero count is a non-zero exit."]
+    notes: ["PD-013. --audio-asset-evidence added to EvidenceCommands.fs. It builds the backend through the exact expression Program.fs uses, reports Backend.kindOf, one line per declared id with resolution, byte length and parsed channels/bits/rate, and an explicit unresolved count; a non-zero count is a non-zero exit. It plays nothing, so no buffer is uploaded to the device and backend-kind and resolved= are two independent facts rather than one claim about upload."]
   - id: EV034
     kind: verification
     subject:
@@ -833,7 +833,7 @@ evidence:
       id: T034
     taskRefs: [T034]
     requirementRefs: [FR-009]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-009]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-014]
@@ -844,12 +844,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["PD-014. The shipped build was launched with dotnet run --project src/Rogue3 and its combined output captured and committed. No FS.GG.Audio.Host line appeared. The status= line could not be captured and every attempt to obtain it is recorded, including the Xvfb run that produced a real X11 window and so independently confirms the window opens."]
+    notes: ["PD-014. The shipped build was launched with dotnet run --project src/Rogue3 and both the before and after captures are committed verbatim. No FS.GG.Audio.Host line appeared after. The player-launch status= line could not be captured; every attempt is recorded, including the Xvfb run that produced a real X11 window, and the narrower cause is identified: the graceful close is already wired as GameShell.Quit -> ExitRequested -> ViewerEffect.CloseWindow, but Quit is reachable only from a pointer click on the Exit button. A separate --launch-evidence run does print a status= line on this host and is committed; it carries no audio sink."]
   - id: EV035
     kind: verification
     subject:
@@ -857,7 +857,7 @@ evidence:
       id: T035
     taskRefs: [T035]
     requirementRefs: [FR-010]
-    acceptanceScenarioRefs: []
+    acceptanceScenarioRefs: [AC-010]
     clarificationDecisionRefs: []
     checklistResultRefs: []
     planDecisionRefs: [PD-015]
@@ -868,12 +868,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["PD-015. Full Release Test route at the exact candidate with all seven workload definition digests and all four UI-route definition digests unchanged, every workload inside budget and zero catch-up frames: maximum-content p95 7.4000 ms / p99 8.7449 ms against 16.67 / 25.0."]
+    notes: ["PD-015. Full Release Test route at the exact candidate with all seven workload definition digests and all four UI-route definition digests unchanged against origin/main, every workload inside budget and zero catch-up frames: maximum-content p95 7.5703 ms / p99 9.4841 ms against 16.67 / 25.0, floor-generation 0.6357 / 8.2544, secret-reveal 5.1884 / 6.0454, read from the committed readiness/performance-evidence.json."]
   - id: EV036
     kind: deferral
     subject:
@@ -934,9 +934,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PC-001. Two compiled modules added to the product surface, Rogue3.AudioCueIds and Rogue3.AudioSynthesis. Both are additive and depend on nothing, so no existing signature moves."]
@@ -958,9 +958,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PC-002. Rogue3.AudioCues keeps assetRoot, resolver, forTransition, replaceWithTitleMusic and replaceWithCurrentMusic with identical signatures and identical requested values. Only the private sfx helper's argument source and the asset search roots changed, which is why the whole pre-existing suite passes unchanged."]
@@ -982,9 +982,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PC-003. tryRunEvidenceCommand accepts one additional argument form, --audio-asset-evidence, with and without a path. No existing form changed."]
@@ -1006,9 +1006,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PC-004. assets/audio/*.wav becomes committed content copied to every build output. No LFS, no restore-time download and no network dependency; the repository grows by 2,311,678 bytes against a 1.63 MiB pack, which is stated in the clarifications rather than glossed."]
@@ -1030,12 +1030,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["VO-001. The focused Release M12 list passes 7/7 and proves resolution through the shipped resolver to playable mono 16-bit PCM, byte-exact reproduction from the compiled synthesis, a well-formed duplicate-free declaration, and a total floor-theme family."]
+    notes: ["VO-001. The focused Release M12 list passes 9/9 and proves resolution through the shipped resolver to playable mono 16-bit PCM, byte-exact reproduction from the compiled synthesis, a well-formed duplicate-free declaration, an asset directory holding exactly the declared set, and a floor-theme family total at both the declaration and the shipped cue map."]
   - id: EV043
     kind: verification
     subject:
@@ -1054,12 +1054,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: [VO-002. The same list proves the gate discriminates against an id with no asset and that no cue id literal exists in AudioCues.fs outside the declaration once comments are stripped. Both arms were mutation-checked against the live tree rather than argued.]
+    notes: ["VO-002. The same list proves the gate discriminates against an id with no asset and that no cue id literal, interpolated cue id or sprintf-assembled cue id exists anywhere in src/Rogue3 once comments are stripped. Four mutation checks against the live tree, each applied and reverted, rather than an argument."]
   - id: EV044
     kind: verification
     subject:
@@ -1078,12 +1078,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["VO-003. The shipped binary's --audio-asset-evidence reports backend-kind=DeviceBacked with resolved=29 unresolved=0, run from a working directory unrelated to the repository tree; the shipped build launched as a player launches it printed no unresolved-asset diagnostic."]
+    notes: ["VO-003. The shipped binary's --audio-asset-evidence reports backend-kind=DeviceBacked with resolved=29 unresolved=0, committed twice - once from the repository root and once from /tmp, an unrelated working directory, which is the AC-008 proof. The shipped build launched as a player launches it printed no unresolved-asset diagnostic, and both launch captures are committed."]
   - id: EV045
     kind: verification
     subject:
@@ -1102,12 +1102,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["VO-004. Full Release run at the exact candidate: 206/206 passed, every prior obligation green, and no authored definition digest moved."]
+    notes: ["VO-004. Full Release run at the exact candidate: 208/208 passed, every prior obligation green, and no authored definition digest moved against origin/main."]
   - id: EV046
     kind: verification
     subject:
@@ -1126,9 +1126,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
     notes: ["PM-001. Every change is additive: two new modules, one new evidence command form, one new test file, one new committed asset directory and one widened asset search. No saved profile, replay log, encoded model or existing command form changes meaning, and a build that somehow lacks the assets degrades exactly as it did before - recorded, named on stderr, silent - rather than throwing."]
@@ -1150,12 +1150,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/013-m12-audio-assets/test-results/m12-full-release.trx
-      digest: "sha256:b40ed813d4525b51ac37aad44220a465e57d8d1ed0c52760ffc9d4d271466a21"
+      digest: "sha256:01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
       outcome: passed
-      passed: 206
+      passed: 208
       failed: 0
       skipped: 0
-    notes: ["GV-001. readiness/013-m12-audio-assets/ refreshed from current plan sources; performance-evidence.json, m7-ui-performance.json, performance-critic-request.json, performance-intent.yml, headless-scene-evidence.txt and layout-evidence.txt regenerated at the exact candidate with every definition digest asserted unchanged; the audio asset ledger, the launch evidence and both Release TRX reports committed under the work item's readiness path."]
+    notes: ["GV-001. readiness/013-m12-audio-assets/ refreshed from current plan sources; performance-evidence.json, m7-ui-performance.json, performance-critic-request.json, performance-intent.yml, headless-scene-evidence.txt and layout-evidence.txt regenerated at the exact candidate with every definition digest asserted unchanged against origin/main; the two audio asset ledgers, the two launch captures, the bounded launch-mode evidence, the launch narrative and both Release TRX reports committed under the work item's readiness path."]
   - id: EV048
     kind: deferral
     subject:
@@ -1176,6 +1176,6 @@ evidence:
     owner: roadmap
     scope: "The audible quality of the 29 committed assets under assets/audio/, which are deterministic oscillator, envelope and noise constructions synthesized by src/Rogue3/AudioSynthesis.fs. Their existence, resolution and playability are IN scope for M12 and are proved; their fidelity is not."
     laterLifecycleVisibility: "Carried as DEC-011 in clarifications, PD-016 and PD-017 in the plan, CR-011 in the checklist, and filed as its own roadmap row before this milestone closes, so the deferral is visible rather than dropped."
-    notes: [Evidence required before verify.]
+    notes: ["DEC-011 kept visible through to evidence: authored or licensed audio replacing the synthesized placeholders is deferred out of this work item and filed as its own roadmap row, which also records the condition a future swap must meet - AudioSynthesis.fs and its byte-for-byte reproduction check must be retired in the same change rather than left asserting against files it no longer produces. It discharges nothing this milestone claims."]
 lifecycleNotes:
   - "Next lifecycle action: verify."

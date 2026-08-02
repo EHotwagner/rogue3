@@ -35,7 +35,9 @@ let written =
 
 // Anything already in the directory that the declaration does not name is reported rather than
 // deleted: a stray file is a human decision, and silently removing files under `assets/` is not this
-// script's job. The guard test fails on an undeclared asset, so it cannot be ignored either.
+// script's job. It cannot be ignored either — `M12AudioAssetTests`'s "assets/audio holds exactly the
+// declared set and nothing else" scenario reds on an undeclared file, so a cue renamed without
+// deleting its old asset is a red suite rather than an orphan that ships in every build output.
 let declared = AudioCueIds.all |> List.map AudioSynthesis.fileName |> Set.ofList
 let stray =
     Directory.GetFiles(outputDirectory, "*.wav")

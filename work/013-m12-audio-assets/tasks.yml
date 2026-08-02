@@ -13,19 +13,19 @@ work:
 sources:
   - label: spec
     path: work/013-m12-audio-assets/spec.md
-    digest: 86441e841e5defdfb5f4652208bc0d83ca4917ab1c223a8db77fca724fe3598f
+    digest: 3302dd80da2b5e61eedb0ac2d87293268cabf9f4401ce7aa5ff634092dbf6316
     schemaVersion: 1
   - label: clarifications
     path: work/013-m12-audio-assets/clarifications.md
-    digest: 8eebe640835bcf472881f7af1645a36575d78f02e13b8737fd24c29fc4718cc4
+    digest: c8d0dfd03aacf1d763a830b5b4154cba08b71a1e99cd7f68f6b01064cb49bedf
     schemaVersion: 1
   - label: checklist
     path: work/013-m12-audio-assets/checklist.md
-    digest: aed8c3ca2abd9c547b4f55d57cefc2082f39eb6b384e55d311f6eb8bce93d645
+    digest: afa903638a4423442ae7c6468fc4f8e8272a16a8ac0852d39f398196cb028e2d
     schemaVersion: 1
   - label: plan
     path: work/013-m12-audio-assets/plan.md
-    digest: a44fd7c804549c631fe1acd45443a6365f3d764daec1f771389163d30c4b91df
+    digest: 228b088e5c56df4e3c85989f681c0de114517437c8118d93e6cf2208a67de65f
     schemaVersion: 1
 tasks:
   - id: T001

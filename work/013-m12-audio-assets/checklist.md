@@ -21,8 +21,8 @@ Prose status: checklistReady
 - work/013-m12-audio-assets/clarifications.md
 
 ## Source Snapshot
-- spec: work/013-m12-audio-assets/spec.md sha256:86441e841e5defdfb5f4652208bc0d83ca4917ab1c223a8db77fca724fe3598f schemaVersion:1
-- clarifications: work/013-m12-audio-assets/clarifications.md sha256:8eebe640835bcf472881f7af1645a36575d78f02e13b8737fd24c29fc4718cc4 schemaVersion:1
+- spec: work/013-m12-audio-assets/spec.md sha256:3302dd80da2b5e61eedb0ac2d87293268cabf9f4401ce7aa5ff634092dbf6316 schemaVersion:1
+- clarifications: work/013-m12-audio-assets/clarifications.md sha256:c8d0dfd03aacf1d763a830b5b4154cba08b71a1e99cd7f68f6b01064cb49bedf schemaVersion:1
 
 ## Checklist Items
 - CHK-001 [FR-001] [AC-001] blocking: Requirement FR-001 is testable and linked to acceptance coverage.

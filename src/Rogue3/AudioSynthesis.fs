@@ -316,7 +316,17 @@ let private trackSpec (id: string) =
               Hat = true }
     else
         let index = [ 1 .. AudioCueIds.floorThemeCount ] |> List.tryFindIndex (fun n -> AudioCueIds.floorTheme n = id)
-        index |> Option.map (fun i -> floorSpecs.[i])
+        // Raising `AudioCueIds.floorThemeCount` without adding a spec here would otherwise surface as
+        // a bare IndexOutOfRangeException from inside the array read. Say what is actually wrong.
+        index
+        |> Option.map (fun i ->
+            if i >= floorSpecs.Length then
+                failwithf
+                    "AudioSynthesis: AudioCueIds.floorThemeCount is %d but only %d floor themes are composed; add a spec to floorSpecs for '%s'"
+                    AudioCueIds.floorThemeCount
+                    floorSpecs.Length
+                    id
+            floorSpecs.[i])
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // Cue definitions

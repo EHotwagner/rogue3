@@ -1,5 +1,6 @@
 module Rogue3.AudioCues
 
+open System
 open System.IO
 open FS.GG.Audio.Core
 open FS.GG.Audio.Host
@@ -53,16 +54,38 @@ let assetRoot = "assets/audio"
 /// itself lives in. `AppContext.BaseDirectory` is where the assets are copied by the build
 /// (`Rogue3.fsproj` copies `assets/audio/*.wav` beside the assembly), so probing it second makes the
 /// product audible wherever it is launched from, while leaving a working-directory override — a
-/// mod folder, a test fixture — winning when one is present.
-let private assetSearchRoots =
+/// mod folder, a test fixture — winning when one is present. A launch directory that happens to
+/// contain `assets/audio/<id>.wav` therefore shadows the shipped asset; that is the point of the
+/// ordering, and it is written down here because nothing else marks it.
+///
+/// Evaluated per call rather than captured in a module-level binding: a module `let` would freeze
+/// the working directory at whatever it was when this module was first touched, an initialization
+/// order a caller cannot see and a test cannot control. Resolution happens once per id per process
+/// anyway — the OpenAL backend memoizes uploaded buffers behind `BufferCache` — so there is no cost
+/// to reading it honestly.
+let private assetSearchRoots () =
     [ Directory.GetCurrentDirectory(); System.AppContext.BaseDirectory ]
 
+/// `resolver` is public and takes an id from its caller, so the id reaches `Path.Combine`. A rooted
+/// or `..`-bearing id would then escape `assetRoot` entirely and read an arbitrary file. Nothing in
+/// this product can produce such an id — every one comes from `AudioCueIds` and the M12 guard pins
+/// them to a lowercase slug — but "no current caller does that" is not a property of a public
+/// function, so the containment is checked here rather than assumed.
+let private isContainedId (name: string) =
+    not (String.IsNullOrWhiteSpace name)
+    && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0
+    && name <> "."
+    && name <> ".."
+
 let private tryReadAsset (name: string) =
-    let fileName = name + ".wav"
-    assetSearchRoots
-    |> List.tryPick (fun root ->
-        let path = Path.Combine(root, assetRoot, fileName)
-        if File.Exists path then Some(File.ReadAllBytes path) else None)
+    if not (isContainedId name) then
+        None
+    else
+        let fileName = name + ".wav"
+        assetSearchRoots ()
+        |> List.tryPick (fun root ->
+            let path = Path.Combine(root, assetRoot, fileName)
+            if File.Exists path then Some(File.ReadAllBytes path) else None)
 
 /// The rogue3 owns the id -> asset mapping; the framework never does (FS.GG.Audio FR-005).
 /// An id with no file on disk resolves to `None`, which the backend treats as a recorded no-op —
@@ -118,7 +141,9 @@ let resolver: AssetResolver =
 // lets the generator and the M12 guard enumerate exactly the set this file requests instead of
 // re-typing it — and `M12AudioAssetTests` scans this file (comments stripped) for stray
 // `SoundId "…"`, `TrackId "…"` and `sfx "…"` literals, so an inline id added here reds the suite
-// rather than shipping as a silent cue.
+// rather than shipping as a silent cue. It rejects the INTERPOLATED form too — `TrackId $"floor-…"`
+// — because a value that is not known until it runs cannot be checked against the declaration at
+// all, and that is exactly the shape the floor themes used to have.
 let private sfx id volume = Audio.playSfx (SoundId id) volume
 
 let private forAudioEvent = function

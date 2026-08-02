@@ -1,4 +1,4 @@
-status=ok audio-asset-evidence asset-root=assets/audio working-directory=/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3 base-directory=/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/src/Rogue3/bin/Release/net10.0/ backend-kind=DeviceBacked
+status=ok audio-asset-evidence asset-root=assets/audio working-directory=/tmp base-directory=/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/src/Rogue3/bin/Release/net10.0/ backend-kind=DeviceBacked
 declared sounds=18 tracks=11 total=29 resolved=29 unresolved=0
 sound id=shot-fire resolved=true bytes=5336 format=pcm channels=1 bits=16 rate=22050 samples=2646
 sound id=shot-hit resolved=true bytes=4014 format=pcm channels=1 bits=16 rate=22050 samples=1985

@@ -1,0 +1,4 @@
+FS.GG.Audio.Host: track 'title-theme' did not resolve to an asset — AssetResolver.ResolveTrack returned None, so every play of it is silent. The host does not own the id -> file mapping (FR-005): check the resolver your product supplies (a typo'd id, or an asset that was never shipped).
+Gtk-Message: 05:00:45.823: Failed to load module "colorreload-gtk-module"
+Gtk-Message: 05:00:45.823: Failed to load module "window-decorations-gtk-module"
+--- captured after 25 s of live run at main (059e993), before any M12 change; window still open ---
