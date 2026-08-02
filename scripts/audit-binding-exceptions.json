@@ -443,6 +443,22 @@
       "reason": "Item #26 makes the Verify gate's EvidenceGraph step refuse to publish a graph that sensed less than the committed one, so a gate run in a worktree stops rewriting the tracked readiness/evidence-graph.md into a smaller, false state. The change is confined to build.fsx: a byte-exact snapshot/restore around the emitter, a set-based superset rule, an FSGG_EVIDENCE_GRAPH_PUBLISH escape hatch, and forty-seven new SelfTest cases covering the rule, its installation, and the engine-written section heading it matches. Five earlier cycles' audits bind file:build.fsx and go stale on any edit to it. Excused rather than rebound, following the 7e71d71 precedent and the defect feedback/2026-08-01-Rogue3-12.md 4.13 filed: repointing an earlier cycle's audit would claim its critic examined a build script that did not exist when that report was written. Item #26's own audit, feedback/audits/2026-08-02-Rogue3-12.audit.json, was REBOUND instead, which the remedy order permits for an audit you authored and re-verified yourself. Regenerated after rebasing onto bfd1288 (#48) and after two review rounds, per the sequencing agreed with the workers on rogue3#40 and rogue3#47, who share this file; see #53."
     },
     {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "089b1fdcd2f14e1d7f8ba5cce0435059c204ffa0c0574bb80e229885b40142c3",
+      "observedSha256": "666f040befeadbc926afe14d40e36eaf9702876d74e68f1dd00d50dec8e8b426",
+      "reason": "rogue3#52 wired the build.fsx merge gate's SelfTest into verify.yml; the audits of cycles -11 and -12 cite the workflow file as it was before that step existed"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "089b1fdcd2f14e1d7f8ba5cce0435059c204ffa0c0574bb80e229885b40142c3",
+      "observedSha256": "666f040befeadbc926afe14d40e36eaf9702876d74e68f1dd00d50dec8e8b426",
+      "reason": "rogue3#52 wired the build.fsx merge gate's SelfTest into verify.yml; the audits of cycles -11 and -12 cite the workflow file as it was before that step existed"
+    },
+    {
       "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
       "kind": "evidence",
       "locator": "file:src/Rogue3/AudioCues.fs",
