@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-15.md",
-  "reportSha256": "5427df6140f398e4cb0f0db24c4c87c7b0ccc285c832c30e60f59f1b67e49214",
+  "reportSha256": "e185f318213e1c891ad2c332c564d28009eca827fed6f8372391547ed561fe4a",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -21,7 +21,7 @@
         {
           "locator": "file:scripts/kit-pins.json",
           "result": "verified",
-          "sha256": "1cde4f5cb52ca687145bb94d181db56ee73a5f927ac6eb4502b0261e8bebc408"
+          "sha256": "f6276d820369945e9b2b438e5fd68134d68809ddff5b781a523fa843a36e31f6"
         },
         {
           "locator": "file:.agents/skills/skill-manifest.json",
@@ -31,7 +31,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c"
+          "sha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea"
         },
         {
           "locator": "issue:EHotwagner/rogue3#46",
@@ -126,7 +126,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c"
+          "sha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea"
         }
       ],
       "confidenceLimits": [
@@ -150,7 +150,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c"
+          "sha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea"
         }
       ],
       "confidenceLimits": [
@@ -179,7 +179,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c"
+          "sha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea"
         }
       ],
       "confidenceLimits": [
@@ -205,7 +205,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c"
+          "sha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea"
         }
       ],
       "confidenceLimits": [
@@ -252,7 +252,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c"
+          "sha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea"
         },
         {
           "locator": "issue:EHotwagner/rogue3#62",
@@ -285,7 +285,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c"
+          "sha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea"
         }
       ],
       "confidenceLimits": [
@@ -293,6 +293,31 @@
         "The tree is red in BOTH states, because the manifest pass reports the malformed entry. This is a wrong count on a failing tree, not a route to hiding drift behind a green gate, and the finding says so rather than inflating it into an evasion route.",
         "All 8 mutants from §4.9 were re-run against the fixed tree and are still killed by named cases; the three new cases were added rather than relying on the existing noSha case, which strips every digest and so does not exercise `named but not pinned`.",
         "A SECOND independent reviewer (PR #64) then found the mirror image of this in the fix: `byLedger` still keyed on the raw ledger, so a digestless ledger entry was attributed to scripts/kit-pins.json on the same line a coverage violation named it as pinned by nothing. Reproduced, fixed the same way, and guarded by two cases asserting the ATTRIBUTION rather than the count. The same reviewer found `named` had become dead code while a just-written comment claimed it had a live consumer, and a doc comment merged onto the wrong binding. Both corrected; SelfTest 109 -> 111."
+      ]
+    },
+    {
+      "id": "§4.11",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t TemplateDrift",
+          "result": "verified"
+        },
+        {
+          "locator": "command:diff -rq .agents/skills .claude/skills",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/kit-pins.json",
+          "result": "verified",
+          "sha256": "f6276d820369945e9b2b438e5fd68134d68809ddff5b781a523fa843a36e31f6"
+        }
+      ],
+      "confidenceLimits": [
+        "Observed after this branch was rebased onto main at 4fc6993. Both the gate's mirror violation and an independent `diff -rq` name the same single file, 388 lines against 381.",
+        "This cycle did not DISCOVER the divergence: the author of #66 reported the miss themselves and had PR #68 open before the gate existed to catch them. The finding is worded to claim only what is true — the check turned an already-noticed defect into one a command reports.",
+        "Load-bearing negative result, verified rather than assumed: `./fake.sh build -t KitPins` does NOT clear the violation. Re-pinning fixes the .agents side and the mirror pass then holds .claude to that pin, which still differs. This is what forced the merge order (#68 before #64) and is the evidence that the advertised remedy cannot launder a real divergence."
       ]
     }
   ]

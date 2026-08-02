@@ -54,7 +54,7 @@
     { "path": ".agents/skills/work-board-normal/agents/openai.yaml", "sha256": "2058fafb85ceaf1b6bed448a4cb4f6b51bfdbee05c9eb062af0647cb27dc1ec0" },
     { "path": ".agents/skills/work-board/agents/openai.yaml", "sha256": "a4d2b19cde3fd490c669da9a007b16620a106586efc30c32a02efd92f58d0433" },
     { "path": ".agents/skills/work-board/references/backlog-triage.md", "sha256": "6e9601d6e752be4ca3f3e5f5a2a5837b6fb5e0b6f4a1722aac8a6731ad0ebc44" },
-    { "path": ".agents/skills/work-board/references/deep-detail.md", "sha256": "d812cfb1d83c37fcd871698411a5037e5c9cbb815fbddeed7293378754ca5773" },
+    { "path": ".agents/skills/work-board/references/deep-detail.md", "sha256": "609790a062afaeb88243646736c578cf4ce055128b79e067c76f68a49572eea4" },
     { "path": ".agents/skills/work-board/references/feedback-contract.md", "sha256": "cca471febecbd3f63cd29a5ec81c3af3ea1542a4e40ba1075208ec8416632f86" },
     { "path": ".agents/skills/work-board/references/host-loop.md", "sha256": "a37c5d5faf4b14ee77ce1bfc7ac4a5f3a4465fc40ccd5ae1850a3f2a3d980d06" },
     { "path": ".agents/skills/work-board/references/workspace-scope.md", "sha256": "9435aa1fcc975aba3c3f22066b708a3061b13e9181f4c03fce6dc0526807e245" },
