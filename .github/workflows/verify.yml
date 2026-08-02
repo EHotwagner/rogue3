@@ -40,6 +40,47 @@ jobs:
       # exact breakage this item exists to remove.
       - name: Self-test the feedback-report validator
         run: dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest
+      # rogue3#52: until now nothing in CI executed `build.fsx` in ANY target, so
+      # every check the documented merge gate owns was enforced only by a human
+      # remembering to run it locally. `GovernanceTests.fs` reads build.fsx as
+      # TEXT and asserts required/forbidden substrings, so a *textual* regression
+      # is caught by `dotnet test` -- but nothing executed its logic, and a check
+      # that quietly stops checking passed green.
+      #
+      # Measured at bfd1288, not argued: making `templateDriftViolations` return
+      # [] unconditionally leaves `dotnet test -c Release` completely green
+      # (Failed: 0, Passed: 235) while `./fake.sh -t SelfTest` exits 1 with
+      # "SelfTest: 30 case(s), 15 failure(s)". This step is what kills that mutant.
+      #
+      # SelfTest plants a violation for each check and requires it to be reported,
+      # and additionally asserts TemplateDrift and GeneratedGuidanceCheck are clean
+      # on the checked-out tree -- so this single step both enforces those two
+      # gates and proves they are still able to fail. It is hermetic: fixtures go
+      # to the system temp dir, build.fsx carries no `#r` (BCL only), and the
+      # engine assembly is `lazy` and only forced by EvidenceGraph/EvidenceAudit,
+      # so SelfTest needs neither `dotnet restore` nor an engine feed. Hence it
+      # runs BEFORE Restore, where it fails fastest. Its only write is
+      # readiness/logs/SelfTest.txt, which .gitignore already excludes.
+      #
+      # Two gates this repository mandates are DELIBERATELY still not wired here,
+      # each blocked on a specific open defect. This job does not claim to enforce
+      # them:
+      #   * The full `Verify` target (TemplateDrift + GeneratedGuidanceCheck, then
+      #     the EvidenceGraph -> EvidenceAudit merge-gate audit). Verify rewrites
+      #     TRACKED readiness artifacts and still exits 0 (rogue3#26), and those
+      #     roll-ups are derived from a partly-untracked tree (rogue3#56). A job
+      #     that ran Verify and then checked for a dirty tree would fail for
+      #     reasons unrelated to the PR under test.
+      #   * The feedback-report validator CORPUS -- `validate` over every
+      #     feedback/*.md against its audit. Measured at bfd1288 over all 23
+      #     pairs: 3 pass, 20 fail. Audits legitimately cite files that later
+      #     change and `validate` has no excuse ledger (rogue3#49), so requiring
+      #     it as-is would red every open PR. The validator's own `selftest`
+      #     directly above is a different check and IS required.
+      # Scope limit worth naming: TemplateDrift itself covers 64 of 190 kit
+      # files (rogue3#46), so a green SelfTest is not "no kit file drifted".
+      - name: Self-test the build.fsx merge gate
+        run: ./fake.sh -t SelfTest
       - name: Restore
         run: >-
           dotnet restore Rogue3.slnx
