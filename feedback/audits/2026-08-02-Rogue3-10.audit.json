@@ -1,0 +1,195 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-10.md",
+  "reportSha256": "116acc231321c910a5e489ad05c955909281b302b2ec27ddd48b60fcad53391f",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "\u00a74.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t TemplateDrift",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t SelfTest",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git show d8d0024:build.fsx",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#34",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "\u00a74.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t TemplateDrift",
+          "result": "verified"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/GovernanceTests.fs",
+          "result": "verified",
+          "sha256": "77d1e6960028d9c4e6d52862eadb0bdeac2df0ad812092c1dda5fb83384bb0de"
+        },
+        {
+          "locator": "file:.agents/skills/skill-manifest.json",
+          "result": "verified",
+          "sha256": "e97bab4a98ba9a1ee316bc84cb3ca75030185bbfc9b65e63dc8b4a6a915bf0f4"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "\u00a74.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.fsgg/scaffold-provenance.json",
+          "result": "verified",
+          "sha256": "e5435653245793690fec86b7b8a3e9840a59773e3db8b035030f7af4424a3c68"
+        },
+        {
+          "locator": "command:git log --format=%h%x20%s -5",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#34",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "\u00a74.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t SelfTest",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t TemplateDrift",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.agents/skills/skill-manifest.json",
+          "result": "verified",
+          "sha256": "e97bab4a98ba9a1ee316bc84cb3ca75030185bbfc9b65e63dc8b4a6a915bf0f4"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#46",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "\u00a74.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git show d8d0024:build.fsx",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#38",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#34",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "\u00a74.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        },
+        {
+          "locator": "command:gh project field-list 7 --owner EHotwagner",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#41",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#38",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/checkpoints/item-34-verify-noop-merge-gate-steps.jsonl",
+          "result": "verified",
+          "sha256": "d8aa54e4374f3de16d0d51283d6c58cdd2796a8324964c5e972b8e059438992e"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "\u00a74.7",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t SelfTest",
+          "result": "verified"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --selftest",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4"
+        }
+      ],
+      "confidenceLimits": []
+    }
+  ]
+}
