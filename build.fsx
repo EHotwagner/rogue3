@@ -973,10 +973,14 @@ let templateDriftViolations (root: string) =
             [ for (relative, pinned) in pins do
                 if String.IsNullOrWhiteSpace relative || String.IsNullOrWhiteSpace pinned then
                     violations.Add $"{kitPinsRelative}: an entry pins no path/sha256"
-                elif not (relative.StartsWith(kitSourcePrefix, StringComparison.Ordinal)) then
+                elif not (relative.StartsWith(kitSourcePrefix, StringComparison.Ordinal))
+                     || relative.Split([| '/'; '\\' |]) |> Array.contains ".." then
                     // Out-of-tree pins are refused rather than checked: nothing enumerates them for
                     // coverage, so accepting one would let the ledger grow entries that look like
-                    // guarantees and are not.
+                    // guarantees and are not. `..` is refused for the same reason and not as a
+                    // security boundary — `.agents/skills/../../elsewhere` satisfies the prefix, so
+                    // without this it would be counted as a pinned KIT source while pinning a file
+                    // no coverage pass enumerates, which is precisely the overstatement #46 is about.
                     violations.Add $"{kitPinsRelative}: `{relative}` is outside {kitSourcePrefix}, which this ledger does not pin"
                 else
                     let target = path [ root; relative ]
@@ -1599,6 +1603,18 @@ let private runSelfTest () =
         expect
             "a ledger pin OUTSIDE the kit tree is refused"
             (templateDriftViolations ledgerOutside
+             |> List.exists (fun v -> v.Contains kitPinsRelative && v.Contains "outside"))
+
+        // `.agents/skills/../..` satisfies the prefix test. Counting it would inflate the covered
+        // total with a file no coverage pass enumerates — the overstatement this item is about.
+        let ledgerEscape, _ = freshFixture ()
+        writeFile
+            (path [ ledgerEscape; kitPinsRelative ])
+            """{ "schemaVersion": 1, "pins": [ { "path": ".agents/skills/../../escaped.md", "sha256": "0000000000000000000000000000000000000000000000000000000000000000" } ] }"""
+
+        expect
+            "a ledger pin that ESCAPES the kit tree with .. is refused"
+            (templateDriftViolations ledgerEscape
              |> List.exists (fun v -> v.Contains kitPinsRelative && v.Contains "outside"))
 
         // The remedy the gate prints has to work, or the gate is red with no way out and gets
