@@ -820,11 +820,21 @@ let private skillManifests = [ ".agents"; ".claude" ]
 // (the interpreter prefix is omitted deliberately: a governance scan in
 // tests/Rogue3.Tests/GovernanceTests.fs forbids that token anywhere in this file)
 //
-// Note also what is and is not new here. `.agents/skills/skill-manifest.json`
-// already had such a pin, from the two audits named above; what this cycle adds is
-// a pin on the ledger, the first pin on `.claude/skills/skill-manifest.json`, and
-// — unlike those two — a citation made deliberately for that purpose rather than
-// as a by-product of citing evidence for an unrelated finding.
+// Note also what is and is not new here, stated carefully, because this is the
+// THIRD claim of absence in this area to turn out wrong when someone finally ran
+// the grep (the other two are recorded above and on #46):
+//   * `.agents/skills/skill-manifest.json` already had a live pin, from the two
+//     audits named above.
+//   * BOTH manifests are also pinned in `.fsgg/scaffold-provenance.json`
+//     (`producedPaths` and `mirroredPaths`, both at `7bf2f301c0a1`) — but both
+//     files are actually `a9e86b4ec1b6`, so those pins are stale, and nothing
+//     reads them anyway: this check deliberately does not, for the reason given
+//     in the scope comment far above.
+// So the honest statement is NOT "the first pin" but: the first pin on
+// `.claude/skills/skill-manifest.json` that anything CHECKS, the first pin of any
+// kind on the ledger, and — unlike the two audit bindings — a citation made
+// deliberately for that purpose rather than as a by-product of citing evidence
+// for an unrelated finding.
 //
 // It is not tamper-PROOF: a worker who edits a kit file, re-pins the ledger and
 // grandfathers the binding gets green. It is tamper-EVIDENT, which is the honest
