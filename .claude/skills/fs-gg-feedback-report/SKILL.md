@@ -337,10 +337,17 @@ therefore any `*.json` under that directory, plus the single file
 `scripts/audit-binding-exceptions.json` the ledger was before that change, which is a frozen archive
 that merged audits still cite.
 
+A second exempt set, the same rule with a different reason: the top-level readiness **roll-ups**
+`readiness/evidence-graph.md`, `readiness/performance-evidence.json` and
+`readiness/m7-ui-performance.json` (rogue3#56). The merge gate writes them over inputs no checkout
+can reproduce, so their digest has no single value at all — present with churning bytes in a
+checkout that has run the gate, absent in one that has not. A path is derived-exempt only when the
+tool's own list names it **and** the workspace `.gitignore` declares it ignored; either statement
+alone leaves the citation bound. `check-audit-bindings.py` derives its set from the same two
+sources, and the two must agree.
+
 Citing your own cycle's ledger file — reasonable when the finding is *about* what you excused — is
-safe: that tool never deletes a ledger file, so a cited one cannot vanish under a later cycle. It is
-the reason the deletion rule is unconditional rather than usual, since an exempt citation is still
-required to resolve to a file that exists (below).
+safe.
 
 The exemption is compared case-sensitively on every platform and decided on the **resolved**
 location rather than the locator text — so `file:feedback/../scripts/audit-binding-exceptions.json`
@@ -360,9 +367,20 @@ feedback-tool: 1 citation(s) were not checked (listed above).
 ```
 
 so a reader can always tell "this citation is exempt" apart from "the validator missed it". The
-locator still has to resolve inside the workspace and the file still has to exist — only the digest
-is unbindable. A pinned `sha256` on such a locator is optional and is never compared, though if
-present it is still format-checked as 64 lowercase hex characters.
+locator still has to resolve inside the workspace — an escaping locator is an error, exempt or not.
+**Existence is waived along with the digest** (rogue3#77): an exempt path may be deleted, renamed or
+never written, and the citation is still reported under NOT BOUND rather than as
+`evidence file is missing`. A pinned `sha256` on such a locator is optional and is never compared,
+though if present it is still format-checked as 64 lowercase hex characters.
+
+That ordering — exemption decided *before* `File.Exists`, never after — is the rule
+`scripts/check-audit-bindings.py` has always followed, where an exempt citation is diverted in
+`collect_bindings` and never becomes a `Binding`, so the `bound file does not exist` violation cannot
+reach it. Both tools now state it. Before rogue3#77 this validator encoded the opposite answer, and
+the cost was concrete: a path any merged audit cited could never be deleted again, so an exemption
+forbade the one change that cannot mislead a reader (removing a file nothing is checking) while
+permitting the one that can (editing it). Do **not** re-add an existence test upstream of the
+exemption; `selftest` fails on ten cases if you do.
 
 **This validator has no excuse ledger.** The gate can excuse an aged binding via
 `check-audit-bindings.py --grandfather --cycle <id>`; `validate` has no counterpart, so a stale citation onto any

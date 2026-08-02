@@ -372,6 +372,104 @@ let private ledgerExemption =
     "this is the audit-binding excuse ledger itself: the only place an excuse can live, so "
     + "excusing any binding rewrites it and invalidates the digest just pinned"
 
+let private derivedExemption =
+    "this is a readiness ROLL-UP the repository deliberately does not track (rogue3#56): the "
+    + "bytes are a run output, so no checkout can be asked to hold the digest a merged audit "
+    + "pinned over them"
+
+/// rogue3#56. The top-level readiness roll-ups the merge gate writes over inputs
+/// no checkout can reproduce. A digest binding onto one of them can never go
+/// fresh again, and does not even give the SAME answer twice: in a checkout that
+/// has run the gate the file is present with churning bytes, and in one that has
+/// not it is ABSENT entirely -- which is why rogue3#77 had to waive existence
+/// before this exemption could mean anything here.
+///
+/// The list must stay identical to `DERIVED_ROLLUP_RELPATHS` in
+/// scripts/check-audit-bindings.py: a path one tool calls unbindable and the
+/// other still binds is exactly the disagreement rogue3#77 exists to close.
+let derivedRollupRelativePaths =
+    [ "readiness/evidence-graph.md", derivedExemption
+      "readiness/performance-evidence.json", derivedExemption
+      "readiness/m7-ui-performance.json", derivedExemption ]
+
+let private gitignoreRelativePath = ".gitignore"
+
+/// The paths the workspace `.gitignore` DECLARES ignored, as written.
+///
+/// A declaration reader, NOT a gitignore engine, and the difference matters:
+/// real precedence is order-dependent and last-match-wins, this is
+/// order-independent. `!readiness/x` followed by `readiness/x` is ignored by git
+/// and NOT declared here, so the exemption is withdrawn and the citation is
+/// checked as an ordinary binding. That direction is harmless. The dangerous
+/// direction is the other one, so a negation is matched LOOSELY: `!readiness/x`,
+/// `!/readiness/x` and a bare `!x` all stop git ignoring `readiness/x`, and every
+/// one of them withdraws the path here.
+///
+/// Ported line for line from `gitignore_declarations` in
+/// scripts/check-audit-bindings.py. The two must answer the same question the
+/// same way, because they derive the same exempt set from it.
+let gitignoreDeclarations (workspaceRoot: string) =
+    let path = Path.Combine(workspaceRoot, gitignoreRelativePath)
+
+    if not (File.Exists path) then
+        Set.empty
+    else
+        let lines =
+            (File.ReadAllText path).Replace("\r\n", "\n").Replace("\r", "\n").Split('\n')
+            |> Array.map (fun line -> line.Trim())
+            |> Array.filter (fun line ->
+                not (String.IsNullOrEmpty line) && not (line.StartsWith("#", StringComparison.Ordinal)))
+
+        let positive =
+            lines
+            |> Array.filter (fun line -> not (line.StartsWith("!", StringComparison.Ordinal)))
+            |> Set.ofArray
+
+        let negated =
+            lines
+            |> Array.filter (fun line -> line.StartsWith("!", StringComparison.Ordinal))
+            |> Array.map (fun line -> line.Substring(1).Trim())
+            |> Set.ofArray
+
+        let negates (rule: string) (declared: string) =
+            let rule = rule.TrimEnd('/')
+            let leaf = declared.Split('/') |> Array.last
+
+            [ declared; "/" + declared; leaf; "/" + leaf ]
+            |> List.exists (fun candidate -> String.Equals(rule, candidate, StringComparison.Ordinal))
+
+        positive
+        |> Set.filter (fun declared -> not (negated |> Set.exists (fun rule -> negates rule declared)))
+
+/// The derived roll-ups THIS workspace actually declares ignored.
+///
+/// Keyed on `.gitignore` rather than on `derivedRollupRelativePaths` alone, for
+/// the reason `derived_exemptions` gives in scripts/check-audit-bindings.py: a
+/// bare constant is a hole that widens silently, while requiring the repository
+/// to say the same thing in the file that DECLARES the path a run output means
+/// the two statements have to agree.
+///
+/// Where the checker RAISES a structural violation for a cited path the constant
+/// names and `.gitignore` does not, this returns a smaller map and stops there,
+/// because withdrawal is already loud on its own: the citation falls through to
+/// the ordinary path and fails as `evidence file is missing` when the artifact is
+/// absent and `evidence digest is stale` when its bytes have moved. There is one
+/// residual gap, stated rather than hidden -- a withdrawn path that happens to be
+/// present at exactly the pinned digest passes here while the checker reports the
+/// disagreement. That is this tool being stricter about the citation and quieter
+/// about the repository's own configuration, which it does not own.
+///
+/// A workspace with no `.gitignore` -- every selftest fixture -- declares
+/// nothing, so nothing is derived-exempt there and a roll-up citation is checked
+/// like any other file. Under-exempting is a loud failure and never a silent
+/// pass, which is the direction this is allowed to be wrong in.
+let derivedExemptions (workspaceRoot: string) =
+    let declared = gitignoreDeclarations workspaceRoot
+
+    derivedRollupRelativePaths
+    |> List.filter (fun (rel, _) -> Set.contains rel declared)
+    |> Map.ofList
+
 /// Why the file at workspace-relative `rel` cannot have its digest checked, or
 /// None when it is an ordinary file.
 ///
@@ -380,12 +478,25 @@ let private ledgerExemption =
 /// is recognised as the ledger too. A textual match on the locator would let a
 /// one-token rewrite reintroduce the unsatisfiable binding this exempts.
 ///
-/// Deliberately the ledger and NOTHING else. The directory prefix is not a
-/// second exemption: it is the same one, following the ledger from one shared
-/// file to one file per cycle. It is a PATH prefix ending in `/` plus a `.json`
+/// TWO exemptions, both ENUMERATED paths rather than a shape, matching
+/// `exemption` in scripts/check-audit-bindings.py one for one.
+///
+/// First the excuse ledger. The directory prefix is not a second exemption: it
+/// is the same one, following the ledger from one shared file to one file per
+/// cycle. It is a PATH prefix ending in `/` plus a `.json`
 /// suffix, so `scripts/audit-binding-exceptions-other/x.json` and
-/// `scripts/audit-binding-exceptions/notes.md` stay bound. In particular a
-/// citation onto another `*.audit.json` is NOT exempt, for one reason only: it
+/// `scripts/audit-binding-exceptions/notes.md` stay bound.
+///
+/// Second the derived readiness roll-ups `derived` names (rogue3#56; see
+/// `derivedExemptions`, which decides that set from `.gitignore` and not from a
+/// bare constant). `derived` is a separate PARAMETER rather than a lookup inside
+/// this function so it stays a pure decision over a path, and so a caller that
+/// forgets it UNDER-exempts -- a loud stale or missing binding, never a silent
+/// pass. `digestExemption` below is exactly that forgetful caller, retained so a
+/// consumer of an older kit keeps compiling.
+///
+/// In particular a
+/// citation onto another `*.audit.json` is NOT exempt under either, for one reason only: it
 /// would cost the only check that notices an edit to merged evidence, and an
 /// audit's digest CAN be held stable -- nothing this validator does rewrites an
 /// audit.
@@ -404,7 +515,17 @@ let private ledgerExemption =
 /// would exempt a path that checker still binds. The two must stay in agreement: a
 /// file the checker calls unbindable is a file this validator must not call stale,
 /// and vice versa.
-let digestExemption (rel: string) =
+///
+/// EXISTENCE IS NOT PART OF THIS DECISION, and both tools must say so (rogue3#77).
+/// A caller answered `Some` here must waive the `File.Exists` test as well as the
+/// digest comparison. The checker already behaves that way -- an exempt citation
+/// is diverted at `collect_bindings` and never becomes a `Binding`, so the
+/// "bound file does not exist" violation cannot reach it -- and this file used to
+/// behave the opposite way, testing existence UPSTREAM of this function. That
+/// asymmetry forbade the one change that cannot mislead (deleting an untracked
+/// file) while permitting the one that can (editing it), and it made every
+/// exemption acquire a permanent path fixture.
+let digestExemptionWith (derived: Map<string, string>) (rel: string) =
     let underLedgerDirectory =
         rel.StartsWith(ledgerDirectoryPrefix, StringComparison.Ordinal)
         && rel.EndsWith(ledgerSuffix, StringComparison.Ordinal)
@@ -413,7 +534,13 @@ let digestExemption (rel: string) =
        || underLedgerDirectory then
         Some ledgerExemption
     else
-        None
+        Map.tryFind rel derived
+
+/// The ledger exemption alone, for a caller that has no derived set. Retained so
+/// a consumer of an older kit keeps compiling; new callers should pass the
+/// workspace's `derivedExemptions` to `digestExemptionWith`. Forgetting it
+/// UNDER-exempts, which is loud.
+let digestExemption (rel: string) = digestExemptionWith Map.empty rel
 
 /// A citation whose digest was deliberately not checked. Reported, never
 /// silently dropped, so a reader can always tell "this citation is exempt"
@@ -474,6 +601,11 @@ let validateActionabilityAuditDetailed
     =
     let errors = ResizeArray<string>()
     let notBound = ResizeArray<NotBoundCitation>()
+
+    // Read `.gitignore` ONCE per validation, not once per citation: the derived
+    // exempt set is a property of the workspace, and re-reading it mid-run would
+    // let two citations in one audit be judged against different rules.
+    let derived = derivedExemptions workspaceRoot
 
     let audit =
         try
@@ -654,24 +786,40 @@ let validateActionabilityAuditDetailed
                                     "audit: %s evidence locator must be a workspace-relative file: path"
                                     id
                             )
-                        | Some path when not (File.Exists path) ->
-                            errors.Add(sprintf "audit: %s evidence file is missing: %s" id locator)
                         | Some path ->
+                            // The exemption is decided BEFORE existence is tested
+                            // (rogue3#77). `resolveEvidencePath` above has already
+                            // rejected anything that escapes the workspace, exempt
+                            // or not, so waiving existence here waives exactly one
+                            // check and widens nothing about WHICH paths qualify.
+                            //
+                            // Deliberately in this order and not the reverse. An
+                            // exemption says this validator has given up tracking
+                            // the file; requiring it to exist kept tracking the
+                            // LEAST useful bit, since a deleted exempt file cannot
+                            // mislead a reader about evidence nobody is checking,
+                            // while an edited one plausibly could and is
+                            // deliberately allowed. `exemption` in
+                            // scripts/check-audit-bindings.py has always answered
+                            // this way -- an exempt citation never becomes a
+                            // `Binding` there, so its "bound file does not exist"
+                            // violation cannot reach one -- and the two are
+                            // required to agree.
                             let relative = workspaceRelative workspaceRoot path
 
-                            match digestExemption relative with
+                            match digestExemptionWith derived relative with
                             | Some reason ->
-                                // Reported, never checked. Only the DIGEST has no
-                                // fixed point here: the locator hygiene and file
-                                // existence checks above are stable facts and still
-                                // applied. A pinned sha256 is not required, because
-                                // requiring one would make an author paste a digest
-                                // this validator promises never to compare.
+                                // Reported, never checked, present or absent. A
+                                // pinned sha256 is not required, because requiring
+                                // one would make an author paste a digest this
+                                // validator promises never to compare.
                                 notBound.Add
                                     { findingId = id
                                       locator = locator
                                       path = relative
                                       reason = reason }
+                            | None when not (File.Exists path) ->
+                                errors.Add(sprintf "audit: %s evidence file is missing: %s" id locator)
                             | None ->
                                 match digest with
                                 | None -> errors.Add(sprintf "audit: %s file evidence needs sha256" id)

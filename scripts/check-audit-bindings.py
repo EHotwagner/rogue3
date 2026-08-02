@@ -211,6 +211,29 @@ deliberately.  The cost is one ledger entry per audit rebind, which is the point
 that entry is a diffable, reasoned line saying somebody edited merged evidence
 and why.
 
+An exempt citation is NOT required to EXIST
+-------------------------------------------
+
+Stated here because the sibling tool encoded the opposite answer until rogue3#77
+and neither file cited the other, so the disagreement was invisible from both
+sides.  The rule, in both tools: the exemption is decided BEFORE existence is
+tested, and answering "exempt" waives the existence check along with the digest
+comparison.  Workspace containment is NOT waived -- a locator that escapes the
+root is an error, exempt or not.
+
+This checker has always behaved that way, structurally rather than by intent: an
+exempt citation is diverted in `collect_bindings` (`note_exempt`) and never
+becomes a `Binding`, so the `bound file does not exist` violation at `evaluate`
+cannot reach it.  `FeedbackReportTool.validateActionabilityAuditDetailed` used to
+test `File.Exists` UPSTREAM of `digestExemption`, which made any path a merged
+audit cited undeletable forever: the exemption forbade the one change that cannot
+mislead a reader (removing a file nothing is checking) and permitted the one that
+can (editing it).  rogue3#53 kept an emptied ledger file in the tree as a frozen
+archive purely to satisfy that check, and wrote an unconditional
+never-delete-a-ledger-file rule as a workaround for it.
+
+If you change the ordering in either tool, change it in both, and say so in both.
+
 Digest rule: sha256 over the file's text with CRLF/CR normalized to LF, encoded
 UTF-8.  This is byte-for-byte the rule the feedback tool applies
 (`FeedbackReportTool.sha256Text` over `File.ReadAllText`), so a file this
@@ -523,6 +546,13 @@ def exemption(rel: str, derived: dict[str, str] | None = None) -> str | None:
 
     In particular a citation onto another `*.audit.json` is NOT exempt under
     either: see the module docstring for why that one is wrong.
+
+    EXISTENCE IS NOT PART OF THIS DECISION.  A caller answered a reason here must
+    not go on to require the file -- here that is structural, since `note_exempt`
+    diverts the citation and no `Binding` is ever built for it, so `evaluate`'s
+    "bound file does not exist" cannot reach it.  `digestExemptionWith` in
+    .agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs carries the
+    same rule explicitly (rogue3#77); the two must not drift apart again.
     """
     if rel == LEGACY_LEDGER_RELPATH:
         return LEDGER_EXEMPTION

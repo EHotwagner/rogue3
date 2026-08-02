@@ -105,6 +105,16 @@ let validateCommand (workspaceRoot: string) (path: string) (auditPath: string) =
 //   4. skip the citation silently                      -> notBound reporting
 //   5. relativise against a non-canonical root         -> symlinkedRoot
 //   6. exempt the whole scripts/ directory             -> staleSiblingScript
+//
+// And the mutants rogue3#77 added, each a plausible way to "fix" the existence
+// asymmetry wrongly:
+//   7. test File.Exists UPSTREAM of the exemption      -> missing-ledger
+//      (this was the SHIPPED behaviour; the case that asserted it is inverted)
+//   8. drop the File.Exists test for every path        -> missingOrdinary
+//   9. waive resolution as well as existence           -> escapingExempt
+//  10. read the derived set from the constant alone    -> negation cases
+//  11. let .gitignore alone name an exempt path        -> unlistedRollup
+//  12. promote a not-bound citation back to an error   -> CLI deleted-exempt
 // ---------------------------------------------------------------------------
 
 /// A report whose §4.n findings each declare the given evidence line.
@@ -520,7 +530,11 @@ let private selftest () =
             "a TRAVERSING locator onto the ledger is recognised as the ledger -- the exemption reads the resolved path, not the locator text"
             (List.isEmpty traversing.errors && traversing.notBound.Length = 1)
 
-        // --- existence is still checked --------------------------------------
+        // --- existence is WAIVED for an exempt path (rogue3#77) ---------------
+        // The mutant this kills is the shipped behaviour before rogue3#77: test
+        // File.Exists upstream of the exemption. It made an exempt path
+        // undeletable forever -- the one change that cannot mislead a reader --
+        // while still permitting the edit that can.
         let root = newRoot "missing-ledger"
         seedWorkspace root "one" |> ignore
         File.Delete(Path.Combine(root, "scripts", "audit-binding-exceptions.json"))
@@ -529,8 +543,147 @@ let private selftest () =
             runCase root [ cite "file:scripts/audit-binding-exceptions.json" (Some staleDigest) ]
 
         check
-            "a citation onto a MISSING ledger is still an error -- only the digest has no fixed point, existence does"
-            (missingLedger.errors |> List.exists (fun e -> e.Contains "is missing"))
+            "a citation onto a DELETED ledger is not an error -- existence is waived with the digest"
+            (List.isEmpty missingLedger.errors)
+
+        check
+            "a DELETED ledger citation is still REPORTED as not bound, never silently dropped"
+            (missingLedger.notBound
+             |> List.exists (fun c ->
+                 c.locator = "file:scripts/audit-binding-exceptions.json"
+                 && c.path = "scripts/audit-binding-exceptions.json"
+                 && not (String.IsNullOrWhiteSpace c.reason)))
+
+        check
+            "a DELETED ledger citation does not require a sha256 either"
+            (List.isEmpty (runCase root [ cite "file:scripts/audit-binding-exceptions.json" None ]).errors)
+
+        // Same, at the path excuses actually land in today.
+        File.Delete(Path.Combine(root, "scripts", "audit-binding-exceptions", "item-alpha.json"))
+
+        let missingCycleLedger =
+            runCase root [ cite "file:scripts/audit-binding-exceptions/item-alpha.json" (Some staleDigest) ]
+
+        check
+            "a citation onto a DELETED per-cycle ledger file is not an error and is still reported"
+            (List.isEmpty missingCycleLedger.errors && missingCycleLedger.notBound.Length = 1)
+
+        // The waiver is for EXEMPT paths only. Without this, "waive existence"
+        // implemented as "drop the File.Exists test" passes every case above and
+        // stops noticing that ordinary evidence has been deleted.
+        File.Delete(Path.Combine(root, "src", "Thing.fs"))
+
+        let missingOrdinary = runCase root [ cite "file:src/Thing.fs" (Some staleDigest) ]
+
+        check
+            "a citation onto a MISSING ORDINARY file is still an error -- the waiver is not a blanket one"
+            (missingOrdinary.errors
+             |> List.exists (fun e -> e.Contains "is missing" && e.Contains "src/Thing.fs"))
+
+        check
+            "a missing ordinary file is never reported as not bound"
+            (List.isEmpty missingOrdinary.notBound)
+
+        // A path that NEVER existed, exempt by shape, is exempt too: the waiver
+        // cannot depend on the file having been present at some earlier point.
+        let neverExisted =
+            runCase root [ cite "file:scripts/audit-binding-exceptions/item-never-written.json" (Some staleDigest) ]
+
+        check
+            "a citation onto a per-cycle ledger file that never existed is exempt"
+            (List.isEmpty neverExisted.errors && neverExisted.notBound.Length = 1)
+
+        // Workspace containment is unchanged by the waiver: an ESCAPING locator
+        // that also spells an exempt path is still an error, not a free pass. The
+        // mutant here is answering the exemption from the locator text, or moving
+        // the waiver upstream of `resolveEvidencePath`.
+        let escapingExempt =
+            runCase root [ cite "file:../scripts/audit-binding-exceptions.json" (Some staleDigest) ]
+
+        check
+            "an ESCAPING locator onto an exempt path is still an error -- only existence is waived, not resolution"
+            (escapingExempt.errors |> List.exists (fun e -> e.Contains "workspace-relative")
+             && List.isEmpty escapingExempt.notBound)
+
+        // --- the derived readiness roll-ups (rogue3#56, agreed here by #77) ---
+        // The checker exempts these and this validator did not, so the same
+        // citation was unbindable there and `evidence file is missing` here. Both
+        // sides now derive the set from `.gitignore`.
+        let root = newRoot "derived-rollups"
+        seedWorkspace root "one" |> ignore
+        let rollup = "file:readiness/performance-evidence.json"
+
+        // No .gitignore at all: nothing is declared, so nothing is derived-exempt
+        // and the citation is checked like any other file. Under-exempting is the
+        // safe direction and this pins it.
+        let undeclaredRollup = runCase root [ cite rollup (Some staleDigest) ]
+
+        check
+            "with NO .gitignore a roll-up citation is bound like any other file"
+            (undeclaredRollup.errors |> List.exists (fun e -> e.Contains "is missing")
+             && List.isEmpty undeclaredRollup.notBound)
+
+        writeFile
+            (Path.Combine(root, ".gitignore"))
+            "# rogue3#56\nreadiness/evidence-graph.md\nreadiness/performance-evidence.json\nreadiness/m7-ui-performance.json\n"
+
+        // The artifact is ABSENT, which is what a fresh checkout looks like.
+        let declaredAbsent = runCase root [ cite rollup (Some staleDigest) ]
+
+        check
+            "a DECLARED roll-up that is ABSENT is exempt, not missing -- the fresh-checkout case rogue3#56 could not fix alone"
+            (List.isEmpty declaredAbsent.errors
+             && declaredAbsent.notBound
+                |> List.exists (fun c -> c.path = "readiness/performance-evidence.json"))
+
+        check
+            "a declared roll-up citation does not require a sha256"
+            (List.isEmpty (runCase root [ cite rollup None ]).errors)
+
+        // And PRESENT with churning bytes, which is what a checkout that has run
+        // the gate looks like. Same verdict, or the exemption would answer two
+        // different things about one path.
+        writeFile (Path.Combine(root, "readiness", "performance-evidence.json")) "{\"ran\": 1}\n"
+
+        let declaredPresent = runCase root [ cite rollup (Some staleDigest) ]
+
+        check
+            "a DECLARED roll-up that is PRESENT with different bytes gives the SAME verdict as when absent"
+            (List.isEmpty declaredPresent.errors && declaredPresent.notBound.Length = 1)
+
+        // A NEGATION withdraws the declaration, so the exemption switches off and
+        // the citation is checked again. Every spelling of the negation must do
+        // it -- honouring only the exact form left the exemption standing over a
+        // file the repository had resumed treating as ordinary.
+        for negation in [ "!readiness/performance-evidence.json"
+                          "!/readiness/performance-evidence.json"
+                          "!performance-evidence.json" ] do
+            writeFile
+                (Path.Combine(root, ".gitignore"))
+                (sprintf "readiness/performance-evidence.json\n%s\n" negation)
+
+            let withdrawn = runCase root [ cite rollup (Some staleDigest) ]
+
+            check
+                (sprintf "the negation '%s' withdraws the roll-up exemption and the citation is checked again" negation)
+                (withdrawn.errors |> List.exists (fun e -> e.Contains "digest is stale")
+                 && List.isEmpty withdrawn.notBound)
+
+        // A roll-up the constant does NOT name is never exempt, however loudly
+        // .gitignore declares it. The exemption is an enumerated set, not a shape.
+        writeFile
+            (Path.Combine(root, ".gitignore"))
+            "readiness/performance-evidence.json\nreadiness/something-else.json\n"
+
+        writeFile (Path.Combine(root, "readiness", "something-else.json")) "{}\n"
+
+        let unlistedRollup =
+            runCase root [ cite "file:readiness/something-else.json" (Some staleDigest) ]
+
+        check
+            "an ignored path the constant does not name is still bound -- .gitignore alone cannot widen the exemption"
+            (unlistedRollup.errors |> List.exists (fun e -> e.Contains "digest is stale")
+             && List.isEmpty unlistedRollup.notBound)
 
         // --- symlinked workspace root ----------------------------------------
         // Relativising a realpath'd target against a root that still contains a
@@ -729,6 +882,34 @@ let private selftest () =
         let code, _, _ = runCli [ [ cite "file:src/Thing.fs" (Some pins.source) ] ]
         check "CLI: a fresh ordinary digest exits 0" (code = 0)
 
+        // rogue3#77's acceptance, through the real command: DELETE the exempt
+        // file and the report still validates, with the citation named. The
+        // library cases above would all pass if `validateCommand` promoted a
+        // not-bound citation back into the error list.
+        File.Delete(Path.Combine(root, "scripts", "audit-binding-exceptions.json"))
+
+        let code, out, err =
+            runCli [ [ cite "file:scripts/audit-binding-exceptions.json" (Some staleDigest) ] ]
+
+        check "CLI: a citation onto a DELETED exempt path exits 0" (code = 0)
+
+        check
+            "CLI: a deleted exempt path is still listed in the NOT BOUND block with its reason"
+            (out.Contains "NOT BOUND"
+             && out.Contains "file:scripts/audit-binding-exceptions.json"
+             && out.Contains "excuse ledger")
+
+        check
+            "CLI: a deleted exempt path is not reported as missing on stderr"
+            (not (err.Contains "is missing"))
+
+        File.Delete(Path.Combine(root, "src", "Thing.fs"))
+        let code, _, err = runCli [ [ cite "file:src/Thing.fs" (Some pins.source) ] ]
+
+        check
+            "CLI: a deleted ORDINARY evidence file still exits 1 and says it is missing"
+            (code = 1 && err.Contains "is missing" && err.Contains "src/Thing.fs")
+
         let missingCode =
             let stderr = new StringWriter()
             let previousError = Console.Error
@@ -766,7 +947,7 @@ let private selftest () =
 
         // A FLOOR, so a sandbox that silently skipped a group cannot report a
         // smaller green suite. The symlink cases are conditional; nothing else is.
-        let minimumCases = 38
+        let minimumCases = 66
 
         if total < minimumCases then
             failures.Add(
