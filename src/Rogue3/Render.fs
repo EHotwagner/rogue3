@@ -587,13 +587,15 @@ let shopSlotScene (at: Vec2) (slot: Rogue3.Entities.ShopSlot) =
 /// tell a refused press apart from a press at empty floor, because both change nothing. The
 /// affordable and refused frames differ in colour, in ring stroke and in words, so the answer is
 /// legible BEFORE the press as well as after it.
-let shopSlotReadyScene (at: Vec2) (affordable: bool) (slot: Rogue3.Entities.ShopSlot) =
+let shopSlotReadyScene (at: Vec2) (refusal: string option) (_slot: Rogue3.Entities.ShopSlot) =
+    let affordable = Option.isNone refusal
     let halo = if affordable then color 255uy 226uy 150uy 255uy else color 226uy 96uy 96uy 255uy
     let ring = { X=at.Vx-30.0; Y=at.Vy-46.0; Width=60.0; Height=58.0 }
-    let label =
-        if affordable then "E  BUY"
-        elif slot.KeyLocked then "NEED KEY"
-        else sprintf "NEED %dc" slot.Price
+    // The WORDS come from `Model.shopSlotRefusal`, beside the reducer that decides. This scene used
+    // to derive them here from `slot.KeyLocked` and `slot.Price`, which could only ever name the two
+    // reasons it knew about — so a slot refused because the player was already at the cap was
+    // labelled `NEED 6c` while they held ninety-nine coins.
+    let label = refusal |> Option.defaultValue "E  BUY"
     Scene.group
         [ Scene.rectangleWithPaint ring (Paint.stroke halo (if affordable then 3.0 else 2.0))
           Scene.circle { X=ring.X;Y=ring.Y } 4.0 halo
@@ -782,7 +784,7 @@ let renderedElementsIn grammar model : RenderedElement list =
       match Rogue3.Model.shopSlotUnderPlayer model with
       | Some(slot, at) ->
           yield rendered "ShopSlotReady" "scene/shop-slot-ready" RenderLayer.Pickups
-                    (shopSlotReadyScene at (Rogue3.Model.shopSlotAffordable model slot) slot)
+                    (shopSlotReadyScene at (Rogue3.Model.shopSlotRefusal model slot) slot)
       | None -> ()
 
       match model.M5Room.Reward with

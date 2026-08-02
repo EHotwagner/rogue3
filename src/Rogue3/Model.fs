@@ -1924,19 +1924,41 @@ let private withShopStock roomId (slots: Rogue3.Entities.ShopSlot list) (floor: 
 /// `Consumable` offer granted no heart, key or bomb either, and did not even bump a counter. The
 /// consumable half routes through the SAME `applyFloorPickup` a floor drop uses, so a bought heart
 /// obeys the container cap and a bought coin obeys the 99 cap by the one shared rule.
-let purchaseM5ShopSlot slotId model =
+/// The model a purchase of `slotId` WOULD produce, or `None` when the shop refuses the sale.
+///
+/// ONE function decides, and both the reducer and the affordance prompt read it. That is not tidiness:
+/// `shopSlotAffordable` is what `Render.shopSlotReadyScene` colours the halo from, so a second copy of
+/// the rule is a promise the reducer can break. #55 already delegates the three `Entities.purchase`
+/// clauses rather than restating them, for exactly this reason; the refusal below is the fourth clause
+/// and lives in the same place.
+///
+/// THE FOURTH CLAUSE. `Entities.purchase` asks whether the player can PAY. It does not ask whether
+/// what they are paying for can LAND, and `applyFloorPickup` silently no-ops at a cap — `addCurrency`
+/// stops at 99 and `healRed` stops at the container count. So a heart bought at full health, or a key
+/// bought at ninety-nine keys, took the coins, emptied the offer and returned a player identical to
+/// the one that pressed the button, while `AudioCues` played the acquisition sound and the prompt had
+/// said `E  BUY` in the affordable colour. The board item requires that a refused purchase be
+/// distinguishable from a completed one; a sale that changes nothing and sounds like a success is the
+/// same defect wearing the opposite mask. `#55` is also what makes it permanent: before `withShopStock`
+/// the slot came back on re-entry, so the coins were wasted but the goods were recoverable.
+///
+/// The landing test is made AFTER payment, against `paid`, and that is load-bearing for the shop's
+/// pool-exhausted `Coin3` fallback: at 99 coins, paying 3 and receiving 3 lands, while asking the
+/// question before payment would refuse a sale the reducer would have completed — and the prompt would
+/// then disagree with the button.
+let private purchaseOutcome slotId model =
     match model.M5ShopSlots|>List.tryFind(fun slot->slot.Id=slotId) with
-    | None -> model
+    | None -> None
     | Some slot ->
         let coins,keys,updated,ok=Rogue3.Entities.purchase model.PlayerCurrency.Coins model.PlayerCurrency.Keys slot
-        if not ok then model else
+        if not ok then None else
         let remaining = model.M5ShopSlots|>List.map(fun item->if item.Id=slotId then updated else item)
         let paid =
             {model with PlayerCurrency={model.PlayerCurrency with Coins=coins;Keys=keys}
                         M5ShopSlots=remaining
                         Floor=withShopStock model.Floor.CurrentRoom remaining model.Floor}
         match slot.Offer with
-        | Rogue3.Entities.ShopOffer.Item item -> grantItem item paid
+        | Rogue3.Entities.ShopOffer.Item item -> Some(grantItem item paid)
         | Rogue3.Entities.ShopOffer.Consumable kind ->
             // BOUGHT, not FOUND. `applyFloorPickup` credits `RunStats.CoinsCollected` because a coin
             // lying on the floor is income, and `runScore` pays `CoinsCollected * 5` for it. A coin
@@ -1944,8 +1966,16 @@ let purchaseM5ShopSlot slotId model =
             // `Coin3` priced at 3, so crediting it would mint 15 score per slot for a net-zero
             // transaction. Take the effect, leave the collection accounting where it was.
             let stocked = applyFloorPickup kind paid
-            { stocked with RunStats = { stocked.RunStats with CoinsCollected = paid.RunStats.CoinsCollected } }
-        | Rogue3.Entities.ShopOffer.Empty -> paid
+            // `PlayerCurrency` and `PlayerHealth` are the whole of what `applyFloorPickup` writes
+            // besides the collection counter, so comparing them against `paid` asks precisely "did
+            // this consumable do anything", by consulting the shared rule rather than re-deriving
+            // which kinds have caps and where those caps are.
+            if stocked.PlayerCurrency = paid.PlayerCurrency && stocked.PlayerHealth = paid.PlayerHealth then None
+            else Some { stocked with RunStats = { stocked.RunStats with CoinsCollected = paid.RunStats.CoinsCollected } }
+        | Rogue3.Entities.ShopOffer.Empty -> Some paid
+
+let purchaseM5ShopSlot slotId model =
+    purchaseOutcome slotId model |> Option.defaultValue model
 
 /// M13: walk onto a pickup and it is yours.
 ///
@@ -2062,12 +2092,26 @@ let shopSlotPositions (model: Model) =
 
 /// True when `slot` would actually be sold to this player right now.
 ///
-/// Delegated to `Entities.purchase` rather than restated. The affordability rule is three clauses
-/// (empty offer, key-locked without a key, priced above the purse) and a second copy of it is a
-/// second thing to keep in step — the renderer would promise a purchase the reducer then refuses.
+/// Delegated to `purchaseOutcome` — the reducer itself — rather than restated. The rule is four
+/// clauses (empty offer, key-locked without a key, priced above the purse, and an effect that cannot
+/// land) and a second copy of it is a second thing to keep in step: the renderer would promise a
+/// purchase the reducer then refuses, or hide one it would have made. This is a decision the product
+/// draws a halo from, so it asks the question by running it.
 let shopSlotAffordable (model: Model) (slot: Rogue3.Entities.ShopSlot) =
-    let _, _, _, ok = Rogue3.Entities.purchase model.PlayerCurrency.Coins model.PlayerCurrency.Keys slot
-    ok
+    (purchaseOutcome slot.Id model).IsSome
+
+/// What the prompt should SAY when the shop will not sell `slot`, or `None` when it will.
+///
+/// Split from the decision above rather than folded into it: `shopSlotAffordable` answers whether,
+/// this answers why, and only the first one may gate a reducer. The final arm is the one the cap
+/// defect needed — a player refused for `NEED 6c` while holding ninety-nine coins is being told
+/// something false, and "the refusal is legible" is half of this board item's acceptance.
+let shopSlotRefusal (model: Model) (slot: Rogue3.Entities.ShopSlot) : string option =
+    if shopSlotAffordable model slot then None
+    elif slot.Offer = Rogue3.Entities.ShopOffer.Empty then Some "SOLD"
+    elif slot.KeyLocked && model.PlayerCurrency.Keys <= 0 then Some "NEED KEY"
+    elif not slot.KeyLocked && model.PlayerCurrency.Coins < slot.Price then Some(sprintf "NEED %dc" slot.Price)
+    else Some "FULL"
 
 /// The stocked shop slot the player is standing at, with the position it is drawn at.
 ///

@@ -612,6 +612,75 @@ let m14ItemGrantTests =
               Expect.equal bought.PlayerHealth expected.PlayerHealth "and the consumable's effect on health is the floor-pickup effect"
               Expect.equal bought.PlayerCurrency expected.PlayerCurrency "and on the purse"
               Expect.isEmpty bought.PlayerItems "a consumable is not an item"
+
+              // The comparison above is against the shared rule, which is right, but on its own it is
+              // satisfied by the rule doing NOTHING — and a consumable that lands nothing is exactly
+              // the defect below. Pin that this fixture actually moves the player, so the assertions
+              // above are comparing two changes rather than two nil effects.
+              Expect.notEqual (bought.PlayerHealth, bought.PlayerCurrency.Keys, bought.PlayerCurrency.Bombs)
+                  (standing.PlayerHealth, standing.PlayerCurrency.Keys, standing.PlayerCurrency.Bombs)
+                  "the bought consumable changed the player, so this test is not comparing two no-ops"
+          }
+
+          test "the shop refuses a consumable that would land NOTHING, rather than charging for it" {
+              // Found by a critic, in ordinary play, after the suite was green. `Entities.purchase`
+              // asks only whether the player can PAY. `applyFloorPickup` silently no-ops at a cap —
+              // `addCurrency` stops at 99, `healRed` stops at the container count — so a heart bought
+              // at full health took the coins, emptied the offer, returned an identical player and
+              // played the acquisition cue, while the prompt had said `E  BUY` in the affordable
+              // colour. `#55` is what let a key press reach it and what made the loss permanent: the
+              // stock write-back means the slot does not come back on re-entry.
+              //
+              // `Entities.generateShop` stocks exactly HalfRedHeart, Key, Bomb and SoulHeart, so a
+              // full-health player standing at a heart slot is not a contrived state.
+              let capped: (string * Rogue3.Entities.PickupKind * (Model -> Model)) list =
+                  [ "a heart at full health", Rogue3.Entities.PickupKind.HalfRedHeart, id
+                    "a key at the currency cap", Rogue3.Entities.PickupKind.Key,
+                        (fun m -> { m with PlayerCurrency = { m.PlayerCurrency with Keys = 99 } })
+                    "a bomb at the currency cap", Rogue3.Entities.PickupKind.Bomb,
+                        (fun m -> { m with PlayerCurrency = { m.PlayerCurrency with Bombs = 99 } }) ]
+
+              for label, kind, atCap in capped do
+                  let slot: Rogue3.Entities.ShopSlot =
+                      { Id = 0; Offer = Rogue3.Entities.ShopOffer.Consumable kind; Price = 3; KeyLocked = false }
+                  let standing = atCap { inShop 50 with M5ShopSlots = [ slot ] }
+
+                  Expect.isFalse (shopSlotAffordable standing slot) $"{label} is not on offer"
+                  Expect.equal (shopSlotRefusal standing slot) (Some "FULL") $"{label} is refused for the reason a player can act on"
+
+                  let pressed = update (InteractM5Shop 0) standing |> fst
+                  Expect.equal pressed.PlayerCurrency standing.PlayerCurrency $"{label} costs nothing"
+                  Expect.equal pressed.PlayerHealth standing.PlayerHealth $"{label} changes no health"
+                  Expect.equal (pressed.M5ShopSlots |> List.map _.Offer) [ slot.Offer ] $"{label} is still on the plinth afterwards"
+
+                  let cues =
+                      AudioCues.forTransition (InteractM5Shop 0) standing pressed
+                      |> Audio.interpret |> _.Requested
+                      |> List.choose (function PlaySfx(SoundId id, _) -> Some id | _ -> None)
+                  Expect.isEmpty cues $"{label} does not sound like a completed purchase"
+
+              // The control, and the guarantee the refusal must not break: the SAME slot at the same
+              // price sells the moment it has somewhere to land.
+              let heart: Rogue3.Entities.ShopSlot =
+                  { Id = 0; Offer = Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.HalfRedHeart; Price = 3; KeyLocked = false }
+              let hurt =
+                  { inShop 50 with
+                      M5ShopSlots = [ heart ]
+                      PlayerHealth = { (inShop 50).PlayerHealth with RedHalfHearts = 2 } }
+              Expect.isTrue (shopSlotAffordable hurt heart) "a hurt player can buy the same heart"
+              let healed = update (InteractM5Shop 0) hurt |> fst
+              Expect.equal healed.PlayerCurrency.Coins (hurt.PlayerCurrency.Coins - 3) "and pays for it"
+              Expect.equal healed.PlayerHealth.RedHalfHearts 3 "and is healed by it"
+
+              // The shop's pool-exhausted fallback is `Coin3` priced at 3, so at the coin cap the
+              // sale is net zero but NOT a no-op: the payment makes room for the coins it returns.
+              // This is why the landing test is made after payment, and it is the case a check made
+              // before payment would wrongly refuse.
+              let coins: Rogue3.Entities.ShopSlot =
+                  { Id = 0; Offer = Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.Coin3; Price = 3; KeyLocked = false }
+              let flush = { inShop 99 with M5ShopSlots = [ coins ] }
+              Expect.isTrue (shopSlotAffordable flush coins) "the Coin3 fallback still sells at the coin cap"
+              Expect.equal (update (InteractM5Shop 0) flush |> fst).PlayerCurrency.Coins 99 "and leaves the purse where it was"
           }
 
           test "a bought slot stays bought when the player leaves and comes back" {
