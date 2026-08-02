@@ -2481,12 +2481,29 @@ let private runSelfTest () =
     runTemplateDrift ()
     runViolationCheck "GeneratedGuidanceCheck" (generatedGuidanceViolations (currentRoot ()))
 
-    // #57 / M21: the same check over a DIFFERENT SPELLING of the same root. A mutation that exempts
-    // the real repository by comparing `root` against `Directory.GetCurrentDirectory()` returns []
-    // for one spelling and the true violations for the other, so the two disagree and this raises.
-    // It does NOT close the class — an exemption that normalizes the path first still survives, and
-    // that residual is named in the banner.
-    runViolationCheck "TemplateDrift" (templateDriftViolations (path [ currentRoot (); "." ]))
+    // #57 / M21: the same check over the same tree, evaluated from a DIFFERENT WORKING DIRECTORY.
+    //
+    // M21's whole trick is `if root = Directory.GetCurrentDirectory() then []` — an exemption that
+    // fires only for the real repository, while every fixture case (which uses a temp root) still
+    // passes. Normalising the comparison (`Path.GetFullPath root = Path.GetFullPath (cwd)`) defeats
+    // a mere second SPELLING of the root. It does not defeat this: here the process is standing
+    // somewhere else entirely, so `root` is the repository and the current directory is not, and
+    // no root-vs-cwd equality can hold however it is normalised. `templateDriftViolations` derives
+    // every path it touches from `root`, so relocating the process cannot change its answer.
+    //
+    // `runViolationCheck` is deliberately called AFTER the directory is restored: its success path
+    // calls `writeLog`, which writes to a RELATIVE path and would otherwise land in the temp dir.
+    let driftFromElsewhere =
+        let here = Directory.GetCurrentDirectory()
+        let realRoot = Path.GetFullPath here
+
+        try
+            Directory.SetCurrentDirectory(Path.GetTempPath())
+            templateDriftViolations realRoot
+        finally
+            Directory.SetCurrentDirectory here
+
+    runViolationCheck "TemplateDrift" driftFromElsewhere
 
     writeLog "SelfTest"
 
