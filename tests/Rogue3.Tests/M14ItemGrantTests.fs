@@ -900,6 +900,54 @@ let m14ItemGrantTests =
               Expect.equal (pressInteract hatchOnly).FloorIndex (both.FloorIndex + 1) "with no stock underfoot the same press descends"
           }
 
+          test "a slot the player cannot AFFORD does not swallow the descent" {
+              // The other half of the tie-break, and the half the first draft got wrong. The sensor
+              // deliberately answers for an unaffordable slot — the `NEED 13c` prompt is drawn from
+              // it — so gating the descent on "is a shop intent present" handed the press to a
+              // purchase that then refused it and changed nothing. On a hatch beside stock they could
+              // not afford, the player pressed interact forever and neither bought nor descended.
+              //
+              // Reached here the same way the test above reaches its contested state, through the
+              // fallback lattice of EHotwagner/rogue3#69; the difference is the purse.
+              let roomId = shopFloor.Floor.CurrentRoom
+              let contested coins =
+                  { crowdedShop coins with
+                      M5Room = { (inShop coins).M5Room with Trapdoor = true }
+                      Floor =
+                        { shopFloor.Floor with
+                            CurrentRoom = roomId
+                            Rooms =
+                              shopFloor.Floor.Rooms
+                              |> Map.add roomId { shopFloor.Floor.Rooms.[roomId] with Fixtures = shopFloor.Floor.Rooms.[roomId].Fixtures @ [ Trapdoor ] } } }
+
+              // `crowdedShop` stocks every slot at one coin, so a purse of zero refuses all of them.
+              let broke = contested 0
+              let onHatch =
+                  shopSlotPositions broke
+                  |> List.tryFind trapdoorContains
+                  |> Option.defaultWith (fun () -> failtest "the fallback lattice really does place a slot on the hatch")
+              let stuck = { broke with PlayerPosition = onHatch }
+
+              // The precondition: both predicates are live, and the purchase is the one that cannot
+              // complete. If either of these stops holding the test below is proving nothing.
+              Expect.isTrue (canDescend stuck) "the press satisfies the descent guard"
+              let sensed =
+                  shopSlotUnderPlayer stuck
+                  |> Option.defaultWith (fun () -> failtest "the shop sensor answers at the same point")
+              Expect.isFalse (shopSlotAffordable stuck (fst sensed)) "and the slot it senses is one the player cannot buy"
+
+              let pressed = pressInteract stuck
+              Expect.equal pressed.FloorIndex (stuck.FloorIndex + 1) "the refused press falls through to the descent"
+              Expect.equal pressed.PlayerCurrency.Coins stuck.PlayerCurrency.Coins "and buys nothing on the way"
+
+              // The control, and the guarantee the fix must not break: make the SAME slot affordable
+              // and the purchase takes the press back, exactly as the test above requires.
+              let rich = { contested 50 with PlayerPosition = onHatch }
+              let bought = pressInteract rich
+              Expect.equal bought.FloorIndex rich.FloorIndex "an affordable slot still wins the tie"
+              Expect.equal bought.PlayerCurrency.Coins (rich.PlayerCurrency.Coins - 1) "and is what the press paid for"
+          }
+
           test "the purchase a player triggers is AUDIBLE, which a message-keyed cue was not" {
               // The `floor-descend` lesson, one fixture over. A purchase now resolves inside a fixed
               // step, so `AudioCues.forTransition` is called with `Tick` and never sees

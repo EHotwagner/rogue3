@@ -2353,21 +2353,41 @@ let playerRoomIntentsIn isFirstStep pressedThisTick (model: Model) : Model * Msg
     // anything; a slot debits the purse, so pathing across a shop must not bankrupt a player who
     // never asked to buy. The scan runs only on the interact edge, which is also why it needs no
     // `Total…Queries` counter of its own: it is not a per-tick cost the way the door sensor is.
+    let shopAtPlayer = if interacting then shopSlotUnderPlayer model else None
+
     let shopIntents =
-        if interacting then shopSlotUnderPlayer model |> Option.map (fun (slot, _) -> [ InteractM5Shop slot.Id ]) |> Option.defaultValue []
-        else []
+        shopAtPlayer |> Option.map (fun (slot, _) -> [ InteractM5Shop slot.Id ]) |> Option.defaultValue []
+
+    /// True when the press the player just made will actually TRANSACT, rather than being refused.
+    ///
+    /// `shopSlotUnderPlayer` deliberately answers for a slot the player cannot afford — the prompt
+    /// has to be able to say `NEED 13c`, which is half of this item's acceptance — so "a slot is
+    /// under the player" and "this press buys something" are different questions, and only the
+    /// second one may take the press away from another consumer of the same button.
+    let purchaseTransacts =
+        shopAtPlayer |> Option.map (fun (slot, _) -> shopSlotAffordable model slot) |> Option.defaultValue false
 
     let descentIntents =
         // `DescendFloor` replaces every room-local collection but does not load a room, so the route
         // follows it with the production room-entry message. Both are guarded reducers.
         //
-        // SHOP WINS A TIE. `placementAccepts` rejects any fixture position inside `trapdoorContains`,
-        // so stock is never placed ON the hatch — but `shopSlotRadius` plus `playerRadius` reaches
-        // past the plinth, so one press can satisfy both predicates at the margin. Descending is a
-        // one-way trip that abandons the room's remaining stock; buying is local and repeatable, and
-        // the player can press again to descend. Resolving the tie the other way would make a shop
-        // built beside a trapdoor unbuyable, which is the defect this item exists to close.
-        if interacting && List.isEmpty shopIntents && canDescend model then [ DescendFloor; EnterM5Room 0 ]
+        // A TRANSACTING SHOP PRESS WINS A TIE; A REFUSED ONE DOES NOT. `placementAccepts` rejects any
+        // fixture position inside `trapdoorContains`, so stock is never placed ON the hatch — but
+        // `shopSlotRadius` plus `playerRadius` reaches past the plinth, so one press can satisfy both
+        // predicates at the margin. Descending is a one-way trip that abandons the room's remaining
+        // stock; buying is local and repeatable, and the player can press again to descend. Resolving
+        // the tie the other way would make a shop built beside a trapdoor unbuyable, which is the
+        // defect this item exists to close.
+        //
+        // The gate is `purchaseTransacts` and NOT `List.isEmpty shopIntents`, which is what it said
+        // first. A slot the player cannot afford is still sensed — it must be, or the refusal prompt
+        // could not be drawn — so gating on the mere presence of a shop intent handed the press to a
+        // purchase that then refused it and returned the model unchanged. Standing on a hatch beside
+        // stock too expensive to buy, the player pressed interact forever and neither bought nor
+        // descended: a SOFT-LOCK, and the comment above used to justify the gate with "the player can
+        // press again to descend", which was false in exactly that case. A refused press now falls
+        // through to the descent, so the button always does something.
+        if interacting && not purchaseTransacts && canDescend model then [ DescendFloor; EnterM5Room 0 ]
         else []
 
     scanned, doorIntents @ shopIntents @ descentIntents

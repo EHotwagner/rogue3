@@ -1430,9 +1430,20 @@ let m7UiPerformanceEvidence (path:string) =
               // the source moved and nowhere else. Every scale verdict is unchanged: hud-playing still
               // reports 12 scene elements at both outputs and the same five named regions, because the
               // shop prompt is a WORLD-SPACE element and this route measures the HUD.
-              "hud-playing", "92f12cba629a4722763743540258d3b472c92562c3d27f967bd9ec54565b1381"
-              "run-result", "b9bae075c3a533ae2ee7a5fd09c9ab49f60f0fe8bd3a538488ee3d5491f4e662"
-              "stats-charts", "eb71d62d6181d99eff7c6dc00eae0aea4e44c02d0c805c98522b2a685fb44b3f" ]
+              //
+              // Board item #55 (SEVENTH derivation), same cycle as the sixth. A critic pass over the
+              // candidate found that the shop/trapdoor tie-break gated the descent on whether a shop
+              // slot was SENSED rather than on whether the press would transact, so an unaffordable
+              // slot on a hatch swallowed the interact edge forever. `playerRoomIntentsIn` now gates
+              // on `purchaseTransacts`, which moves `Model.fs` again and therefore moves exactly the
+              // same three routes a second time. `main-menu` is byte-identical for the third cycle
+              // running — it hashes `GameShell.fs` and `M7Ui.fs`, which this did not touch — and that
+              // is the check that the digest set moved where the source moved and nowhere else. Every
+              // scale verdict is unchanged; the fix is one predicate inside the fixed step and draws
+              // nothing.
+              "hud-playing", "30bbbad0f74b88ef88b974c437694050bb97b1ecbfd8447ab4e7fd3a03753af9"
+              "run-result", "02085044a01bcb2cc28a3000f329f43f4ce6415ce7e91fe220da700257262b1d"
+              "stats-charts", "2d42544064e6995f684b1b597404e2908f57b2eddd08513c63add9aa61552cfb" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]
