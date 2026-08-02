@@ -118,7 +118,9 @@ jobs:
       # `failures <- failures + 1` makes it print every failure and still exit 0
       # (`if failures > 0 then` -> `if false then` does the same). Combined with a
       # vacuous check, two single-line edits leave BOTH `-t SelfTest` and
-      # `dotnet test -c Release` (235/235) green. A guard that grepped for the FAIL
+      # `dotnet test -c Release` green (235/235 at 09895b9, 253/253 at 95b1170 --
+      # the suite grows, so this is anchored rather than a running total). A guard
+      # that grepped for the FAIL
       # line would catch that -- but would itself be fail-OPEN: renaming that one
       # printf label re-greens the same two-edit mutant with 15 failing cases in the
       # log, measured. So the guard requires ok-count == case-count instead, which

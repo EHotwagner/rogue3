@@ -21,7 +21,7 @@
         {
           "locator": "file:.github/workflows/verify.yml",
           "result": "verified",
-          "sha256": "564a3443b9f4d62983489b6857721da1da4562be3340cd0b2f21f60e43a3b7e2"
+          "sha256": "257798a7cb1afbd8574091fd220c97af368aadbbadefbdb868a21e0c2b2244a6"
         },
         {
           "locator": "issue:EHotwagner/rogue3#52",
