@@ -471,40 +471,56 @@ let behaviorTests =
         // emission assertion. On a desktop host it drives the generated shell's DisplayChanged path
         // through ControlsElmish, the shared ViewerEffect interpreter, and the real native-window
         // mutation boundary; on a headless host it records the irreducible native tier as skipped.
-        test "DisplayChanged reaches the live native window-mode boundary (#1022)" {
+        //
+        // Issue #63 EXTENDS this test rather than adding a second native launch. `Borderless` is now
+        // served by exclusive fullscreen, and this is the ONLY tier that can observe what the
+        // framework actually did with the request — the pure seam can only say what was asked for.
+        // Both modes are therefore driven here and both must be observed as `mode=fullscreen`; an
+        // observation of `mode=windowedfullscreen` is the state that bricked the window and reds.
+        // This is also the first native-window coverage of the mitigation path, on a repository
+        // whose completion report records native play as the standing coverage gap.
+        test "DisplayChanged reaches the live native window-mode boundary (#1022), and Borderless lands as exclusive fullscreen there (#63)" {
             if not (Viewer.runtimeCapability().PersistentWindow) then
                 skiptest "SKIPPED(tier=T2 native-window/GL): no persistent desktop window is available"
 
-            let observed = ResizeArray<ViewerDiagnosticEvent>()
-            let host =
-                { Rogue3.Program.interactiveHost with
-                    Tick =
-                        fun _ ->
-                            Some(
-                                Rogue3.EvidenceCommands.ShellDispatch(
-                                    Rogue3.GameShell.SetDisplayMode Rogue3.GameShell.Fullscreen))
-                    Diagnostics =
-                        { Viewer.defaultDiagnostics with
-                            Categories = Set.add ViewerDiagnosticCategory.Window Viewer.defaultDiagnostics.Categories
-                            Sink = Some observed.Add } }
+            let driveMode mode =
+                let observed = ResizeArray<ViewerDiagnosticEvent>()
+                let host =
+                    { Rogue3.Program.interactiveHost with
+                        Tick = fun _ -> Some(Rogue3.EvidenceCommands.ShellDispatch(Rogue3.GameShell.SetDisplayMode mode))
+                        Diagnostics =
+                            { Viewer.defaultDiagnostics with
+                                Categories = Set.add ViewerDiagnosticCategory.Window Viewer.defaultDiagnostics.Categories
+                                Sink = Some observed.Add } }
 
-            let result =
-                FS.GG.UI.Controls.Elmish.ControlsElmish.Live.runScriptWithWindowBehavior
-                    Rogue3.Program.viewerOptions
-                    (Rogue3.GameShell.windowBehavior Rogue3.EvidenceCommands.shellConfig.InitialDisplay)
-                    host
-                    [ FS.GG.UI.Controls.Elmish.FrameInput.Idle
-                      FS.GG.UI.Controls.Elmish.FrameInput.Idle ]
+                let result =
+                    FS.GG.UI.Controls.Elmish.ControlsElmish.Live.runScriptWithWindowBehavior
+                        Rogue3.Program.viewerOptions
+                        (Rogue3.GameShell.windowBehavior Rogue3.EvidenceCommands.shellConfig.InitialDisplay)
+                        host
+                        [ FS.GG.UI.Controls.Elmish.FrameInput.Idle
+                          FS.GG.UI.Controls.Elmish.FrameInput.Idle ]
 
-            match result with
-            | Result.Error failure -> failtestf "live generated host failed: %s" failure.Message
-            | Result.Ok _ -> ()
+                match result with
+                | Result.Error failure -> failtestf "live generated host failed for %A: %s" mode failure.Message
+                | Result.Ok _ -> ()
 
-            Expect.exists observed
-                (fun diagnostic ->
-                    diagnostic.Category = ViewerDiagnosticCategory.Window
-                    && diagnostic.Message.Contains "Runtime window behavior applied: mode=fullscreen")
-                "the generated DisplayChanged request is observed after real native mutation, not only at emission"
+                observed
+                |> Seq.filter (fun diagnostic -> diagnostic.Category = ViewerDiagnosticCategory.Window)
+                |> Seq.map _.Message
+                |> List.ofSeq
+
+            for mode in [ Rogue3.GameShell.Fullscreen; Rogue3.GameShell.Borderless ] do
+                let windowDiagnostics = driveMode mode
+
+                Expect.exists
+                    windowDiagnostics
+                    (fun message -> message.Contains "Runtime window behavior applied: mode=fullscreen")
+                    $"{mode}'s generated DisplayChanged request is observed after real native mutation, not only at emission"
+
+                Expect.isFalse
+                    (windowDiagnostics |> List.exists (fun message -> message.Contains "mode=windowedfullscreen"))
+                    $"{mode} never reaches the native boundary as the work-area-derived windowedfullscreen state (#63)"
         }
 
         // Issue #63: BORDERLESS BRICKED THE UI, AND NO TEST NOTICED.
