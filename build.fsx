@@ -509,6 +509,19 @@ let templateDriftViolations (root: string) =
     if profile.IsNone then
         violations.Add ".fsgg/scaffold-provenance.json declares no `profile`, so `materializes-when` cannot be evaluated"
 
+    // The manifests ARE the oracle, and nothing else in the tree pins them: provenance's own pins
+    // for both are already stale, and no audit binds either. They are byte-identical by
+    // construction, so requiring them to agree means tampering has to be done twice, identically,
+    // to go unnoticed — a weak guarantee, but strictly better than trusting one file absolutely.
+    // The residual (an edit applied to BOTH manifests still hides drift) is recorded in
+    // feedback/2026-08-02-Rogue3-10.md §4.2 and filed, not papered over.
+    let manifestPaths = skillManifests |> List.map (fun owner -> owner, path [ root; owner; "skills"; "skill-manifest.json" ])
+
+    match manifestPaths |> List.filter (snd >> File.Exists) with
+    | [ (ownerA, a); (ownerB, b) ] when fileDigest a <> fileDigest b ->
+        violations.Add $"the two skill manifests disagree: {ownerA}/skills/skill-manifest.json is {shortDigest (fileDigest a)}, {ownerB}/skills/skill-manifest.json is {shortDigest (fileDigest b)} — one of them has been edited alone"
+    | _ -> ()
+
     for owner in skillManifests do
         let manifest = path [ root; owner; "skills"; "skill-manifest.json" ]
         let manifestName = $"{owner}/skills/skill-manifest.json"
@@ -537,7 +550,12 @@ let templateDriftViolations (root: string) =
                     else
                         match materializesHere profile condition with
                         | Error expr -> violations.Add $"{manifestName}: skill `{id}` has an unreadable `materializes-when` expression: {expr}"
-                        | Ok false -> ()
+                        | Ok false ->
+                            // NOT a silent skip. If the condition says this profile does not take the
+                            // skill, the file must be ABSENT — otherwise flipping a condition is a
+                            // one-line way to park arbitrary drift outside the digest check.
+                            if File.Exists(path [ root; relative ]) then
+                                violations.Add $"{manifestName}: skill `{id}` is present at {relative} but `materializes-when` ({condition}) excludes this profile, so nothing pins it"
                         | Ok true ->
                             let target = path [ root; relative ]
 
@@ -576,12 +594,16 @@ let templateDriftViolations (root: string) =
                     let mirrored = ".claude/" + relative.Substring(".agents/".Length)
                     let mirroredFull = path [ root; mirrored ]
 
-                    // A missing mirror is not drift: what is mirrored is the provider's choice.
-                    if File.Exists mirroredFull then
-                        let actual = fileDigest mirroredFull
+                    // The mirror is only required where the SOURCE is materialized here; deleting a
+                    // mirror is drift, not a provider choice, or `rm -rf .claude/skills` would pass.
+                    if File.Exists(path [ root; relative ]) then
+                        if not (File.Exists mirroredFull) then
+                            violations.Add $"mirror: {relative} is materialized but its mirrored copy {mirrored} is missing"
+                        else
+                            let actual = fileDigest mirroredFull
 
-                        if actual <> pinned then
-                            violations.Add $"mirror: {mirrored} differs from the digest pinned for {relative} — pinned {shortDigest pinned}, found {shortDigest actual}"
+                            if actual <> pinned then
+                                violations.Add $"mirror: {mirrored} differs from the digest pinned for {relative} — pinned {shortDigest pinned}, found {shortDigest actual}"
 
     List.ofSeq violations
 
@@ -798,6 +820,28 @@ let private runSelfTest () =
             File.WriteAllText(manifestPath, text.Replace(firstDigest, "abc"))
 
         expect "a malformed pinned digest is reported rather than crashing" (templateDriftViolations malformed |> List.exists (fun v -> v.Contains "abc"))
+
+        // Evasion routes an earlier revision of these checks passed. Each is a real tree a
+        // careless edit produces, not a contrived one.
+        let deletedMirror, _ = freshFixture ()
+        File.Delete(path [ deletedMirror; ".claude/skills/fs-gg-kit/SKILL.md" ])
+        expect "a DELETED mirrored copy is reported" (templateDriftViolations deletedMirror |> List.exists (fun v -> v.Contains "mirrored copy" && v.Contains "missing"))
+
+        let excluded, skillRelative = freshFixture ()
+        File.AppendAllText(path [ excluded; skillRelative ], "drifted\n")
+
+        for owner in skillManifests do
+            let manifestPath = path [ excluded; owner; "skills"; "skill-manifest.json" ]
+            File.WriteAllText(manifestPath, (File.ReadAllText manifestPath).Replace("\"always\"", "\"profile == sample-pack\""))
+
+        expect
+            "flipping materializes-when to park a present file outside the digest check is reported"
+            (templateDriftViolations excluded |> List.exists (fun v -> v.Contains "excludes this profile"))
+
+        let tampered, _ = freshFixture ()
+        let oneManifest = path [ tampered; ".agents"; "skills"; "skill-manifest.json" ]
+        File.WriteAllText(oneManifest, (File.ReadAllText oneManifest).Replace("\"scope\": \"product\"", "\"scope\": \"product\", \"note\": \"tampered\""))
+        expect "editing ONE manifest alone is reported" (templateDriftViolations tampered |> List.exists (fun v -> v.Contains "disagree"))
 
         let noManifest, _ = freshFixture ()
         File.Delete(path [ noManifest; ".agents"; "skills"; "skill-manifest.json" ])

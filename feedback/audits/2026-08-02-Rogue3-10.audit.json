@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-10.md",
-  "reportSha256": "155444a386bef77723ecae3c5c3921c22fa3b3bcbf90cbc94b069d821f64e612",
+  "reportSha256": "272264a8fbf736804e60caa9481d2ff63973265e1036cc168d5ce1fe25190069",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -25,7 +25,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "efa787a92a592592d7854fa2207d9bbd57176febcaf77c26c4c8648a827dffeb"
+          "sha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1"
         },
         {
           "locator": "issue:EHotwagner/rogue3#34",
@@ -56,7 +56,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "efa787a92a592592d7854fa2207d9bbd57176febcaf77c26c4c8648a827dffeb"
+          "sha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1"
         }
       ],
       "confidenceLimits": []
@@ -78,7 +78,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "efa787a92a592592d7854fa2207d9bbd57176febcaf77c26c4c8648a827dffeb"
+          "sha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1"
         },
         {
           "locator": "issue:EHotwagner/rogue3#34",
@@ -93,21 +93,25 @@
       "missingFacts": [],
       "checkedEvidence": [
         {
-          "locator": "command:scripts/fsgg-coord ready --repo rogue3 --json",
+          "locator": "command:./fake.sh build -t SelfTest",
           "result": "verified"
         },
         {
-          "locator": "file:feedback/2026-08-02-Rogue3-4.md",
-          "result": "verified",
-          "sha256": "8cb9cdb99028f77151404001dcb71f3bdc912b1423551ca1140e2b9c697a6878"
+          "locator": "command:./fake.sh build -t TemplateDrift",
+          "result": "verified"
         },
         {
-          "locator": "file:feedback/2026-08-02-Rogue3-5.md",
+          "locator": "file:.agents/skills/skill-manifest.json",
           "result": "verified",
-          "sha256": "03526c3e1f7d0b9a682799612b00d82decc344c3d2f52558f73b2811804ea38c"
+          "sha256": "e97bab4a98ba9a1ee316bc84cb3ca75030185bbfc9b65e63dc8b4a6a915bf0f4"
         },
         {
-          "locator": "issue:EHotwagner/rogue3#34",
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#46",
           "result": "verified"
         }
       ],
@@ -147,6 +151,10 @@
           "result": "verified"
         },
         {
+          "locator": "command:gh project field-list 7 --owner EHotwagner",
+          "result": "verified"
+        },
+        {
           "locator": "issue:EHotwagner/rogue3#41",
           "result": "verified"
         },
@@ -174,7 +182,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "efa787a92a592592d7854fa2207d9bbd57176febcaf77c26c4c8648a827dffeb"
+          "sha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1"
         }
       ],
       "confidenceLimits": []
