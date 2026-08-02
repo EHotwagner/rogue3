@@ -1412,7 +1412,24 @@ let m7UiPerformanceEvidence (path:string) =
         SHA256.HashData bytes |> Convert.ToHexString |> fun value -> value.ToLowerInvariant()
     let declared =
         Map.ofList
-            [ "main-menu", "89c6080c3acf3bd3a15975455de7e1a4ba5504c8befb2acb3588ed5d3908e174"
+            [ // Board item #63 (EIGHTH derivation, and the FIRST that moves this route). Every
+              // previous re-derivation recorded below moved the three routes that hash `Model.fs`
+              // and `Render.fs`, and each one noted that `main-menu` — which hashes `GameShell.fs`
+              // and `M7Ui.fs` — was byte-identical, using that as the check that the digest set
+              // moved where the source moved and nowhere else. This cycle is the mirror image: the
+              // Borderless mitigation edits `GameShell.fs` (the `windowBehavior` arm and its
+              // rationale) and `EvidenceCommands.fs` (the withdrawn mode and the load-seam
+              // retirement), so `main-menu` moves and the other THREE are byte-identical. Note
+              // `EvidenceCommands.fs` is not itself hashed by any route; only `GameShell.fs` is,
+              // which is why exactly one digest moved rather than none or four.
+              //
+              // Every scale verdict is unchanged, which is the check that matters here: `main-menu`
+              // still reports 9 control nodes and 7 bound controls. That is the evidence that
+              // withdrawing a display mode from the SETTINGS screen changed nothing about the MAIN
+              // MENU this route measures — the two screens share the shell's view function, so a
+              // careless edit to one is entirely capable of moving the other. Latency is unchanged
+              // within noise (p95 0.274 -> 0.282 ms against a 16.67 ms budget).
+              "main-menu", "f3475b94572e5b4ef6b4b55cdffd645b0b1d80bef0ff90766363b6c4d575f4cf"
               // M11: re-reviewed and copied after Model.fs gained the fixed-step door intents, the
               // guarded descent, the loaded boot room and the door-sensor counter, and Render.fs gained
               // room walls and per-wall directional doors. Exactly the three routes that hash those two
