@@ -477,8 +477,14 @@ let behaviorTests =
         // framework actually did with the request — the pure seam can only say what was asked for.
         // Both modes are therefore driven here and both must be observed as `mode=fullscreen`; an
         // observation of `mode=windowedfullscreen` is the state that bricked the window and reds.
-        // This is also the first native-window coverage of the mitigation path, on a repository
-        // whose completion report records native play as the standing coverage gap.
+        //
+        // Honest limit, since the loop looks like it doubles the evidence and does not: once the
+        // seam maps `Borderless` onto `Fullscreen`, the two iterations are observationally
+        // IDENTICAL by construction, and a mutant that drives `Fullscreen` twice survives. The
+        // Borderless iteration therefore confirms the composed product path is accepted natively;
+        // it adds no discrimination the Fullscreen iteration does not already provide. It is kept
+        // because it is the composition that would break if the mapping were rewired, not because
+        // it independently tests the framework.
         test "DisplayChanged reaches the live native window-mode boundary (#1022), and Borderless lands as exclusive fullscreen there (#63)" {
             if not (Viewer.runtimeCapability().PersistentWindow) then
                 skiptest "SKIPPED(tier=T2 native-window/GL): no persistent desktop window is available"
@@ -552,10 +558,13 @@ let behaviorTests =
         //   offered mode asks for `WindowedFullscreen`; these are the assertions that red on a
         //   revert, together with the seam test in ShellBehaviorTests. (2) Exercise the whole
         //   production pointer route for every offered mode end to end, so a mode change that
-        //   broke authored bindings, layout or the settings tree would be caught. (3) Show, via
-        //   the negative control, that the route IS sensitive to which surface the fit was taken
-        //   against — so if a future change ever does let a stale surface reach the inverse, the
-        //   shape of assertion that would catch it is already here and already wired.
+        //   broke authored bindings, layout or the settings tree would be caught.
+        //
+        //   The negative control below is deliberately NOT listed as a third capability. It
+        //   demonstrates a property of `LogicalCanvas` — that a mis-taken fit really does land a
+        //   sample off the control, rather than the miss being an out-of-range rejection — but no
+        //   product code applies that fit, so no single-edit change to `src/` can make it red. It
+        //   documents the failure mode; it does not guard against it.
         //
         // The boundary itself is evidenced elsewhere: by the native-window test above, which
         // observes what the framework was actually asked for, and by the play session and
@@ -564,10 +573,13 @@ let behaviorTests =
             let host = Rogue3.Program.interactiveHost
             let logical = Rogue3.EvidenceCommands.shellConfig.InitialDisplay.Resolution
 
-            // The surface before the change (the default 1280x720 window) and after it (the
-            // reporter's primary output, DP-1 2560x1440). The third is the bounding box of that
-            // host's two stacked outputs, 3440x2880 — the geometry a mis-derived "monitor work
-            // area" produces, and the leading explanation for the half-off-screen placement.
+            // Three surfaces. The numbers are borrowed from the reporter's host for readability,
+            // but do NOT read significance into them: a mutation critic set `postChangeSurface` to
+            // 999x4001 and this test stayed green, because the forward fit and the inverse are
+            // taken against the SAME surface and cancel for any value. What the three do provide is
+            // magnitude — the negative control below separates only because the stale surfaces
+            // differ from the post-change one by roughly a factor of two. Bring either within a
+            // pixel of it and it stops discriminating, which is a limit of the control, not a bug.
             let preChangeSurface: FS.GG.UI.Scene.Size = logical
             let postChangeSurface: FS.GG.UI.Scene.Size = { Width = 2560; Height = 1440 }
             let boundingBoxSurface: FS.GG.UI.Scene.Size = { Width = 3440; Height = 2880 }
@@ -739,12 +751,21 @@ let behaviorTests =
             Expect.isNonEmpty unnormalised "the settings screen draws its display-mode rows"
             Expect.isEmpty (selected unnormalised) "an un-normalised restored Borderless marks NO offered mode — this is the state the load-seam guard exists to prevent (#63)"
 
-            // What `loadShellSettings` actually hands the host.
-            let restored =
-                Rogue3.EvidenceCommands.retireWithdrawnDisplayMode
-                    (settingsScreenFor Rogue3.GameShell.Borderless).Shell
+            // What `loadShellSettings` actually hands the host — driven through the SAME decoder it
+            // uses, over real `encodeSettings` bytes, so this covers the guard's WIRING and not just
+            // the guard. A mutation critic showed the difference: calling the retirement directly
+            // left `loadShellSettings` free to drop it entirely with the suite still green.
+            let borderlessBlob =
+                Rogue3.GameShell.encodeSettings (settingsScreenFor Rogue3.GameShell.Borderless).Shell
 
-            Expect.equal restored.Display.Mode Rogue3.GameShell.Fullscreen "a restored Borderless is retired onto the mode that now serves it"
+            Expect.equal
+                (Rogue3.GameShell.decodeSettings borderlessBlob model0.Shell).Display.Mode
+                Rogue3.GameShell.Borderless
+                "the blob really does carry the retired token — otherwise the assertion below would pass for the wrong reason"
+
+            let restored = Rogue3.EvidenceCommands.decodeShellSettings borderlessBlob model0.Shell
+
+            Expect.equal restored.Display.Mode Rogue3.GameShell.Fullscreen "a settings file carrying the retired token is retired onto the mode that now serves it, by the decoder the load path uses"
 
             let normalised = modeLabelsOn (settingsScreenFor restored.Display.Mode)
 
@@ -754,10 +775,107 @@ let behaviorTests =
                 "after normalisation exactly one offered mode is marked, and it is the one the window is really running (#63)"
 
             // Every other mode is untouched by the retirement — this is a targeted retirement of one
-            // withdrawn value, not a reset of the player's display preference.
+            // withdrawn value, not a reset of the player's display preference. Driven through the
+            // same real decoder, so an over-broad retirement reds here.
             for mode in Rogue3.EvidenceCommands.shellConfig.DisplayModes do
-                let kept = Rogue3.EvidenceCommands.retireWithdrawnDisplayMode (settingsScreenFor mode).Shell
-                Expect.equal kept.Display.Mode mode $"{mode} is an offered mode and survives the restore normalisation unchanged"
+                let blob = Rogue3.GameShell.encodeSettings (settingsScreenFor mode).Shell
+                let kept = Rogue3.EvidenceCommands.decodeShellSettings blob model0.Shell
+                Expect.equal kept.Display.Mode mode $"{mode} is an offered mode and survives the restore decode unchanged"
+
+            // The resolution must survive the retirement too: it is a different field of the same
+            // record, and a retirement written as a whole-record replacement would silently reset it.
+            let borderlessAt1080 =
+                let shell, _ = Rogue3.GameShell.update (Rogue3.GameShell.SetResolution { Width = 1920; Height = 1080 }) (settingsScreenFor Rogue3.GameShell.Borderless).Shell
+                Rogue3.EvidenceCommands.decodeShellSettings (Rogue3.GameShell.encodeSettings shell) model0.Shell
+
+            Expect.equal borderlessAt1080.Display.Resolution { Width = 1920; Height = 1080 } "retiring the withdrawn MODE preserves the player's chosen RESOLUTION"
+            Expect.equal borderlessAt1080.Display.Mode Rogue3.GameShell.Fullscreen "and still retires the mode"
+        }
+
+        // Issue #63, the SECOND producer. Found by a mutation critic, not by the fix.
+        //
+        // The three guards above cover the settings screen, the shell seam and the settings file.
+        // They do not cover the COMMAND LINE, which reaches `ViewerWindowBehaviorRequest` by an
+        // entirely separate route — `Program.main` -> `windowFlagSupplied` -> `toViewerLaunchRequest`
+        // — and which had no test of any kind.
+        //
+        // Two facts combined to make that route brick the window at launch:
+        //   * `parseWindowBehavior` defaults `Startup = "windowed-fullscreen"`, and
+        //   * `windowFlagSupplied` is true for SIX flags, five of which say nothing about startup
+        //     state (`--window-resize`, `--window-maximize`, `--window-position`, `--window-backend`,
+        //     `--window-options-file`).
+        //
+        // So `--window-backend vulkan` alone opted the launch into the exact state that bricks the
+        // UI. That is not hypothetical: the work-board guidance launches this product with
+        // `--window-options-file`, and a file containing only `position=` would have triggered it.
+        // A default that takes effect ONLY in combination with an unrelated flag is the worst shape
+        // this could have — it is invisible from the flag the operator actually typed.
+        //
+        // The assertion is exhaustive over the flag vocabulary rather than sampled, because the
+        // defect was in a DEFAULT: any test that named the startup values would have missed it.
+        test "no command-line flag combination launches into WindowedFullscreen while #1196 is open (#63)" {
+            let startupValues = [ "normal"; "maximized"; "minimized"; "fullscreen"; "windowed-fullscreen" ]
+
+            let flagCombinations =
+                [ []
+                  [ "--window-resize"; "fixed-size" ]
+                  [ "--window-resize"; "resizable" ]
+                  [ "--window-maximize"; "maximizable" ]
+                  [ "--window-maximize"; "not-maximizable" ]
+                  [ "--window-position"; "centered" ]
+                  [ "--window-position"; "10,20" ]
+                  [ "--window-backend"; "vulkan" ]
+                  [ "--window-backend"; "opengl" ]
+                  [ "--window-backend"; "software" ]
+                  [ "--window-backend"; "default" ]
+                  [ "--window-options-file"; "/nonexistent-window-options.txt" ]
+                  for value in startupValues -> [ "--window-startup"; value ] ]
+
+            for flags in flagCombinations do
+                let behaviour = Rogue3.WindowOptions.parseWindowBehavior flags
+                let request = Rogue3.WindowOptions.toViewerLaunchRequest behaviour
+
+                Expect.notEqual
+                    request.StartupState
+                    ViewerWindowStartupState.WindowedFullscreen
+                    $"launching with %A{flags} must not request the work-area-derived WindowedFullscreen state that bricks the window (#63)"
+
+            // The flags that do NOT mention startup must not silently change it either. This is the
+            // assertion that actually names the defect: it was the DEFAULT reaching the launch
+            // request through an unrelated flag, not the explicit selection.
+            let normalRequest =
+                Rogue3.WindowOptions.toViewerLaunchRequest (Rogue3.WindowOptions.parseWindowBehavior [])
+
+            for flags in
+                [ [ "--window-backend"; "vulkan" ]
+                  [ "--window-position"; "centered" ]
+                  [ "--window-resize"; "resizable" ]
+                  [ "--window-maximize"; "maximizable" ] ] do
+                let request =
+                    Rogue3.WindowOptions.toViewerLaunchRequest (Rogue3.WindowOptions.parseWindowBehavior flags)
+
+                Expect.equal
+                    request.StartupState
+                    normalRequest.StartupState
+                    $"%A{flags} says nothing about startup state, so it must not change the startup state the launch requests (#63)"
+
+            // And the guard's own precondition: these flags really do route the launch through
+            // `toViewerLaunchRequest` rather than the shell default, which is what makes the
+            // assertions above load-bearing rather than vacuous.
+            for flags in
+                [ [ "--window-backend"; "vulkan" ]
+                  [ "--window-position"; "centered" ]
+                  [ "--window-resize"; "resizable" ]
+                  [ "--window-maximize"; "maximizable" ]
+                  [ "--window-options-file"; "/nonexistent-window-options.txt" ]
+                  [ "--window-startup"; "normal" ] ] do
+                Expect.isTrue
+                    (Rogue3.WindowOptions.windowFlagSupplied flags)
+                    $"%A{flags} routes the launch through toViewerLaunchRequest, so the request it builds is the one the window gets"
+
+            Expect.isFalse
+                (Rogue3.WindowOptions.windowFlagSupplied [])
+                "with no window flag the launch uses the shell's own InitialDisplay instead"
         }
 
         // Issue #912: PLAYED THROUGH THE HOST — the one altitude the host tests above never reach.

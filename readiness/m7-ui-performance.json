@@ -12,8 +12,8 @@
       "definitionDigest": "f3475b94572e5b4ef6b4b55cdffd645b0b1d80bef0ff90766363b6c4d575f4cf",
       "declaredDefinitionDigest": "f3475b94572e5b4ef6b4b55cdffd645b0b1d80bef0ff90766363b6c4d575f4cf",
       "authorshipPassed": true,
-      "p95Ms": 0.2173,
-      "p99Ms": 0.3032,
+      "p95Ms": 0.2047,
+      "p99Ms": 0.3826,
       "observedScale": {
         "controlNodes": 9,
         "boundControls": 7
@@ -27,8 +27,8 @@
       "definitionDigest": "cb44115fce35a1166e3602a65a6819681bdcdb704d65d4348ea41b4e95d03478",
       "declaredDefinitionDigest": "cb44115fce35a1166e3602a65a6819681bdcdb704d65d4348ea41b4e95d03478",
       "authorshipPassed": true,
-      "p95Ms": 0.0397,
-      "p99Ms": 0.0454,
+      "p95Ms": 0.0349,
+      "p99Ms": 0.0395,
       "observedScale": {
         "controlNodes": 1,
         "boundControls": 0,
@@ -128,8 +128,8 @@
       "definitionDigest": "2e5355872d5533ee31d04c2d20f6e125d82ce8095fa0ce04679a9666faa75f30",
       "declaredDefinitionDigest": "2e5355872d5533ee31d04c2d20f6e125d82ce8095fa0ce04679a9666faa75f30",
       "authorshipPassed": true,
-      "p95Ms": 0.1609,
-      "p99Ms": 0.1779,
+      "p95Ms": 0.1328,
+      "p99Ms": 0.1667,
       "observedScale": {
         "controlNodes": 9,
         "boundControls": 3,
@@ -149,8 +149,8 @@
       "definitionDigest": "363fe2735fbcf73275ac7e29e0de862f21ca4635bc55da3217999149c64439ae",
       "declaredDefinitionDigest": "363fe2735fbcf73275ac7e29e0de862f21ca4635bc55da3217999149c64439ae",
       "authorshipPassed": true,
-      "p95Ms": 0.4429,
-      "p99Ms": 0.7102,
+      "p95Ms": 0.4036,
+      "p99Ms": 0.6888,
       "observedScale": {
         "controlNodes": 19,
         "boundControls": 3,

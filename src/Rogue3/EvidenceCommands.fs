@@ -405,6 +405,14 @@ let private persistShellSettings (model: Rogue3.GameShell.Model) : bool =
 /// serves it, the menu shows it selected, and the next persist writes the current token. This is
 /// deliberately a PRODUCT-side normalisation, not a shell one — `GameShell` is game-agnostic and a
 /// different game may still offer `Borderless` (it stays decodable, and the seam still guards it).
+///
+/// KNOWN ONE-WAY DOOR, accepted deliberately. The retirement rewrites the model, and the next
+/// `DisplayChanged`/`KeymapChanged` persists it — so the player's `"borderless"` token is
+/// overwritten with `"fullscreen"` and does not come back when #1196 is fixed. Retaining the DU
+/// case preserves the ability to READ an old settings file, not the player's preference. The
+/// alternative — carrying the original token forward so it could be restored later — means
+/// persisting a preference the product cannot honour and must keep specially-casing, for a mode
+/// most players never chose deliberately. Recorded because it is a real loss, not an oversight.
 /// Public, like `viewerEffectsForShellEffect` and for the same reason: a generated-rogue3 test can
 /// assert the restore normalisation without writing to the player's real settings path.
 let retireWithdrawnDisplayMode (shell: Rogue3.GameShell.Model) : Rogue3.GameShell.Model =
@@ -413,9 +421,25 @@ let retireWithdrawnDisplayMode (shell: Rogue3.GameShell.Model) : Rogue3.GameShel
         { shell with Display = { shell.Display with Mode = Rogue3.GameShell.Fullscreen } }
     | _ -> shell
 
+/// The product's settings DECODER — the shell's own total decode followed by the #63 retirement —
+/// as one named seam rather than a pipe buried in a local function.
+///
+/// It is factored out and public because a mutation critic showed the difference matters: asserting
+/// `retireWithdrawnDisplayMode` by calling it directly proves the FUNCTION is correct and proves
+/// nothing about it being REACHED. Deleting the retirement from the load path left the whole suite
+/// green and quietly turned the third guard into dead code. Driving this seam over real
+/// `encodeSettings` bytes is what closes that.
+///
+/// Residual gap, stated rather than papered over: `shellSettingsPath` is a fixed per-user platform
+/// path, so no test drives `loadShellSettings` itself without writing to the real profile
+/// directory. A change that bypassed this function inside `loadShellSettings` would still not be
+/// caught. Narrowing that further needs an injectable path, which is a wider change than #63.
+let decodeShellSettings (bytes: byte[]) (fallback: Rogue3.GameShell.Model) : Rogue3.GameShell.Model =
+    Rogue3.GameShell.decodeSettings bytes fallback |> retireWithdrawnDisplayMode
+
 let private loadShellSettings (model: Rogue3.GameShell.Model) : Rogue3.GameShell.Model =
     let decode path fallback =
-        try Rogue3.GameShell.decodeSettings (File.ReadAllBytes path) fallback |> retireWithdrawnDisplayMode
+        try decodeShellSettings (File.ReadAllBytes path) fallback
         with _ -> fallback
 
     try
