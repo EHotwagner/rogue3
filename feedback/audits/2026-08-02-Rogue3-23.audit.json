@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-23.md",
-  "reportSha256": "a6a4cdff389d7171d0a14e5c3302ab6054386f0abf8f83a0b42518db895825bb",
+  "reportSha256": "355ea853ea32b8f486bdcb24fa6e62111b251d204d0b585e4c4816e1704162f5",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -155,7 +155,7 @@
           "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
         },
         {
-          "locator": "command:replacing the canonicalized containment test with `if true then` fails \"a symlink INSIDE the workspace pointing OUT is rejected\" and disabling the lexical test fails \"a LEXICALLY escaping locator that symlinks back inside is still rejected\", where at commit b689137 -- before these two cases existed -- both mutants passed 68/68",
+          "locator": "command:replacing the canonicalized containment test with `if true then` fails \"a symlink INSIDE the workspace pointing OUT is rejected\" and disabling the lexical test fails \"a LEXICALLY escaping locator that symlinks back inside is still rejected\", where at commit be74e52 -- before these two cases existed -- both mutants passed 68/68",
           "result": "verified"
         }
       ]
@@ -229,7 +229,7 @@
         {
           "locator": "file:feedback/2026-08-02-Rogue3-23.md",
           "result": "verified",
-          "sha256": "a6a4cdff389d7171d0a14e5c3302ab6054386f0abf8f83a0b42518db895825bb"
+          "sha256": "355ea853ea32b8f486bdcb24fa6e62111b251d204d0b585e4c4816e1704162f5"
         },
         {
           "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
@@ -241,7 +241,11 @@
           "result": "verified"
         },
         {
-          "locator": "command:a corpus sweep of every feedback/2026-08-0*.md with a matching audit reports pass=2 fail=31 over 33 pairs on main at 14fd9eb (green: Rogue3-19, Rogue3-21) and pass=2 fail=32 over 34 pairs on the candidate (green: Rogue3-21, Rogue3-23), against the \"2 green to 0\" an earlier draft quoted at base ccff119",
+          "locator": "command:a corpus sweep over the 33 pre-existing report/audit pairs, excluding this cycle's own, reports pass=2 fail=31 on main at 14fd9eb (green: Rogue3-19, Rogue3-21) and pass=1 fail=32 on the candidate (green: Rogue3-21), against the \"2 green to 0\" an earlier draft quoted at base ccff119 and the \"34 pairs, pass=2\" a later one asserted",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git branch -a --contains b689137 is empty after the rebase while be74e52 is contained by this branch and carries the same subject, the same minimumCases = 66 and byte-identical kit sources 68dab1bff6f26748 and cfdedd7411b17583",
           "result": "verified"
         },
         {
