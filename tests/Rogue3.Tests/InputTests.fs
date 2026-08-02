@@ -130,7 +130,7 @@ let inputTests =
             let longHeld =
                 [ 1..3100 ]
                 |> List.fold (fun model _ -> tick fixedDt model) (apply (InputChanged held) initialModel)
-            Expect.isGreaterThan longHeld.TotalShotSpawns maxShotSpawnHistory "the monotonic counter observes emissions beyond retained history"
+            Expect.isGreaterThan longHeld.Instrumentation.TotalShotSpawns maxShotSpawnHistory "the monotonic counter observes emissions beyond retained history"
             Expect.isNonEmpty longHeld.ShotSpawns "held fire retains currently live projectiles"
             Expect.isLessThanOrEqual longHeld.ShotSpawns.Length maxShotSpawnHistory "live range-bounded projectiles remain below the safety cap"
             Expect.isTrue (longHeld.ShotSpawns |> List.forall (fun shot -> shot.AgeTicks <= shot.MaxAgeTicks)) "every retained projectile remains within range"

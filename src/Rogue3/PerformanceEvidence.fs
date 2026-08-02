@@ -222,7 +222,7 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "movement-aiming"; "firing"; "maximum-content" ] }
       { Id = "simulation.shot-spawn"
         Category = Simulation
-        ScaleSource = "Model.TotalShotSpawns delta across one sampled production frame"
+        ScaleSource = "Model.Instrumentation.TotalShotSpawns delta across one sampled production frame"
         MaximumExpected = 3
         VisualElement = None
         Disposition = RequiredIn [ "firing"; "maximum-content" ] }
@@ -240,19 +240,19 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "floor-generation" ] }
       { Id = "collision.shot-wall-queries"
         Category = Simulation
-        ScaleSource = "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once against the 7 shot-blocking rects of the room's obstacles, and perform two player-axis casts plus four slide contact folds against all 8 movement-blocking rects and, from M13, the 7 solid wall slabs of the room shell (four walls, three of them split by a passable doorway; the fourth carries a hidden wall, which stays solid). Board item #20 moved this from 820: the collider set is derived from Model.M5Obstacles now, so the shot pass-through filter finally subtracts the Pit the player still collides with - the old free-floating rect list could never match a derived rect and left that filter a no-op"
+        ScaleSource = "Model.Instrumentation.TotalWallQueries delta: two fixed steps each cast 40 shots once against the 7 shot-blocking rects of the room's obstacles, and perform two player-axis casts plus four slide contact folds against all 8 movement-blocking rects and, from M13, the 7 solid wall slabs of the room shell (four walls, three of them split by a passable doorway; the fourth carries a hidden wall, which stays solid). Board item #20 moved this from 820: the collider set is derived from Model.Obstacles now, so the shot pass-through filter finally subtracts the Pit the player still collides with - the old free-floating rect list could never match a derived rect and left that filter a no-op"
         MaximumExpected = 740
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "simulation.homing-target-considerations"
         Category = Simulation
-        ScaleSource = "Model.TotalHomingQueries delta: two fixed steps each consider 30 stable targets for 40 homing shots"
+        ScaleSource = "Model.Instrumentation.TotalHomingQueries delta: two fixed steps each consider 30 stable targets for 40 homing shots"
         MaximumExpected = 2400
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "state.static-obstacles"
         Category = Simulation
-        ScaleSource = "blockingObstacleRects Model.M5Obstacles exact count: the grounded-blocking projection the player sweep and the shot-wall filter iterate"
+        ScaleSource = "blockingObstacleRects Model.Obstacles exact count: the grounded-blocking projection the player sweep and the shot-wall filter iterate"
         MaximumExpected = 8
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
@@ -264,7 +264,7 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "state.live-enemies"
         Category = Simulation
-        ScaleSource = "Model.M5Enemies exact live count (HitPoints > 0)"
+        ScaleSource = "Model.Enemies exact live count (HitPoints > 0)"
         MaximumExpected = 30
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
@@ -276,43 +276,43 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "projectiles.m5-boss-emitted"
         Category = Simulation
-        ScaleSource = "Model.M5BossBulletEmissions delta: the production phase-three Maw materializes one exact eight-projectile homing ring before its 0.8-second cadence resets"
+        ScaleSource = "Model.BossBulletEmissions delta: the production phase-three Maw materializes one exact eight-projectile homing ring before its 0.8-second cadence resets"
         MaximumExpected = 8
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "state.m5-enemies"
         Category = AiPathfindingPerception
-        ScaleSource = "Model.M5Enemies exact live count spanning every M5 enemy kind"
+        ScaleSource = "Model.Enemies exact live count spanning every M5 enemy kind"
         MaximumExpected = 30
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "ai.m5-decisions"
         Category = AiPathfindingPerception
-        ScaleSource = "Model.M5AiDecisions delta: 30 actors across two fixed steps"
+        ScaleSource = "Model.AiDecisions delta: 30 actors across two fixed steps"
         MaximumExpected = 60
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "state.m5-obstacles"
         Category = Simulation
-        ScaleSource = "Model.M5Obstacles exact count: nine placed obstacles spanning all five kinds, eight of which block movement and seven of which also block shots"
+        ScaleSource = "Model.Obstacles exact count: nine placed obstacles spanning all five kinds, eight of which block movement and seven of which also block shots"
         MaximumExpected = 9
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "state.m5-shop-slots"
         Category = Simulation
-        ScaleSource = "Model.M5ShopSlots exact generated shop inventory"
+        ScaleSource = "Model.ShopSlots exact generated shop inventory"
         MaximumExpected = 3
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "boss.m5-pattern-emissions"
         Category = AiPathfindingPerception
-        ScaleSource = "Model.M5BossPatternEmissions delta from a live phase-three Maw on the production tick route"
+        ScaleSource = "Model.BossPatternEmissions delta from a live phase-three Maw on the production tick route"
         MaximumExpected = 1
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "collision.combat-candidates"
         Category = Simulation
-        ScaleSource = "Model.TotalCombatCandidates delta: two fixed steps query 30 spatially overlapping retained shots x 30 enemies, 30 player-contact candidates, and all 120 bullet-player broadphase candidates; all 40 shots still traverse movement/wall/homing. Board item #20 moved this from 2520: the enemy population is a spawnable roster clustered on the player now, with radii 8..22 in place of 30 uniform 64-unit discs no floor can produce, so fewer shots are retained past their pierce budget"
+        ScaleSource = "Model.Instrumentation.TotalCombatCandidates delta: two fixed steps query 30 spatially overlapping retained shots x 30 enemies, 30 player-contact candidates, and all 120 bullet-player broadphase candidates; all 40 shots still traverse movement/wall/homing. Board item #20 moved this from 2520: the enemy population is a spawnable roster clustered on the player now, with radii 8..22 in place of 30 uniform 64-unit discs no floor can produce, so fewer shots are retained past their pierce budget"
         MaximumExpected = 2100
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
@@ -410,7 +410,7 @@ let performanceCostDrivers =
       // M13: the floor-pickup collection scan is the one M13 addition on the fixed-step hot path.
       { Id = "simulation.floor-pickup-candidates"
         Category = Simulation
-        ScaleSource = "Model.TotalFloorPickupCandidates delta: player-versus-floor-pickup overlap tests across one sampled production frame — two 120 Hz steps against the six drops the maximum-content room carries"
+        ScaleSource = "Model.Instrumentation.TotalFloorPickupCandidates delta: player-versus-floor-pickup overlap tests across one sampled production frame — two 120 Hz steps against the six drops the maximum-content room carries"
         MaximumExpected = 12
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
@@ -434,7 +434,7 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "idle"; "movement-aiming"; "firing"; "effects-fog"; "maximum-content" ] }
       { Id = "effects.pooled-particles"
         Category = EffectsParticles
-        ScaleSource = "Model.M6Particles exact retained live count after production update applies the hard pool cap"
+        ScaleSource = "Model.Particles exact retained live count after production update applies the hard pool cap"
         MaximumExpected = 600
         VisualElement = Some "Particle"
         Disposition = RequiredIn [ "maximum-content" ] }
@@ -500,7 +500,7 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "scene.m6-camera-transition"
         Category = SceneRender
-        ScaleSource = "Model.M6CameraTransition active flag sampled through production view"
+        ScaleSource = "Model.CameraTransition active flag sampled through production view"
         MaximumExpected = 1
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
@@ -516,7 +516,7 @@ let performanceCostDrivers =
       // so its scan and its live pending set are measured, not argued.
       { Id = "simulation.secret-reveal-candidates"
         Category = Simulation
-        ScaleSource = "Model.TotalSecretRevealCandidates delta: pending secret/adjacent pairs the blast scan examines while resolving one fixed step's detonations, for the representative floor's current room"
+        ScaleSource = "Model.Instrumentation.TotalSecretRevealCandidates delta: pending secret/adjacent pairs the blast scan examines while resolving one fixed step's detonations, for the representative floor's current room"
         MaximumExpected = 1
         VisualElement = None
         Disposition = RequiredIn [ "secret-reveal" ] }
@@ -524,7 +524,7 @@ let performanceCostDrivers =
       // is measured rather than argued. A room grid is orthogonal, so a room has at most four doors.
       { Id = "simulation.door-sensor-candidates"
         Category = Simulation
-        ScaleSource = "Model.TotalDoorSensorQueries delta: doorway sensors the fixed-step door scan examines across one sampled production frame — two 120 Hz steps against the at-most four walls of a room"
+        ScaleSource = "Model.Instrumentation.TotalDoorSensorQueries delta: doorway sensors the fixed-step door scan examines across one sampled production frame — two 120 Hz steps against the at-most four walls of a room"
         MaximumExpected = 8
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
@@ -938,35 +938,35 @@ let private observeCostScale visualCounts driverId routed beforeModel afterModel
     | Some driver ->
         match driver.Id, driver.Category, driver.VisualElement with
         | "simulation.fixed-step", _, _ -> afterModel.SimStepCount - beforeModel.SimStepCount
-        | "simulation.shot-spawn", _, _ -> afterModel.TotalShotSpawns - beforeModel.TotalShotSpawns
+        | "simulation.shot-spawn", _, _ -> afterModel.Instrumentation.TotalShotSpawns - beforeModel.Instrumentation.TotalShotSpawns
         | "state.live-player-shots", _, _ -> afterModel.ShotSpawns.Length
         | "generation.floor-room-budget", _, _ -> afterModel.Floor.Rooms.Count
-        | "collision.shot-wall-queries", _, _ -> afterModel.TotalWallQueries - beforeModel.TotalWallQueries
-        | "simulation.homing-target-considerations", _, _ -> afterModel.TotalHomingQueries - beforeModel.TotalHomingQueries
-        | "state.static-obstacles", _, _ -> (blockingObstacleRects afterModel.M5Obstacles).Length
+        | "collision.shot-wall-queries", _, _ -> afterModel.Instrumentation.TotalWallQueries - beforeModel.Instrumentation.TotalWallQueries
+        | "simulation.homing-target-considerations", _, _ -> afterModel.Instrumentation.TotalHomingQueries - beforeModel.Instrumentation.TotalHomingQueries
+        | "state.static-obstacles", _, _ -> (blockingObstacleRects afterModel.Obstacles).Length
         | "state.homing-targets", _, _ -> afterModel.HomingTargets.Length
-        | "state.live-enemies", _, _ -> afterModel.M5Enemies |> List.filter (fun (enemy: Rogue3.Entities.EnemyActor) -> enemy.HitPoints > 0.0) |> List.length
+        | "state.live-enemies", _, _ -> afterModel.Enemies |> List.filter (fun (enemy: Rogue3.Entities.EnemyActor) -> enemy.HitPoints > 0.0) |> List.length
         | "state.enemy-bullets", _, _ -> afterModel.EnemyBullets |> List.filter(fun bullet->bullet.Id<=120) |> List.length
-        | "projectiles.m5-boss-emitted", _, _ -> afterModel.M5BossBulletEmissions - beforeModel.M5BossBulletEmissions
-        | "state.m5-enemies", _, _ -> afterModel.M5Enemies.Length
-        | "ai.m5-decisions", _, _ -> afterModel.M5AiDecisions - beforeModel.M5AiDecisions
-        | "state.m5-obstacles", _, _ -> afterModel.M5Obstacles.Length
-        | "state.m5-shop-slots", _, _ -> afterModel.M5ShopSlots.Length
-        | "boss.m5-pattern-emissions", _, _ -> afterModel.M5BossPatternEmissions - beforeModel.M5BossPatternEmissions
-        | "collision.combat-candidates", _, _ -> afterModel.TotalCombatCandidates - beforeModel.TotalCombatCandidates
-        | "simulation.secret-reveal-candidates", _, _ -> afterModel.TotalSecretRevealCandidates - beforeModel.TotalSecretRevealCandidates
-        | "simulation.door-sensor-candidates", _, _ -> afterModel.TotalDoorSensorQueries - beforeModel.TotalDoorSensorQueries
-        | "simulation.floor-pickup-candidates", _, _ -> afterModel.TotalFloorPickupCandidates - beforeModel.TotalFloorPickupCandidates
+        | "projectiles.m5-boss-emitted", _, _ -> afterModel.BossBulletEmissions - beforeModel.BossBulletEmissions
+        | "state.m5-enemies", _, _ -> afterModel.Enemies.Length
+        | "ai.m5-decisions", _, _ -> afterModel.AiDecisions - beforeModel.AiDecisions
+        | "state.m5-obstacles", _, _ -> afterModel.Obstacles.Length
+        | "state.m5-shop-slots", _, _ -> afterModel.ShopSlots.Length
+        | "boss.m5-pattern-emissions", _, _ -> afterModel.BossPatternEmissions - beforeModel.BossPatternEmissions
+        | "collision.combat-candidates", _, _ -> afterModel.Instrumentation.TotalCombatCandidates - beforeModel.Instrumentation.TotalCombatCandidates
+        | "simulation.secret-reveal-candidates", _, _ -> afterModel.Instrumentation.TotalSecretRevealCandidates - beforeModel.Instrumentation.TotalSecretRevealCandidates
+        | "simulation.door-sensor-candidates", _, _ -> afterModel.Instrumentation.TotalDoorSensorQueries - beforeModel.Instrumentation.TotalDoorSensorQueries
+        | "simulation.floor-pickup-candidates", _, _ -> afterModel.Instrumentation.TotalFloorPickupCandidates - beforeModel.Instrumentation.TotalFloorPickupCandidates
         | "state.pending-secrets", _, _ -> afterModel.Floor.PendingSecrets.Count
         | "state.placed-bombs", _, _ -> max afterModel.Bombs.Length beforeModel.Bombs.Length
-        | "effects.pooled-particles", _, _ -> afterModel.M6Particles.Length
+        | "effects.pooled-particles", _, _ -> afterModel.Particles.Length
         | "scene.m6-enemy-symbols", _, _ ->
             Rogue3.Render.enemyTokens afterModel
             |> List.map (fun token -> token.R,token.Klass,token.Sigil,token.Threat,token.Speed)
             |> List.distinct
             |> List.length
         | "scene.m6-ordered-layers", _, _ -> Rogue3.Render.layers afterModel |> List.length
-        | "scene.m6-camera-transition", _, _ -> if afterModel.M6CameraTransition.IsSome then 1 else 0
+        | "scene.m6-camera-transition", _, _ -> if afterModel.CameraTransition.IsSome then 1 else 0
         | _, Input, _ ->
             let applied =
                 if afterModel.LastResolvedInput.Move <> zero
@@ -1325,7 +1325,7 @@ let private maximumM5Enemies =
         { Rogue3.Entities.spawn 6 (1000+index) kind (vec2 (644.0+float(index%3)) (360.0+float(index%3))) with
             HitPoints = 10000.0 } ]
 
-/// Board item #20: the player's static collider set is DERIVED from `M5Obstacles` now, so the
+/// Board item #20: the player's static collider set is DERIVED from `Obstacles` now, so the
 /// maximum-content fixture places real obstacles instead of carrying a free-floating rect list
 /// beside them. Nine obstacles at distinct positions spanning all five kinds: eight block movement
 /// (everything but `Spikes`) and seven of those also block shots (`Pit` does not). The old fixture
@@ -1352,29 +1352,29 @@ let private maximumContentModel () =
     let fixture =
         { withInput maximumGamepadInput with
             ShotSpawns = maximumShotHistory
-            TotalShotSpawns = maximumShotSpawnHistory
+            Instrumentation = { zeroInstrumentation with TotalShotSpawns = maximumShotSpawnHistory }
             NextShotId = maximumShotSpawnHistory + 1
             PlayerStats = { basePlayerStats with Homing = 1.0; Multishot = 3; Pierce = 30 }
             HomingTargets = maximumTargets
             EnemyBullets = maximumEnemyBullets
             Bombs = [ { Id=9000;Position=vec2 700.0 390.0;FuseTicks=10000 } ]
-            M5Enemies = maximumM5Enemies
-            M5Obstacles = maximumM5Obstacles
-            M5ShopSlots = maximumM5ShopSlots
+            Enemies = maximumM5Enemies
+            Obstacles = maximumM5Obstacles
+            ShopSlots = maximumM5ShopSlots
             // M13: drops are POSITIONED, so the maximum-content fixture places all six well clear of
             // the player at the room centre — the workload measures the collection SCAN, not a
             // collection, so every pickup must survive the sampled frames it is counted in.
-            M5ObstacleDrops =
+            ObstacleDrops =
                 [ { Id=9101;Room=0;Kind=Rogue3.Entities.PickupKind.Coin1;Position=vec2 200.0 620.0 }
                   { Id=9102;Room=0;Kind=Rogue3.Entities.PickupKind.Coin3;Position=vec2 280.0 620.0 }
                   { Id=9103;Room=0;Kind=Rogue3.Entities.PickupKind.HalfRedHeart;Position=vec2 360.0 620.0 }
                   { Id=9104;Room=0;Kind=Rogue3.Entities.PickupKind.Key;Position=vec2 440.0 620.0 }
                   { Id=9105;Room=0;Kind=Rogue3.Entities.PickupKind.Bomb;Position=vec2 520.0 620.0 }
                   { Id=9106;Room=0;Kind=Rogue3.Entities.PickupKind.SoulHeart;Position=vec2 600.0 620.0 } ]
-            M5Boss = Some {maw with HitPoints=100.0;Phase=3;PatternTicksLeft=1}
+            Boss = Some {maw with HitPoints=100.0;Phase=3;PatternTicksLeft=1}
             // M13: the transition names the room it departed, which is what lets the renderer draw a
             // second room shell behind the slide. Room 0 is the start room of the generated floor.
-            M6CameraTransition = Some { Direction=RoomSlideDirection.East; ElapsedTicks=0; FromRoom=0 }
+            CameraTransition = Some { Direction=RoomSlideDirection.East; ElapsedTicks=0; FromRoom=0 }
             // M11: the maximum a SINGLE room can present. A room grid is orthogonal, so a room has at
             // most four doorways, and the four floor-graph door states each take one wall. The
             // combat-lock presentations are deliberately absent: a lock seals every doorway at once,
@@ -1395,7 +1395,7 @@ let private maximumContentModel () =
                                       { ToRoom=903; Direction=FloorGeneration.South; State=FloorGeneration.BossDoor }
                                       { ToRoom=904; Direction=FloorGeneration.West; State=FloorGeneration.HiddenWall } ] }
                             maximumFloor.Rooms }
-            M5Room =
+            Room =
                 { IsBoss=true; Cleared=false
                   Doors=List.replicate 4 Rogue3.Entities.DoorState.Open
                   LiveEnemyIds=maximumM5Enemies |> List.map _.Id |> Set.ofList
@@ -1403,7 +1403,7 @@ let private maximumContentModel () =
                   Reward=Some Rogue3.Entities.baseItems.Head
                   Trapdoor=true } }
     let populated=update (SpawnM6Particles(650, vec2 640.0 360.0, ParticleTint.Explosion)) fixture |> fst
-    {populated with M6Particles=populated.M6Particles|>List.map(fun particle->{particle with LifetimeTicks=10000})}
+    {populated with Particles=populated.Particles|>List.map(fun particle->{particle with LifetimeTicks=10000})}
 
 // Product-owned canonical representative factory at the journey boot seam. It is not the ordinary
 // player boot; its role is to make maximum authored content reachable through the same production

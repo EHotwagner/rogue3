@@ -143,8 +143,8 @@ let audioTests =
             let before = Program.initialModel
             let pickupCue kind =
                 let slot : Entities.ShopSlot = { Id=71; Offer=Entities.ShopOffer.Consumable kind; Price=0; KeyLocked=false }
-                let previous = { before with M5ShopSlots=[slot] }
-                let next = { previous with M5ShopSlots=[{slot with Offer=Entities.ShopOffer.Empty}] }
+                let previous = { before with ShopSlots=[slot] }
+                let next = { previous with ShopSlots=[{slot with Offer=Entities.ShopOffer.Empty}] }
                 AudioCues.forTransition (InteractM5Shop slot.Id) previous next |> requested
             Expect.equal (pickupCue Entities.PickupKind.Coin3) [ PlaySfx(SoundId "pickup-coin",0.7) ] "coin acquisition has its exact cue"
             Expect.equal (pickupCue Entities.PickupKind.Key) [ PlaySfx(SoundId "pickup-key",0.7) ] "key acquisition has its exact cue"
@@ -153,12 +153,12 @@ let audioTests =
 
             let item = Entities.baseItems.Head
             let itemSlot : Entities.ShopSlot = { Id=72; Offer=Entities.ShopOffer.Item item; Price=0; KeyLocked=false }
-            let beforeItem = { before with M5ShopSlots=[itemSlot] }
-            let afterItem = { beforeItem with M5ShopSlots=[{itemSlot with Offer=Entities.ShopOffer.Empty}] }
+            let beforeItem = { before with ShopSlots=[itemSlot] }
+            let afterItem = { beforeItem with ShopSlots=[{itemSlot with Offer=Entities.ShopOffer.Empty}] }
             Expect.equal (AudioCues.forTransition (InteractM5Shop itemSlot.Id) beforeItem afterItem |> requested) [ PlaySfx(SoundId "item-pickup",0.85) ] "item acquisition has its exact cue"
 
-            let healedBoss = { before with PlayerHealth={before.PlayerHealth with RedHalfHearts=2}; M5Boss=Some (Entities.spawnBoss 91 Entities.BossKind.Gnawer before.PlayerPosition) }
-            let afterBoss = { healedBoss with PlayerHealth={healedBoss.PlayerHealth with RedHalfHearts=4}; M5Boss=None }
+            let healedBoss = { before with PlayerHealth={before.PlayerHealth with RedHalfHearts=2}; Boss=Some (Entities.spawnBoss 91 Entities.BossKind.Gnawer before.PlayerPosition) }
+            let afterBoss = { healedBoss with PlayerHealth={healedBoss.PlayerHealth with RedHalfHearts=4}; Boss=None }
             Expect.isFalse (AudioCues.forTransition (DamageM5Boss 10000.0) healedBoss afterBoss |> requested |> List.contains (PlaySfx(SoundId "pickup-heart",0.7))) "post-boss healing is not mislabeled as a pickup"
             let reset = { before with PlayerCurrency={before.PlayerCurrency with Coins=0;Keys=0;Bombs=0};PlayerHealth={before.PlayerHealth with RedHalfHearts=1} }
             Expect.isEmpty (AudioCues.forTransition (StartRun 99UL) reset before |> requested |> List.filter (function PlaySfx(SoundId id,_) when id.StartsWith("pickup-") -> true | _ -> false)) "run reset increases are not mislabeled as pickups"

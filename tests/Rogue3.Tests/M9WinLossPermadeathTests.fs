@@ -33,11 +33,11 @@ let tests =
 
         test "production floor-6 boss defeat yields Victory, discard, unlock, persistence and audio" {
             let boss=Entities.spawnBoss 901 Entities.BossKind.Maw initialModel.PlayerPosition
-            let before={initialModel with RunActive=true;FloorIndex=6;M5Boss=Some boss;RunStats={emptyRunStats with DepthReached=6;BossKills=2;FloorsCleared=5}}
+            let before={initialModel with RunActive=true;FloorIndex=6;Boss=Some boss;RunStats={emptyRunStats with DepthReached=6;BossKills=2;FloorsCleared=5}}
             let after=update (DamageM5Boss 100000.0) before|>fst
             Expect.equal after.RunOutcome (Some RunOutcome.Victory) "the production boss damage route wins on floor six"
             Expect.isFalse after.RunActive "the run is no longer resumable"
-            Expect.isNone after.M5Boss "boss/run entities are discarded"
+            Expect.isNone after.Boss "boss/run entities are discarded"
             Expect.contains after.Profile.UnlockedItems "abyssal-crown" "victory awards its special unlock"
             Expect.equal after.LastRunSummary.Value.FloorsCleared 6 "final boss clearance is tallied"
             let requests=profilePersistenceRequestsForTransition (DamageM5Boss 100000.0) before after|>Persistence.interpretRecordOnly
@@ -53,7 +53,7 @@ let tests =
             let boss={Entities.spawnBoss 901 Entities.BossKind.Maw initialModel.PlayerPosition with HitPoints=1.0}
             let shot=spawnShots 1 1 boss.Position Rogue3.Geometry.zero (Rogue3.Geometry.vec2 1.0 0.0) basePlayerStats|>List.head
             let bomb={Id=1;Position=boss.Position;FuseTicks=2}
-            let before={initialModel with RunActive=true;FloorIndex=6;M5Boss=Some boss;ShotSpawns=[shot];Bombs=[bomb];PlayerHealth={initialModel.PlayerHealth with RedHalfHearts=1};RunStats={emptyRunStats with DepthReached=6;BossKills=2;FloorsCleared=5}}
+            let before={initialModel with RunActive=true;FloorIndex=6;Boss=Some boss;ShotSpawns=[shot];Bombs=[bomb];PlayerHealth={initialModel.PlayerHealth with RedHalfHearts=1};RunStats={emptyRunStats with DepthReached=6;BossKills=2;FloorsCleared=5}}
             let won=update (Tick (fixedDt*2.0)) before|>fst
             Expect.equal won.RunOutcome (Some RunOutcome.Victory) "the actual fixed-step projectile collision reaches Victory"
             Expect.equal won.LastRunSummary.Value.BossKills 3 "the terminal boss step wins before a later drained step can explode the lethal bomb"

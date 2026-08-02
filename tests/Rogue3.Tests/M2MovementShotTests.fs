@@ -56,7 +56,7 @@ let movementTests =
                 { initialModel with
                     PlayerPosition = vec2 86.0 50.0
                     PlayerVelocity = velocity
-                    M5Obstacles = [ rock ] }
+                    Obstacles = [ rock ] }
                 |> withKeys [ Letter 'D' |> key; Letter 'S' |> key ]
                 |> tick
             close 87.0 model.PlayerPosition.Vx "circle stops with its radius at the wall face"

@@ -112,7 +112,7 @@ let m13RoomTransitionWorldStateTests =
               let crossed = walkUntil target (fun m -> m.Floor.CurrentRoom <> departed) 700 boot
 
               Expect.notEqual crossed.Floor.CurrentRoom departed "the player actually crossed"
-              match crossed.M6CameraTransition with
+              match crossed.CameraTransition with
               | None -> failtest "a crossing must start the room slide; M11 suppressed it because nothing drew the departed room"
               | Some transition ->
                   Expect.equal transition.FromRoom departed "the slide names the room the crossing left"
@@ -129,14 +129,14 @@ let m13RoomTransitionWorldStateTests =
               let neighbour = boot.Floor.Rooms.[boot.Floor.CurrentRoom].Doors.Head.ToRoom
               let sliding =
                   { boot with
-                      M6CameraTransition = Some { Direction = RoomSlideDirection.East; ElapsedTicks = 0; FromRoom = neighbour } }
+                      CameraTransition = Some { Direction = RoomSlideDirection.East; ElapsedTicks = 0; FromRoom = neighbour } }
 
               Expect.contains (elementIds sliding) "DepartedRoom" "a crossing in flight draws the room being left"
 
               // The two rooms must be one playfield apart on the slide axis, at every tick of the
               // slide — that is what makes the pair fill the screen rather than chase each other.
               for elapsed in [ 0; 1; 20; 41 ] do
-                  let model = { sliding with M6CameraTransition = Some { Direction = RoomSlideDirection.East; ElapsedTicks = elapsed; FromRoom = neighbour } }
+                  let model = { sliding with CameraTransition = Some { Direction = RoomSlideDirection.East; ElapsedTicks = elapsed; FromRoom = neighbour } }
                   let entered = Render.cameraOffset model
                   let step = Render.departedRoomStep RoomSlideDirection.East
                   Expect.equal step (vec2 -playfieldWidth 0.0) "an east crossing puts the departed room one room to the west"
@@ -153,7 +153,7 @@ let m13RoomTransitionWorldStateTests =
               let started = update (BeginM6RoomTransition RoomSlideDirection.East) boot |> fst
               Expect.equal (Render.cameraOffset started) (vec2 playfieldWidth 0.0) "entry still begins one room away"
               let settled =
-                  { started with M6CameraTransition = Some { Direction = RoomSlideDirection.East; ElapsedTicks = m6CameraDurationTicks; FromRoom = 0 } }
+                  { started with CameraTransition = Some { Direction = RoomSlideDirection.East; ElapsedTicks = m6CameraDurationTicks; FromRoom = 0 } }
               Expect.equal (Render.cameraOffset settled) zero "and still settles to identity at 42 ticks"
           }
 
@@ -165,12 +165,12 @@ let m13RoomTransitionWorldStateTests =
               // Drive the real reducer over every obstacle in the room until one of them yields a drop;
               // the drop table is weighted, so this asserts over whichever obstacle actually drops.
               let dropped =
-                  boot.M5Obstacles
+                  boot.Obstacles
                   |> List.fold (fun model obstacle -> update (DamageM5Obstacle(obstacle.Id, 999)) model |> fst) boot
 
-              Expect.isNonEmpty dropped.M5ObstacleDrops "smashing every obstacle in the room yields at least one drop"
-              for pickup in dropped.M5ObstacleDrops do
-                  let source = boot.M5Obstacles |> List.tryFind (fun obstacle -> obstacle.Id = pickup.Id)
+              Expect.isNonEmpty dropped.ObstacleDrops "smashing every obstacle in the room yields at least one drop"
+              for pickup in dropped.ObstacleDrops do
+                  let source = boot.Obstacles |> List.tryFind (fun obstacle -> obstacle.Id = pickup.Id)
                   Expect.isSome source $"drop {pickup.Id} came from an obstacle that was in the room"
                   Expect.equal pickup.Position source.Value.Position "and it lies exactly where that obstacle stood"
           }
@@ -178,12 +178,12 @@ let m13RoomTransitionWorldStateTests =
           test "FR-005 walking onto a pickup collects it exactly once, through movement keys alone" {
               let spot = vec2 640.0 500.0
               let seeded =
-                  { boot with M5ObstacleDrops = [ { Id = 4001; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin3; Position = spot } ] }
+                  { boot with ObstacleDrops = [ { Id = 4001; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin3; Position = spot } ] }
               let before = seeded.PlayerCurrency.Coins
 
               let collected = walk spot 200 seeded
 
-              Expect.isEmpty collected.M5ObstacleDrops "the pickup is gone once the player has walked over it"
+              Expect.isEmpty collected.ObstacleDrops "the pickup is gone once the player has walked over it"
               Expect.equal collected.PlayerCurrency.Coins (before + 3) "and a three-coin pickup credits exactly three coins"
 
               // Standing on the same spot for another second credits nothing more: a collected pickup
@@ -193,7 +193,7 @@ let m13RoomTransitionWorldStateTests =
           }
 
           test "FR-005 every pickup kind applies its own effect, and currency honours the 99 cap" {
-              let at kind = { boot with M5ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = kind; Position = boot.PlayerPosition } ] } |> collectFloorPickups
+              let at kind = { boot with ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = kind; Position = boot.PlayerPosition } ] } |> collectFloorPickups
 
               Expect.equal (at Entities.PickupKind.Coin1).PlayerCurrency.Coins (boot.PlayerCurrency.Coins + 1) "one coin"
               Expect.equal (at Entities.PickupKind.Coin3).PlayerCurrency.Coins (boot.PlayerCurrency.Coins + 3) "three coins"
@@ -202,13 +202,13 @@ let m13RoomTransitionWorldStateTests =
               Expect.equal (at Entities.PickupKind.SoulHeart).PlayerHealth.SoulHalfHearts 2 "a soul heart is two soul half-hearts"
 
               let hurt = { boot with PlayerHealth = { boot.PlayerHealth with RedHalfHearts = 2 } }
-              let healed = { hurt with M5ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.HalfRedHeart; Position = hurt.PlayerPosition } ] } |> collectFloorPickups
+              let healed = { hurt with ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.HalfRedHeart; Position = hurt.PlayerPosition } ] } |> collectFloorPickups
               Expect.equal healed.PlayerHealth.RedHalfHearts 3 "a half red heart heals exactly one half"
 
               let capped =
                   { boot with
                       PlayerCurrency = { boot.PlayerCurrency with Coins = 98 }
-                      M5ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin3; Position = boot.PlayerPosition } ] }
+                      ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin3; Position = boot.PlayerPosition } ] }
                   |> collectFloorPickups
               Expect.equal capped.PlayerCurrency.Coins 99 "and the shared 99 cap still holds"
           }
@@ -221,7 +221,7 @@ let m13RoomTransitionWorldStateTests =
               let door = boot.Floor.Rooms.[departed].Doors |> List.find (fun d -> d.State = Open)
               let corner = vec2 260.0 260.0
               let seeded =
-                  { boot with M5ObstacleDrops = [ { Id = 7001; Room = departed; Kind = Entities.PickupKind.Key; Position = corner } ] }
+                  { boot with ObstacleDrops = [ { Id = 7001; Room = departed; Kind = Entities.PickupKind.Key; Position = corner } ] }
 
               let target =
                   let wall = wallMidpoint door.Direction
@@ -234,7 +234,7 @@ let m13RoomTransitionWorldStateTests =
 
               Expect.notEqual away.Floor.CurrentRoom departed "the player left the room"
               Expect.equal away.PlayerCurrency.Keys boot.PlayerCurrency.Keys "leaving the room does not collect the key"
-              Expect.hasLength away.M5ObstacleDrops 1 "the uncollected pickup is still on the floor of the room it fell in"
+              Expect.hasLength away.ObstacleDrops 1 "the uncollected pickup is still on the floor of the room it fell in"
               Expect.isEmpty
                   (Render.renderedElements away |> List.filter (fun element -> element.ElementId = "PickupKey"))
                   "and it is not drawn in the room the player is now standing in"
@@ -248,13 +248,13 @@ let m13RoomTransitionWorldStateTests =
               // would only be caught by the evidence command. Assert it here too.
               let scanned = collectFloorPickups seeded
               Expect.equal
-                  (scanned.TotalFloorPickupCandidates - seeded.TotalFloorPickupCandidates)
+                  (scanned.Instrumentation.TotalFloorPickupCandidates - seeded.Instrumentation.TotalFloorPickupCandidates)
                   1
                   "one overlap test per pickup lying in the current room"
               let elsewhere =
-                  { seeded with M5ObstacleDrops = seeded.M5ObstacleDrops @ [ { Id = 7002; Room = departed + 500; Kind = Entities.PickupKind.Coin1; Position = corner } ] }
+                  { seeded with ObstacleDrops = seeded.ObstacleDrops @ [ { Id = 7002; Room = departed + 500; Kind = Entities.PickupKind.Coin1; Position = corner } ] }
               Expect.equal
-                  ((collectFloorPickups elsewhere).TotalFloorPickupCandidates - elsewhere.TotalFloorPickupCandidates)
+                  ((collectFloorPickups elsewhere).Instrumentation.TotalFloorPickupCandidates - elsewhere.Instrumentation.TotalFloorPickupCandidates)
                   1
                   "and a pickup lying in another room is not scanned"
           }
@@ -266,7 +266,7 @@ let m13RoomTransitionWorldStateTests =
               let capped =
                   { boot with
                       PlayerCurrency = { boot.PlayerCurrency with Coins = 98 }
-                      M5ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin3; Position = boot.PlayerPosition } ] }
+                      ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin3; Position = boot.PlayerPosition } ] }
                   |> collectFloorPickups
               Expect.equal capped.PlayerCurrency.Coins 99 "the purse clamps at the shared cap"
               Expect.equal
@@ -279,7 +279,7 @@ let m13RoomTransitionWorldStateTests =
               let positions = [ vec2 300.0 240.0; vec2 520.0 300.0; vec2 740.0 500.0 ]
               let seeded =
                   { boot with
-                      M5ObstacleDrops =
+                      ObstacleDrops =
                           positions
                           |> List.mapi (fun index position ->
                               { Id = 5000 + index
@@ -320,13 +320,13 @@ let m13RoomTransitionWorldStateTests =
                   let generated = FloorGeneration.generate boot.RunSeed floorIndex
                   for roomId in generated.Floor.Rooms |> Map.toList |> List.map fst do
                       let loaded = loadM5Room roomId { boot with FloorIndex = floorIndex; Floor = generated.Floor }
-                      let placed = placeRoomFixtures loaded.M5Obstacles 4
+                      let placed = placeRoomFixtures loaded.Obstacles 4
                       rooms <- rooms + 1
                       Expect.hasLength placed 4 $"room {roomId} on floor {floorIndex} places every requested fixture"
                       for position in placed do
                           Expect.isFalse (insideRoomShell position) $"room {roomId}: a fixture is clear of the wall band and every doorway apron"
                           Expect.isFalse (trapdoorContains position) $"room {roomId}: a fixture does not stand on the trapdoor"
-                          for obstacle in loaded.M5Obstacles do
+                          for obstacle in loaded.Obstacles do
                               let delta = sub position obstacle.Position
                               Expect.isGreaterThanOrEqual
                                   (sqrt (delta.Vx * delta.Vx + delta.Vy * delta.Vy))
@@ -341,8 +341,8 @@ let m13RoomTransitionWorldStateTests =
               // green, so the row had no regression guard at all. Testing `placeRoomFixtures` in
               // isolation says nothing about whether the renderer consumes it.
               let slots, _, _ = Entities.generateShop (FS.GG.Game.Core.Rng.ofSeed 0xA55AUL) (Entities.itemPool [])
-              let model = { boot with M5ShopSlots = slots; M5Room = { boot.M5Room with Reward = Some Entities.baseItems.Head } }
-              let expected = placeRoomFixtures model.M5Obstacles (slots.Length + 1)
+              let model = { boot with ShopSlots = slots; Room = { boot.Room with Reward = Some Entities.baseItems.Head } }
+              let expected = placeRoomFixtures model.Obstacles (slots.Length + 1)
 
               let drawnAt id =
                   Render.renderedElements model
@@ -508,7 +508,7 @@ let m13RoomTransitionWorldStateTests =
               let down = { boot with PlayerLifeState = Dead }
               let winding =
                   { boot with
-                      M5Enemies = [ { Entities.spawn 1 100 Entities.EnemyKind.Charger (vec2 360.0 300.0) with State = Entities.EnemyState.ChargerWindUp(vec2 1.0 0.0, 20) } ] }
+                      Enemies = [ { Entities.spawn 1 100 Entities.EnemyKind.Charger (vec2 360.0 300.0) with State = Entities.EnemyState.ChargerWindUp(vec2 1.0 0.0, 20) } ] }
 
               Expect.contains (elementIds invulnerable) "PlayerInvulnerable" "post-hit invulnerability is visible"
               Expect.contains (elementIds rolling) "PlayerDodgeRoll" "the committed roll is visible"

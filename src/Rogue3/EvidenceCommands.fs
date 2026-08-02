@@ -1252,8 +1252,8 @@ let m6VisualEvidence (outputDirectory: string) =
             update (SpawnM6Particles(120, vec2 640.0 360.0, ParticleTint.Explosion)) initialModel
             |> fst
         { particles with
-            M5Enemies = enemies
-            M5Obstacles =
+            Enemies = enemies
+            Obstacles =
                 [ Rogue3.Entities.obstacleAt (vec2 115.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Rock 1)
                   Rogue3.Entities.obstacleAt (vec2 320.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.TintedRock 2)
                   Rogue3.Entities.obstacleAt (vec2 520.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Pot 3)
@@ -1261,17 +1261,17 @@ let m6VisualEvidence (outputDirectory: string) =
                   Rogue3.Entities.obstacleAt (vec2 1010.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Pit 5) ]
             // M13: a drop carries a world position, so the visual-evidence fixture places each one
             // where a player would find it rather than in an indexed strip.
-            M5ObstacleDrops =
+            ObstacleDrops =
                 [ { Id=8101;Room=0;Kind=Rogue3.Entities.PickupKind.Coin1;Position=vec2 200.0 620.0 }
                   { Id=8102;Room=0;Kind=Rogue3.Entities.PickupKind.Coin3;Position=vec2 280.0 620.0 }
                   { Id=8103;Room=0;Kind=Rogue3.Entities.PickupKind.HalfRedHeart;Position=vec2 360.0 620.0 }
                   { Id=8104;Room=0;Kind=Rogue3.Entities.PickupKind.Key;Position=vec2 440.0 620.0 }
                   { Id=8105;Room=0;Kind=Rogue3.Entities.PickupKind.Bomb;Position=vec2 520.0 620.0 }
                   { Id=8106;Room=0;Kind=Rogue3.Entities.PickupKind.SoulHeart;Position=vec2 600.0 620.0 } ]
-            M5Boss=Some(Rogue3.Entities.spawnBoss 7000 Rogue3.Entities.BossKind.Maw (vec2 1120.0 560.0))
-            M5ShopSlots=shop
-            M5Room=
-                { initialModel.M5Room with
+            Boss=Some(Rogue3.Entities.spawnBoss 7000 Rogue3.Entities.BossKind.Maw (vec2 1120.0 560.0))
+            ShopSlots=shop
+            Room=
+                { initialModel.Room with
                     Doors=[Rogue3.Entities.DoorState.Open;Rogue3.Entities.DoorState.LockedClear;Rogue3.Entities.DoorState.BossSealed]
                     Drop=Some Rogue3.Entities.PickupKind.Key
                     Reward=Some Rogue3.Entities.baseItems.Head

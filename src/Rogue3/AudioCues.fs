@@ -238,7 +238,7 @@ let private cueForPickup = function
 // The diff is what a purchase actually does: `Entities.purchase` empties the slot it charged for, so
 // the transition is `Offer <> Empty` becoming `Empty`, on a slot id that survives. Requiring the
 // AFTER state to be `Empty` is what keeps a room change silent — walking into a second shop replaces
-// `M5ShopSlots` wholesale with freshly generated, non-empty stock under the same ids 0..2, and a bare
+// `ShopSlots` wholesale with freshly generated, non-empty stock under the same ids 0..2, and a bare
 // `before.Offer <> after.Offer` would have cued that as three purchases. The room and floor guard is
 // the belt to that braces: no cue is possible across a transition that moved the player elsewhere.
 let private m5ShopPickupCues msg previous next =
@@ -247,11 +247,11 @@ let private m5ShopPickupCues msg previous next =
     let purchasedOffers =
         if not sameRoom then []
         else
-            next.M5ShopSlots
+            next.ShopSlots
             |> List.choose (fun after ->
                 if after.Offer <> Rogue3.Entities.ShopOffer.Empty then None
                 else
-                    previous.M5ShopSlots
+                    previous.ShopSlots
                     |> List.tryFind (fun before -> before.Id = after.Id)
                     |> Option.bind (fun before ->
                         if before.Offer = Rogue3.Entities.ShopOffer.Empty then None else Some before.Offer))
@@ -271,28 +271,28 @@ let private doorAndBossCues previous next =
         | Rogue3.Entities.DoorState.LockedClear
         | Rogue3.Entities.DoorState.BossSealed -> true
         | Rogue3.Entities.DoorState.Open -> false
-    let beforeLocked = previous.M5Room.Doors |> List.exists locked
-    let afterLocked = next.M5Room.Doors |> List.exists locked
+    let beforeLocked = previous.Room.Doors |> List.exists locked
+    let afterLocked = next.Room.Doors |> List.exists locked
     [ if not beforeLocked && afterLocked then yield sfx AudioCueIds.doorLock 0.7
       if beforeLocked && not afterLocked then yield sfx AudioCueIds.doorUnlock 0.7
       // M11: derived from the TRANSITION, not from a message. A player descends by pressing interact
       // on a trapdoor, which resolves inside a fixed step, so `msg` is `Tick` and never `DescendFloor`.
       // A refused descent moves no floor index and is therefore silent for free.
       if next.FloorIndex > previous.FloorIndex then yield sfx AudioCueIds.floorDescend 0.8
-      if previous.M5Boss.IsNone && next.M5Boss.IsSome then yield sfx AudioCueIds.bossIntro 1.0
-      match previous.M5Boss, next.M5Boss with
+      if previous.Boss.IsNone && next.Boss.IsSome then yield sfx AudioCueIds.bossIntro 1.0
+      match previous.Boss, next.Boss with
       | Some before, Some after when after.Phase > before.Phase -> yield sfx AudioCueIds.bossPhase 0.9
       | Some _, None -> yield sfx AudioCueIds.bossDeath 1.0
       | _ -> () ]
 
 let private directEventCues msg previous next =
     [ match msg with
-      | DamageM5Enemy(enemyId, _) when next.M5Enemies <> previous.M5Enemies ->
+      | DamageM5Enemy(enemyId, _) when next.Enemies <> previous.Enemies ->
           yield sfx AudioCueIds.shotHit 0.7
-          if previous.M5Enemies |> List.exists (fun enemy -> enemy.Id = enemyId)
-             && next.M5Enemies |> List.forall (fun enemy -> enemy.Id <> enemyId) then
+          if previous.Enemies |> List.exists (fun enemy -> enemy.Id = enemyId)
+             && next.Enemies |> List.forall (fun enemy -> enemy.Id <> enemyId) then
               yield sfx AudioCueIds.enemyDeath 0.75
-      | DamageM5Boss _ when next.M5Boss <> previous.M5Boss -> yield sfx AudioCueIds.shotHit 0.7
+      | DamageM5Boss _ when next.Boss <> previous.Boss -> yield sfx AudioCueIds.shotHit 0.7
       | RecordCoinsCollected count when count > 0 -> yield sfx AudioCueIds.pickupCoin 0.7
       // Board item #47 removed the `RecordItemFound` cue here. It was keyed to a message with zero
       // production dispatch sites — the same defect the note below describes for `floor-descend`, so
