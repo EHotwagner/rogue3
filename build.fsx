@@ -181,6 +181,226 @@ let private runGeneratedEvidence (target: string) : int =
 
     runMethod.Invoke(null, [| box target; box (Directory.GetCurrentDirectory()) |]) :?> int
 
+// ---------------------------------------------------------------------------
+// #26: an evidence roll-up may only be PUBLISHED by a run that sensed at least
+// everything the published one already records.
+//
+// The EvidenceGraph emitter enumerates whatever is on disk under `readiness/`, and
+// part of that tree is regenerable output no clean checkout carries. TRACKED files
+// there are in every checkout and are not the problem (a `.gitignore` rule does not
+// apply to a tracked file, and `.gitignore:9` re-includes `ship-verdict.json`
+// anyway). The UNTRACKED ones are: the fsgg-sdd products excluded by
+// `.gitignore:8`, which only the checkout that ran the lifecycle holds, and
+// `readiness/logs/*.txt`, which this very run writes. So the list the emitter
+// publishes is a property of the CHECKOUT, not of the repository.
+//
+// Measured on a clean worktree at `7d9d442`: a full Verify dropped TEN of the 102
+// entries the committed graph records — five fsgg-sdd outputs under
+// `readiness/014-m13-room-transition-pickups-world-state/`, and five of the seven
+// `readiness/logs/*.txt` (`TemplateDrift.txt` and `GeneratedGuidanceCheck.txt` are
+// written before the graph, so they survive; `Dev.txt` is never written by Verify
+// at all since #34; the remaining four are written after it). It added one, giving
+// 93 — then rewrote the TRACKED `readiness/evidence-graph.md` with the smaller
+// number and exited 0. A worker following the documented instructions — run the
+// full gate, then stage — commits an artifact asserting that evidence disappeared,
+// and a reviewer reading a green Verify has no reason to open it.
+//
+// The emitter ships in the FS.GG.UI.Build engine package, so this repository cannot
+// change its enumeration logic (it can only change the input tree or the emission
+// order, which are #26's other candidate root causes). It CAN refuse to publish the
+// result. A run that sensed a SUPERSET publishes normally; a run that sensed LESS
+// restores the previous bytes exactly and names every input it could not see. Set
+// FSGG_EVIDENCE_GRAPH_PUBLISH=1 in the checkout that legitimately holds the whole
+// tree to publish a smaller graph deliberately — which is how the committed graph
+// gets corrected, and it currently needs it: at `3913c26` it omits FOUR tracked
+// files, and a Verify there senses 96.
+//
+// This is deliberately NOT extended to `readiness/performance-evidence.json` and
+// `readiness/m7-ui-performance.json`, which the same run also leaves dirty. Those
+// move because they record MEASUREMENTS, not because an input was missing:
+// `performance-evidence.json` carries p50/p95/p99 latencies, `allocatedBytes`, and
+// a composition-authority MVID that changes whenever this assembly is rebuilt (see
+// `src/Rogue3/PerformanceEvidence.fs`, `provenanceDefinitionToken`);
+// `m7-ui-performance.json` carries measured p95/p99 only. Re-running cannot
+// reproduce them, so the superset rule has nothing to compare and would assert
+// something false about them. Making those two reproducible is a different fix
+// (#26's third candidate root cause — stop tracking the roll-ups) on a different
+// artifact, and is out of scope here.
+//
+// `readiness/evidence-audit.md` is tracked and rewritten by the same run, and IS
+// left unguarded — deliberately. It records a verdict and a node count, with no
+// per-file enumeration, so nothing in it varies with which readiness outputs the
+// checkout happens to hold; it came back byte-identical from every run measured
+// here. Note that on a refusal `EvidenceAudit` then reads the RESTORED graph, which
+// is the previous complete emission rather than this run's partial one.
+//
+// A refusal does not fail the gate. The harm #26 describes is a falsified artifact
+// reaching a reviewer through a green gate; once the tree is left byte-identical
+// there is nothing to be fooled by, and failing instead would make Verify
+// permanently red in every worktree — which is how a gate gets ignored.
+// ---------------------------------------------------------------------------
+
+let private evidenceGraphPath = Path.Combine("readiness", "evidence-graph.md")
+
+let private evidenceGraphPublishVariable = "FSGG_EVIDENCE_GRAPH_PUBLISH"
+
+let private sensedSectionHeading = "## Sensed readiness files"
+
+type private EvidenceGraphPublication =
+    /// This run sensed everything the published graph records; the fresh graph stands.
+    | Published
+    /// This run sensed less, but publishing anyway was explicitly requested.
+    | PublishedSmaller of dropped: string list
+    /// This run sensed less; the previously published bytes were restored.
+    | Restored of dropped: string list
+    /// The PUBLISHED graph has no sensed-file section, so there is nothing to compare
+    /// against and the rule abstains rather than guessing. Kept distinct from
+    /// `Published`: silence here would be the same defect one level up.
+    | Unevaluatable of reason: string
+
+/// The `- \`readiness/…\`` bullets of the sensed-file section, and ONLY that section
+/// — `None` when the section is absent. Scoping matters: the counters are unquoted
+/// bullets, the evidence-node rows are pipe-delimited table cells, and a future
+/// emitter that lists what it could NOT sense under some other heading must not have
+/// those bullets counted as sensed.
+let private sensedReadinessFiles (markdown: string) : Set<string> option =
+    let lines = markdown.Split('\n') |> Array.map (fun line -> line.Trim())
+
+    lines
+    |> Array.tryFindIndex (fun line -> String.Equals(line, sensedSectionHeading, StringComparison.OrdinalIgnoreCase))
+    |> Option.map (fun start ->
+        lines
+        |> Array.skip (start + 1)
+        |> Array.takeWhile (fun line -> not (line.StartsWith "## "))
+        |> Array.choose (fun line ->
+            if line.StartsWith "- `" && line.EndsWith "`" && line.Length > 4 then
+                Some(line.Substring(3, line.Length - 4))
+            else
+                None)
+        |> Set.ofArray)
+
+let private evidenceGraphPublishRequested () =
+    match Environment.GetEnvironmentVariable evidenceGraphPublishVariable with
+    | null -> false
+    | value ->
+        match value.Trim().ToLowerInvariant() with
+        | ""
+        | "0"
+        | "false"
+        | "no" -> false
+        | _ -> true
+
+/// Applies the superset rule to the graph now on disk at `graphPath`.
+/// `previouslyPublished` is a copy of that file as it stood before this emission,
+/// and a refusal restores it with a file copy — so the encoding, any byte-order
+/// mark and the original line endings survive untouched, which re-serializing the
+/// text through a writer would not guarantee. (A copy is also what keeps this
+/// script free of the binary writers the `Verify redirected output is clean text`
+/// governance scan forbids.)
+///
+/// The comparison is over SETS, not counts: an emission that drops two inputs and
+/// gains two others has the same cardinality and must still be refused.
+let private applyEvidenceGraphPublicationRule (graphPath: string) (previouslyPublished: string) (publishSmaller: bool) =
+    // An emission that exited 0 but left no graph — or left one with no sensed
+    // section — has sensed NOTHING, which is the rule's own worst case rather than
+    // an IO error to rethrow at the caller. Restoring then also puts the file back.
+    let emitted =
+        if File.Exists graphPath then
+            sensedReadinessFiles (File.ReadAllText graphPath) |> Option.defaultValue Set.empty
+        else
+            Set.empty
+
+    match sensedReadinessFiles (File.ReadAllText previouslyPublished) with
+    | None -> Unevaluatable $"the published graph has no `{sensedSectionHeading}` section to compare against"
+    | Some published ->
+        let dropped = Set.difference published emitted |> Set.toList
+
+        if List.isEmpty dropped then
+            Published
+        elif publishSmaller then
+            PublishedSmaller dropped
+        else
+            File.Copy(previouslyPublished, graphPath, true)
+            Restored dropped
+
+/// The operator-facing account of a publication decision, as lines. Returned rather
+/// than printed so the wording is testable — an unasserted diagnostic is how the
+/// `PRESENT but not sensed` distinction below would quietly stop being made.
+let private evidenceGraphPublicationReport (graphPath: string) publication =
+    match publication with
+    | Published -> []
+    | Unevaluatable reason -> [ $"EvidenceGraph: publication rule ABSTAINED — {reason}; {graphPath} was left as the emitter wrote it." ]
+    | PublishedSmaller dropped ->
+        [ $"EvidenceGraph: publishing a graph that sensed {List.length dropped} fewer input(s) than {graphPath} already records, because {evidenceGraphPublishVariable} is set:" ]
+        @ [ for entry in dropped -> $"EvidenceGraph:   - {entry}" ]
+    | Restored dropped ->
+        [ $"EvidenceGraph: this checkout could not sense {List.length dropped} input(s) that {graphPath} already records, so the freshly emitted graph was NOT published and the previous bytes were restored:" ]
+        @ [ for entry in dropped ->
+                // A dropped entry that is nonetheless present on disk is a different
+                // and worse fault than an absent one, so never collapse the two.
+                let fate =
+                    if File.Exists entry then
+                        "PRESENT but not sensed"
+                    else
+                        "absent from this checkout"
+
+                $"EvidenceGraph:   - {entry} ({fate})" ]
+        @ [ $"EvidenceGraph: these are UNTRACKED readiness outputs — regenerable fsgg-sdd products only the checkout that ran the lifecycle holds, and logs this run writes after emitting the graph. Tracked readiness files are unaffected. Publish deliberately from a tree that does hold them with {evidenceGraphPublishVariable}=1."
+            $"EvidenceGraph: {graphPath} now holds the PREVIOUSLY published bytes, not this run's — its counters and node table are last-complete-emission values, which is the point: a stale complete record beats a fresh falsified one." ]
+
+/// Runs one emission under the rule. `emit` is a parameter, not a hard-wired call,
+/// so `SelfTest` can drive this whole path: the rule being INSTALLED is exactly as
+/// load-bearing as the rule being correct, and a test that only exercises the
+/// predicate cannot tell the difference.
+let private runEvidenceGraphEmission (graphPath: string) (publishSmaller: bool) (emit: unit -> int) =
+    let previouslyPublished =
+        if File.Exists graphPath then
+            let snapshot = path [ Path.GetTempPath(); "rogue3-evidence-graph-" + Guid.NewGuid().ToString("N") + ".md" ]
+            File.Copy(graphPath, snapshot, true)
+            Some snapshot
+        else
+            None
+
+    try
+        try
+            let exitCode = emit ()
+
+            if exitCode <> 0 then
+                failwithf "EvidenceGraph failed with exit code %d; see %s" exitCode graphPath
+
+            match previouslyPublished with
+            // Nothing has been published yet, so this emission cannot falsify anything.
+            | None -> Published
+            | Some snapshot -> applyEvidenceGraphPublicationRule graphPath snapshot publishSmaller
+        with _ ->
+            // The snapshot is about to be deleted by the `finally`. A fault anywhere
+            // after the emitter started leaves the graph in an unknown state, so put
+            // the published bytes back BEFORE the only copy of them disappears —
+            // taking a backup and then discarding it exactly when it is needed was
+            // the shape of this whole defect.
+            match previouslyPublished with
+            | Some snapshot ->
+                try
+                    File.Copy(snapshot, graphPath, true)
+                with _ ->
+                    ()
+            | None -> ()
+
+            reraise ()
+    finally
+        match previouslyPublished with
+        | Some snapshot ->
+            try
+                File.Delete snapshot
+            with _ ->
+                ()
+        | None -> ()
+
+let private runEvidenceGraph () =
+    runEvidenceGraphEmission evidenceGraphPath (evidenceGraphPublishRequested ()) (fun () -> runGeneratedEvidence "EvidenceGraph")
+    |> evidenceGraphPublicationReport evidenceGraphPath
+    |> List.iter (eprintfn "%s")
+
 // A redirected pipe reaches EOF when the LAST writer closes it, and that is not necessarily the
 // child we started: every grandchild inherits the same write handles. MSBuild's worker nodes are
 // exactly that case — `dotnet build`/`dotnet run` spawn them as children with `/nodeReuse:true`, and
@@ -980,6 +1200,269 @@ let private runSelfTest () =
         let noAgents, _ = freshFixture ()
         File.Delete(path [ noAgents; ".fsgg"; "agents.yml" ])
         expect "a missing agent inventory is reported" (generatedGuidanceViolations noAgents |> List.exists (fun v -> v.Contains "agents.yml"))
+
+        // -------------------------------------------------------------------
+        // #26: the evidence-graph publication rule. Each case plants a graph the
+        // emitter could really have produced in a checkout that cannot see the
+        // whole readiness tree, and requires the rule to refuse to publish it.
+        // The engine emitter is not invoked here — the rule is exercised over the
+        // bytes it would have written, which is exactly the incomplete-input case.
+        // -------------------------------------------------------------------
+
+        let graphFixture (entries: string list) =
+            let bullets = entries |> List.map (fun entry -> $"- `{entry}`") |> String.concat "\n"
+
+            "# Evidence graph\n\n"
+            + $"- readiness files present: {List.length entries}\n"
+            + "- recognized evidence nodes: 2\n\n"
+            + $"## Sensed readiness files\n\n{bullets}\n\n"
+            + "## Evidence nodes\n\n| Artifact | Kind | State |\n|---|---|---|\n"
+            + "| `readiness/layout-evidence.txt` | layout | present-valid |\n"
+
+        // Two tracked roll-ups, and two gitignored logs Verify writes only AFTER
+        // the graph is emitted — the shape observed on a clean worktree of 7d9d442.
+        let committedEntries =
+            [ "readiness/012-m11-playability-visual-legibility/ship-verdict.json"
+              "readiness/evidence-audit.md"
+              "readiness/logs/Dev.txt"
+              "readiness/logs/Test.txt" ]
+
+        let droppedLogs = [ "readiness/logs/Dev.txt"; "readiness/logs/Test.txt" ]
+        let narrowerEntries = [ "readiness/012-m11-playability-visual-legibility/ship-verdict.json"; "readiness/evidence-audit.md" ]
+
+        let parsedOrEmpty markdown = sensedReadinessFiles markdown |> Option.defaultValue Set.empty
+        let parsed = parsedOrEmpty (graphFixture committedEntries)
+        expect "every sensed bullet is read as an entry" (parsed = Set.ofList committedEntries)
+        expect "the section's own counter line is not read as an entry" (parsed |> Set.forall (fun entry -> not (entry.Contains "files present")))
+        expect "an evidence-node TABLE row is not read as a sensed entry" (not (parsed.Contains "readiness/layout-evidence.txt"))
+
+        // The bullet guards, each exercised on its own so none of them is decorative.
+        // These compare the WHOLE set: asserting only that the well-formed name is
+        // absent would pass even when a loosened guard admits a mangled substring of
+        // it, which is exactly how a dropped guard hides.
+        let unterminated =
+            parsedOrEmpty ((graphFixture committedEntries).Replace("- `readiness/evidence-audit.md`", "- `readiness/evidence-audit.md"))
+
+        let withoutAudit = committedEntries |> List.filter (fun entry -> entry <> "readiness/evidence-audit.md") |> Set.ofList
+        expect "a bullet with no CLOSING backtick yields no entry at all, mangled or otherwise" (unterminated = withoutAudit)
+
+        let withPlainBullet =
+            parsedOrEmpty ((graphFixture committedEntries).Replace("## Sensed readiness files\n\n", "## Sensed readiness files\n\n- readiness/plain-bullet.txt\n"))
+
+        expect "an unquoted bullet INSIDE the sensed section is ignored, not parsed" (withPlainBullet = Set.ofList committedEntries)
+
+        expect "an empty backtick bullet is not an entry" (parsedOrEmpty "## Sensed readiness files\n\n- ``\n" |> Set.isEmpty)
+
+        // Section scoping: bullets outside the sensed section must not count, or an
+        // emitter that lists what it COULD NOT sense would look like a superset.
+        let maskedFixture =
+            (graphFixture narrowerEntries).Replace(
+                "## Evidence nodes",
+                "## Could not sense\n\n- `readiness/logs/Dev.txt`\n- `readiness/logs/Test.txt`\n\n## Evidence nodes"
+            )
+
+        expect "backticked bullets OUTSIDE the sensed section are not counted as sensed" (parsedOrEmpty maskedFixture = Set.ofList narrowerEntries)
+        expect "a graph with no sensed section at all parses as absent, not empty" ((sensedReadinessFiles "# Evidence graph\n\n- `readiness/x`\n").IsNone)
+
+        let graphRoot = path [ sandbox; "evidence-graph" ]
+        Directory.CreateDirectory graphRoot |> ignore
+        let mutable graphCase = 0
+
+        /// Publishes `previousText`, snapshots it the way the runner does, then stands
+        /// in for the emitter by overwriting the file with what THIS checkout sensed.
+        let plantedText (publishPrevious: string -> unit) (emittedText: string) publishSmaller =
+            graphCase <- graphCase + 1
+            let graphPath = path [ graphRoot; $"graph-{graphCase}.md" ]
+            let published = path [ graphRoot; $"graph-{graphCase}.published.md" ]
+            publishPrevious graphPath
+            File.Copy(graphPath, published, true)
+            File.WriteAllText(graphPath, emittedText)
+            applyEvidenceGraphPublicationRule graphPath published publishSmaller, graphPath, published
+
+        let planted previousEntries emittedEntries publishSmaller =
+            plantedText (fun target -> File.WriteAllText(target, graphFixture previousEntries)) (graphFixture emittedEntries) publishSmaller
+
+        let sameBytes a b = File.ReadAllBytes a = File.ReadAllBytes b
+
+        let sameOutcome, _, _ = planted committedEntries committedEntries false
+        expect "a graph that sensed the same inputs is published" (sameOutcome = Published)
+
+        let widerEntries = "readiness/014-m13/critic-history.md" :: committedEntries
+        let widerOutcome, widerPath, _ = planted committedEntries widerEntries false
+        expect "a graph that sensed MORE is published" (widerOutcome = Published)
+        expect "a published wider graph keeps the newly sensed entry" ((File.ReadAllText widerPath).Contains "critic-history.md")
+
+        let narrowerOutcome, narrowerPath, narrowerPublished = planted committedEntries narrowerEntries false
+        expect "a graph that sensed LESS names exactly the dropped inputs" (narrowerOutcome = Restored droppedLogs)
+        expect "a graph that sensed LESS is restored byte for byte" (sameBytes narrowerPath narrowerPublished)
+
+        // The shape actually observed: inputs dropped AND one gained, so a rule that
+        // only looked for additions would publish it. This fixture still SHRINKS
+        // (4 -> 3), so it does not by itself pin the set semantics — the equal-count
+        // swap below is what does that.
+        let mixedOutcome, mixedPath, mixedPublished = planted committedEntries ("readiness/014-m13/critic-history.md" :: narrowerEntries) false
+        expect "dropping some inputs while gaining another is still refused" (mixedOutcome = Restored droppedLogs)
+        expect "a refused graph does not keep the entry it gained" (sameBytes mixedPath mixedPublished)
+
+        let overriddenOutcome, overriddenPath, overriddenPublished = planted committedEntries narrowerEntries true
+        expect "an explicit publish request publishes the smaller graph" (overriddenOutcome = PublishedSmaller droppedLogs)
+        expect "an explicitly published smaller graph is NOT restored" (not (sameBytes overriddenPath overriddenPublished))
+
+        // The restore hands back the ORIGINAL bytes, not a re-serialization of them.
+        // CRLF endings, a missing trailing newline and a byte-order mark are exactly
+        // what a read-text/write-text round trip silently normalises away.
+        let crlfText = (graphFixture committedEntries).Replace("\n", "\r\n").TrimEnd('\r', '\n')
+        let crlfOutcome, crlfPath, crlfPublished = plantedText (fun target -> File.WriteAllText(target, crlfText)) (graphFixture narrowerEntries) false
+        expect "CRLF bullets are still read as sensed entries" (crlfOutcome = Restored droppedLogs)
+        expect "the restore is byte-exact, including line endings and a missing trailing newline" (sameBytes crlfPath crlfPublished)
+
+        let bomOutcome, bomPath, bomPublished =
+            plantedText (fun target -> File.WriteAllText(target, graphFixture committedEntries, Text.UTF8Encoding true)) (graphFixture narrowerEntries) false
+
+        expect "a byte-order mark does not hide the first sensed entry" (bomOutcome = Restored droppedLogs)
+        expect "the restore preserves a byte-order mark" (sameBytes bomPath bomPublished)
+
+        // An emitter that exits 0 and writes NOTHING has dropped everything. That is
+        // the rule's worst case, not an IO error for the caller to trip over.
+        graphCase <- graphCase + 1
+        let vanishedPath = path [ graphRoot; $"graph-{graphCase}.md" ]
+        let vanishedPublished = path [ graphRoot; $"graph-{graphCase}.published.md" ]
+        File.WriteAllText(vanishedPath, graphFixture committedEntries)
+        File.Copy(vanishedPath, vanishedPublished, true)
+        File.Delete vanishedPath
+        expect
+            "an emission that wrote no graph at all is treated as dropping everything"
+            (applyEvidenceGraphPublicationRule vanishedPath vanishedPublished false = Restored(List.sort committedEntries))
+
+        expect "restoring after a vanished emission puts the file back" (File.Exists vanishedPath && sameBytes vanishedPath vanishedPublished)
+
+        // SETS, not counts. Two dropped and two gained is the same cardinality, so a
+        // rule that compared sizes — or only looked for additions — publishes it.
+        let swappedOutcome, swappedPath, swappedPublished =
+            planted committedEntries (narrowerEntries @ [ "readiness/logs/Run.txt"; "readiness/016-later/ship-verdict.json" ]) false
+
+        expect "an equal-COUNT emission that swapped two inputs for two others is refused" (swappedOutcome = Restored droppedLogs)
+        expect "an equal-count refusal is restored byte for byte" (sameBytes swappedPath swappedPublished)
+
+        // A published graph with no sensed section leaves nothing to compare, and the
+        // rule must say so rather than silently behave like a clean publish.
+        graphCase <- graphCase + 1
+        let sectionlessPath = path [ graphRoot; $"graph-{graphCase}.md" ]
+        let sectionlessPublished = path [ graphRoot; $"graph-{graphCase}.published.md" ]
+        File.WriteAllText(sectionlessPath, "# Evidence graph\n\n- readiness files present: 0\n")
+        File.Copy(sectionlessPath, sectionlessPublished, true)
+        File.WriteAllText(sectionlessPath, graphFixture narrowerEntries)
+
+        expect
+            "a published graph with no sensed section makes the rule ABSTAIN, not pass"
+            (match applyEvidenceGraphPublicationRule sectionlessPath sectionlessPublished false with
+             | Unevaluatable _ -> true
+             | _ -> false)
+
+        // The refusal report is the only thing an operator sees. An unasserted
+        // diagnostic is how the present-vs-absent distinction stops being made.
+        let reportLines = evidenceGraphPublicationReport "readiness/evidence-graph.md" (Restored droppedLogs)
+        let reportText = String.concat "\n" reportLines
+        expect "the refusal report names every dropped input" (droppedLogs |> List.forall (fun entry -> reportText.Contains entry))
+        expect "the refusal report states that nothing was published" (reportText.Contains "NOT published")
+        expect "a dropped input absent from disk is reported as absent" (reportText.Contains "absent from this checkout")
+
+        graphCase <- graphCase + 1
+        let presentEntry = path [ graphRoot; $"present-{graphCase}.txt" ]
+        File.WriteAllText(presentEntry, "here\n")
+
+        expect
+            "a dropped input that IS on disk is reported differently from an absent one"
+            ((evidenceGraphPublicationReport "readiness/evidence-graph.md" (Restored [ presentEntry ])
+              |> String.concat "\n")
+                .Contains "PRESENT but not sensed")
+
+        expect "a clean publication reports nothing" (List.isEmpty (evidenceGraphPublicationReport "readiness/evidence-graph.md" Published))
+
+        // The env reader decides which way the escape hatch points, and a green suite
+        // that never calls it cannot tell an inverted polarity from a correct one.
+        let withPublishVariable value body =
+            let restore = Environment.GetEnvironmentVariable evidenceGraphPublishVariable
+            Environment.SetEnvironmentVariable(evidenceGraphPublishVariable, value)
+
+            try
+                body ()
+            finally
+                Environment.SetEnvironmentVariable(evidenceGraphPublishVariable, restore)
+
+        expect "an unset publish variable does NOT request publication" (withPublishVariable null evidenceGraphPublishRequested = false)
+        expect "publish variable = 1 requests publication" (withPublishVariable "1" evidenceGraphPublishRequested)
+        expect "publish variable = 0 does NOT request publication" (withPublishVariable "0" evidenceGraphPublishRequested = false)
+        expect "publish variable = false does NOT request publication" (withPublishVariable "false" evidenceGraphPublishRequested = false)
+        expect "an empty publish variable does NOT request publication" (withPublishVariable "" evidenceGraphPublishRequested = false)
+
+        // ---- the RULE INSTALLED, not just the rule correct ----
+        // Everything above proves the predicate. These drive the runner that wires it
+        // into Verify, with a stub emitter, so that removing the snapshot, skipping
+        // the rule, or ignoring the emitter's exit code cannot pass green.
+        let drive previousEntries emittedEntries publishSmaller exitCode =
+            graphCase <- graphCase + 1
+            let graphPath = path [ graphRoot; $"driven-{graphCase}.md" ]
+            let reference = path [ graphRoot; $"driven-{graphCase}.reference.md" ]
+            File.WriteAllText(graphPath, graphFixture previousEntries)
+            File.Copy(graphPath, reference, true)
+
+            let outcome =
+                runEvidenceGraphEmission graphPath publishSmaller (fun () ->
+                    File.WriteAllText(graphPath, graphFixture emittedEntries)
+                    exitCode)
+
+            outcome, graphPath, reference
+
+        let drivenOutcome, drivenPath, drivenReference = drive committedEntries narrowerEntries false 0
+        expect "the runner applies the rule to a degraded emission" (drivenOutcome = Restored droppedLogs)
+        expect "the runner restores the published bytes" (sameBytes drivenPath drivenReference)
+
+        let drivenWiderOutcome, drivenWiderPath, drivenWiderReference = drive committedEntries widerEntries false 0
+        expect "the runner publishes an emission that sensed more" (drivenWiderOutcome = Published)
+        expect "the runner leaves a published emission alone" (not (sameBytes drivenWiderPath drivenWiderReference))
+
+        expect
+            "the runner still fails the gate when the emitter exits non-zero"
+            (try
+                drive committedEntries narrowerEntries false 3 |> ignore
+                false
+             with ex ->
+                 ex.Message.Contains "exit code 3")
+
+        // A fault after the emitter ran must not leave the degraded graph behind with
+        // the only good copy deleted — the backup exists precisely for this moment.
+        graphCase <- graphCase + 1
+        let faultedPath = path [ graphRoot; $"faulted-{graphCase}.md" ]
+        let faultedReference = path [ graphRoot; $"faulted-{graphCase}.reference.md" ]
+        File.WriteAllText(faultedPath, graphFixture committedEntries)
+        File.Copy(faultedPath, faultedReference, true)
+
+        expect
+            "a fault after emission is not swallowed"
+            (try
+                runEvidenceGraphEmission faultedPath false (fun () ->
+                    File.WriteAllText(faultedPath, graphFixture narrowerEntries)
+                    failwith "emitter blew up after writing")
+                |> ignore
+
+                false
+             with ex ->
+                 ex.Message.Contains "blew up")
+
+        expect "a fault after emission still restores the published bytes" (sameBytes faultedPath faultedReference)
+
+        // The runner has no published file to protect on a first emission.
+        graphCase <- graphCase + 1
+        let firstPath = path [ graphRoot; $"first-{graphCase}.md" ]
+
+        expect
+            "a first emission with nothing published yet is published"
+            (runEvidenceGraphEmission firstPath false (fun () ->
+                File.WriteAllText(firstPath, graphFixture committedEntries)
+                0) = Published)
+
+        expect "a first emission keeps what the emitter wrote" (File.Exists firstPath && (File.ReadAllText firstPath).Contains "logs/Dev.txt")
     finally
         if Directory.Exists sandbox then
             try Directory.Delete(sandbox, true) with _ -> ()
@@ -996,10 +1479,7 @@ let run target =
     | "Dev" -> writeLog target
     | "GeneratedGuidanceCheck" -> runViolationCheck target (generatedGuidanceViolations (currentRoot ()))
     | "TemplateDrift" -> runViolationCheck target (templateDriftViolations (currentRoot ()))
-    | "EvidenceGraph" ->
-        let exitCode = runGeneratedEvidence "EvidenceGraph"
-        if exitCode <> 0 then
-            failwithf "EvidenceGraph failed with exit code %d; see readiness/evidence-graph.md" exitCode
+    | "EvidenceGraph" -> runEvidenceGraph ()
     | "EvidenceAudit" ->
         let exitCode = runGeneratedEvidence "EvidenceAudit"
         if exitCode <> 0 then
@@ -1027,9 +1507,9 @@ let run target =
         // it is a dev-loop completion marker, not a gate step, and counting it was the lie.
         runViolationCheck "TemplateDrift" (templateDriftViolations (currentRoot ()))
         runViolationCheck "GeneratedGuidanceCheck" (generatedGuidanceViolations (currentRoot ()))
-        let graphExitCode = runGeneratedEvidence "EvidenceGraph"
-        if graphExitCode <> 0 then
-            failwithf "EvidenceGraph failed with exit code %d; see readiness/evidence-graph.md" graphExitCode
+        // #26: the graph is emitted under the publication rule, so a gate run that
+        // cannot see the whole readiness tree never overwrites the committed one.
+        runEvidenceGraph ()
         let auditExitCode = runGeneratedEvidence "EvidenceAudit"
         if auditExitCode <> 0 then
             failwithf "EvidenceAudit failed with exit code %d; see readiness/evidence-audit.md" auditExitCode
@@ -1071,7 +1551,10 @@ let helpBanner =
     + "           until every task is [X] — then runs the tests. Use only when the feature is complete.\n"
     + "           The first Verify on a fresh scaffold fails until you generate the headless evidence baseline\n"
     + "           (readiness/layout-evidence.txt + headless-scene-evidence.txt) and author performance workloads.\n"
-    + "           A linked performance-debt issue permits baseline capture but never satisfies acceptance.\n\n"
+    + "           A linked performance-debt issue permits baseline capture but never satisfies acceptance.\n"
+    + "           The evidence graph is only PUBLISHED by a run that sensed at least everything the\n"
+    + "           committed one records (#26); a run that sensed less names what it missed and restores\n"
+    + "           the previous bytes. Set FSGG_EVIDENCE_GRAPH_PUBLISH=1 to publish a smaller graph.\n\n"
     + "  Restore | Build | Run | Pack   Pass-through to stock `dotnet` over the single root .slnx.\n"
     + "           Run inherits this console, so the product's output is live and it stays up until the\n"
     + "           product exits; set FSGG_RUN_TIMEOUT_SECONDS to bound an unattended launch.\n\n"
