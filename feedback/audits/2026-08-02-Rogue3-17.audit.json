@@ -1,0 +1,181 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-17.md",
+  "reportSha256": "527dd8f178a996d6b8089e7f94979a714636ed11f2906c2b8930cfb8326ce1b2",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:on a git archive export with templateDriftViolations prefixed by if root = Directory.GetCurrentDirectory() then [] else and a line appended to the manifest-pinned kit file .agents/skills/fs-gg-ai/SKILL.md, dotnet fsi build.fsx -t SelfTest exits 1 with the relocation defence present and exits 0 when TMPDIR is set to the export root, so the defence is a no-op under that one environment setting, and after the fix the same mutant exits 1 both with and without TMPDIR while an unmutated tree under TMPDIR set to its own root still exits 0",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "486fd8012c4dba5a23e4e0270eec14d70a36ea3c474c9740e610445d87c1180c"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#71",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "PR #71 was squash-merged, so the commit at which the defect existed is not an ancestor of 3cd9ab5. The defect is evidenced by the inline record in the fixed build.fsx and by the review comment on #71, not by a checkoutable bad state."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:on a git archive export with generatedGuidanceViolations prefixed by if Path.GetFullPath root = Path.GetFullPath (Directory.GetCurrentDirectory()) then [] else and AGENTS.md emptied, dotnet fsi build.fsx -t SelfTest exits 0 while the tree carries a real GeneratedGuidanceCheck violation, because only templateDriftViolations was re-evaluated from the relocated directory, and after the fix the same mutant exits 1",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "486fd8012c4dba5a23e4e0270eec14d70a36ea3c474c9740e610445d87c1180c"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#71",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "As for 4.1, the one-sided state is not checkoutable after the squash merge. build.fsx at 3cd9ab5 evidences the fix and records why covering one check and not the other was a live defeat."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:on a git archive export with a second binding named templateDriftViolations inserted ahead of the real one, dotnet fsi build.fsx -t SelfTest exits 1 emitting error FS0072 with no SelfTest summary line and zero ok lines, which a harness scoring on exit code alone records as a killed mutant",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/checkpoints/item-57-selftest-structured-result.jsonl",
+          "result": "verified",
+          "sha256": "e222c4a5e020ce8739b785b170612045f85d20d90325ee4be776adab0af18331"
+        }
+      ],
+      "confidenceLimits": [
+        "The sweep harness lived outside the workspace and no mutant inventory was committed, so the specific three non-compiling mutants survive only in the checkpoint narrative and the reproduction recipe. This is the gap 11.2 proposes to close, and 1 states the limit."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t Verify exits 1, failing at PerformanceEvidence with status=failed m7-ui-performance routes=4, while in the same run TemplateDrift reports 190 of 190 kit files pinned, GeneratedGuidanceCheck completes, and dotnet test reports 253/253",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#61",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Wholly contained in open issue EHotwagner/rogue3#61, which the report names as the disposition. Retained as an observation because it recurred independently for a second worker this session."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py exits 1 with this item's build.fsx edit present, naming file:build.fsx stale across eight merged audits and file:.github/workflows/verify.yml stale across three, and exits 0 only after --grandfather rewrites the ledger to 87 entries",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/audit-binding-exceptions.json",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#53",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Wholly contained in open issue EHotwagner/rogue3#53, which already carries this report's 11.4 as one of its candidate fixes. The ledger locator is the digest-exempt path named in the fs-gg-feedback-report skill."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:on a git archive export of 48b3a6a with templateDriftViolations made vacuous and expect's failure branch replaced by printfn \"  ok   %s\" description, dotnet fsi build.fsx -t SelfTest exits 0 printing 111 case(s), 0 failure(s) and 111 ok lines, so both the exit code and the ok-count == case-count CI guard pass on a tree whose check asserts nothing",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.github/workflows/verify.yml",
+          "result": "verified",
+          "sha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#57",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t SelfTest at 48b3a6a prints SelfTest: 111 case(s), 0 failure(s), against the 30 case(s) the issue body reports at bfd1288 and the 77 case(s) a later comment reports, so all three figures in the item describe different trees",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#57",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/checkpoints/item-57-selftest-structured-result.jsonl",
+          "result": "verified",
+          "sha256": "e222c4a5e020ce8739b785b170612045f85d20d90325ee4be776adab0af18331"
+        }
+      ],
+      "confidenceLimits": [
+        "Rewritten after the actionability critic showed the first draft's Expected clause was wrong: #57 does pin its sweep to bfd1288. The corrected observation is about a pinned figure going stale when the base advanced, not about a missing pin."
+      ]
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py exits 0 immediately after --grandfather, then exits 1 again once two review rounds edit build.fsx further, and exits 0 only after a second --grandfather run on the final bytes, because each exception pins one observed digest",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/audit-binding-exceptions.json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/checkpoints/item-57-selftest-structured-result.jsonl",
+          "result": "verified",
+          "sha256": "e222c4a5e020ce8739b785b170612045f85d20d90325ee4be776adab0af18331"
+        }
+      ],
+      "confidenceLimits": [
+        "The red CI cycle it describes is on PR #71, whose check history is retained by GitHub but is not a workspace artifact. The ledger entries pinning the final build.fsx and verify.yml digests are the durable trace."
+      ]
+    }
+  ]
+}
