@@ -288,6 +288,18 @@ def gitignore_declarations(root: str) -> set[str]:
     matcher: it answers "does this file say this exact path is ignored", which is
     the question `derived_exemptions` asks, and it deliberately does not try to
     resolve globs, directory rules or precedence.
+
+    Where it and git DISAGREE, it disagrees conservatively, and that is chosen
+    rather than accidental. Real gitignore precedence is order-dependent and
+    last-match-wins, while this is order-independent set subtraction, so
+    `!readiness/x` followed by `readiness/x` is IGNORED by git and NOT DECLARED
+    here -- verified both ways on this tree. The result is that the exemption is
+    withdrawn and a structural violation is raised over a file git really does
+    ignore: the checker goes on checking a binding it could have skipped, which
+    costs a stale binding and one obvious fix (drop the stray `!`). The opposite
+    error -- exempting a path the repository has quietly resumed treating as
+    ordinary -- is the one that loses evidence silently, so the ambiguity is
+    resolved towards more checking every time.
     """
     path = os.path.join(root, GITIGNORE_RELPATH)
     if not os.path.isfile(path):
