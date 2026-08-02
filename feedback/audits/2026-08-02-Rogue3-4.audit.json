@@ -1,0 +1,138 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-4.md",
+  "reportSha256": "8cb9cdb99028f77151404001dcb71f3bdc912b1423551ca1140e2b9c697a6878",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git show 1f19809:build.fsx",
+          "result": "verified"
+        },
+        {
+          "locator": "command:pgrep -af nodeReuse:true",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "dfaa4bf3985b2071ff0c63e1fdf7541b74f2749e64b6cf6b78f96e53118c189b"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#14",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The originating six-minute stall left no captured artifact, so that the reporter's particular run deadlocked for this reason rather than another is inference from matching symptoms, not direct evidence. Disclosed in §1.",
+        "Whether a template release after FS.GG.UI.Template::0.25.1 already changed runProcess was not checked; no newer template was available in this workspace."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#14",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/checkpoints/item-14-run-target-stall.jsonl",
+          "result": "verified",
+          "sha256": "5dd6eb2225603e5bcfbea316fa585049d6e42efe53ce73e6715e689158249854"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:tests/Rogue3.Tests/GovernanceTests.fs",
+          "result": "verified",
+          "sha256": "77d1e6960028d9c4e6d52862eadb0bdeac2df0ad812092c1dda5fb83384bb0de"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "dfaa4bf3985b2071ff0c63e1fdf7541b74f2749e64b6cf6b78f96e53118c189b"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic confirmed the count is exactly five and the literals are exactly as quoted, and that all five survive the rewrite inside runProcess. The finding's original claim that four of five were inside the function body was corrected to five.",
+        "Whether the five source-text pins were authored against a real prior regression could not be established from this workspace. It bears on the risk of the §11 remedy and is recorded in the finding as a known unknown; it does not weaken the observation, which is a direct count over two cited files.",
+        "The finding's claim that the abandoned-drain notice was routed through the stderr binding to keep the pinned line intact was softened after critique: build.fsx documents an independent reason for that routing, and both are now stated."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "dfaa4bf3985b2071ff0c63e1fdf7541b74f2749e64b6cf6b78f96e53118c189b"
+        },
+        {
+          "locator": "command:FSGG_RUN_TIMEOUT_SECONDS=15 ./fake.sh build -t Run",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The durable gap (the template offers no bounded smoke-launch mode) is verified in build.fsx and by a live bounded run. The separate host condition that no product window was reachable is undiagnosed and is recorded in the finding as a known unknown rather than as part of the claim."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t Verify",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "dfaa4bf3985b2071ff0c63e1fdf7541b74f2749e64b6cf6b78f96e53118c189b"
+        }
+      ],
+      "confidenceLimits": [
+        "Every claimed output string reproduced exactly under an independent run. The finding now states the cost that travels with the pattern: this same invocation is the one that dirties tracked evidence per §4.6."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t Verify",
+          "result": "verified"
+        },
+        {
+          "locator": "file:readiness/evidence-graph.md",
+          "result": "verified",
+          "sha256": "26540ab90363478a2cdf9df5e81625beb619550557cf371d0fb64c47c8b910a9"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#26",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The draft asserted a sensed-file count falling 67 to 61. That number was unverifiable after the revert, did not reproduce for the critic, and disagreed with #26. It was removed; the finding now asserts no stable number and defers the causal decomposition to #26, which already corrected an equivalent overstatement.",
+        "The defect itself is a restatement of open issue #26 and is dispositioned to it. The only new fact claimed is the Run.txt coupling, which is verified against the committed evidence-graph sensed-file list."
+      ]
+    }
+  ]
+}
