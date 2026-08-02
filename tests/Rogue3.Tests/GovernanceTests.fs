@@ -388,6 +388,26 @@ let governanceTests =
             // host reach the launcher (#436: both carry the sink). Behavior, not launcher-overload
             // substring, so a sanctioned launcher upgrade passes unedited.
             assertDefaultLaunchHonoursEffects source
+            // Issue #75: the launch request is built by ONE named function that consults the
+            // persisted settings, and NOT from the config literal. This is a source scan and proves
+            // only the wiring — that the entry point calls the seam whose behaviour BehaviorTests
+            // drives end to end — which is the half a behaviour test cannot reach, because
+            // `Program.main` opens a real window and no test may call it. The negative assertion is
+            // the load-bearing one: it is the exact expression that dropped every saved window mode.
+            Expect.stringContains
+                defaultBranch
+                "EvidenceCommands.launchWindowRequest args"
+                "the default launch builds its window request from the persisted-settings seam, over the real argv (#75)"
+
+            Expect.stringContains
+                defaultBranch
+                "EvidenceCommands.restoredShellSettings ()"
+                "and feeds that seam the RESTORED shell settings rather than a hardcoded display (#75)"
+
+            Expect.isFalse
+                (defaultBranch.Contains("windowBehavior Rogue3.EvidenceCommands.shellConfig.InitialDisplay", StringComparison.Ordinal))
+                "the default launch no longer derives its window request from the InitialDisplay literal, which is what silently dropped every saved display mode (#75)"
+
             Expect.stringContains source "manualWindowOptionResults windowBehaviorRequest" "normal launch validates parsed behavior request before calling SkiaViewer"
             Expect.stringContains source "window-options=%s" "normal launch reports option validation output"
             Expect.stringContains source "option=resize" "option report includes resize rows"

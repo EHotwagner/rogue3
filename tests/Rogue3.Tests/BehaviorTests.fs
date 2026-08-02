@@ -298,8 +298,13 @@ let behaviorTests =
                 Rogue3.EvidenceCommands.shellConfig.InitialDisplay.Resolution
                 "the default native surface and authored shell resolution are one coordinate space"
 
+            // #75: driven through the function `Program.main` now builds the launch request with,
+            // handed the state a FRESH install restores (`GameShell.init shellConfig`), rather than
+            // by re-deriving the request from the config literal here. On a fresh install the two
+            // agree — which is exactly why re-deriving it could not tell that a SAVED mode was
+            // being dropped.
             let defaultWindow =
-                Rogue3.GameShell.windowBehavior Rogue3.EvidenceCommands.shellConfig.InitialDisplay
+                Rogue3.EvidenceCommands.launchWindowRequest [] (Rogue3.GameShell.init Rogue3.EvidenceCommands.shellConfig)
 
             Expect.equal defaultWindow.StartupState ViewerWindowStartupState.Normal "default launch explicitly uses the shell's Windowed behavior"
 
@@ -875,7 +880,296 @@ let behaviorTests =
 
             Expect.isFalse
                 (Rogue3.WindowOptions.windowFlagSupplied [])
-                "with no window flag the launch uses the shell's own InitialDisplay instead"
+                "with no window flag the launch builds its request from the restored shell settings instead (#75)"
+        }
+
+        // Issue #75: THE SAVED DISPLAY MODE WAS RESTORED INTO THE MODEL AND THEN DROPPED.
+        //
+        // Display persistence half-worked. `interactiveHostCore.Init` restored the settings and
+        // emitted `ApplyLogicalCanvas`, so the saved RESOLUTION survived a relaunch; the saved MODE
+        // reached the model (the settings screen marked it) and never reached the window, because
+        // `Program.main` built the launch request from the `shellConfig.InitialDisplay` LITERAL and
+        // the only producer of `ApplyWindowOptions` is `viewerEffectsForShellEffect (DisplayChanged …)`,
+        // which nothing raises at boot. A player who chose Fullscreen, quit and relaunched got a
+        // normal 1280x720 window whose menu still said `> Fullscreen`.
+        //
+        // Why the coverage that existed could not see it: it proved the ENVELOPE round-trips
+        // (`encodeSettings` -> `decodeSettings` -> the same `DisplaySettings`) and it proved
+        // `windowBehavior` maps a mode to a startup state. Both were true the whole time. Nothing
+        // asked what the LAUNCH does with the restored value, so these tests drive the restore path
+        // end to end — the production writer, the production reader, and the production launch
+        // decision — with only the FILE PATH substituted.
+        //
+        // The substitution is the point of `persistShellSettingsTo`/`restoreShellSettingsFrom`:
+        // `shellSettingsPath` is a fixed per-user platform path, and #63 recorded the resulting gap
+        // ("no test drives `loadShellSettings` itself without writing to the real profile
+        // directory") as unclosed. These tests close it for every branch a launch depends on.
+        let withTemporarySettingsDirectory (body: string -> unit) =
+            let root =
+                IO.Path.Combine(IO.Path.GetTempPath(), $"rogue3-75-{Guid.NewGuid():N}")
+
+            IO.Directory.CreateDirectory root |> ignore
+
+            try body root
+            finally
+                try IO.Directory.Delete(root, true) with _ -> ()
+
+        /// The window state `GameShell.windowBehavior` is contracted to ask for, restated here
+        /// rather than computed from it — a test that derived the expectation from the function
+        /// under test could not tell a correct mapping from a rewired one.
+        let expectedStartupState mode =
+            match mode with
+            | Rogue3.GameShell.Windowed -> ViewerWindowStartupState.Normal
+            | Rogue3.GameShell.Borderless
+            | Rogue3.GameShell.Fullscreen -> ViewerWindowStartupState.Fullscreen
+
+        /// Choose `mode` through the shell reducer the host's `Update` calls, then write it with the
+        /// PRODUCTION writer (`persistShellSettingsTo` is `persistShellSettings` with its
+        /// destination injected) into `path`.
+        let saveSelected path mode =
+            let shell =
+                Rogue3.GameShell.update (Rogue3.GameShell.SetDisplayMode mode) (Rogue3.GameShell.init Rogue3.EvidenceCommands.shellConfig)
+                |> fst
+
+            Expect.isTrue (Rogue3.EvidenceCommands.persistShellSettingsTo path shell) $"the production writer persisted the {mode} selection"
+            shell
+
+        test "a saved display mode reaches the LAUNCH WINDOW REQUEST, not only the settings model (#75)" {
+            withTemporarySettingsDirectory (fun root ->
+                let primary = IO.Path.Combine(root, "game-shell-settings.json")
+                let legacy = IO.Path.Combine(root, "legacy-absent.json")
+
+                // The literal the launch used to be built from, unconditionally. Every assertion
+                // below that a NON-default mode survives is a comparison against this.
+                let preFixRequest =
+                    Rogue3.GameShell.windowBehavior Rogue3.EvidenceCommands.shellConfig.InitialDisplay
+
+                Expect.equal
+                    preFixRequest.StartupState
+                    ViewerWindowStartupState.Normal
+                    "the config literal the launch used to read asks for a normal window — this is what every saved mode was replaced by"
+
+                for mode in Rogue3.EvidenceCommands.shellConfig.DisplayModes do
+                    let saved = saveSelected primary mode
+
+                    let restored =
+                        Rogue3.EvidenceCommands.restoreShellSettingsFrom
+                            primary
+                            legacy
+                            (fun _ -> failtest "the primary settings file exists, so no legacy migration write may happen")
+                            (Rogue3.GameShell.init Rogue3.EvidenceCommands.shellConfig)
+
+                    Expect.equal restored.Display saved.Display $"the production reader restored the {mode} selection the production writer wrote"
+
+                    let request = Rogue3.EvidenceCommands.launchWindowRequest [] restored
+
+                    Expect.equal
+                        request.StartupState
+                        (expectedStartupState mode)
+                        $"an unflagged launch after saving {mode} opens the window in {mode} — this is the whole defect (#75)"
+
+                    Expect.equal
+                        request
+                        (Rogue3.GameShell.windowBehavior restored.Display)
+                        $"the whole request follows the restored display, not only its startup state ({mode})"
+
+                // The discriminating case, stated separately so this test cannot pass merely because
+                // every offered mode happens to map to `Normal`.
+                let nonDefault =
+                    Rogue3.EvidenceCommands.shellConfig.DisplayModes
+                    |> List.filter (fun mode -> expectedStartupState mode <> preFixRequest.StartupState)
+
+                Expect.isNonEmpty
+                    nonDefault
+                    "at least one offered mode asks for a window state the config literal does not — otherwise nothing here is falsifiable"
+
+                for mode in nonDefault do
+                    saveSelected primary mode |> ignore
+
+                    let restored =
+                        Rogue3.EvidenceCommands.restoreShellSettingsFrom primary legacy (fun _ -> true) (Rogue3.GameShell.init Rogue3.EvidenceCommands.shellConfig)
+
+                    Expect.notEqual
+                        (Rogue3.EvidenceCommands.launchWindowRequest [] restored).StartupState
+                        preFixRequest.StartupState
+                        $"saving {mode} and relaunching no longer yields the config literal's window state (#75)")
+        }
+
+        // Acceptance row 2: "the settings screen's marked mode and the actual window state agree at
+        // launch, not only after a change." Asserted against the RENDERED marker, like the #63
+        // guard, because the marker is what the player compares against the window they are looking
+        // at, and the model field is one refactor away from not implying it.
+        test "at launch the settings screen's marked mode and the requested window state agree (#75)" {
+            withTemporarySettingsDirectory (fun root ->
+                let primary = IO.Path.Combine(root, "game-shell-settings.json")
+                let legacy = IO.Path.Combine(root, "legacy-absent.json")
+                let host = Rogue3.Program.interactiveHost
+                let size = Rogue3.EvidenceCommands.shellConfig.InitialDisplay.Resolution
+
+                let markedModeOn (shell: Rogue3.GameShell.Model) =
+                    let opened = fst (Rogue3.GameShell.update Rogue3.GameShell.OpenSettings shell)
+                    let model = { fst (host.Init()) with Shell = opened }
+
+                    let drawn =
+                        FS.GG.UI.Controls.Control.renderTree host.Theme size (host.View size model)
+                        |> _.Scene
+                        |> _.Nodes
+                        |> Seq.collect collectSceneNodes
+                        |> Seq.choose (function
+                            | Text(_, value, _) -> Some value
+                            | TextRun run -> Some run.Text
+                            | SizedText(_, value, _, _) -> Some value
+                            | GlyphRun run -> Some run.Data.Text
+                            | _ -> None)
+                        |> List.ofSeq
+
+                    [ for mode in [ Rogue3.GameShell.Windowed; Rogue3.GameShell.Borderless; Rogue3.GameShell.Fullscreen ] do
+                          let label = "> " + (sprintf "%A" mode)
+                          if List.contains label drawn then yield mode ]
+
+                for mode in Rogue3.EvidenceCommands.shellConfig.DisplayModes do
+                    saveSelected primary mode |> ignore
+
+                    // Exactly what a relaunch does: `restoredShellSettings` feeds BOTH the model the
+                    // menu is drawn from and the request the window is opened with.
+                    let restored =
+                        Rogue3.EvidenceCommands.restoreShellSettingsFrom primary legacy (fun _ -> true) (Rogue3.GameShell.init Rogue3.EvidenceCommands.shellConfig)
+
+                    let marked = markedModeOn restored
+
+                    Expect.equal marked [ mode ] $"after relaunching with {mode} saved, the settings screen marks exactly that one mode"
+
+                    Expect.equal
+                        (Rogue3.EvidenceCommands.launchWindowRequest [] restored).StartupState
+                        (expectedStartupState marked.Head)
+                        $"and the window the launch asked for is the state that marked mode means — they agree at launch, with no further input (#75)")
+        }
+
+        // Acceptance row 4: "Decide explicitly whether the `--window-*` flag path still overrides
+        // persisted settings (it should, and that ordering should be asserted)." It does. The
+        // ordering is asserted in BOTH directions so the test cannot pass because the flag and the
+        // persisted mode happen to agree.
+        test "an explicit --window-* flag overrides the persisted display mode, and only a flag does (#75)" {
+            withTemporarySettingsDirectory (fun root ->
+                let primary = IO.Path.Combine(root, "game-shell-settings.json")
+                let legacy = IO.Path.Combine(root, "legacy-absent.json")
+
+                let restoredWith mode =
+                    saveSelected primary mode |> ignore
+                    Rogue3.EvidenceCommands.restoreShellSettingsFrom primary legacy (fun _ -> true) (Rogue3.GameShell.init Rogue3.EvidenceCommands.shellConfig)
+
+                let savedFullscreen = restoredWith Rogue3.GameShell.Fullscreen
+                let savedWindowed = restoredWith Rogue3.GameShell.Windowed
+
+                // Both directions. A flag that agreed with the saved mode would prove nothing.
+                Expect.equal
+                    (Rogue3.EvidenceCommands.launchWindowRequest [ "--window-startup"; "normal" ] savedFullscreen).StartupState
+                    ViewerWindowStartupState.Normal
+                    "--window-startup normal beats a saved Fullscreen"
+
+                Expect.equal
+                    (Rogue3.EvidenceCommands.launchWindowRequest [ "--window-startup"; "fullscreen" ] savedWindowed).StartupState
+                    ViewerWindowStartupState.Fullscreen
+                    "--window-startup fullscreen beats a saved Windowed"
+
+                // And exhaustively over the flag vocabulary: when ANY window flag is present the
+                // request is exactly the parsed one, and the persisted settings contribute nothing.
+                // This is the assertion that keeps #63's sharp edge intact — five of the six flags
+                // say nothing about startup state, and they must keep behaving the way #63 fixed
+                // them rather than silently acquiring the persisted mode.
+                for flags in
+                    [ [ "--window-resize"; "fixed-size" ]
+                      [ "--window-maximize"; "not-maximizable" ]
+                      [ "--window-position"; "10,20" ]
+                      [ "--window-backend"; "vulkan" ]
+                      [ "--window-options-file"; IO.Path.Combine(root, "no-such-options.txt") ]
+                      [ "--window-startup"; "maximized" ]
+                      [ "--window-startup"; "minimized" ]
+                      [ "--window-startup"; "windowed-fullscreen" ] ] do
+                    for saved in [ savedWindowed; savedFullscreen ] do
+                        Expect.equal
+                            (Rogue3.EvidenceCommands.launchWindowRequest flags saved)
+                            (Rogue3.WindowOptions.toViewerLaunchRequest (Rogue3.WindowOptions.parseWindowBehavior flags))
+                            $"%A{flags} owns the launch request outright; the persisted %A{saved.Display.Mode} does not leak into it"
+
+                // With NO flag the persisted settings own it outright, which is the other half of
+                // the ordering.
+                for saved in [ savedWindowed; savedFullscreen ] do
+                    Expect.equal
+                        (Rogue3.EvidenceCommands.launchWindowRequest [] saved)
+                        (Rogue3.GameShell.windowBehavior saved.Display)
+                        $"with no window flag the persisted %A{saved.Display.Mode} owns the launch request outright")
+        }
+
+        // The restore branches a launch actually depends on. Each one decides what window a player
+        // gets, and none of them had a test before #75 because the seam took its paths from module
+        // constants.
+        test "the launch survives an absent, corrupt, and legacy settings file (#75)" {
+            withTemporarySettingsDirectory (fun root ->
+                let fresh () = Rogue3.GameShell.init Rogue3.EvidenceCommands.shellConfig
+                let absentPrimary = IO.Path.Combine(root, "absent-primary.json")
+                let absentLegacy = IO.Path.Combine(root, "absent-legacy.json")
+
+                // FRESH INSTALL: nothing to restore, so the launch keeps the shell's authored
+                // default. This is the behaviour #75 must not change.
+                let freshRestore =
+                    Rogue3.EvidenceCommands.restoreShellSettingsFrom absentPrimary absentLegacy (fun _ -> failtest "nothing to migrate") (fresh ())
+
+                Expect.equal freshRestore.Display Rogue3.EvidenceCommands.shellConfig.InitialDisplay "with no settings file the restore is the shell's authored default"
+
+                Expect.equal
+                    (Rogue3.EvidenceCommands.launchWindowRequest [] freshRestore)
+                    (Rogue3.GameShell.windowBehavior Rogue3.EvidenceCommands.shellConfig.InitialDisplay)
+                    "a fresh install still launches exactly as it did before #75"
+
+                // CORRUPT: the restore is total, so a damaged file degrades to the default rather
+                // than throwing into `main` before a window exists.
+                let corrupt = IO.Path.Combine(root, "corrupt.json")
+                IO.File.WriteAllText(corrupt, "{ this is not a settings envelope")
+
+                let corruptRestore =
+                    Rogue3.EvidenceCommands.restoreShellSettingsFrom corrupt absentLegacy (fun _ -> failtest "nothing to migrate") (fresh ())
+
+                Expect.equal corruptRestore.Display Rogue3.EvidenceCommands.shellConfig.InitialDisplay "a corrupt settings file restores the authored default"
+
+                Expect.equal
+                    (Rogue3.EvidenceCommands.launchWindowRequest [] corruptRestore).StartupState
+                    ViewerWindowStartupState.Normal
+                    "and the launch still asks for a window a player can use"
+
+                // LEGACY MIGRATION: the saved mode survives the move to the platform path, the
+                // legacy file is deleted only after the write succeeded, and the launch follows the
+                // migrated mode rather than the default.
+                let legacy = IO.Path.Combine(root, "legacy-present.json")
+                saveSelected legacy Rogue3.GameShell.Fullscreen |> ignore
+
+                let migratedTo = IO.Path.Combine(root, "migrated.json")
+
+                let migrated =
+                    Rogue3.EvidenceCommands.restoreShellSettingsFrom
+                        absentPrimary
+                        legacy
+                        (Rogue3.EvidenceCommands.persistShellSettingsTo migratedTo)
+                        (fresh ())
+
+                Expect.equal migrated.Display.Mode Rogue3.GameShell.Fullscreen "the legacy file's saved mode survives migration"
+                Expect.isTrue (IO.File.Exists migratedTo) "migration wrote the settings to the new location"
+                Expect.isFalse (IO.File.Exists legacy) "and removed the legacy file only after that write succeeded"
+
+                Expect.equal
+                    (Rogue3.EvidenceCommands.launchWindowRequest [] migrated).StartupState
+                    ViewerWindowStartupState.Fullscreen
+                    "a player migrating from the legacy path gets the window they saved (#75)"
+
+                // A migration whose write FAILS must keep the legacy file, or the preference is lost.
+                let unmigrated = IO.Path.Combine(root, "legacy-kept.json")
+                saveSelected unmigrated Rogue3.GameShell.Fullscreen |> ignore
+
+                let failedMigration =
+                    Rogue3.EvidenceCommands.restoreShellSettingsFrom absentPrimary unmigrated (fun _ -> false) (fresh ())
+
+                Expect.equal failedMigration.Display.Mode Rogue3.GameShell.Fullscreen "a failed migration still restores this launch's settings"
+                Expect.isTrue (IO.File.Exists unmigrated) "and leaves the legacy file in place to retry next launch")
         }
 
         // Issue #912: PLAYED THROUGH THE HOST — the one altitude the host tests above never reach.

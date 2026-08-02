@@ -150,14 +150,14 @@ let main args =
         // message->update->retained-step code path as the sinkless `runInteractiveApp` with the terminal
         // viewer launcher swapped, so sound cannot drift away from the live loop.
         let launchResult =
-            // One launch overload owns both paths. With no flags, the shell's authored default
-            // (1280x720, Windowed) is explicit rather than inheriting a viewer default that can select
-            // different surface/window behavior. Flagged launches replace that request, not the host.
+            // One launch overload owns both paths, and ONE function decides which request it gets
+            // (#75). With no flags the request comes from the player's RESTORED display settings —
+            // falling back to the shell's authored default (1280x720, Windowed) on a fresh install —
+            // rather than from `shellConfig.InitialDisplay` unconditionally, which is what silently
+            // dropped every saved window mode at launch. Flagged launches replace that request, not
+            // the host. See `EvidenceCommands.launchWindowRequest` for the ordering and its cost.
             let launchRequest =
-                if Rogue3.WindowOptions.windowFlagSupplied args then
-                    Rogue3.WindowOptions.toViewerLaunchRequest windowBehavior
-                else
-                    Rogue3.GameShell.windowBehavior Rogue3.EvidenceCommands.shellConfig.InitialDisplay
+                Rogue3.EvidenceCommands.launchWindowRequest args (Rogue3.EvidenceCommands.restoredShellSettings ())
 
             ControlsElmish.runInteractiveAppWithWindowBehaviorAndAudio viewerOptions launchRequest audioSink interactiveHost
 
