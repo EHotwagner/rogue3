@@ -7,9 +7,11 @@ open Rogue3.Model
 open Rogue3.PerformanceEvidence
 
 let private tick model = stepSim model
-let private enemy id position hp contact =
-    { Id = id; Position = position; Velocity = zero; Radius = 12.0; HitPoints = hp
-      ContactDamage = contact; LastContactTick = None; HitFlashTicks = 0 }
+/// Board item #20: fixtures build a REAL roster actor now. `Grub` has radius 12 — the radius this
+/// helper used to hand-write — and contact damage 1, which is why every caller that used to pass
+/// `ContactDamage = 0` places its enemy further than `playerRadius + 12 = 25` from the player.
+let private enemy id position hp =
+    { Rogue3.Entities.spawn 1 id Rogue3.Entities.EnemyKind.Grub position with HitPoints = hp }
 let private bullet id position damage = { Id = id; Position = position; Velocity=zero; Radius = 5.0; Damage = damage;Homing=0.0;AgeTicks=0 }
 
 [<Tests>]
@@ -39,9 +41,9 @@ let combatTests =
         testCase "shot overlap uses the grid and applies damage knockback flash and pierce once" <| fun _ ->
             let stats = { basePlayerStats with Pierce = 1 }
             let shot = spawnShots 0 1 (vec2 100.0 100.0) zero (vec2 1.0 0.0) stats |> List.exactlyOne
-            let model = { initialModel with ShotSpawns = [ shot ]; Enemies = [ enemy 7 (vec2 104.0 100.0) 10.0 0 ] }
+            let model = { initialModel with ShotSpawns = [ shot ]; M5Enemies = [ enemy 7 (vec2 104.0 100.0) 10.0 ] }
             let hit = tick model
-            let target = hit.Enemies |> List.exactlyOne
+            let target = hit.M5Enemies |> List.exactlyOne
             Expect.equal target.HitPoints 6.5 "snapshot damage is applied"
             Expect.isGreaterThan target.Velocity.Vx 0.0 "knockback follows shot velocity"
             Expect.isGreaterThan target.HitFlashTicks 0 "hit flash starts"
@@ -49,7 +51,7 @@ let combatTests =
             Expect.contains hit.ShotSpawns.Head.HitEnemyIds 7 "stable enemy identity prevents overlap reticks"
             Expect.isGreaterThan hit.TotalCombatCandidates 0 "SpatialGrid query candidates are observable"
             let repeated = tick hit
-            Expect.equal repeated.Enemies.Head.HitPoints 6.5 "one shot cannot damage the same enemy twice"
+            Expect.equal repeated.M5Enemies.Head.HitPoints 6.5 "one shot cannot damage the same enemy twice"
 
         testCase "AC6 bullet hit grants 0.80 seconds and roll i-frames reject damage" <| fun _ ->
             let p = initialModel.PlayerPosition
@@ -63,7 +65,7 @@ let combatTests =
 
         testCase "contact damage has per-enemy retick and 90 px per second knockback" <| fun _ ->
             let p = initialModel.PlayerPosition
-            let first = tick { initialModel with Enemies = [ enemy 2 (add p (vec2 -1.0 0.0)) 10.0 1 ] }
+            let first = tick { initialModel with M5Enemies = [ enemy 2 (add p (vec2 -1.0 0.0)) 10.0 ] }
             Expect.equal (totalHalfHearts first.PlayerHealth) 5 "contact damages once"
             Expect.isGreaterThanOrEqual first.PlayerVelocity.Vx 90.0 "contact applies documented impulse"
             let readyHealth = { first.PlayerHealth with RedHalfHearts = 6 }
@@ -95,17 +97,29 @@ let resourceTests =
             Expect.equal carry.Currency model.PlayerCurrency "all currencies persist"
 
         testCase "AC11 shop accepts affordable item and rejects unaffordable item" <| fun _ ->
-            let item = { Id = "lens"; Modifiers = [ { Stat = DamageStat; Kind = Add; Value = 1.0 } ] }
-            let slot = { Id = 4; Item = item; Cost = CoinCost 7 }
-            let bought, accepted = purchaseShopSlot 4 { initialModel with PlayerCurrency = { initialModel.PlayerCurrency with Coins = 10 }; ShopSlots = [ slot ] }
-            Expect.isTrue accepted "purchase accepted"
+            // Board item #20 removed the second shop (`Model.ShopSlot`/`InteractShop`/
+            // `purchaseShopSlot`). This scenario keeps its meaning against the ONE shop: an
+            // affordable offer is consumed and debited, an unaffordable one is refused and survives.
+            // `Entities.purchase` empties a slot by setting `Offer = Empty` rather than dropping it
+            // from the list, so "the slot is emptied" is an offer assertion, not a length assertion.
+            let item = Rogue3.Entities.baseItems |> List.find (fun definition -> definition.Id = "cracked-lens")
+            let slot: Rogue3.Entities.ShopSlot =
+                { Id = 4; Offer = Rogue3.Entities.ShopOffer.Item item; Price = 7; KeyLocked = false }
+            let bought = purchaseM5ShopSlot 4 { initialModel with PlayerCurrency = { initialModel.PlayerCurrency with Coins = 10 }; M5ShopSlots = [ slot ] }
             Expect.equal bought.PlayerCurrency.Coins 3 "coins are spent"
-            Expect.equal bought.PlayerStats.Damage 4.5 "item recomputes stats"
-            Expect.isEmpty bought.ShopSlots "slot is emptied"
-            let rejected, accepted = purchaseShopSlot 4 { initialModel with PlayerCurrency = { initialModel.PlayerCurrency with Coins = 5 }; ShopSlots = [ slot ] }
-            Expect.isFalse accepted "purchase rejected"
+            Expect.equal bought.M5ShopSlots.Head.Offer Rogue3.Entities.ShopOffer.Empty "slot is emptied"
+            Expect.equal bought.RunStats.ItemsFound 1 "the purchase is recorded as an item found"
+            // CHARACTERIZATION, not an endorsement. The reducer that survives does NOT grant the
+            // item: it debits, empties the offer and bumps a counter. The pre-M5 reducer removed by
+            // board item #20 did append to `PlayerItems` and recompute stats, but it had zero
+            // production dispatch sites, so a player could never reach it. These two lines pin the
+            // gap so it is visible instead of merely absent, and so the day EHotwagner/rogue3#47 is
+            // fixed these tests go red and say why rather than passing silently.
+            Expect.isEmpty bought.PlayerItems "EHotwagner/rogue3#47: the one wired shop reducer grants no item"
+            Expect.equal bought.PlayerStats basePlayerStats "EHotwagner/rogue3#47: and so recomputes no stat"
+            let rejected = purchaseM5ShopSlot 4 { initialModel with PlayerCurrency = { initialModel.PlayerCurrency with Coins = 5 }; M5ShopSlots = [ slot ] }
             Expect.equal rejected.PlayerCurrency.Coins 5 "coins unchanged"
-            Expect.hasLength rejected.ShopSlots 1 "item remains"
+            Expect.equal rejected.M5ShopSlots.Head.Offer (Rogue3.Entities.ShopOffer.Item item) "item remains"
 
         testCase "bomb spends on edge, fuses, blasts, and chain detonates exactly once" <| fun _ ->
             let q = ViewerKeyboard.toKeyId (Letter 'Q')
@@ -118,13 +132,13 @@ let resourceTests =
                 { initialModel with
                     PlayerCurrency = { initialModel.PlayerCurrency with Bombs = 0 }
                     Bombs = [ { Id = 1; Position = p; FuseTicks = 1 }; { Id = 2; Position = add p (vec2 20.0 0.0); FuseTicks = 100 } ]
-                    Enemies = [ enemy 9 (add p (vec2 30.0 0.0)) 100.0 0 ] }
+                    M5Enemies = [ enemy 9 (add p (vec2 30.0 0.0)) 100.0 ] }
             let exploded = tick model
             Expect.isEmpty exploded.Bombs "both bombs resolve once in the same step"
-            Expect.equal exploded.Enemies.Head.HitPoints 20.0 "each blast applies its own 40 damage"
+            Expect.equal exploded.M5Enemies.Head.HitPoints 20.0 "each blast applies its own 40 damage"
             Expect.equal (totalHalfHearts exploded.PlayerHealth) 4 "post-hit invulnerability limits self-damage to one heart"
             let later = tick exploded
-            Expect.equal later.Enemies.Head.HitPoints 20.0 "resolved bombs never explode again"
+            Expect.equal later.M5Enemies.Head.HitPoints 20.0 "resolved bombs never explode again"
     ]
 
 [<Tests>]

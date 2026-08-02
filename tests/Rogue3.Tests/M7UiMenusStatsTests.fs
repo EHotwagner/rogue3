@@ -158,10 +158,10 @@ let m7UiMenusStatsTests =
         test "live projectile hits feed damage-per-floor and typed kill stats exactly once" {
             let combatId = initialModel.Floor.Rooms |> Map.values |> Seq.find (fun room -> room.RoomType=FloorGeneration.Combat) |> _.Id
             let room = loadM5Room combatId initialModel
-            let enemy = room.Enemies.Head
+            let enemy = room.M5Enemies.Head
             let shot =
                 { Id=9001;Position=enemy.Position;Direction=Rogue3.Geometry.vec2 1.0 0.0;Velocity=Rogue3.Geometry.zero
-                  Damage=enemy.HitPoints;FireRate=1.0;Speed=0.0;Range=1.0;Radius=enemy.Radius;Knockback=0.0
+                  Damage=enemy.HitPoints;FireRate=1.0;Speed=0.0;Range=1.0;Radius=actorRadius enemy;Knockback=0.0
                   Pierce=0;HitsRemaining=1;BouncesRemaining=0;Homing=0.0;AgeTicks=0;MaxAgeTicks=10
                   DistanceTravelled=0.0;HitEnemyIds=Set.empty;SimStep=room.SimStepCount }
             let resolved = stepSim {room with ShotSpawns=[shot]}

@@ -44,13 +44,19 @@ let movementTests =
             close 540.0 (magnitude saturated.PlayerVelocity) "effective speed and velocity clamp at 540"
 
         testCase "radius-13 player slides along an AABB obstacle by X then Y" <| fun _ ->
-            let obstacle: Rect = { X = 100.0; Y = 0.0; Width = 20.0; Height = 200.0 }
+            // Board item #20: the collider is DERIVED from a real obstacle by `blockingObstacleRects`
+            // rather than handed in as a free-floating rect the game could never produce. A Rock
+            // centred at (120, 50) is the 40x40 box spanning X 100..140, so the left face the player
+            // stops at is exactly where the hand-written rect's was.
+            let rock =
+                Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Rock 1
+                |> Rogue3.Entities.obstacleAt (vec2 120.0 50.0)
             let velocity = normalizeOrZero (vec2 1.0 1.0) |> scale 240.0
             let model =
                 { initialModel with
                     PlayerPosition = vec2 86.0 50.0
                     PlayerVelocity = velocity
-                    Obstacles = [ obstacle ] }
+                    M5Obstacles = [ rock ] }
                 |> withKeys [ Letter 'D' |> key; Letter 'S' |> key ]
                 |> tick
             close 87.0 model.PlayerPosition.Vx "circle stops with its radius at the wall face"

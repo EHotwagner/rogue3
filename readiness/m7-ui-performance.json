@@ -12,8 +12,8 @@
       "definitionDigest": "89c6080c3acf3bd3a15975455de7e1a4ba5504c8befb2acb3588ed5d3908e174",
       "declaredDefinitionDigest": "89c6080c3acf3bd3a15975455de7e1a4ba5504c8befb2acb3588ed5d3908e174",
       "authorshipPassed": true,
-      "p95Ms": 0.2275,
-      "p99Ms": 0.3591,
+      "p95Ms": 0.2422,
+      "p99Ms": 0.4776,
       "observedScale": {
         "controlNodes": 9,
         "boundControls": 7
@@ -24,11 +24,11 @@
     {
       "id": "hud-playing",
       "definition": "M7 gameplay HUD route; 1280x720 and 1920x1080; exactly hearts/currency/active-charge/minimap/floor-name regions and 0 bound controls",
-      "definitionDigest": "36af91c03313e53b62424d9be38104e251f9fe54ac482fa4372300b4dadb3b3c",
-      "declaredDefinitionDigest": "36af91c03313e53b62424d9be38104e251f9fe54ac482fa4372300b4dadb3b3c",
+      "definitionDigest": "0350d3a7ee6ea6a3d5e0b5d0bb94e61a57d5d9c832e98582069c5b7044ba2710",
+      "declaredDefinitionDigest": "0350d3a7ee6ea6a3d5e0b5d0bb94e61a57d5d9c832e98582069c5b7044ba2710",
       "authorshipPassed": true,
-      "p95Ms": 0.0394,
-      "p99Ms": 0.0535,
+      "p95Ms": 0.0516,
+      "p99Ms": 0.0682,
       "observedScale": {
         "controlNodes": 1,
         "boundControls": 0,
@@ -125,11 +125,11 @@
     {
       "id": "run-result",
       "definition": "M9 terminal result route; 1280x720; exactly 9 retained controls, 3 bound actions, visible outcome/score/stat/unlock summary",
-      "definitionDigest": "6a71c69d76e28c22b98300de2956643985a9d186480fe6884b8ec87251265449",
-      "declaredDefinitionDigest": "6a71c69d76e28c22b98300de2956643985a9d186480fe6884b8ec87251265449",
+      "definitionDigest": "3cdd3d4195dbab6da031f5147ec62394d9c1de58b1e1039ff23db7a751ec7bef",
+      "declaredDefinitionDigest": "3cdd3d4195dbab6da031f5147ec62394d9c1de58b1e1039ff23db7a751ec7bef",
       "authorshipPassed": true,
-      "p95Ms": 0.1555,
-      "p99Ms": 0.1854,
+      "p95Ms": 0.1477,
+      "p99Ms": 0.1754,
       "observedScale": {
         "controlNodes": 9,
         "boundControls": 3,
@@ -146,11 +146,11 @@
     {
       "id": "stats-charts",
       "definition": "M7 stats route; 1280x720; exactly 19 retained controls, 3 bound controls, deepest/runs/win-rate/kills KPI tiles, 5 depth buckets, and 2 damage series",
-      "definitionDigest": "49d8521a9d045b7fe6dbcfad52639df7aefc4497334dcd032c945ff06764409e",
-      "declaredDefinitionDigest": "49d8521a9d045b7fe6dbcfad52639df7aefc4497334dcd032c945ff06764409e",
+      "definitionDigest": "929efbeec64a34bd0ca31e09ae565b4dc4e4dd6cd5bab38475a955b0ae646f95",
+      "declaredDefinitionDigest": "929efbeec64a34bd0ca31e09ae565b4dc4e4dd6cd5bab38475a955b0ae646f95",
       "authorshipPassed": true,
-      "p95Ms": 0.4863,
-      "p99Ms": 0.7208,
+      "p95Ms": 0.5219,
+      "p99Ms": 0.7353,
       "observedScale": {
         "controlNodes": 19,
         "boundControls": 3,

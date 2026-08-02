@@ -24,16 +24,18 @@ let private ticksFor seconds = int (seconds / fixedDt + 0.5)
 let private enemyBullet id position damage : EnemyBullet =
     { Id = id; Position = position; Velocity = zero; Radius = 4.0; Damage = damage; Homing = 0.0; AgeTicks = 0 }
 
-let private legacyOf (actor: Rogue3.Entities.EnemyActor) : Enemy =
-    let definition = Rogue3.Entities.definition actor.Kind
-    { Id = actor.Id
-      Position = actor.Position
-      Velocity = zero
-      Radius = definition.Radius
-      HitPoints = actor.HitPoints
-      ContactDamage = definition.ContactDamage
-      LastContactTick = None
-      HitFlashTicks = 0 }
+// Board item #20 deleted this file's `legacyOf` projection with the `Model.Enemy` type it produced.
+// `Rogue3.Entities.EnemyActor` is now the only enemy representation, so a fixture that wants an
+// enemy spawns one.
+
+/// A fixture enemy the game can actually spawn: a real roster kind at a chosen position, with its
+/// hit points overridden. `Grub` (radius 12, contact damage 1) is the default; every caller that
+/// wants an enemy which cannot touch the player places it further than `playerRadius + 12 = 25`
+/// away rather than zeroing a field that no longer exists.
+let private fixtureEnemy id kind position hp : Rogue3.Entities.EnemyActor =
+    { Rogue3.Entities.spawn 1 id kind position with HitPoints = hp }
+
+let private grubAt id position hp = fixtureEnemy id Rogue3.Entities.EnemyKind.Grub position hp
 
 let private startedRun seed = update (StartRun seed) initialModel |> fst
 
@@ -174,7 +176,6 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let model =
               { initialModel with
                   M5Enemies = roster
-                  Enemies = roster |> List.map legacyOf
                   M5Room = sealed' }
 
           let partial' =
@@ -227,7 +228,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
           Expect.equal resolved.RunOutcome (Some RunOutcome.GameOver) "the step resolves to GameOver"
           Expect.isSome resolved.LastRunSummary "with a populated RunSummary"
           Expect.isFalse resolved.RunActive "the run is cleared on transition"
-          Expect.isEmpty resolved.Enemies "transient run state is discarded"
+          Expect.isEmpty resolved.M5Enemies "transient run state is discarded"
           Expect.contains resolved.Profile.UnlockedItems "cracked-lens" "the unlock evaluator awards cracked-lens at bestFloor >= 3"
 
           let requests = profilePersistenceRequestsForTransition (Tick fixedDt) atOneHalfHeart resolved
@@ -291,32 +292,46 @@ let private scenarios: (int * string * (unit -> unit)) list =
           Expect.isEmpty leaving "a shot leaving the room bounds is destroyed earlier"
 
           let pierceStats = { basePlayerStats with Pierce = 2 }
-          let target id = { Id = id; Position = vec2 400.0 300.0; Velocity = zero; Radius = 12.0; HitPoints = 1000.0; ContactDamage = 0; LastContactTick = None; HitFlashTicks = 0 }
+          // `Grub` is radius 12 -- the radius this fixture used to hand-write -- and sits 247 units
+          // from the player's start, well outside the 25-unit contact range its old ContactDamage = 0
+          // stood in for.
+          let target id = grubAt id (vec2 400.0 300.0) 1000.0
           let piercing = spawnShots 0 1 (vec2 400.0 300.0) zero (vec2 1.0 0.0) pierceStats
           Expect.equal (piercing |> List.head |> _.HitsRemaining) 3 "pierce 2 buys three enemy hits"
 
-          let twoEnemies = update (Tick fixedDt) { initialModel with ShotSpawns = piercing; Enemies = [ target 1; target 2 ] } |> fst
+          let twoEnemies = update (Tick fixedDt) { initialModel with ShotSpawns = piercing; M5Enemies = [ target 1; target 2 ] } |> fst
           Expect.isNonEmpty twoEnemies.ShotSpawns "the shot survives its second enemy"
-          let threeEnemies = update (Tick fixedDt) { initialModel with ShotSpawns = piercing; Enemies = [ target 1; target 2; target 3 ] } |> fst
+          let threeEnemies = update (Tick fixedDt) { initialModel with ShotSpawns = piercing; M5Enemies = [ target 1; target 2; target 3 ] } |> fst
           Expect.isEmpty threeEnemies.ShotSpawns "the shot is destroyed after hitting its third enemy"
 
       11,
       "currency and shop purchase spend, add and reject",
       fun () ->
-          let item = { Id = "shop-lens"; Modifiers = [ { Stat = DamageStat; Kind = Add; Value = 1.0 } ] }
-          let slot = { Id = 1; Item = item; Cost = CoinCost 7 }
-          let rich = { initialModel with PlayerCurrency = { initialModel.PlayerCurrency with Coins = 10 }; ShopSlots = [ slot ] }
-          let bought = update (InteractShop 1) rich |> fst
+          // Board item #20 removed the second shop. This acceptance scenario now runs through the
+          // ONE shop message, `InteractM5Shop`, and the one reducer behind it. `Entities.purchase`
+          // consumes a slot by emptying its offer rather than removing it from the list.
+          let item = Rogue3.Entities.baseItems |> List.find (fun definition -> definition.Id = "cracked-lens")
+          let slot: Rogue3.Entities.ShopSlot =
+              { Id = 1; Offer = Rogue3.Entities.ShopOffer.Item item; Price = 7; KeyLocked = false }
+          let rich = { initialModel with PlayerCurrency = { initialModel.PlayerCurrency with Coins = 10 }; M5ShopSlots = [ slot ] }
+          let bought = update (InteractM5Shop 1) rich |> fst
           Expect.equal bought.PlayerCurrency.Coins 3 "ten coins minus a seven-coin item leaves three"
-          Expect.equal (bought.PlayerItems |> List.map _.Id) [ "shop-lens" ] "the item is added to the player's items"
-          Expect.floatClose Accuracy.high bought.PlayerStats.Damage 4.5 "stats recompute from the new item"
-          Expect.isEmpty bought.ShopSlots "the shop slot is emptied"
+          Expect.equal bought.M5ShopSlots.Head.Offer Rogue3.Entities.ShopOffer.Empty "the shop slot is emptied"
+          Expect.equal bought.RunStats.ItemsFound 1 "the purchase is recorded as an item found"
+          // CHARACTERIZATION, not an endorsement. The reducer that survives does NOT grant the
+          // item: it debits, empties the offer and bumps a counter. The pre-M5 reducer removed by
+          // board item #20 did append to `PlayerItems` and recompute stats, but it had zero
+          // production dispatch sites, so a player could never reach it. These two lines pin the
+          // gap so it is visible instead of merely absent, and so the day EHotwagner/rogue3#47 is
+          // fixed these tests go red and say why rather than passing silently.
+          Expect.isEmpty bought.PlayerItems "EHotwagner/rogue3#47: the one wired shop reducer grants no item"
+          Expect.equal bought.PlayerStats basePlayerStats "EHotwagner/rogue3#47: and so recomputes no stat"
 
           let poor = { rich with PlayerCurrency = { rich.PlayerCurrency with Coins = 5 } }
-          let rejected = update (InteractShop 1) poor |> fst
+          let rejected = update (InteractM5Shop 1) poor |> fst
           Expect.equal rejected.PlayerCurrency.Coins 5 "five coins are unchanged by a rejected purchase"
-          Expect.hasLength rejected.ShopSlots 1 "the item remains in the shop"
-          Expect.isEmpty rejected.PlayerItems "and is not granted"
+          Expect.equal rejected.M5ShopSlots.Head.Offer (Rogue3.Entities.ShopOffer.Item item) "the item remains in the shop"
+          Expect.equal rejected.RunStats.ItemsFound 0 "and is not granted"
 
       12,
       "shop, treasure and boss contents are layout-deterministic and dupe-free",
@@ -515,22 +530,22 @@ let private scenarios: (int * string * (unit -> unit)) list =
           // M11: descend from the room that actually depicts a trapdoor — the cleared boss room —
           // standing on it, which is now the only state `DescendFloor` accepts. The seeded room-local
           // collections are applied AFTER that staging, because `EnterM5Room` on a cleared room
-          // replaces `Enemies`/`M5Enemies`/`EnemyBullets` with the room's own (empty) contents — which
-          // would leave `Expect.isEmpty descended.Enemies` unable to fail.
+          // replaces `M5Enemies`/`M5Obstacles`/`M5ShopSlots`/`EnemyBullets` with the room's own
+          // (empty) contents — which would leave `Expect.isEmpty descended.M5Enemies` unable to fail.
           let loaded =
               { standOnTrapdoor started with
                   PlayerItems = [ { Id = "carried"; Modifiers = [] } ]
                   PlayerHealth = { started.PlayerHealth with SoulHalfHearts = 2 }
                   PlayerCurrency = { Coins = 12; Keys = 3; Bombs = 4 }
-                  Enemies = [ { Id = 1; Position = zero; Velocity = zero; Radius = 1.0; HitPoints = 1.0; ContactDamage = 0; LastContactTick = None; HitFlashTicks = 0 } ]
                   M5Enemies = [ Rogue3.Entities.spawn 1 4242 Rogue3.Entities.EnemyKind.Grub (vec2 300.0 300.0) ]
                   EnemyBullets = [ enemyBullet 1 zero 1 ]
                   Bombs = [ { Id = 1; Position = zero; FuseTicks = 5 } ]
-                  ShopSlots = [ { Id = 1; Item = { Id = "x"; Modifiers = [] }; Cost = CoinCost 1 } ]
-                  Obstacles = [ { X = 1.0; Y = 1.0; Width = 2.0; Height = 2.0 } ] }
+                  M5ShopSlots = [ { Id = 1; Offer = Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.Key; Price = 1; KeyLocked = false } ]
+                  M5Obstacles = [ Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Rock 1 |> Rogue3.Entities.obstacleAt (vec2 200.0 200.0) ] }
 
-          Expect.isNonEmpty loaded.Enemies "the pre-descend state really carries room-local actors"
-          Expect.isNonEmpty loaded.M5Enemies "and live M5 actors"
+          Expect.isNonEmpty loaded.M5Enemies "the pre-descend state really carries live actors"
+          Expect.isNonEmpty loaded.M5Obstacles "and room obstacles"
+          Expect.isNonEmpty loaded.M5ShopSlots "and shop stock"
           Expect.isNonEmpty loaded.EnemyBullets "and bullets"
 
           let descended = update DescendFloor loaded |> fst
@@ -542,12 +557,11 @@ let private scenarios: (int * string * (unit -> unit)) list =
           Expect.equal descended.PlayerStats loaded.PlayerStats "stats persist"
           Expect.equal descended.PlayerHealth loaded.PlayerHealth "health persists"
           Expect.equal descended.PlayerCurrency { Coins = 12; Keys = 3; Bombs = 4 } "coins, keys and bombs persist"
-          Expect.isEmpty descended.Enemies "enemies do not"
-          Expect.isEmpty descended.M5Enemies "nor live actors"
+          Expect.isEmpty descended.M5Enemies "live actors do not"
           Expect.isEmpty descended.EnemyBullets "nor bullets"
           Expect.isEmpty descended.Bombs "nor bombs"
-          Expect.isEmpty descended.ShopSlots "nor pickups and shop stock"
-          Expect.isEmpty descended.Obstacles "nor room obstacles"
+          Expect.isEmpty descended.M5ShopSlots "nor shop stock"
+          Expect.isEmpty descended.M5Obstacles "nor room obstacles"
           Expect.isTrue (descended.Floor.Rooms |> Map.forall (fun _ room -> room.Cleared = (room.RoomType = Start || room.RoomType = Treasure || room.RoomType = Shop))) "room-clear state does not carry across the descent"
 
       19,
@@ -563,19 +577,19 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let held = update (Tick fixedDt) pressed |> fst
           Expect.hasLength held.Bombs 1 "holding the key does not spawn a second bomb"
 
-          let target id hp = { Id = id; Position = vec2 700.0 390.0; Velocity = zero; Radius = 10.0; HitPoints = hp; ContactDamage = 0; LastContactTick = None; HitFlashTicks = 0 }
+          let target id hp = grubAt id (vec2 700.0 390.0) hp
 
           let chain =
               { initialModel with
                   PlayerPosition = vec2 100.0 100.0
                   Bombs = [ { Id = 1; Position = vec2 700.0 390.0; FuseTicks = 1 }; { Id = 2; Position = vec2 740.0 390.0; FuseTicks = 400 } ]
-                  Enemies = [ target 10 200.0 ] }
+                  M5Enemies = [ target 10 200.0 ] }
 
           let blasted = update (Tick fixedDt) chain |> fst
           Expect.isEmpty blasted.Bombs "the second bomb inside the blast detonates that step"
-          Expect.floatClose Accuracy.high (blasted.Enemies |> List.head |> _.HitPoints) 120.0 "each explosion applies its damage exactly once"
+          Expect.floatClose Accuracy.high (blasted.M5Enemies |> List.head |> _.HitPoints) 120.0 "each explosion applies its damage exactly once"
           let later = update (Tick(fixedDt * 4.0)) blasted |> fst
-          Expect.floatClose Accuracy.high (later.Enemies |> List.head |> _.HitPoints) 120.0 "neither bomb can explode again on a later step"
+          Expect.floatClose Accuracy.high (later.M5Enemies |> List.head |> _.HitPoints) 120.0 "neither bomb can explode again on a later step"
 
       20,
       "pickup caps and health ordering follow the resource rules",
@@ -597,19 +611,19 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let afterRed, _ = applyDamage 2 afterSoul
           Expect.equal afterRed.RedHalfHearts 4 "red is consumed last"
 
-          let enemy = { Id = 1; Position = vec2 900.0 300.0; Velocity = zero; Radius = 10.0; HitPoints = 50.0; ContactDamage = 0; LastContactTick = None; HitFlashTicks = 0 }
+          let enemy = grubAt 1 (vec2 900.0 300.0) 50.0
 
           let burst =
               update
                   (Tick fixedDt)
                   { initialModel with
                       PlayerHealth = { initialModel.PlayerHealth with BlackHalfHearts = 2 }
-                      Enemies = [ enemy ]
+                      M5Enemies = [ enemy ]
                       EnemyBullets = [ enemyBullet 1 (add initialModel.PlayerPosition (vec2 10.0 0.0)) 2 ] }
               |> fst
 
           Expect.equal burst.BlackHeartBursts 1 "the production step counts the depleted black heart"
-          Expect.floatClose Accuracy.high (burst.Enemies |> List.head |> _.HitPoints) 40.0 "and emits one 10-damage room burst"
+          Expect.floatClose Accuracy.high (burst.M5Enemies |> List.head |> _.HitPoints) 40.0 "and emits one 10-damage room burst"
 
           let full = { RedContainers = 12; RedHalfHearts = 24; SoulHalfHearts = 0; BlackHalfHearts = 0 }
           Expect.equal (addTemporaryHearts 6 6 full) full "temporary-heart pickups never exceed the documented cap"
@@ -629,8 +643,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let live =
               { initialModel with
                   PlayerPosition = vec2 400.0 320.0
-                  M5Enemies = roster
-                  Enemies = roster |> List.map legacyOf }
+                  M5Enemies = roster }
 
           let stepped = update (Tick fixedDt) live |> fst
           Expect.equal (stepped.M5AiDecisions - live.M5AiDecisions) roster.Length "every live actor takes exactly one decision per fixed step"
@@ -640,8 +653,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let chargerModel =
               { initialModel with
                   PlayerPosition = vec2 400.0 320.0
-                  M5Enemies = [ charger ]
-                  Enemies = [ legacyOf charger ] }
+                  M5Enemies = [ charger ] }
 
           let phases =
               [ 1..ticksFor 3.0 ]
@@ -652,9 +664,12 @@ let private scenarios: (int * string * (unit -> unit)) list =
 
           Expect.isGreaterThan phases.Length 1 "the Charger crosses its documented wind-up/dash/recover transitions at its configured cadence"
 
-          let victim = { Id = 800; Position = vec2 500.0 320.0; Velocity = zero; Radius = 12.0; HitPoints = 30.0; ContactDamage = 0; LastContactTick = None; HitFlashTicks = 0 }
-          let friendlyFire = update (Tick fixedDt) { initialModel with Enemies = [ victim ]; EnemyBullets = [ enemyBullet 1 (vec2 500.0 320.0) 3 ] } |> fst
-          Expect.floatClose Accuracy.high (friendlyFire.Enemies |> List.head |> _.HitPoints) 30.0 "enemy bullets cannot damage enemies"
+          // The bullet is placed exactly on the actor, so this assertion still fails if enemy
+          // bullets ever start hitting enemies: the actor is the only enemy representation now, and
+          // 30.0 is its full hit points.
+          let victim = grubAt 800 (vec2 500.0 320.0) 30.0
+          let friendlyFire = update (Tick fixedDt) { initialModel with M5Enemies = [ victim ]; EnemyBullets = [ enemyBullet 1 (vec2 500.0 320.0) 3 ] } |> fst
+          Expect.floatClose Accuracy.high (friendlyFire.M5Enemies |> List.head |> _.HitPoints) 30.0 "enemy bullets cannot damage enemies"
 
           let ownShots = spawnShots 0 1 initialModel.PlayerPosition zero (vec2 1.0 0.0) basePlayerStats
           let selfHarm = update (Tick fixedDt) { initialModel with ShotSpawns = ownShots } |> fst
@@ -667,7 +682,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
               [ 1..ticksFor 3.0 ]
               |> List.fold
                   (fun model _ -> update (Tick fixedDt) model |> fst)
-                  { initialModel with PlayerPosition = vec2 520.0 320.0; M5Enemies = [ dead ]; Enemies = [ legacyOf dead ] }
+                  { initialModel with PlayerPosition = vec2 520.0 320.0; M5Enemies = [ dead ] }
 
           Expect.isEmpty afterDeath.EnemyBullets "a dead actor emits no later attack"
 
@@ -780,13 +795,13 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let playing = host.Update (EvidenceCommands.StartFreshRun 4242UL) menu |> fst
           Expect.equal playing.Shell.Screen Rogue3.GameShell.Playing "the run is live"
 
-          let enemy = { Id = 1; Position = vec2 900.0 300.0; Velocity = vec2 20.0 0.0; Radius = 10.0; HitPoints = 50.0; ContactDamage = 1; LastContactTick = None; HitFlashTicks = 0 }
+          let enemy = { grubAt 1 (vec2 900.0 300.0) 50.0 with Velocity = vec2 20.0 0.0 }
 
           let busy =
               { playing with
                   Play =
                       { playing.Play with
-                          Enemies = [ enemy ]
+                          M5Enemies = [ enemy ]
                           EnemyBullets = [ { enemyBullet 1 (vec2 300.0 300.0) 1 with Velocity = vec2 100.0 0.0 } ]
                           Bombs = [ { Id = 1; Position = vec2 700.0 390.0; FuseTicks = 60 } ]
                           DodgeCooldownTicks = 40

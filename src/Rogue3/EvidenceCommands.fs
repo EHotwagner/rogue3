@@ -1399,9 +1399,18 @@ let m7UiPerformanceEvidence (path:string) =
               // did not, and again every scale verdict is unchanged — hud-playing still reports 12
               // scene elements at both outputs, which is the check that splitting the HUD inventory
               // did not change one node of what the viewer receives.
-              "hud-playing", "36af91c03313e53b62424d9be38104e251f9fe54ac482fa4372300b4dadb3b3c"
-              "run-result", "6a71c69d76e28c22b98300de2956643985a9d186480fe6884b8ec87251265449"
-              "stats-charts", "49d8521a9d045b7fe6dbcfad52639df7aefc4497334dcd032c945ff06764409e" ]
+              // Board item #20 (FOURTH derivation): `Model` lost the pre-M5 world-state generation —
+              // the `Enemies`, `Obstacles` and `ShopSlots` fields, the `Enemy`/`ShopSlot`/`ShopCost`
+              // types, `InteractShop` and `purchaseShopSlot` — and `Entities.EnemyActor` absorbed the
+              // three combat facts the removed record carried. Once again exactly the three routes
+              // that hash the model moved and `main-menu` did not, and once again every scale verdict
+              // is unchanged: hud-playing still reports 12 scene elements at both outputs and the same
+              // five named regions, run-result the same actions and text fields, stats-charts the same
+              // series. That is the check that a refactor which claims to change no behaviour did not
+              // change one node of what the viewer receives.
+              "hud-playing", "0350d3a7ee6ea6a3d5e0b5d0bb94e61a57d5d9c832e98582069c5b7044ba2710"
+              "run-result", "3cdd3d4195dbab6da031f5147ec62394d9c1de58b1e1039ff23db7a751ec7bef"
+              "stats-charts", "929efbeec64a34bd0ca31e09ae565b4dc4e4dd6cd5bab38475a955b0ae646f95" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]

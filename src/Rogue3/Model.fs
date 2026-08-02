@@ -111,15 +111,10 @@ type Health =
 
 type Currency = { Coins: int; Keys: int; Bombs: int }
 
-type Enemy =
-    { Id: int
-      Position: Vec2
-      Velocity: Vec2
-      Radius: float
-      HitPoints: float
-      ContactDamage: int
-      LastContactTick: int option
-      HitFlashTicks: int }
+// Board item #20 removed the pre-M5 `Enemy` record that stood here. `Rogue3.Entities.EnemyActor` is
+// now the product's only representation of a live enemy: it absorbed `Velocity`, `LastContactTick`
+// and `HitFlashTicks`, and `Radius`/`ContactDamage` are read from `Rogue3.Entities.definition` at
+// the use site rather than stored per instance.
 
 type EnemyBullet =
     { Id: int
@@ -135,12 +130,10 @@ type Bomb =
       Position: Vec2
       FuseTicks: int }
 
-type ShopCost = CoinCost of int | KeyCost of int
-
-type ShopSlot =
-    { Id: int
-      Item: PlayerItem
-      Cost: ShopCost }
+// Board item #20 removed the pre-M5 `ShopCost`/`ShopSlot` pair that stood here, together with the
+// `InteractShop` message and the `purchaseShopSlot` reducer. `Rogue3.Entities.ShopSlot` (Offer /
+// Price / KeyLocked) is the product's only shop stock type, `InteractM5Shop` its only message and
+// `purchaseM5ShopSlot` its only reducer. The removed half had zero production dispatch sites.
 
 type PlayerLifeState = Alive | Dead
 
@@ -322,12 +315,13 @@ type Model =
       PlayerCurrency: Currency
       PlayerLifeState: PlayerLifeState
       PostHitInvulnTicks: int
-      Obstacles: Rect list
       HomingTargets: HomingTarget list
-      Enemies: Enemy list
       EnemyBullets: EnemyBullet list
       Bombs: Bomb list
-      ShopSlots: ShopSlot list
+      // Board item #20: the pre-M5 `Obstacles: Rect list`, `Enemies: Enemy list` and
+      // `ShopSlots: ShopSlot list` fields stood here beside the three below, with no rule about
+      // which was authoritative. All three are gone. The player's blocking-rect set is now derived
+      // on demand by `blockingObstacleRects` and stored nowhere, so it cannot go stale.
       M5Enemies: Rogue3.Entities.EnemyActor list
       M5Boss: Rogue3.Entities.BossActor option
       M5ChoirMemberIds: Set<int>
@@ -409,7 +403,6 @@ type Msg =
     | CommandChanged of command:string * isDown:bool
     | PointerChanged of position: Vec2 * primaryDown: bool option
     | InputChanged of InputSnapshot
-    | InteractShop of slotId: int
     | RevealSecret of adjacentRoom: int * secretRoom: int
     /// §14.16: spend exactly one key to open a `LockedKey` door from the current room, or change
     /// nothing. Never charges twice, because an already-open door is not `LockedKey`.
@@ -483,6 +476,31 @@ let hitFlashTicks = int (ceil (0.06 / fixedDt))
 let bombFuseTicks = int (1.50 / fixedDt + 0.5)
 let bombRadius = 90.0
 let spatialCellSize = 64.0
+
+/// Every obstacle is drawn and collided as a 40x40 box centred on its position.
+let obstacleExtent = 40.0
+
+/// The player's static collider set for a room: the SINGLE description of which obstacles block
+/// movement, and the reason board item #20's `Model.Obstacles` field no longer exists.
+///
+/// This expression used to be copy-pasted at four assignment sites that each refreshed a stored
+/// `Obstacles: Rect list` cache — `resolveBombs`, `loadM5Room`, `damageM5Obstacle` and the boot
+/// initialiser. A cache can be stale and a function cannot, so the field went and this stayed.
+/// Callers: the player sweep and the `shotWalls` filter in `stepInput`, and the `TotalWallQueries`
+/// accounting that counts what those two iterate.
+let blockingObstacleRects (obstacles: Rogue3.Entities.Obstacle list) : SimRect list =
+    obstacles
+    |> List.filter (fun obstacle ->
+        Rogue3.Entities.blocksMovement Rogue3.Entities.MovementClass.Grounded obstacle.Kind)
+    |> List.map (fun obstacle -> toSimRect obstacle.Position obstacleExtent obstacleExtent)
+
+/// An actor's collision radius. A function of `Kind`, never stored per instance — storing it is what
+/// let the maximum-content fixture build a 64-unit enemy no floor can spawn (board item #20).
+let actorRadius (actor: Rogue3.Entities.EnemyActor) = (Rogue3.Entities.definition actor.Kind).Radius
+
+/// An actor's contact damage. A function of `Kind`, for the same reason as `actorRadius`.
+let actorContactDamage (actor: Rogue3.Entities.EnemyActor) =
+    (Rogue3.Entities.definition actor.Kind).ContactDamage
 
 /// Midpoint of the room wall a door in `direction` is carved through, in logical room coordinates.
 /// A blast reaches that wall when its radius covers this point, which is the §14.14 trigger and the
@@ -916,12 +934,9 @@ let initialModelForSeed seed =
       PlayerCurrency = { Coins = 0; Keys = 1; Bombs = 1 }
       PlayerLifeState = Alive
       PostHitInvulnTicks = 0
-      Obstacles = []
       HomingTargets = []
-      Enemies = []
       EnemyBullets = []
       Bombs = []
-      ShopSlots = []
       M5Enemies = []
       M5Boss = None
       M5ChoirMemberIds = Set.empty
@@ -1296,26 +1311,8 @@ let private takePlayerHit damage source model =
             RunStats = addFloorDamage model.FloorIndex 0.0 lost model.RunStats }
         |> withAudioEvent AudioEvent.PlayerHit
 
-let purchaseShopSlot slotId model =
-    match model.ShopSlots |> List.tryFind (fun slot -> slot.Id = slotId) with
-    | None -> model, false
-    | Some slot ->
-        let affordable, currency =
-            match slot.Cost with
-            | CoinCost cost when model.PlayerCurrency.Coins >= cost ->
-                true, { model.PlayerCurrency with Coins = model.PlayerCurrency.Coins - cost }
-            | KeyCost cost when model.PlayerCurrency.Keys >= cost ->
-                true, { model.PlayerCurrency with Keys = model.PlayerCurrency.Keys - cost }
-            | _ -> false, model.PlayerCurrency
-        if not affordable then model, false
-        else
-            let items = model.PlayerItems @ [ slot.Item ]
-            { model with
-                PlayerCurrency = currency
-                PlayerItems = items
-                PlayerStats = recomputePlayerStats items
-                RunStats = {model.RunStats with ItemsFound=model.RunStats.ItemsFound+1}
-                ShopSlots = model.ShopSlots |> List.filter (fun candidate -> candidate.Id <> slotId) }, true
+// Board item #20 removed `purchaseShopSlot` here. `purchaseM5ShopSlot` is the product's only shop
+// reducer; this one had no production dispatch site and a second shop-slot type behind it.
 
 type DescentCarry =
     { Items: PlayerItem list
@@ -1344,8 +1341,15 @@ let damageM5Boss damage model =
                                 BossKills=model.RunStats.BossKills+1;FloorsCleared=max model.RunStats.FloorsCleared model.FloorIndex}}
 
 let private resolveShotCombat model =
-    let liveEnemies = model.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0)
-    let maxRadius = liveEnemies |> List.map (fun enemy -> max 0.0 enemy.Radius) |> List.fold max 0.0
+    // Board item #20: this resolves shots against the ONE actor list. It used to resolve them
+    // against the legacy `Enemies` projection and then copy the hit points back onto `M5Enemies`,
+    // and it used to REBUILD `Enemies` from a live filter — which is precisely the §14.21 mechanism:
+    // an actor that reached zero vanished from the legacy list here while surviving in `M5Enemies`
+    // until the next step. Zero-hit-point actors are now KEPT until `stepM5Entities`'s cleanup, which
+    // is the only thing that rolls the drop, credits the kill, splits a grub and clears the room.
+    // Dropping them here instead would destroy the drop roll.
+    let liveEnemies = model.M5Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0)
+    let maxRadius = liveEnemies |> List.map (fun enemy -> max 0.0 (actorRadius enemy)) |> List.fold max 0.0
     let grid = SpatialGrid.build spatialCellSize [ for enemy in liveEnemies -> toSimPoint enemy.Position, enemy ]
     let mutable enemies = liveEnemies |> List.map (fun enemy -> enemy.Id, enemy) |> Map.ofList
     let mutable candidates = 0
@@ -1361,7 +1365,7 @@ let private resolveShotCombat model =
                 nearby
                 |> List.filter (fun enemy ->
                     not (Set.contains enemy.Id shot.HitEnemyIds)
-                    && circlesOverlap shot.Position shot.Radius enemy.Position enemy.Radius)
+                    && circlesOverlap shot.Position shot.Radius enemy.Position (actorRadius enemy))
                 |> List.sortBy (fun enemy -> enemy.Id)
                 |> List.truncate shot.HitsRemaining
             for enemy in hits do
@@ -1396,15 +1400,12 @@ let private resolveShotCombat model =
             let remaining = remainingAfterEnemies - (if bossHit then 1 else 0)
             if remaining <= 0 then None
             else Some { shot with HitsRemaining = remaining; HitEnemyIds = hitIds })
-    let hpById = enemies |> Map.map (fun _ enemy -> enemy.HitPoints)
     { bossModel with
-        Enemies = enemies |> Map.toList |> List.map snd
+        // Order is the actor list's own, not a Map's: `M5Enemies` is authoritative and its order is
+        // what the drop stream and the AI step read.
         M5Enemies =
             model.M5Enemies
-            |> List.map (fun actor ->
-                match Map.tryFind actor.Id hpById with
-                | Some hp -> {actor with HitPoints=hp}
-                | None -> actor)
+            |> List.map (fun actor -> Map.tryFind actor.Id enemies |> Option.defaultValue actor)
         ShotSpawns = shots
         RunStats=addFloorDamage model.FloorIndex dealt 0.0 bossModel.RunStats
         TotalCombatCandidates = model.TotalCombatCandidates + candidates
@@ -1427,12 +1428,12 @@ let private resolveBombs model =
     for id in exploded |> Set.toList |> List.sort do
         let bomb = aged |> List.find (fun candidate -> candidate.Id = id)
         let enemies =
-            result.Enemies
+            result.M5Enemies
             |> List.map (fun enemy ->
-                if enemy.HitPoints > 0.0 && circlesOverlap bomb.Position bombRadius enemy.Position enemy.Radius then
+                if enemy.HitPoints > 0.0 && circlesOverlap bomb.Position bombRadius enemy.Position (actorRadius enemy) then
                     { enemy with HitPoints = max 0.0 (enemy.HitPoints - 40.0); HitFlashTicks = hitFlashTicks }
                 else enemy)
-        result <- { result with Enemies = enemies } |> takePlayerHit 2 bomb.Position
+        result <- { result with M5Enemies = enemies } |> takePlayerHit 2 bomb.Position
         // §14.14: a blast that reaches the wall shared with a hidden secret carves its door inside
         // THIS step. `revealSecret` moves the door records, the hidden flag, the graph adjacency and
         // the pending set as one value, so no observer can see a door without its adjacency.
@@ -1454,9 +1455,8 @@ let private resolveBombs model =
             if circlesOverlap bomb.Position bombRadius obstacle.Position 20.0 then
                 let remaining,drop,rng=Rogue3.Entities.destroyObstacle 40 result.DropRng obstacle
                 let typed=result.M5Obstacles|>List.filter(fun value->value.Id<>obstacle.Id)|>fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
-                let blocking=typed|>List.filter(fun value->Rogue3.Entities.blocksMovement Rogue3.Entities.MovementClass.Grounded value.Kind)|>List.map(fun value->toSimRect value.Position 40.0 40.0)
                 let floor=if remaining.IsNone then FloorGeneration.recordDestroyedObstacle result.Floor.CurrentRoom obstacle.Id result.Floor else result.Floor
-                result <- {result with M5Obstacles=typed;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->result.M5ObstacleDrops@[{Id=obstacle.Id;Room=result.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue result.M5ObstacleDrops}
+                result <- {result with M5Obstacles=typed;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->result.M5ObstacleDrops@[{Id=obstacle.Id;Room=result.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue result.M5ObstacleDrops}
     { result with
         Bombs = aged |> List.filter (fun bomb -> not (Set.contains bomb.Id exploded))
         AudioEvents = result.AudioEvents @ List.replicate exploded.Count AudioEvent.BombExploded }
@@ -1472,19 +1472,19 @@ let private resolveEnemyDamage model =
             let before = result.PlayerHealth
             result <- takePlayerHit bullet.Damage bullet.Position result
             if result.PlayerHealth <> before then consumed <- Set.add bullet.Id consumed
-    let enemyGrid = SpatialGrid.build spatialCellSize [ for enemy in result.Enemies do if enemy.HitPoints > 0.0 then toSimPoint enemy.Position, enemy ]
-    let maxEnemyRadius = result.Enemies |> List.map (fun enemy -> max 0.0 enemy.Radius) |> List.fold max 0.0
+    let enemyGrid = SpatialGrid.build spatialCellSize [ for enemy in result.M5Enemies do if enemy.HitPoints > 0.0 then toSimPoint enemy.Position, enemy ]
+    let maxEnemyRadius = result.M5Enemies |> List.map (fun enemy -> max 0.0 (actorRadius enemy)) |> List.fold max 0.0
     let contacts = SpatialGrid.queryRadius (toSimPoint result.PlayerPosition) (playerRadius + maxEnemyRadius) enemyGrid |> List.sortBy (fun enemy -> enemy.Id)
     let mutable contactTicks = Map.empty
     for enemy in contacts do
         let ready = enemy.LastContactTick |> Option.forall (fun tick -> result.SimStepCount + 1 - tick >= contactRetickTicks)
-        if ready && circlesOverlap result.PlayerPosition playerRadius enemy.Position enemy.Radius then
+        if ready && circlesOverlap result.PlayerPosition playerRadius enemy.Position (actorRadius enemy) then
             let before = result.PlayerHealth
-            result <- takePlayerHit enemy.ContactDamage enemy.Position result
+            result <- takePlayerHit (actorContactDamage enemy) enemy.Position result
             if result.PlayerHealth <> before then contactTicks <- Map.add enemy.Id (result.SimStepCount + 1) contactTicks
     { result with
         EnemyBullets = result.EnemyBullets |> List.filter (fun bullet -> not (Set.contains bullet.Id consumed))
-        Enemies = result.Enemies |> List.map (fun enemy ->
+        M5Enemies = result.M5Enemies |> List.map (fun enemy ->
             { enemy with
                 LastContactTick = Map.tryFind enemy.Id contactTicks |> Option.orElse enemy.LastContactTick
                 HitFlashTicks = max 0 (enemy.HitFlashTicks - 1) })
@@ -1492,7 +1492,7 @@ let private resolveEnemyDamage model =
 
 let private resolveCombat model =
     let burstsBefore = model.BlackHeartBursts
-    let aliveBefore = model.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.map _.Id |> Set.ofList
+    let aliveBefore = model.M5Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.map _.Id |> Set.ofList
     let lifeBefore = model.PlayerLifeState
     let enemyBullets =
         model.EnemyBullets
@@ -1513,13 +1513,13 @@ let private resolveCombat model =
     let burstsThisStep = model.BlackHeartBursts - burstsBefore
     let enemies =
         if burstsThisStep > 0 then
-            model.Enemies |> List.map (fun enemy -> { enemy with HitPoints = max 0.0 (enemy.HitPoints - 10.0 * float burstsThisStep) })
-        else model.Enemies
+            model.M5Enemies |> List.map (fun enemy -> { enemy with HitPoints = max 0.0 (enemy.HitPoints - 10.0 * float burstsThisStep) })
+        else model.M5Enemies
     let resolved =
         { model with
-            Enemies = enemies
+            M5Enemies = enemies
             PlayerLifeState = if totalHalfHearts model.PlayerHealth = 0 then Dead else model.PlayerLifeState }
-    let aliveAfter = resolved.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.map _.Id |> Set.ofList
+    let aliveAfter = resolved.M5Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.map _.Id |> Set.ofList
     let deathCount = Set.difference aliveBefore aliveAfter |> Set.count
     let events =
         resolved.AudioEvents
@@ -1536,11 +1536,6 @@ let private m5Kind = function
     | FloorGeneration.Turret -> Rogue3.Entities.EnemyKind.Turret
     | FloorGeneration.Caster -> Rogue3.Entities.EnemyKind.Caster
     | FloorGeneration.Brute -> Rogue3.Entities.EnemyKind.Brute
-
-let private legacyEnemy (actor:Rogue3.Entities.EnemyActor) =
-    let d=Rogue3.Entities.definition actor.Kind
-    { Id=actor.Id;Position=actor.Position;Velocity=zero;Radius=d.Radius;HitPoints=actor.HitPoints
-      ContactDamage=d.ContactDamage;LastContactTick=None;HitFlashTicks=0 }
 
 let private roomPoint (cell:Cell) = vec2 (80.0+float cell.Col*40.0) (80.0+float cell.Row*40.0)
 
@@ -1578,10 +1573,6 @@ let loadM5Room roomId model =
                     |> Option.map roomPoint
                     |> Option.defaultValue (vec2 (220.+float index*150.) (180.+float(index%2)*300.))
                 Rogue3.Entities.obstacle kind (roomId*100+index) |> Rogue3.Entities.obstacleAt position)
-        let blocking =
-            typedObstacles
-            |> List.filter(fun obstacle -> Rogue3.Entities.blocksMovement Rogue3.Entities.MovementClass.Grounded obstacle.Kind)
-            |> List.map(fun obstacle -> toSimRect obstacle.Position 40.0 40.0)
         let shop = room.Fixtures |> List.tryPick(function FloorGeneration.ShopStock slots->Some slots |_->None) |> Option.defaultValue []
         let reward = room.Fixtures |> List.tryPick(function FloorGeneration.BossReward item|FloorGeneration.ItemPedestal item->Some item |_->None)
         let isBoss=room.RoomType=FloorGeneration.Boss
@@ -1621,7 +1612,7 @@ let loadM5Room roomId model =
                      // reward permanently, because `recordDestroyedObstacle` is durable floor state and
                      // the smashed pot never returns to re-roll. They are kept keyed by room and
                      // filtered by `floorPickupsHere`; `DescendFloor` is what discards them.
-                     M5Obstacles=typedObstacles;M5ShopSlots=shop;Enemies=allEnemies|>List.map legacyEnemy;Obstacles=blocking
+                     M5Obstacles=typedObstacles;M5ShopSlots=shop
                      EnemyBullets=[];ShotSpawns=[] }
 
 /// The state a player actually boots into for `seed`: the generated floor with its START room
@@ -1638,7 +1629,6 @@ let damageM5Enemy enemyId damage model =
     | Some actor when actor.HitPoints-damage>0.0 ->
         let hp=actor.HitPoints-damage
         {model with M5Enemies=model.M5Enemies|>List.map(fun a->if a.Id=enemyId then {a with HitPoints=hp} else a)
-                    Enemies=model.Enemies|>List.map(fun e->if e.Id=enemyId then {e with HitPoints=hp} else e)
                     RunStats=addFloorDamage model.FloorIndex (max 0.0 damage) 0.0 model.RunStats}
     | Some actor ->
         let children=Rogue3.Entities.grubSplit model.FloorIndex model.M5NextEntityId actor
@@ -1658,7 +1648,7 @@ let damageM5Enemy enemyId damage model =
         let room = if choirDefeated then Rogue3.Entities.bossCleared room.Reward room else {room with LiveEnemyIds=Set.union room.LiveEnemyIds childIds}
         let kills = model.RunStats.KillsByType |> Map.change actor.Kind (fun count->Some(1 + Option.defaultValue 0 count))
         let stats = addFloorDamage model.FloorIndex (max 0.0 (min actor.HitPoints damage)) 0.0 model.RunStats
-        {model with M5Enemies=survivors@children;Enemies=(model.Enemies|>List.filter(fun e->e.Id<>enemyId))@(children|>List.map legacyEnemy)
+        {model with M5Enemies=survivors@children
                     M5Boss=(if choirDefeated then None else boss);M5ChoirMemberIds=Set.remove enemyId model.M5ChoirMemberIds
                     M5Room=room
                     // Room-clear is durable floor state, so a later visit rebuilds the room already
@@ -1686,9 +1676,8 @@ let damageM5Obstacle obstacleId damage model =
     | Some obstacle ->
         let remaining,drop,rng=Rogue3.Entities.destroyObstacle damage model.DropRng obstacle
         let obstacles=model.M5Obstacles|>List.filter(fun value->value.Id<>obstacleId) |> fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
-        let blocking=obstacles|>List.filter(fun value->Rogue3.Entities.blocksMovement Rogue3.Entities.MovementClass.Grounded value.Kind)|>List.map(fun value->toSimRect value.Position 40.0 40.0)
         let floor=if remaining.IsNone then FloorGeneration.recordDestroyedObstacle model.Floor.CurrentRoom obstacleId model.Floor else model.Floor
-        {model with M5Obstacles=obstacles;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->model.M5ObstacleDrops@[{Id=obstacle.Id;Room=model.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue model.M5ObstacleDrops}
+        {model with M5Obstacles=obstacles;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->model.M5ObstacleDrops@[{Id=obstacle.Id;Room=model.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue model.M5ObstacleDrops}
 
 let private stepM5Entities model =
     // §14.21 — "a dead actor emits no later attack". Resolve deaths from the ACTOR list rather than
@@ -1702,8 +1691,6 @@ let private stepM5Entities model =
         |> List.map _.Id
         |> List.sort
         |> List.fold(fun current enemyId->damageM5Enemy enemyId Double.MaxValue current) model
-    let hpById=model.Enemies|>List.map(fun enemy->enemy.Id,enemy.HitPoints)|>Map.ofList
-    let model={model with M5Enemies=model.M5Enemies|>List.map(fun actor->match Map.tryFind actor.Id hpById with Some hp->{actor with HitPoints=hp}|None->actor)}
     let mutable rng = model.DropRng
     let mutable actionsByActor : (Vec2 * Rogue3.Entities.EnemyAction list) list = []
     let stepped =
@@ -1796,7 +1783,6 @@ let private stepM5Entities model =
             M5BossPatternEmissions=model.M5BossPatternEmissions+(bossResult|>Option.map(fun result->result.Actions|>List.sumBy(function Rogue3.Entities.BossAction.Emit _->1|_->0))|>Option.defaultValue 0)
             M5NextBulletId=nextBullet
             M5NextEntityId=model.M5NextEntityId+bossSpawned.Length
-            Enemies=(model.Enemies|>List.map(fun enemy->match stepped|>List.tryFind(fun actor->actor.Id=enemy.Id) with Some actor->{enemy with Position=actor.Position;HitPoints=actor.HitPoints}|None->enemy))@(bossSpawned|>List.map legacyEnemy)
             M5Room={model.M5Room with LiveEnemyIds=Set.union model.M5Room.LiveEnemyIds (bossSpawned|>List.map _.Id|>Set.ofList)}
             EnemyBullets=bullets@bossBullets@model.EnemyBullets }
     let enemyShocks =
@@ -1881,7 +1867,10 @@ let private stepInput pressedThisTick (model: Model) =
     // shots keep their existing `shotWalls` set and their playfield bounce, so no projectile behaviour
     // moves with this change.
     let wallSlabs = roomWallSlabs model
-    let movedPlayer = Collision.sweepCircle (Some roomBounds) (wallSlabs @ model.Obstacles) playerCircle (toSimPoint displacement)
+    // Board item #20: derived here, once per step, rather than read from a stored `Obstacles` cache
+    // four reducers had to remember to refresh. Same elements, same order, no staleness possible.
+    let obstacleRects = blockingObstacleRects model.M5Obstacles
+    let movedPlayer = Collision.sweepCircle (Some roomBounds) (wallSlabs @ obstacleRects) playerCircle (toSimPoint displacement)
     let playerPosition = ofSimPoint movedPlayer.Center
     let fireAim = if resolved.Aim = zero then normalizeOrZero model.Facing else resolved.Aim
     let iFramesActive = dodgeStarted || model.DodgeIFrameTicks > 0
@@ -1907,9 +1896,9 @@ let private stepInput pressedThisTick (model: Model) =
     let shotPassThrough =
         model.M5Obstacles
         |> List.filter(fun obstacle->not(Rogue3.Entities.blocksShots obstacle.Kind))
-        |> List.map(fun obstacle->toSimRect obstacle.Position 40.0 40.0)
+        |> List.map(fun obstacle->toSimRect obstacle.Position obstacleExtent obstacleExtent)
         |> Set.ofList
-    let shotWalls=model.Obstacles|>List.filter(fun wall->not(Set.contains wall shotPassThrough))
+    let shotWalls=obstacleRects|>List.filter(fun wall->not(Set.contains wall shotPassThrough))
     let steppedShots, wallQueries, homingQueries =
         stepShots roomBounds shotWalls model.HomingTargets shotSpawns
 
@@ -1942,7 +1931,7 @@ let private stepInput pressedThisTick (model: Model) =
             // Each player axis performs one swept cast, then slideCircle's X and Y contact folds.
             // M13 adds the room's own wall slabs to that sweep under the SAME `6 *` accounting, so the
             // counter still describes the casts the player actually performs.
-            TotalWallQueries = model.TotalWallQueries + wallQueries + 6 * (model.Obstacles.Length + wallSlabs.Length)
+            TotalWallQueries = model.TotalWallQueries + wallQueries + 6 * (obstacleRects.Length + wallSlabs.Length)
             TotalHomingQueries = model.TotalHomingQueries + homingQueries
             EdgeActionCount = model.EdgeActionCount + Set.count pressedThisTick
             AudioEvents =
@@ -2255,7 +2244,6 @@ let rec update msg model : Model * AdapterCommand<Msg> =
         { model with Input = { model.Input with Current = withPointer position primaryDown model.Input.Current } }, Cmd.none
     | InputChanged snapshot ->
         { model with Input = { model.Input with Current = snapshot } }, Cmd.none
-    | InteractShop slotId -> purchaseShopSlot slotId model |> fst, Cmd.none
     | RevealSecret(adjacentRoom, secretRoom) ->
         { model with Floor = FloorGeneration.revealSecret adjacentRoom secretRoom model.Floor }, Cmd.none
     | UnlockDoor roomId ->
@@ -2334,12 +2322,9 @@ let rec update msg model : Model * AdapterCommand<Msg> =
             M5ObstacleDrops = []
             M6CameraTransition = None
             ShotSpawns = []
-            Obstacles = []
             HomingTargets = []
-            Enemies = []
             EnemyBullets = []
             Bombs = []
-            ShopSlots = []
             RunStats = { model.RunStats with DepthReached=max model.RunStats.DepthReached nextIndex }
             FloorNameTicks = 240
             PlayerPosition = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0) }, Cmd.none

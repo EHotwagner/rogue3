@@ -1,0 +1,1322 @@
+schemaVersion: 1
+workId: 015-unify-world-state-generations
+stage: evidence
+status: evidenceReady
+sourceSpec: work/015-unify-world-state-generations/spec.md
+sourceClarifications: work/015-unify-world-state-generations/clarifications.md
+sourceChecklist: work/015-unify-world-state-generations/checklist.md
+sourcePlan: work/015-unify-world-state-generations/plan.md
+sourceTasks: work/015-unify-world-state-generations/tasks.yml
+sourceAnalysis: readiness/015-unify-world-state-generations/analysis.json
+sourceSnapshots:
+  - label: analysis
+    path: readiness/015-unify-world-state-generations/analysis.json
+    digest: 0e482582dcb9726d81c8647d42dd1e33fb1356d2cd6dfa77095ec055cadcc9d5
+    schemaVersion: 1
+  - label: checklist
+    path: work/015-unify-world-state-generations/checklist.md
+    digest: 66f6f0fed76de0f7b38b241f0f3970d6a4738e5b730c6cb14ab9566bb2f355b7
+    schemaVersion: 1
+  - label: clarifications
+    path: work/015-unify-world-state-generations/clarifications.md
+    digest: 76893f389893cde1a0067f4f9c13e35257b80b0487a191881c7378cf14d2bb31
+    schemaVersion: 1
+  - label: plan
+    path: work/015-unify-world-state-generations/plan.md
+    digest: afc405af799dbc7e8f61807675aefb64581e501cc89580950cdd7251ed722704
+    schemaVersion: 1
+  - label: spec
+    path: work/015-unify-world-state-generations/spec.md
+    digest: 4e4dc2d9a03426b8330ab7f052b316239b37e3df23fb0ad5e19ec35f89297e03
+    schemaVersion: 1
+  - label: tasks
+    path: work/015-unify-world-state-generations/tasks.yml
+    digest: 096a2e1d0e74b712ed2fcf575348d82a65f2e32b0f4938eace1454ae88b78bf9
+    schemaVersion: 1
+evidence:
+  - id: EV001
+    kind: verification
+    subject:
+      type: task
+      id: T001
+    taskRefs: [T001]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV001]
+    artifacts: [src/Rogue3/Entities.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-001/AC-001. The pre-M5 world-state generation is gone from the compiled surface: the `Enemies`, `Obstacles` and `ShopSlots` fields, the `Enemy`, `ShopSlot` and `ShopCost` types, the `InteractShop` message, the `purchaseShopSlot` reducer, its `update` arm and the `legacyEnemy` projection. Proved by reflection rather than by a source grep, because a grep is satisfied by deleting a line and can be fooled by a comment: the new M5 test reads `FSharpType.GetRecordFields typeof<Model>` and `GetUnionCases typeof<Msg>` and asserts each removed name is absent while each surviving name is present."]
+  - id: EV002
+    kind: verification
+    subject:
+      type: task
+      id: T002
+    taskRefs: [T002]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-009]
+    obligationRefs: [EV002]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs, tests/Rogue3.Tests/M7UiMenusStatsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-002/AC-002. `resolveShotCombat` no longer rebuilds a list from a live filter: it maps hit points onto the one actor list in that list's own order and KEEPS zero-hit-point actors, so `stepM5Entities`'s cleanup stays the only remover of a dead actor and the drop roll, kill credit, grub split and room clear each happen exactly once. Mutation-tested by the author and independently reproduced by a fresh-context critic: re-adding `List.filter (fun actor -> actor.HitPoints > 0.0)` to the write-back turns two tests red -- the new M5 regression case and M7's typed-kill case -- and green again when reverted. The same removal moves bomb and burst kills a step earlier, which EV008 declares."]
+  - id: EV003
+    kind: verification
+    subject:
+      type: task
+      id: T003
+    taskRefs: [T003]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV003]
+    artifacts: [src/Rogue3/Entities.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-003/AC-003. `Rogue3.Entities.EnemyActor` gained `Velocity`, `LastContactTick` and `HitFlashTicks`, initialised by `Entities.spawn`, so every `{ actor with ... }` and `grubSplit` construction in the product kept compiling unchanged. `Radius` and `ContactDamage` deliberately did not move: `Model.actorRadius`/`actorContactDamage` read them from `Entities.definition actor.Kind`. M3's damage/knockback/hit-flash/pierce assertions hold at the same numeric values (6.5 hit points after one shot, positive knockback X, positive hit flash, no second hit)."]
+  - id: EV004
+    kind: verification
+    subject:
+      type: task
+      id: T004
+    taskRefs: [T004]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV004]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M2MovementShotTests.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-004/AC-004. `Model.blockingObstacleRects` is the single description of the player's static collider set. The new M5 case asserts a Rock and a Pot block while Spikes do not, and M2's slide-along-AABB case drives the player into a real Rock through the input route and still settles at X = 87."]
+  - id: EV005
+    kind: verification
+    subject:
+      type: task
+      id: T005
+    taskRefs: [T005]
+    requirementRefs: [FR-005]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV005]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-005/AC-005. No reducer carries a blocking-rect cache any more. `resolveBombs`, `loadM5Room` and `damageM5Obstacle` each dropped their `Obstacles=blocking` assignment and the `blocking` local that fed it; the new M5 case destroys a Pot through `DamageM5Obstacle` and observes the derived collider set shrink from two to one inside the same reducer."]
+  - id: EV006
+    kind: verification
+    subject:
+      type: task
+      id: T006
+    taskRefs: [T006]
+    requirementRefs: [FR-006]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV006]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-006/AC-006. One shop. The affordability and rejection properties previously asserted against `purchaseShopSlot` are asserted against `purchaseM5ShopSlot` in M3 and dispatched through `InteractM5Shop` in M10 scenario 11; because `Entities.purchase` consumes a slot by setting `Offer = Empty` rather than removing it, those assertions read the offer and `RunStats.ItemsFound` instead of a list length. TWO assertions could NOT be restated and were lost: the granted `PlayerItems` contents and the recomputed `PlayerStats.Damage`. The surviving reducer grants no item -- it debits, empties the offer and bumps a counter -- so there is nothing true to assert. That is a pre-existing, player-facing gap the removed dead reducer concealed (it did grant the item, and had zero production dispatch sites), it is the one place CA-009's rewrite-never-delete rule was not met, and it is recorded as DEF-003, filed at root cause as EHotwagner/rogue3#47, and pinned by a characterization assertion in both tests so it goes red the day it is fixed. Two independent critics found this; the first draft of this entry claimed no shop coverage was deleted."]
+  - id: EV007
+    kind: verification
+    subject:
+      type: task
+      id: T007
+    taskRefs: [T007]
+    requirementRefs: [FR-007]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV007]
+    artifacts: [tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-007/AC-007. Both descent tests keep their seed-after-staging order and both assert the collections are observably non-empty immediately before `DescendFloor`; M4's assertion was added this cycle after a critic found the file carried only the explanatory comment while M10 carried the check. Dropping any of the three clears from the `DescendFloor` reducer fails both files, which is the mutation that proves the assertions can fail."]
+  - id: EV008
+    kind: verification
+    subject:
+      type: task
+      id: T008
+    taskRefs: [T008]
+    requirementRefs: [FR-008]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV008]
+    artifacts: [src/Rogue3/Entities.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-008/AC-008. Gameplay behaviour is preserved at unchanged numeric values across the suite -- 6.5 hit points after one shot, 20.0 after a two-bomb chain, 40.0 after a black-heart burst, 30.0 unchanged under friendly fire, one half-heart per contact with its 0.5 s re-tick, X = 87 at a blocking obstacle, one red half-heart on spikes, one typed kill per death, one drop roll per death -- with ONE declared exception an independent critic established by building both revisions and running the same scenario against each: a kill dealt by a bomb blast or a black-heart burst now resolves in the step the damage lands, where it used to resolve one step later. That damage was written to the legacy list alone and reached the actors through an `hpById` re-sync that ran AFTER the cleanup fold, so the corpse took one more AI turn and its drop, kill credit and room clear landed late. It is the same defect class as section 14.21, it shifts the `DropRng` draw order for such kills, and it is now declared in AC-008 and guarded by a bomb-kill test -- no test covered a bomb kill at all before this cycle. The canonical determinism encoding also changes, which AC-008 declares as expected."]
+  - id: EV009
+    kind: verification
+    subject:
+      type: task
+      id: T009
+    taskRefs: [T009]
+    requirementRefs: [FR-009]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV009]
+    artifacts: [tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M2MovementShotTests.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs, tests/Rogue3.Tests/M7UiMenusStatsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-009/AC-009. The suite grew rather than shrank: 228 tests at `d8d0024`, 235 at the candidate. Every assertion that referenced a removed field was rewritten against the surviving one rather than deleted, with the single exception recorded in EV006 and DEF-003 -- the two shop assertions the surviving reducer cannot satisfy, filed as EHotwagner/rogue3#47 and pinned by a characterization assertion. Four of the seven added tests exist because a critic's mutation run found the claims unguarded, not because a requirement asked for them."]
+  - id: EV010
+    kind: verification
+    subject:
+      type: task
+      id: T010
+    taskRefs: [T010]
+    requirementRefs: [FR-010]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV010]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-010/AC-010. Every cost driver whose measured population changed was re-declared to the value the candidate's own run emits, and none was retired. `state.static-obstacles` kept its id with its `ScaleSource` re-pointed at the blocking projection of `M5Obstacles`; `state.live-enemies` likewise at `M5Enemies`; `state.m5-obstacles` moved 5 -> 9 for a fixture that now places nine obstacles covering all five kinds; `collision.shot-wall-queries` moved 820 -> 740 because the derived collider set finally lets the shot pass-through filter subtract the Pit, which the old free-floating rect list could never match; `collision.combat-candidates` moved 2520 -> 2100 because the enemy population became a spawnable roster with radii 8..22 in place of 30 uniform 64-unit discs. `MaximumExpected` is compared for equality in `maximum-content`, so each of those is an exact re-declaration from a green run, not a ceiling raise."]
+  - id: EV011
+    kind: verification
+    subject:
+      type: task
+      id: T011
+    taskRefs: [T011]
+    requirementRefs: [FR-011]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV011]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, readiness/performance-intent.yml, src/Rogue3/EvidenceCommands.fs, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-011/AC-011. All seven workload definition digests moved, as the plan predicted, and each was copied from the run that was simultaneously green on p95, p99, scene nodes, catch-up and every exact cost-driver equality. The three UI-route digests that hash the model moved with them and `main-menu`, which does not, did not -- the fourth consecutive cycle to show exactly that pattern, and the check that a refactor claiming to change no behaviour changed no node of what the viewer receives: `hud-playing` still reports 12 scene elements at both outputs and the same five named regions."]
+  - id: EV012
+    kind: verification
+    subject:
+      type: task
+      id: T012
+    taskRefs: [T012]
+    requirementRefs: [FR-012]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-012]
+    obligationRefs: [EV012]
+    artifacts: [scripts/audit-binding-exceptions.json]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["FR-012/AC-012. The merge gate was reproduced locally as its two real commands against the exact candidate, with each exit code captured DIRECTLY and never after a pipe: `dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release` exit 0 (235 passed, 0 failed), `python3 scripts/check-audit-bindings.py --selftest` exit 0, and `python3 scripts/check-audit-bindings.py` exit 0. The last prints a 'citation(s) NOT BOUND' block naming one exempt citation, which is expected output from the fix merged as EHotwagner/rogue3#38, not a failure. The FAKE `Verify` target is deliberately not treated as the gate: CI does not invoke it, three of its six steps are known no-ops (EHotwagner/rogue3#34) and running it in a worktree silently rewrites tracked `readiness/` artifacts (EHotwagner/rogue3#26)."]
+  - id: EV013
+    kind: verification
+    subject:
+      type: task
+      id: T013
+    taskRefs: [T013]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV013]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["DEC-001. `Model.Obstacles` was REMOVED rather than kept behind a stated invariant. The item's acceptance permitted either; removal was chosen because an invariant can only fire after a reducer forgets to refresh the cache and only in the states a test happens to construct, whereas a derivation makes staleness unrepresentable. The declined option is recorded in `clarifications.md` CA-001 rather than left unexplained."]
+  - id: EV014
+    kind: verification
+    subject:
+      type: task
+      id: T014
+    taskRefs: [T014]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV014]
+    artifacts: [src/Rogue3/Entities.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["DEC-002. The three combat facts moved onto `EnemyActor` and the two derived ones did not. `Velocity` is carried unchanged with a comment at the field recording that shot knockback writes it and no integrator reads it; the same holds for `HitFlashTicks`, which nothing draws. Filed at root cause as EHotwagner/rogue3#43 rather than deleted inside a refactor that claims to change no behaviour."]
+  - id: EV015
+    kind: verification
+    subject:
+      type: task
+      id: T015
+    taskRefs: [T015]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV015]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["DEC-003. Zero-hit-point actors survive until `stepM5Entities`'s cleanup; the step order `stepInput |> resolveCombat |> stepM5Entities |> stepM6Presentation` is unchanged. The difference is not observable: every reader between those points already filters `HitPoints > 0.0`. Guarded by a regression test that fails on the pre-change arrangement."]
+  - id: EV016
+    kind: verification
+    subject:
+      type: task
+      id: T016
+    taskRefs: [T016]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV016]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["DEC-004. `state.static-obstacles` survives, re-pointed at the derivation and re-declared from the run; `state.m5-obstacles` keeps counting the whole obstacle list. Neither was retired to avoid a mismatch, which is what an exact-equality gate makes tempting."]
+  - id: EV017
+    kind: deferral
+    subject:
+      type: task
+      id: T017
+    taskRefs: [T017]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV017]
+    artifacts: [src/Rogue3/Model.fs]
+    sourceRefs: []
+    result: deferred
+    synthetic: false
+    rationale: "The M5 prefix on the surviving fields is cosmetic and reaches three audit-bound files outside this item's touch-set, so renaming would break three further bindings and add three further ledger entries for no behavioural gain, while that ledger was contended with EHotwagner/rogue3#38."
+    owner: "EHotwagner/rogue3 - src/Rogue3/Model.fs field naming, tracked as EHotwagner/rogue3#44"
+    scope: "Naming only. No field, type, message or reducer of the removed generation survives; only the prefix on the survivors does."
+    laterLifecycleVisibility: "Lifted by an item whose touch-set includes Render.fs, EvidenceCommands.fs and GameplayVisualInventory.fs; that item owns the full workload-digest re-declaration loop the rename forces."
+    notes: ["DEC-005. The `M5` prefix stays, deferred with its reason -- three audit-bound files outside this item's touch-set and a ledger contended with EHotwagner/rogue3#38 -- and filed as EHotwagner/rogue3#44. Recorded as a DEFERRAL rather than a verification: no test run can witness that an issue was filed, and an earlier draft cited the Release TRX for it."]
+  - id: EV018
+    kind: verification
+    subject:
+      type: task
+      id: T018
+    taskRefs: [T018]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV018]
+    artifacts: [src/Rogue3/PerformanceEvidence.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["DEC-006. Fixture enemies became real roster kinds with hit points set through a `with` expression. The `maximum-content` fixture needed BOTH of the legacy list's devices restated on spawnable actors -- the cluster position AND the 10000 hit points -- because forty piercing shots on the cluster kill a floor-6 roster inside the first sampled step and read `state.live-enemies`, `state.m5-enemies` and `ai.m5-decisions` as 0. Stated plainly: the replacement is no more reachable in production than the discs it replaced. What changed is that its enemies now have the radii, contact damage and kinds the game actually ships, and the workload measures 2100 combat candidates where it measured 2520 -- strictly less, and the reduction is disclosed rather than absorbed."]
+  - id: EV019
+    kind: verification
+    subject:
+      type: task
+      id: T019
+    taskRefs: [T019]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV019]
+    artifacts: [tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["DEC-007. Behaviour preservation is evidenced by the re-pointed suite at unchanged numeric values plus mutation-testing, not by a digest: a model-to-model digest comparison across a field removal is impossible by construction."]
+  - id: EV020
+    kind: verification
+    subject:
+      type: task
+      id: T020
+    taskRefs: [T020]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV020]
+    artifacts: [readiness/performance-intent.yml, src/Rogue3/EvidenceCommands.fs, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["DEC-008. Every moved digest was re-declared in both the source declaration and the typed intent from the candidate's green evidence run, with the three causes recorded here and in the cycle report: the reflective encoding of the initial model, the `maximumExpectedScale` string, and the `maximum-content` fixture's own source text."]
+  - id: EV021
+    kind: verification
+    subject:
+      type: task
+      id: T021
+    taskRefs: [T021]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV021]
+    artifacts: [tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M2MovementShotTests.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs, tests/Rogue3.Tests/M7UiMenusStatsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["DEC-009. 228 is a floor and the candidate is at 235. Every assertion that referenced a removed field was rewritten against the surviving one rather than deleted, with the single exception recorded in EV006 and DEF-003 -- the two shop assertions the surviving reducer cannot satisfy, filed as EHotwagner/rogue3#47 and pinned by a characterization assertion. Four of the seven added tests exist because a critic's mutation run found the claims unguarded, not because a requirement asked for them."]
+  - id: EV022
+    kind: verification
+    subject:
+      type: task
+      id: T022
+    taskRefs: [T022]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV022]
+    artifacts: [src/Rogue3/Entities.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-001. The pre-M5 world-state generation is gone from the compiled surface: the `Enemies`, `Obstacles` and `ShopSlots` fields, the `Enemy`, `ShopSlot` and `ShopCost` types, the `InteractShop` message, the `purchaseShopSlot` reducer, its `update` arm and the `legacyEnemy` projection. Proved by reflection rather than by a source grep, because a grep is satisfied by deleting a line and can be fooled by a comment: the new M5 test reads `FSharpType.GetRecordFields typeof<Model>` and `GetUnionCases typeof<Msg>` and asserts each removed name is absent while each surviving name is present."]
+  - id: EV023
+    kind: verification
+    subject:
+      type: task
+      id: T023
+    taskRefs: [T023]
+    requirementRefs: [FR-004, FR-005]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV023]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M2MovementShotTests.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-002. `Model.blockingObstacleRects` is the single description of the player's static collider set. The new M5 case asserts a Rock and a Pot block while Spikes do not, and M2's slide-along-AABB case drives the player into a real Rock through the input route and still settles at X = 87. The four maintained copies of the filter-and-map collapsed into one function and the three read sites -- the player sweep, the `shotWalls` filter and the `TotalWallQueries` accounting -- call it."]
+  - id: EV024
+    kind: verification
+    subject:
+      type: task
+      id: T024
+    taskRefs: [T024]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV024]
+    artifacts: [src/Rogue3/Entities.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-003. `Rogue3.Entities.EnemyActor` gained `Velocity`, `LastContactTick` and `HitFlashTicks`, initialised by `Entities.spawn`, so every `{ actor with ... }` and `grubSplit` construction in the product kept compiling unchanged. `Radius` and `ContactDamage` deliberately did not move: `Model.actorRadius`/`actorContactDamage` read them from `Entities.definition actor.Kind`. M3's damage/knockback/hit-flash/pierce assertions hold at the same numeric values (6.5 hit points after one shot, positive knockback X, positive hit flash, no second hit)."]
+  - id: EV025
+    kind: verification
+    subject:
+      type: task
+      id: T025
+    taskRefs: [T025]
+    requirementRefs: [FR-002, FR-008]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV025]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-004/PD-009. `resolveShotCombat` no longer rebuilds a list from a live filter: it maps hit points onto the one actor list in that list's own order and KEEPS zero-hit-point actors, so `stepM5Entities`'s cleanup stays the only remover of a dead actor and the drop roll, kill credit, grub split and room clear each happen exactly once. Mutation-tested: re-adding `List.filter (fun actor -> actor.HitPoints > 0.0)` to the write-back turns two tests red (the new M5 regression case and M7's typed-kill case) and green again when reverted."]
+  - id: EV026
+    kind: verification
+    subject:
+      type: task
+      id: T026
+    taskRefs: [T026]
+    requirementRefs: [FR-006]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV026]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-005. One shop. The affordability and rejection properties previously asserted against `purchaseShopSlot` are asserted against `purchaseM5ShopSlot` in M3 and dispatched through `InteractM5Shop` in M10 scenario 11; because `Entities.purchase` consumes a slot by setting `Offer = Empty` rather than removing it, those assertions read the offer and `RunStats.ItemsFound` instead of a list length. TWO assertions could NOT be restated and were lost: the granted `PlayerItems` contents and the recomputed `PlayerStats.Damage`. The surviving reducer grants no item -- it debits, empties the offer and bumps a counter -- so there is nothing true to assert. That is a pre-existing, player-facing gap the removed dead reducer concealed (it did grant the item, and had zero production dispatch sites), it is the one place CA-009's rewrite-never-delete rule was not met, and it is recorded as DEF-003, filed at root cause as EHotwagner/rogue3#47, and pinned by a characterization assertion in both tests so it goes red the day it is fixed. Two independent critics found this; the first draft of this entry claimed no shop coverage was deleted."]
+  - id: EV027
+    kind: verification
+    subject:
+      type: task
+      id: T027
+    taskRefs: [T027]
+    requirementRefs: [FR-007]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-006]
+    obligationRefs: [EV027]
+    artifacts: [tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-006. Both descent tests keep their seed-after-staging order and both assert the collections are observably non-empty immediately before `DescendFloor`; M4's assertion was added this cycle after a critic found the file carried only the explanatory comment while M10 carried the check. Dropping any of the three clears from the `DescendFloor` reducer fails both files, which is the mutation that proves the assertions can fail."]
+  - id: EV028
+    kind: verification
+    subject:
+      type: task
+      id: T028
+    taskRefs: [T028]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-007]
+    obligationRefs: [EV028]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M2MovementShotTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-007. The two fixtures that would have become unfalsifiable rather than merely broken were re-expressed, not dropped: M2's slide-along-AABB test now places an `Entities.obstacle Rock` at (120, 50) so the derived 40x40 rect's left face is where the hand-written rect's was and the settled X assertion still fails if the collider disappears; M10's friendly-fire test seeds a real actor co-located with an enemy bullet and still asserts its hit points are untouched."]
+  - id: EV029
+    kind: verification
+    subject:
+      type: task
+      id: T029
+    taskRefs: [T029]
+    requirementRefs: [FR-009]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-008]
+    obligationRefs: [EV029]
+    artifacts: [tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M2MovementShotTests.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs, tests/Rogue3.Tests/M7UiMenusStatsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-008. Every fixture that constructed a `Model.Enemy` became `{ Rogue3.Entities.spawn ... with HitPoints = ... }` over a real roster kind. `Grub` is the default stand-in for the old `ContactDamage = 0` fixtures because its radius 12 is the radius those fixtures hand-wrote and every one of them already sits further than `playerRadius 13 + 12 = 25` from the player's start. The test-local `legacyOf` projection in `M10AcceptanceDeterminismTests` was deleted with the type it produced."]
+  - id: EV030
+    kind: verification
+    subject:
+      type: task
+      id: T030
+    taskRefs: [T030]
+    requirementRefs: [FR-010]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-010]
+    obligationRefs: [EV030]
+    artifacts: [readiness/performance-evidence.json, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-010. Every cost driver whose measured population changed was re-declared to the value the candidate's own run emits, and none was retired. `state.static-obstacles` kept its id with its `ScaleSource` re-pointed at the blocking projection of `M5Obstacles`; `state.live-enemies` likewise at `M5Enemies`; `state.m5-obstacles` moved 5 -> 9 for a fixture that now places nine obstacles covering all five kinds; `collision.shot-wall-queries` moved 820 -> 740 because the derived collider set finally lets the shot pass-through filter subtract the Pit, which the old free-floating rect list could never match; `collision.combat-candidates` moved 2520 -> 2100 because the enemy population became a spawnable roster with radii 8..22 in place of 30 uniform 64-unit discs. `MaximumExpected` is compared for equality in `maximum-content`, so each of those is an exact re-declaration from a green run, not a ceiling raise."]
+  - id: EV031
+    kind: verification
+    subject:
+      type: task
+      id: T031
+    taskRefs: [T031]
+    requirementRefs: [FR-011]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-011]
+    obligationRefs: [EV031]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, readiness/performance-intent.yml, src/Rogue3/EvidenceCommands.fs, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-011. All seven workload definition digests moved, as the plan predicted, and each was copied from the run that was simultaneously green on p95, p99, scene nodes, catch-up and every exact cost-driver equality. The three UI-route digests that hash the model moved with them and `main-menu`, which does not, did not -- the fourth consecutive cycle to show exactly that pattern, and the check that a refactor claiming to change no behaviour changed no node of what the viewer receives: `hud-playing` still reports 12 scene elements at both outputs and the same five named regions."]
+  - id: EV032
+    kind: deferral
+    subject:
+      type: task
+      id: T032
+    taskRefs: [T032]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-013]
+    obligationRefs: [EV032]
+    artifacts: [src/Rogue3/Model.fs]
+    sourceRefs: []
+    result: deferred
+    synthetic: false
+    rationale: "Same deferral as EV017, carried at the plan-decision level."
+    owner: "EHotwagner/rogue3 - src/Rogue3/Model.fs field naming, tracked as EHotwagner/rogue3#44"
+    scope: Naming only.
+    laterLifecycleVisibility: "Tracked on EHotwagner/rogue3#44 with acceptance conditions; visible to any later item that touches the three consuming files."
+    notes: ["PD-013. The `M5` prefix deferral. Condition to lift: an item whose touch-set includes `Render.fs`, `EvidenceCommands.fs` and `GameplayVisualInventory.fs`. Tracked as EHotwagner/rogue3#44."]
+  - id: EV033
+    kind: deferral
+    subject:
+      type: task
+      id: T033
+    taskRefs: [T033]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-014]
+    obligationRefs: [EV033]
+    artifacts: [src/Rogue3/Entities.fs]
+    sourceRefs: []
+    result: deferred
+    synthetic: false
+    rationale: "Shot knockback and the hit flash are written on every hit and read by no integrator and no renderer. Both are asserted by M3CombatHealthCurrencyTests, so deleting them inside a refactor whose acceptance is that a player sees no change would delete a tested behaviour under cover."
+    owner: "EHotwagner/rogue3 - src/Rogue3/Model.fs resolveShotCombat and src/Rogue3/Render.fs, tracked as EHotwagner/rogue3#43"
+    scope: "Two fields carried onto EnemyActor unchanged; no behaviour added or removed by this item."
+    laterLifecycleVisibility: "Documented at the field in src/Rogue3/Entities.fs naming the issue, and tracked on EHotwagner/rogue3#43 with two mutually exclusive discharges, each requiring a test that fails when the effect is removed."
+    notes: ["PD-014. Shot knockback is recorded and never applied; the hit flash is recorded and never drawn. Both fields are carried onto `EnemyActor` unchanged with the condition documented at the field, and tracked as EHotwagner/rogue3#43 with two mutually exclusive discharges. Recorded as a deferral, not a pass."]
+  - id: EV034
+    kind: verification
+    subject:
+      type: task
+      id: T034
+    taskRefs: [T034]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV034]
+    artifacts: [src/Rogue3/Model.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PC-001. `Rogue3.Model` lost three public fields, three public types, one public `Msg` case and one public function. Tier-1, and the reason every workload digest moves."]
+  - id: EV035
+    kind: verification
+    subject:
+      type: task
+      id: T035
+    taskRefs: [T035]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV035]
+    artifacts: [src/Rogue3/Entities.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PC-002. `Rogue3.Entities.EnemyActor` gained three public fields. `spawn`, `grubSplit`, `stepEnemy` and `stepBoss` kept their signatures, and every construction outside `spawn` is a `with` expression, so no caller outside the touch-set broke -- confirmed by `Render.fs`, `GameplayVisualInventory.fs` and `FloorGeneration.fs` compiling unchanged."]
+  - id: EV036
+    kind: verification
+    subject:
+      type: task
+      id: T036
+    taskRefs: [T036]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV036]
+    artifacts: [src/Rogue3/Model.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PC-003. `Rogue3.Model.blockingObstacleRects` is a new public function and the sole description of the player's static collider set."]
+  - id: EV037
+    kind: verification
+    subject:
+      type: task
+      id: T037
+    taskRefs: [T037]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-010, PD-011]
+    obligationRefs: [EV037]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, readiness/performance-intent.yml, scripts/audit-binding-exceptions.json]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PC-004. Every workload definition digest in the regenerated readiness artifacts moved and was re-declared from the candidate's green run. FIVE cost drivers had their `ScaleSource` re-pointed -- `collision.shot-wall-queries`, `state.static-obstacles`, `state.live-enemies`, `state.m5-obstacles` and `collision.combat-candidates` -- and THREE `MaximumExpected` values moved: 820 -> 740, 5 -> 9, 2520 -> 2100. An earlier draft said three and four; a critic counted the diff. `scripts/audit-binding-exceptions.json` went 61 -> 69 entries."]
+  - id: EV038
+    kind: verification
+    subject:
+      type: task
+      id: T038
+    taskRefs: [T038]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV038]
+    artifacts: [src/Rogue3/Model.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PC-005. `Rogue3.Collision.sweepCircle` is product-owned scaffold source and kept its signature; it receives a derived list where it received a stored one."]
+  - id: EV039
+    kind: verification
+    subject:
+      type: task
+      id: T039
+    taskRefs: [T039]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV039]
+    artifacts: [src/Rogue3/Entities.fs, src/Rogue3/Model.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["VO-001. The removed surface is absent and the product compiles -- the removal is only real if the compiler agrees, and the reflection test asserts the shape the compiler produced."]
+  - id: EV040
+    kind: verification
+    subject:
+      type: task
+      id: T040
+    taskRefs: [T040]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004, PD-009]
+    obligationRefs: [EV040]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs, tests/Rogue3.Tests/M7UiMenusStatsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["VO-002. The section-14.21 regression test, mutation-verified, plus the existing dead-turret (`a dead actor emits no later attack`) and room-clear scenarios staying green."]
+  - id: EV041
+    kind: verification
+    subject:
+      type: task
+      id: T041
+    taskRefs: [T041]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003, PD-008]
+    obligationRefs: [EV041]
+    artifacts: [src/Rogue3/Entities.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["VO-003. Damage, knockback, hit flash, contact re-tick and pierce assertions hold at their existing numeric values against `EnemyActor`."]
+  - id: EV042
+    kind: verification
+    subject:
+      type: task
+      id: T042
+    taskRefs: [T042]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002, PD-007]
+    obligationRefs: [EV042]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M2MovementShotTests.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["VO-004. The player is stopped by a grounded-blocking obstacle and passes a non-blocking one through the production input route, and the slide-along-AABB assertion can still fail."]
+  - id: EV043
+    kind: verification
+    subject:
+      type: task
+      id: T043
+    taskRefs: [T043]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005, PD-006]
+    obligationRefs: [EV043]
+    artifacts: [tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs, tests/Rogue3.Tests/M4ProceduralFloorTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["VO-005. Affordability, rejection and descent-clearing assertions hold against the M5 shop and the surviving room-local collections. Both descent tests seed after the boss-room staging and BOTH now assert the collections are observably non-empty immediately before `DescendFloor` -- M4's guard-the-guard check was added after a critic found only M10 had it -- and mutation confirms each of the three `DescendFloor` clears can fail."]
+  - id: EV044
+    kind: verification
+    subject:
+      type: task
+      id: T044
+    taskRefs: [T044]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-010, PD-011]
+    obligationRefs: [EV044]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, readiness/performance-intent.yml]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["VO-006. A full Release evidence run at the exact candidate, exit code 0 captured directly: `status=ok m7-ui-performance routes=4 artifact=readiness/m7-ui-performance.json`, `status=ok performance-evidence workloads=7 capability=bounded-headless artifact=readiness/performance-evidence.json`, and `status=ok performance-intent=readiness/performance-intent.yml workloads=7`. Every timing and structural budget green, every exact cost-driver equality holding at its re-declared value. An independent critic re-ran the same command and reproduced every `definitionDigest`, every `maximumExpected` and every observed cost value byte-for-byte; only per-run receipt digests, allocation counts and timings move."]
+  - id: EV045
+    kind: verification
+    subject:
+      type: task
+      id: T045
+    taskRefs: [T045]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-012]
+    obligationRefs: [EV045]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, readiness/performance-intent.yml]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["VO-007. The merge gate was reproduced locally as its two real commands against the exact candidate, with each exit code captured DIRECTLY and never after a pipe: `dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release` exit 0 (235 passed, 0 failed), `python3 scripts/check-audit-bindings.py --selftest` exit 0, and `python3 scripts/check-audit-bindings.py` exit 0. The last prints a 'citation(s) NOT BOUND' block naming one exempt citation, which is expected output from the fix merged as EHotwagner/rogue3#38, not a failure. The FAKE `Verify` target is deliberately not treated as the gate: CI does not invoke it, three of its six steps are known no-ops (EHotwagner/rogue3#34) and running it in a worktree silently rewrites tracked `readiness/` artifacts (EHotwagner/rogue3#26)."]
+  - id: EV046
+    kind: verification
+    subject:
+      type: task
+      id: T046
+    taskRefs: [T046]
+    requirementRefs: [FR-009]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-008]
+    obligationRefs: [EV046]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["VO-008. 231 tests at the candidate against a 228 floor, and the change was mutation-tested rather than assumed: restoring the pre-#20 `List.filter (fun actor -> actor.HitPoints > 0.0)` in the shot write-back made two tests fail, and reverting it made them pass."]
+  - id: EV047
+    kind: verification
+    subject:
+      type: task
+      id: T047
+    taskRefs: [T047]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV047]
+    artifacts: [src/Rogue3/ProfileStore.fs, src/Rogue3/Replay.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PM-001. The canonical model encoding changed, so a determinism golden captured before this change no longer compares equal to one captured after. Nothing in the repository persists an encoded model across versions -- `Replay` folds an input log through `update` at run time and `ProfileStore` persists `MetaProfile`, which is untouched -- so there is no stored artefact to migrate. Every CLI form, the saved profile format and every audio cue id are unchanged."]
+  - id: EV048
+    kind: verification
+    subject:
+      type: task
+      id: T048
+    taskRefs: [T048]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV048]
+    artifacts: [src/Rogue3/Model.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PM-002. The legacy shop surface was removed outright rather than deprecated: `InteractShop` had zero production dispatch sites, so a deprecation window would have protected no caller and shipped two shop reducers for another cycle."]
+  - id: EV049
+    kind: verification
+    subject:
+      type: task
+      id: T049
+    taskRefs: [T049]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV049]
+    artifacts: [src/Rogue3/Entities.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PM-003. `EnemyActor` gained fields rather than changing any, and `spawn` supplies them, so every existing construction site kept compiling."]
+  - id: EV050
+    kind: verification
+    subject:
+      type: task
+      id: T050
+    taskRefs: [T050]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-011]
+    obligationRefs: [EV050]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, readiness/performance-intent.yml]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["GV-001. `readiness/` was regenerated through the evidence commands rather than by hand and the diff was inspected before staging. Known defect EHotwagner/rogue3#26 -- a FAKE `Verify` run in a worktree silently rewriting tracked `readiness/` artifacts -- was avoided by never invoking that target."]
+  - id: EV051
+    kind: verification
+    subject:
+      type: task
+      id: T051
+    taskRefs: [T051]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-012]
+    obligationRefs: [EV051]
+    artifacts: [scripts/audit-binding-exceptions.json]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["GV-002. `python3 scripts/check-audit-bindings.py --selftest` and `python3 scripts/check-audit-bindings.py` both exit 0 at the candidate, exit codes captured directly. `scripts/audit-binding-exceptions.json` went 61 -> 69 entries, one per binding this change invalidates across `Model.fs`, `Entities.fs`, `PerformanceEvidence.fs`, `EvidenceCommands.fs`, the six re-pointed test files and the regenerated `readiness/` artifacts, excused rather than rebound per the `7e71d71` precedent because repointing an earlier cycle's audit would claim its critic examined code that did not exist. The write was SEQUENCED with the holder of EHotwagner/rogue3#38 rather than raced -- that item is the only other live claim on this file -- and its merged fix exempts the ledger and every `feedback/audits/*.audit.json` from the scan, which removed the hand-prune-and-rebind route this cycle would otherwise have had to walk. An earlier draft of this entry asserted the ledger was already written when it was not; an independent critic caught it."]
+  - id: EV052
+    kind: verification
+    subject:
+      type: task
+      id: T052
+    taskRefs: [T052]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-015]
+    obligationRefs: [EV052]
+    artifacts: [tests/Rogue3.Tests/M4ProceduralFloorTests.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-015. Two independent fresh-context critics reviewed the candidate and both changed what ships. The code critic ran 38 mutations one at a time against a full suite and found 19 passing GREEN, including all three mutations of `actorRadius` -- the derivation this change is built on, which could be pinned to a constant 64.0, the exact unspawnable shape the removal exists to make unrepresentable -- and the removal of either `HitPoints > 0.0` filter from the `EnemyDied` death count, which silences death audio entirely with the suite green. Four guard tests were added in response: the roster radius and contact-damage derivation with a behavioural Brute-versus-Fly overlap at 25 units; the death-cue emission (one on a kill, zero on a survivor); the shot pass-through filter, whose existing assertion counted shots spawned in a tick during which none reached the obstacle and so could not fail; and a bomb KILL, which no test covered. Re-verified by re-running the mutations: `actorRadius = 64.0`, `aliveAfter` without its filter and `shotPassThrough` at 32x32 each now fail. The fourth green mutation, bombs damaging a zero-hit-point corpse, is accepted as a provable no-op because `max 0.0` leaves a corpse at zero either way. A fifth test was added to `M4ProceduralFloorTests` after the evidence critic found only `M10` asserted its descent fixtures were non-empty before the descent."]
+  - id: EV053
+    kind: verification
+    subject:
+      type: task
+      id: T053
+    taskRefs: [T053]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-016]
+    obligationRefs: [EV053]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs, work/015-unify-world-state-generations/spec.md]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/015-unify-world-state-generations/test-results/item20-full-release.trx
+      digest: "sha256:1ec942c57d447a2d23e5a8b07a58900d44cd970d2f5f6a7753e98f903591d46c"
+      outcome: passed
+      passed: 235
+      failed: 0
+      skipped: 0
+    notes: ["PD-016. AC-008's preservation claim was false for bomb and burst kills, and a critic established it by building both revisions and running one identical scenario against each rather than by reading. At `d8d0024` that damage was written to the legacy list alone and reached the actors through an `hpById` re-sync that ran AFTER `stepM5Entities`'s cleanup fold, so the kill resolved on step 2 while the candidate resolves it on step 1; the corpse took one extra AI decision, and the drop roll, kill credit and room clear all landed a step late. The death cue count is one in both. The consequence that matters is that the `DropRng` draw order shifts whenever such a kill coincides with another draw in the same step. AC-008 and FR-008 were amended to declare it, CA-003 carries the measured before-and-after, and the new bomb-kill test guards it."]
+  - id: EV054
+    kind: deferral
+    subject:
+      type: task
+      id: T054
+    taskRefs: [T054]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-017]
+    obligationRefs: [EV054]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs, tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs]
+    sourceRefs: []
+    result: deferred
+    synthetic: false
+    rationale: "purchaseM5ShopSlot grants no item, so the two deleted shop assertions have nothing true to assert against. Granting it needs stat modifiers on Entities.ItemDefinition, which the item pedestal and the boss reward need too; inventing that mapping inside a refactor whose acceptance is that a player sees no change would be the wrong place for the decision."
+    owner: "EHotwagner/rogue3 - src/Rogue3/Model.fs purchaseM5ShopSlot and src/Rogue3/Entities.fs ItemDefinition, tracked as EHotwagner/rogue3#47"
+    scope: "Pre-existing and player-facing: InteractM5Shop has always been the only wired shop message. This item removed the unreachable reducer that concealed it, not the capability."
+    laterLifecycleVisibility: "Pinned by a characterization assertion in M3CombatHealthCurrencyTests and M10AcceptanceDeterminismTests scenario 11 that goes red the day EHotwagner/rogue3#47 is fixed."
+    notes: ["PD-017. Both critics independently found that two deleted shop assertions could not be restated: `purchaseM5ShopSlot` debits, empties the offer and bumps `RunStats.ItemsFound` without touching `PlayerItems` or calling `recomputePlayerStats`. Probed at the candidate, buying `cracked-lens` for 7 coins with 10 in hand gives `coins=3 items=[] damage=3.500000 itemsFound=1`. After this removal `PlayerItems` has no production writer and `recomputePlayerStats` has no production caller. The gap is PRE-EXISTING and player-facing -- `InteractM5Shop` has always been the only wired shop message -- and what concealed it was the unreachable pre-M5 reducer that did grant the item. Closing it needs stat modifiers on `Entities.ItemDefinition`, which the item pedestal and boss reward need too, so it is filed at root cause as EHotwagner/rogue3#47, recorded as DEF-003 and SB-014, and pinned by a characterization assertion in both shop tests that goes red the day it is fixed. This is the one place CA-009's rewrite-never-delete rule was not met, and it is recorded as an admission rather than absorbed."]
+lifecycleNotes:
+  - "Next lifecycle action: verify."

@@ -51,8 +51,23 @@ type EnemyState =
     | BruteTelegraph of ticksLeft:int
     | BruteShockwave of ticksLeft:int
 
+/// The product's ONE representation of a live enemy (board item #20).
+///
+/// `Velocity`, `LastContactTick` and `HitFlashTicks` moved here from the pre-M5 `Model.Enemy`
+/// record when that second generation was removed. They are the three facts that record was
+/// carrying and this one had nowhere to put; `Radius` and `ContactDamage` did NOT move, because
+/// both are total functions of `Kind` through `definition` and storing them is what let a fixture
+/// build a 64-unit enemy no floor can spawn.
+///
+/// `Velocity` is written by shot knockback in `Model.resolveShotCombat` and read by NO integrator:
+/// `stepEnemy` advances an actor by `speed * direction`, never by a stored velocity, and `Render`
+/// never reads it. It is carried across unchanged rather than deleted because
+/// `M3CombatHealthCurrencyTests` asserts knockback is recorded; that it is recorded and never
+/// applied is filed at root cause (EHotwagner/rogue3#43), not resolved under cover of a refactor.
+/// `HitFlashTicks` is in the same condition: asserted by that file, drawn by nothing.
 type EnemyActor =
-    { Id:int; Kind:EnemyKind; Position:Vec2; Anchor:Vec2; HitPoints:float; State:EnemyState; SplitEligible:bool }
+    { Id:int; Kind:EnemyKind; Position:Vec2; Anchor:Vec2; HitPoints:float; State:EnemyState; SplitEligible:bool
+      Velocity:Vec2; LastContactTick:int option; HitFlashTicks:int }
 
 [<RequireQualifiedAccess>]
 type EnemyAction =
@@ -85,7 +100,8 @@ let initialState = function
 
 let spawn floorIndex id kind pos =
     let d = scaledDefinition floorIndex kind
-    { Id=id; Kind=kind; Position=pos; Anchor=pos; HitPoints=d.HitPoints; State=initialState kind; SplitEligible=(kind=EnemyKind.Grub) }
+    { Id=id; Kind=kind; Position=pos; Anchor=pos; HitPoints=d.HitPoints; State=initialState kind; SplitEligible=(kind=EnemyKind.Grub)
+      Velocity=zero; LastContactTick=None; HitFlashTicks=0 }
 
 let private casterDestination player rng =
     let rec choose attempts next =
