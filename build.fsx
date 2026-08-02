@@ -861,7 +861,10 @@ let private readKitPins (root: string) : Result<(string * string) list, string> 
     let file = path [ root; kitPinsRelative ]
 
     if not (File.Exists file) then
-        Error $"{kitPinsRelative}: the kit pin ledger is missing, so nothing pins the kit files the generated manifest does not name"
+        // Names the remedy, because this is the one violation a tree can reach WITHOUT anything
+        // being wrong with the kit — a checkout that never had the ledger. Reporting it without a
+        // way out is how a gate becomes something people switch off.
+        Error $"{kitPinsRelative}: the kit pin ledger is missing, so nothing pins the kit files the generated manifest does not name — run `./fake.sh build -t KitPins` to create it, then review the pins it writes"
     else
         try
             use doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText file)
