@@ -1,0 +1,166 @@
+{
+  "grandfatherSchema": 2,
+  "note": "Explicit exceptions to the audit-binding check (scripts/check-audit-bindings.py) written by ONE cycle: `--grandfather --cycle <id>` writes this file and nothing else, ever. Each entry excuses ONE stale binding at ONE observed digest, so a digest no cycle ever excused still fails. The checker evaluates the UNION of every file in this directory, so two concurrent cycles excuse the same binding without sharing a path -- and because both entries survive the merge, the digests a binding tolerates only ever GROW: returning a file to a digest some earlier cycle excused is green under that cycle's recorded reason. An entry that excuses nothing right now is reported as dormant, never as a failure, and only the cycle that owns this file prunes it. Adding an entry here is the PREFERRED remedy; rebinding a MERGED audit rewrites what that audit records its critic as having verified (see 7e71d71) and is right only for an audit you re-verified yourself.",
+  "entries": [
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "e01bfecef3158d4ed79dffbd17021d8b7bca68c9162ec2f476e83df26146a303",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-10.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "089b1fdcd2f14e1d7f8ba5cce0435059c204ffa0c0574bb80e229885b40142c3",
+      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "089b1fdcd2f14e1d7f8ba5cce0435059c204ffa0c0574bb80e229885b40142c3",
+      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-13.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-14.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "257798a7cb1afbd8574091fd220c97af368aadbbadefbdb868a21e0c2b2244a6",
+      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-15.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa",
+      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-17.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa",
+      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-17.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "486fd8012c4dba5a23e4e0270eec14d70a36ea3c474c9740e610445d87c1180c",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-18.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "78b072330cf1e5fb7a271761b72c21609e1ab4c97897468997ca86e1dea771bb",
+      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-19.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "78b072330cf1e5fb7a271761b72c21609e1ab4c97897468997ca86e1dea771bb",
+      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-19.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "1ef477799c13a80e64b56d5e5c554e6598373c49b10b9e3170f1e53736a1000c",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-20.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "486fd8012c4dba5a23e4e0270eec14d70a36ea3c474c9740e610445d87c1180c",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-22.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "54a9af4b88e13f6a8b81bad23dd1de2a3d498b15072af8085d30efdc65a9d5e9",
+      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-22.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-4.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-7.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "1acae987b6643464764bdff31134e00c1b992413320deeec726a4b9fdd367ae8",
+      "observedSha256": "bd06a9787c708b504d74bc08b8d45ea8302e67687306c61f63811355ca25fae8",
+      "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
+    }
+  ]
+}
