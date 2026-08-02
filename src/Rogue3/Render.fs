@@ -628,16 +628,28 @@ let playerInvulnerableScene model =
     let arc from sweep = Scene.arc ring from sweep (Paint.stroke (color 226uy 244uy 255uy 220uy) 3.0)
     Scene.group [ arc -80.0 70.0; arc 10.0 70.0; arc 100.0 70.0; arc 190.0 70.0 ]
 
-/// Rolling: a wedge of motion trailing the player's velocity, so the direction and the commitment are
-/// both visible. Drawn from the velocity rather than the aim, because a roll ignores aim.
+/// Rolling: a motion trail behind the player's velocity, so the direction and the commitment are both
+/// visible. Drawn from the velocity rather than the aim, because a roll ignores aim.
+///
+/// LOOKED AT AND LENGTHENED. The first version trailed 26 units at alpha 150 and rendered as a smudge
+/// roughly the size of the player's own facing pip — at a glance it was indistinguishable from the
+/// player standing still. A roll covers 460 px/s for 0.45 s, so the trail is now 62 units, three
+/// tapering after-images plus flanking streaks, which is what actually reads as speed on the frame.
 let playerDodgeRollScene model =
     let heading = if model.PlayerVelocity = zero then normalizeOrZero model.Facing else normalizeOrZero model.PlayerVelocity
-    let back = sub model.PlayerPosition (scale 26.0 heading)
     let side = vec2 -heading.Vy heading.Vx
+    let back distance = sub model.PlayerPosition (scale distance heading)
+    let streak offset =
+        Scene.line
+            (point (add (back 62.0) (scale offset side)))
+            (point (add model.PlayerPosition (scale offset side)))
+            (Paint.stroke (color 126uy 227uy 255uy 120uy) 3.0)
     Scene.group
-        [ Scene.line (point (add back (scale 9.0 side))) (point (add model.PlayerPosition (scale 9.0 side))) (Paint.stroke (color 126uy 227uy 255uy 150uy) 4.0)
-          Scene.line (point (sub back (scale 9.0 side))) (point (sub model.PlayerPosition (scale 9.0 side))) (Paint.stroke (color 126uy 227uy 255uy 150uy) 4.0)
-          Scene.circle (point back) 6.0 (color 126uy 227uy 255uy 90uy) ]
+        [ streak 11.0
+          streak -11.0
+          Scene.circle (point (back 20.0)) 11.0 (color 126uy 227uy 255uy 120uy)
+          Scene.circle (point (back 38.0)) 8.0 (color 126uy 227uy 255uy 80uy)
+          Scene.circle (point (back 56.0)) 5.0 (color 126uy 227uy 255uy 50uy) ]
 
 /// Down: the disc goes grey and gains a cross, so a dead player is not a live-looking cyan disc.
 let playerDownScene model =
@@ -661,10 +673,15 @@ let telegraphOf (actor: EnemyActor) =
         let heading = if direction = zero then vec2 0.0 -1.0 else scale (1.0 / (max 1e-9 (sqrt (direction.Vx*direction.Vx + direction.Vy*direction.Vy)))) direction
         let far = add actor.Position (scale 96.0 heading)
         let side = vec2 -heading.Vy heading.Vx
+        // LOOKED AT AND REDRAWN. The first arrowhead was two 14-unit arms drawn from the tip back
+        // ALONG the bar, so both arms fell inside the bar's own 10-unit stroke and the frame showed a
+        // single perpendicular tick. The arms are now swept back off the axis, which is what makes the
+        // bar read as pointing somewhere rather than as a stripe on the floor.
+        let barb offset = add (sub far (scale 26.0 heading)) (scale offset side)
         Scene.group
             [ Scene.line (point actor.Position) (point far) (Paint.stroke (color 255uy 122uy 48uy 130uy) 10.0)
-              Scene.line (point (add far (scale 14.0 side))) (point far) (Paint.stroke (color 255uy 190uy 96uy 200uy) 4.0)
-              Scene.line (point (sub far (scale 14.0 side))) (point far) (Paint.stroke (color 255uy 190uy 96uy 200uy) 4.0) ])
+              Scene.line (point (barb 18.0)) (point far) (Paint.stroke (color 255uy 190uy 96uy 235uy) 5.0)
+              Scene.line (point (barb -18.0)) (point far) (Paint.stroke (color 255uy 190uy 96uy 235uy) 5.0) ])
 
 type RenderedElement =
     { ElementId: string

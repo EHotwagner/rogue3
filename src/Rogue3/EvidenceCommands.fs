@@ -1399,7 +1399,7 @@ let m7UiPerformanceEvidence (path:string) =
               // did not, and again every scale verdict is unchanged — hud-playing still reports 12
               // scene elements at both outputs, which is the check that splitting the HUD inventory
               // did not change one node of what the viewer receives.
-              "hud-playing", "b17b14dd124c7ffe217f60777ba8f270ec47f6c7bbea9d009c9c9b36f824dc66"
+              "hud-playing", "fddf978347c485cb4da3cea34768b5d30e211bb569b3bc84e9aeec57622733db"
               "run-result", "2a0f0eeec19d7e139e91b4ac8e496370825affb664cf379e6cdb52f270106025"
               "stats-charts", "8cf13b8adff5f8a0cdf096506166a1e3deb89e60e8a0fd6c1e2aca55e54b3a18" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]

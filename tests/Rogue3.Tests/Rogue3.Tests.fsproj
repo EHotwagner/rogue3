@@ -40,6 +40,12 @@
          `OpenAlBackend.create`. A hardcoded id list checked against the filesystem would have passed
          while the product stayed silent, which is what M8 shipped. -->
     <Compile Include="M12AudioAssetTests.fs" />
+    <!-- M13: the five rows M11's committed production frames exposed. Each was found by LOOKING, so
+         each carries a committed frame a human inspected as well as the test here. The tests are
+         written so they would have failed against the M11 tree — a crossing with no departed room, a
+         positionless drop, a fixture at a fixed screen coordinate, a player standing inside the drawn
+         wall band, and a single catch-all HudScore inventory row. -->
+    <Compile Include="M13RoomTransitionWorldStateTests.fs" />
     <!-- Issue #1002 (child of #991): release-lane BEHAVIOUR coverage for the generic game shell.
          Drives GameShell.fs's pure `update` + host-free seams (router, Esc routing, rebind capture,
          display->window-behaviour mapping, keymap persistence). Additive — it adds shell tests beside

@@ -1,0 +1,1394 @@
+schemaVersion: 1
+workId: 014-m13-room-transition-pickups-world-state
+stage: evidence
+status: evidenceReady
+sourceSpec: work/014-m13-room-transition-pickups-world-state/spec.md
+sourceClarifications: work/014-m13-room-transition-pickups-world-state/clarifications.md
+sourceChecklist: work/014-m13-room-transition-pickups-world-state/checklist.md
+sourcePlan: work/014-m13-room-transition-pickups-world-state/plan.md
+sourceTasks: work/014-m13-room-transition-pickups-world-state/tasks.yml
+sourceAnalysis: readiness/014-m13-room-transition-pickups-world-state/analysis.json
+sourceSnapshots:
+  - label: analysis
+    path: readiness/014-m13-room-transition-pickups-world-state/analysis.json
+    digest: 51911271b223b73c6e0766c03e2d3d41bc4914167b350d446a8cc78544eeb436
+    schemaVersion: 1
+  - label: checklist
+    path: work/014-m13-room-transition-pickups-world-state/checklist.md
+    digest: 4c64186b5b0bdc055cf9127f23414e94ee2c7a31a081a780d3bf940051a8df5b
+    schemaVersion: 1
+  - label: clarifications
+    path: work/014-m13-room-transition-pickups-world-state/clarifications.md
+    digest: 98345e0cf66aa417acf2f6adb65c394ca75e567373e02134d49ff536a4dd2e0e
+    schemaVersion: 1
+  - label: plan
+    path: work/014-m13-room-transition-pickups-world-state/plan.md
+    digest: b61f789490ffe3889321f1979ef3adbe95485ecf54544f3d4fbc416074db195d
+    schemaVersion: 1
+  - label: spec
+    path: work/014-m13-room-transition-pickups-world-state/spec.md
+    digest: da846e47d5f4127347ede7de37d366f1cfaa8a669fa618034c732fa7b61d4a63
+    schemaVersion: 1
+  - label: tasks
+    path: work/014-m13-room-transition-pickups-world-state/tasks.yml
+    digest: 3dee069e792a1f05d80d0392b5540379b314ebe64900d274f73434d4e0e6295d
+    schemaVersion: 1
+evidence:
+  - id: EV001
+    kind: verification
+    subject:
+      type: task
+      id: T001
+    taskRefs: [T001]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV001]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-001/AC-001. Model.M6CameraTransition gained FromRoom and the TraverseDoor arm stops discarding the slide direction it already computed (the `ignore slide` line is gone), reading the departed room id from Floor.CurrentRoom before tryTraverseDoor rewrites it. Proved by driving the player at a doorway with KeyChanged + Tick only, stopping AT the crossing because the slide lives 42 ticks, and asserting the resulting transition names the departed room at ElapsedTicks 0."]
+  - id: EV002
+    kind: verification
+    subject:
+      type: task
+      id: T002
+    taskRefs: [T002]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV002]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-002/AC-002. Render.roomShellScene draws a room's floor, wall band, door presentations and trapdoor fixture; renderedElementsIn emits it as DepartedRoom pre-translated by Render.departedRoomStep, one full playfield back along the slide axis, so the single existing Scene.translate in viewIn carries both rooms. Asserted at ticks 0, 1, 20 and 41 that the two rooms stay exactly one playfield apart, that the shell is a real shell rather than one rectangle, and that a model with no transition emits no DepartedRoom at all."]
+  - id: EV003
+    kind: verification
+    subject:
+      type: task
+      id: T003
+    taskRefs: [T003]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV003]
+    artifacts: [src/Rogue3/Render.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs, tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-003/AC-003. Render.cameraOffset is not touched, which is why the departed shell is expressed as a RELATIVE step rather than a second absolute offset. M6RenderingEnemySymbologyTests still asserts one room away at tick 0, non-zero at 41 and identity at 42, and the M13 list re-asserts the two endpoints independently."]
+  - id: EV004
+    kind: verification
+    subject:
+      type: task
+      id: T004
+    taskRefs: [T004]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV004]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-004/AC-004. Model.FloorPickup replaces the positionless element type of M5ObstacleDrops; both drop sites (resolveCombat, damageM5Obstacle) build it from the destroyed obstacle's own Id and Position. Proved by smashing every obstacle in the boot room through the production reducer and asserting each resulting drop's position equals the position of the obstacle whose id it carries. No positionless drop representation remains in the model."]
+  - id: EV005
+    kind: verification
+    subject:
+      type: task
+      id: T005
+    taskRefs: [T005]
+    requirementRefs: [FR-005]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV005]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-005/AC-005. Model.collectFloorPickups runs in the fixed step after the player's position resolves. Proved through KeyChanged + Tick alone: walking onto a three-coin drop removes it and credits exactly three coins, and lingering on the same spot for a further 120 fixed steps credits nothing more. Every kind's effect is asserted separately, and a 98-coin purse plus a three-coin pickup clamps at the shared 99 cap."]
+  - id: EV006
+    kind: verification
+    subject:
+      type: task
+      id: T006
+    taskRefs: [T006]
+    requirementRefs: [FR-006]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-006]
+    obligationRefs: [EV006]
+    artifacts: [src/Rogue3/Render.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-006/AC-006. The renderer draws each pickup at pickup.Position instead of at X = 300 + index*52, Y = 520. Asserted that three drops at three authored positions produce three Pickup elements whose drawn geometry straddles each authored position - a placement test rather than a count test, because the M11 defect was that the drawn centre was a function of the INDEX. Also asserted inside the wall band."]
+  - id: EV007
+    kind: verification
+    subject:
+      type: task
+      id: T007
+    taskRefs: [T007]
+    requirementRefs: [FR-007]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV007]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-007/AC-007. Model.placeRoomFixtures is a deterministic first fit over roomPlacementCandidates, rejecting any candidate inside the room shell, on the trapdoor, or within obstacleClearance of an obstacle. Swept over EVERY room of all six reachable floors - more than sixty rooms - rather than the one room a fixture happens to use, asserting all four constraints for every placement."]
+  - id: EV008
+    kind: verification
+    subject:
+      type: task
+      id: T008
+    taskRefs: [T008]
+    requirementRefs: [FR-008]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-008]
+    obligationRefs: [EV008]
+    artifacts: [src/Rogue3/Render.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-008/AC-008. Render.shopSlotScene draws the stock on a plinth with its price beneath it, or a brass keyhole plate when KeyLocked, or a bare dashed outline when the offer is Empty. Asserted the price text is present for a coin-priced slot, absent for a key-locked one and for an emptied one, and that all three exported scenes are byte-distinct."]
+  - id: EV009
+    kind: verification
+    subject:
+      type: task
+      id: T009
+    taskRefs: [T009]
+    requirementRefs: [FR-009]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV009]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/frames/02-crossing-midpoint/reference-evidence.md, readiness/014-m13-room-transition-pickups-world-state/frames/07-player-pressed-into-north-wall/reference-evidence.md, scripts/render-m13-frames.fsx, src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-009/AC-009. Model.roomWallSlabs is passed to Collision.sweepCircle alongside model.Obstacles for the PLAYER only. Proved by steering the player at all four out-of-room corners for 400 fixed steps each and asserting the player circle intersects no wall slab. The committed frame 07-player-pressed-into-north-wall measures the result: the player stops at y = 37.00, exactly wallThickness 24 plus playerRadius 13."]
+  - id: EV010
+    kind: verification
+    subject:
+      type: task
+      id: T010
+    taskRefs: [T010]
+    requirementRefs: [FR-010]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV010]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-010/AC-010. The slabs open a full doorway gap at every wall carrying a door of any state. Asserted that a point inside each doorway sensor is clear of every slab by more than the player radius - the property that keeps doorwaySensorContains (depth 0 to 14, shallower than the 24-unit band) reachable. M11's traversal, key-door and descent tests are unchanged and green."]
+  - id: EV011
+    kind: verification
+    subject:
+      type: task
+      id: T011
+    taskRefs: [T011]
+    requirementRefs: [FR-011]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV011]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-011/AC-011. Derived independently from both ends and required to coincide: the collider list comes from Model.roomWallSlabs, the drawn geometry from SceneInspection over the production RoomWalls element, and every collider slab must have a drawn rectangle within 2 units on all four fields. Also asserted that a doorless room yields four solid walls and a four-door room yields eight."]
+  - id: EV012
+    kind: verification
+    subject:
+      type: task
+      id: T012
+    taskRefs: [T012]
+    requirementRefs: [FR-012]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-011]
+    obligationRefs: [EV012]
+    artifacts: [src/Rogue3/GameplayVisualInventory.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-012/AC-012. PlayerInvulnerable, PlayerDodgeRoll, PlayerDown and EnemyTelegraph are emitted from PostHitInvulnTicks/DodgeIFrameTicks, DodgeRollTicks, PlayerLifeState and the enemy wind-up states. Asserted that each appears in its own state, that NONE appears in a resting frame, and that each is drawn on the actor it describes rather than at a fixed coordinate."]
+  - id: EV013
+    kind: verification
+    subject:
+      type: task
+      id: T013
+    taskRefs: [T013]
+    requirementRefs: [FR-013]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV013]
+    artifacts: [src/Rogue3/GameplayVisualInventory.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-013/AC-013. hudRegionScenes describes the HUD one region at a time and hudSceneForSize is exactly the ordered concatenation; asserted byte-identical through SceneCodec.export. HudScore is gone from the inventory. The floor banner is absent when FloorNameTicks is zero while the minimap is always present. The hud-playing UI route still measures exactly 12 scene elements at both output sizes."]
+  - id: EV014
+    kind: verification
+    subject:
+      type: task
+      id: T014
+    taskRefs: [T014]
+    requirementRefs: [FR-014]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV014]
+    artifacts: [src/Rogue3/GameplayVisualInventory.fs, src/Rogue3/PerformanceEvidence.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs, tests/Rogue3.Tests/element-visuals.catalog]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-014/AC-014. Three independent sets are required to agree: the runtime union, the committed catalog file read from disk, and the performance cost-driver VisualElement set which costDriverProblems compares and fails closed on. Plus every binding's representative scene is asserted byte-distinct from every other's, so a new element that draws like an existing one cannot pass."]
+  - id: EV015
+    kind: verification
+    subject:
+      type: task
+      id: T015
+    taskRefs: [T015]
+    requirementRefs: [FR-015]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV015]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/frames/02-crossing-midpoint/reference-evidence.md, scripts/render-m13-frames.fsx, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-015/AC-015. scripts/render-m13-frames.fsx renders twelve production frames through Render.toPng over View.view, driving the crossing through the real input route. Every frame was inspected by the author; two were redrawn as a result - the telegraph arrowhead fell inside the bar's own stroke and rendered as a single perpendicular tick, and the dodge trail was a 26-unit smudge the size of the player's facing pip - and both corrections are recorded in the source at the site. A test pins the committed frame set to exactly the authored twelve."]
+  - id: EV016
+    kind: verification
+    subject:
+      type: task
+      id: T016
+    taskRefs: [T016]
+    requirementRefs: [FR-016]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV016]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx, readiness/performance-evidence.json, readiness/performance-intent.yml, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["FR-016/AC-016. Full Release suite 224/224 at the exact candidate; every workload inside p95 16.67 and p99 25.0 with zero catch-up frames; maximum-content 704 scene nodes against the 4096 budget. All seven workload definition digests moved and were re-declared only from the run that was green on every budget; the hud-playing UI-route digest likewise. collision.shot-wall-queries 736 to 832 and the new simulation.floor-pickup-candidates 12 are exact-equality drivers in maximum-content."]
+  - id: EV017
+    kind: verification
+    subject:
+      type: task
+      id: T017
+    taskRefs: [T017]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV017]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/frames/02-crossing-midpoint/reference-evidence.md, readiness/014-m13-room-transition-pickups-world-state/frames/07-player-pressed-into-north-wall/reference-evidence.md, scripts/render-m13-frames.fsx, src/Rogue3/Render.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["DEC-001. The slide draws the departed room's SHELL - floor, wall band, doors with the combat lock lifted, trapdoor fixture - as one DepartedRoom element on the floor-background layer, pre-translated so the product still has exactly one camera transform. The limit is stated rather than hidden and is filed as EHotwagner/rogue3#35."]
+  - id: EV018
+    kind: verification
+    subject:
+      type: task
+      id: T018
+    taskRefs: [T018]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV018]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["DEC-002. The collider is exactly roomWallSlabs: the band with a gap at every wall carrying a door of any state. Door panels are not colliders, so a player may stand in the mouth of a locked doorway - the affordance UnlockDoor needs, since doorwaySensorDepth 14 is shallower than wallThickness 24. Asserted by FR-010's test."]
+  - id: EV019
+    kind: verification
+    subject:
+      type: task
+      id: T019
+    taskRefs: [T019]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV019]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["DEC-003. Collection applies to obstacle drops only. M5ObstacleDrops becomes FloorPickup list and the positionless representation is removed rather than kept beside it. The room-clear drop keeps its current mechanic and is filed as EHotwagner/rogue3#36."]
+  - id: EV020
+    kind: verification
+    subject:
+      type: task
+      id: T020
+    taskRefs: [T020]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV020]
+    artifacts: [src/Rogue3/GameplayVisualInventory.fs, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["DEC-004. ui.hud-floor-banner is NonPerformance with its reason stated (a timed announcement no steady-state workload frame holds); the other four HUD region drivers inherit the retired ui.hud-score disposition RequiredIn firing and maximum-content with MaximumExpected 1 each, and all four are observed at 1 in the committed evidence."]
+  - id: EV021
+    kind: verification
+    subject:
+      type: task
+      id: T021
+    taskRefs: [T021]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV021]
+    artifacts: [readiness/performance-evidence.json, readiness/performance-intent.yml, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["DEC-005. Every workload digest was re-declared from the candidate's own evidence run, not from a scratch run: the run that emitted each digest is the run recorded in readiness/performance-evidence.json, and it was green on p95, p99, scene nodes, catch-up and every exact cost-driver equality. The causes are stated in the roadmap and in this cycle's report."]
+  - id: EV022
+    kind: verification
+    subject:
+      type: task
+      id: T022
+    taskRefs: [T022]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV022]
+    artifacts: [readiness/performance-evidence.json, readiness/performance-intent.yml, src/Rogue3/Model.fs, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["DEC-006. Two deterministic counters make the new fixed-step cost observable: Model.TotalFloorPickupCandidates bound to simulation.floor-pickup-candidates (observed 12), and Model.TotalWallQueries absorbing the player's wall-slab casts under collision.shot-wall-queries (736 to 832, exactly six times eight slabs times two steps). Both are exact-equality drivers in maximum-content, so an unintended extra query reds the run."]
+  - id: EV023
+    kind: verification
+    subject:
+      type: task
+      id: T023
+    taskRefs: [T023]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV023]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/frames/02-crossing-midpoint/reference-evidence.md, scripts/render-m13-frames.fsx, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["DEC-007. The M13 frames live in their own directory with their own harness, because M11PlayabilityLegibilityTests asserts the M11 frame directory holds exactly sixteen named subdirectories - a frame written there would have redded M11. A sibling test pins the M13 set the same way."]
+  - id: EV024
+    kind: verification
+    subject:
+      type: task
+      id: T024
+    taskRefs: [T024]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV024]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["DEC-008. wallThickness, doorApron and the wall-slab geometry moved into Model; Render.wallThickness and Render.doorApron remain as re-exports, so M11PlayabilityLegibilityTests and hudRegionsForSize callers are untouched. Render.doorwayRect stayed in Render deliberately: Model's Rect is the simulation Rect while the HUD-overlap test intersects it with scene rects."]
+  - id: EV025
+    kind: verification
+    subject:
+      type: task
+      id: T025
+    taskRefs: [T025]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV025]
+    artifacts: [scripts/audit-binding-exceptions.json, scripts/render-m13-frames.fsx, src/Rogue3/EvidenceCommands.fs, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["DEC-009. The touch-set extension was declared on EHotwagner/rogue3#12 BEFORE implementation, with the reason (the product's own coverage gate binds the visual inventory to PerformanceEvidence.fs) and the contention check against the only other in-flight item, rogue3#28, whose paths are disjoint. Rogue3.fsproj and Vec2.fs were not touched; no new compile item was added."]
+  - id: EV026
+    kind: verification
+    subject:
+      type: task
+      id: T026
+    taskRefs: [T026]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV026]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["DEC-010. placeRoomFixtures is a first fit over a fixed authored candidate list, so the result is a pure function of the room: a test and a frame see the same placement, and appending a candidate cannot move an existing room's stock while the earlier candidates still fit. The fallback arm keeps it total for a pathologically furnished room."]
+  - id: EV027
+    kind: verification
+    subject:
+      type: task
+      id: T027
+    taskRefs: [T027]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV027]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PD-001. Implemented as planned: FromRoom on the transition, read before loadM5Room rewrites CurrentRoom, and BeginM6RoomTransition naming the current room so the M6 evidence route keeps its meaning."]
+  - id: EV028
+    kind: verification
+    subject:
+      type: task
+      id: T028
+    taskRefs: [T028]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV028]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/frames/02-crossing-midpoint/reference-evidence.md, readiness/014-m13-room-transition-pickups-world-state/frames/07-player-pressed-into-north-wall/reference-evidence.md, scripts/render-m13-frames.fsx, src/Rogue3/Render.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PD-002. Implemented as planned, including the sign convention: North (0,+H), South (0,-H), East (-W,0), West (+W,0), asserted for East in the test and exercised for West by the committed crossing frames."]
+  - id: EV029
+    kind: verification
+    subject:
+      type: task
+      id: T029
+    taskRefs: [T029]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV029]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: [PD-004. Implemented as planned at both drop sites.]
+  - id: EV030
+    kind: verification
+    subject:
+      type: task
+      id: T030
+    taskRefs: [T030]
+    requirementRefs: [FR-005]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV030]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PD-005. Implemented as planned, with the collection scan placed after spike damage so a pickup and a spike in the same step both resolve against the settled player position."]
+  - id: EV031
+    kind: verification
+    subject:
+      type: task
+      id: T031
+    taskRefs: [T031]
+    requirementRefs: [FR-007]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-007]
+    obligationRefs: [EV031]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PD-007. Implemented as planned; the candidate ring is two rows across the lower half of the room, chosen to clear the four doorways, the trapdoor footprint and the HUD bands as well as the obstacles."]
+  - id: EV032
+    kind: verification
+    subject:
+      type: task
+      id: T032
+    taskRefs: [T032]
+    requirementRefs: [FR-009, FR-011]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-009]
+    obligationRefs: [EV032]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PD-009 and PC-005. Implemented as planned. Rogue3.Collision.sweepCircle is product-owned scaffold source and keeps its signature; it simply receives a longer static-rect list, and only for the player."]
+  - id: EV033
+    kind: verification
+    subject:
+      type: task
+      id: T033
+    taskRefs: [T033]
+    requirementRefs: [FR-010]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-010]
+    obligationRefs: [EV033]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PD-010. Implemented as planned; the deliberate consequence is recorded in DEC-002 rather than papered over."]
+  - id: EV034
+    kind: verification
+    subject:
+      type: task
+      id: T034
+    taskRefs: [T034]
+    requirementRefs: [FR-013]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-012]
+    obligationRefs: [EV034]
+    artifacts: [src/Rogue3/GameplayVisualInventory.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PD-012. Implemented as planned, with the byte-identity of the composed HUD asserted rather than argued."]
+  - id: EV035
+    kind: verification
+    subject:
+      type: task
+      id: T035
+    taskRefs: [T035]
+    requirementRefs: [FR-014]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-013]
+    obligationRefs: [EV035]
+    artifacts: [src/Rogue3/GameplayVisualInventory.fs, src/Rogue3/PerformanceEvidence.fs, tests/Rogue3.Tests/element-visuals.catalog]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PD-013. All three sets edited in one change. Dispositions: scene.departed-room and simulation.floor-pickup-candidates RequiredIn maximum-content; scene.player-invulnerable and scene.player-dodge-roll RequiredIn effects-fog, the workload that IS the dodge; scene.player-down, scene.enemy-telegraph and ui.hud-floor-banner NonPerformance with stated reasons."]
+  - id: EV036
+    kind: verification
+    subject:
+      type: task
+      id: T036
+    taskRefs: [T036]
+    requirementRefs: [FR-015]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-014]
+    obligationRefs: [EV036]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/frames/02-crossing-midpoint/reference-evidence.md, scripts/render-m13-frames.fsx, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PD-014. Implemented as planned. The harness drives the crossing through KeyChanged and Tick, so the transition in frames 01 to 03 is the one a player gets rather than one a fixture asserted."]
+  - id: EV037
+    kind: verification
+    subject:
+      type: task
+      id: T037
+    taskRefs: [T037]
+    requirementRefs: [FR-016]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-015]
+    obligationRefs: [EV037]
+    artifacts: [readiness/performance-evidence.json, readiness/performance-intent.yml, scripts/audit-binding-exceptions.json, src/Rogue3/EvidenceCommands.fs, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PD-015. Implemented as planned. The audit-binding selftest and the plain check both exit 0 at the candidate, with true exit codes captured rather than read through a pipe."]
+  - id: EV038
+    kind: deferral
+    subject:
+      type: task
+      id: T038
+    taskRefs: [T038]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-016]
+    obligationRefs: [EV038]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/frames/02-crossing-midpoint/reference-evidence.md, readiness/014-m13-room-transition-pickups-world-state/frames/07-player-pressed-into-north-wall/reference-evidence.md, scripts/render-m13-frames.fsx]
+    sourceRefs: []
+    result: deferred
+    synthetic: false
+    rationale: "Drawing the departed room's contents through a slide needs the departed room's ROOM-LOCAL model state to survive the crossing, which loadM5Room has already overwritten. Both plausible routes - a room snapshot carried on the transition, or room-local state restored from the floor graph - are model-shape changes with their own determinism and performance consequences, and neither is needed for a crossing to read as a crossing. Pulling it in would trade a milestone that closes a blank screen for one that redesigns room state."
+    owner: roadmap
+    scope: "The departed room's obstacles, room-clear drop, reward pedestal and shop stock during the 0.35 s slide. The departed room's floor, wall band, doors and trapdoor fixture ARE in scope for M13 and are drawn and evidenced."
+    laterLifecycleVisibility: "Carried as DEC-011 in clarifications, PD-016 in the plan and CR-017 in the checklist, filed as EHotwagner/rogue3#35 with the committed midpoint frame as its reproduction, and recorded in the M13 roadmap evidence paragraph before this milestone closes."
+    notes: ["PD-016. Accepted deferral, filed as EHotwagner/rogue3#35 with its reason, its reproduction (the committed midpoint frame) and its acceptance criteria, rather than left implicit."]
+  - id: EV039
+    kind: deferral
+    subject:
+      type: task
+      id: T039
+    taskRefs: [T039]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-017]
+    obligationRefs: [EV039]
+    artifacts: [src/Rogue3/Render.fs]
+    sourceRefs: []
+    result: deferred
+    synthetic: false
+    rationale: "Making the room-clear drop collectable requires changing Rogue3.Entities.CombatRoom, a record outside this item's declared touch-set, with a blast radius across enterRoom, roomCleared, bossCleared, enemyDiedWithNothingWeight and their tests. It is also a different mechanic from an obstacle drop and deserves its own change rather than being smuggled in."
+    owner: roadmap
+    scope: "Entities.CombatRoom.Drop - the pickup rolled when a room's last enemy dies. Obstacle drops ARE in scope for M13 and are positioned, drawn and collectable."
+    laterLifecycleVisibility: "Carried as DEC-012 in clarifications, PD-017 in the plan and CR-018 in the checklist, and filed as EHotwagner/rogue3#36, which states the uncomfortable consequence plainly: the product now has two pickup mechanics for the same six PickupKind values, one collectable and one not."
+    notes: ["PD-017. Accepted deferral, filed as EHotwagner/rogue3#36 with its reason and its acceptance criteria. It records the uncomfortable consequence honestly: the product now has two pickup mechanics for the same six PickupKind values, one collectable and one not."]
+  - id: EV040
+    kind: verification
+    subject:
+      type: task
+      id: T040
+    taskRefs: [T040]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-004]
+    obligationRefs: [EV040]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PC-001. M6CameraTransition gained a field and M5ObstacleDrops changed element type. Both are public model surfaces; every construction site in the tree was updated, including the two outside the item's declared paths and three in the test suite."]
+  - id: EV041
+    kind: verification
+    subject:
+      type: task
+      id: T041
+    taskRefs: [T041]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005, PD-009]
+    obligationRefs: [EV041]
+    artifacts: [src/Rogue3/Model.fs, src/Rogue3/Render.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PC-002. The new Model surface is exercised by the M13 test list directly - roomWallSlabs, roomWallSlabsFor, placeRoomFixtures, insideRoomShell, obstacleClearance, collectFloorPickups and FloorPickup all appear in assertions rather than only in the implementation."]
+  - id: EV042
+    kind: verification
+    subject:
+      type: task
+      id: T042
+    taskRefs: [T042]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002, PD-011, PD-012]
+    obligationRefs: [EV042]
+    artifacts: [src/Rogue3/GameplayVisualInventory.fs, src/Rogue3/PerformanceEvidence.fs, tests/Rogue3.Tests/element-visuals.catalog]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PC-003. Ten cases added, HudScore removed. The coverage gate, the catalog audit and the performance cost-driver gate all agree at the candidate, which is the property that made PerformanceEvidence.fs load-bearing for this item."]
+  - id: EV043
+    kind: verification
+    subject:
+      type: task
+      id: T043
+    taskRefs: [T043]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-015]
+    obligationRefs: [EV043]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, readiness/performance-intent.yml, scripts/audit-binding-exceptions.json, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PC-004. Every workload definition digest moved and was re-declared; scripts/audit-binding-exceptions.json gained entries for the audits this change invalidates, excused rather than rebound per the 7e71d71 precedent."]
+  - id: EV044
+    kind: verification
+    subject:
+      type: task
+      id: T044
+    taskRefs: [T044]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001, PD-002, PD-003]
+    obligationRefs: [EV044]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["VO-001. Focused Release M13 list 16 of 16 within the full 224 of 224 run; the crossing, the two-room projection and the unchanged camera contract are all asserted."]
+  - id: EV045
+    kind: verification
+    subject:
+      type: task
+      id: T045
+    taskRefs: [T045]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004, PD-005, PD-006]
+    obligationRefs: [EV045]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["VO-002. Drop position, collection through the input route, per-kind effects, the 99 cap and drawn placement are all in the same green run."]
+  - id: EV046
+    kind: verification
+    subject:
+      type: task
+      id: T046
+    taskRefs: [T046]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-007, PD-008]
+    obligationRefs: [EV046]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["VO-003. Placement swept over every room of all six floors, and the priced, locked and emptied shop presentations asserted byte-distinct."]
+  - id: EV047
+    kind: verification
+    subject:
+      type: task
+      id: T047
+    taskRefs: [T047]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-009, PD-010]
+    obligationRefs: [EV047]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["VO-004. Wall containment from four directions, doorway passability, and the one-value derivation of the collider and the drawn shell."]
+  - id: EV048
+    kind: verification
+    subject:
+      type: task
+      id: T048
+    taskRefs: [T048]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-011, PD-012, PD-013]
+    obligationRefs: [EV048]
+    artifacts: [tests/Rogue3.Tests/CoverageGateTests.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs, tests/Rogue3.Tests/element-visuals.catalog]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["VO-005. The coverage gate, the catalog audit, the distinctness gate and the HUD byte-identity assertion are green together in the same run."]
+  - id: EV049
+    kind: verification
+    subject:
+      type: task
+      id: T049
+    taskRefs: [T049]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-014]
+    obligationRefs: [EV049]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/frames/02-crossing-midpoint/reference-evidence.md, readiness/014-m13-room-transition-pickups-world-state/frames/07-player-pressed-into-north-wall/reference-evidence.md, scripts/render-m13-frames.fsx]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["VO-006. Twelve committed production PNGs, produced by Render.toPng over View.view and inspected by the author, with two defects found and fixed BY looking. An independent fresh-context visual critic reviewed the frame set; its findings are recorded in this cycle's feedback report and its audit."]
+  - id: EV050
+    kind: verification
+    subject:
+      type: task
+      id: T050
+    taskRefs: [T050]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-015]
+    obligationRefs: [EV050]
+    artifacts: [readiness/m7-ui-performance.json, readiness/performance-evidence.json, readiness/performance-intent.yml, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["VO-007. The performance-evidence command reports status=ok with seven workloads, and the audit-binding checker exits 0 on both its selftest and its check at the candidate."]
+  - id: EV051
+    kind: verification
+    subject:
+      type: task
+      id: T051
+    taskRefs: [T051]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV051]
+    artifacts: [src/Rogue3/Determinism.fs, src/Rogue3/ProfileStore.fs, src/Rogue3/Replay.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PM-001. The canonical model encoding changes, so a determinism golden captured before this change no longer compares equal to one captured after. Nothing in the repository persists an encoded model across versions: Replay folds an input log through update at run time and ProfileStore persists MetaProfile, which is untouched. No saved-profile format, CLI form or audio cue id changes."]
+  - id: EV052
+    kind: verification
+    subject:
+      type: task
+      id: T052
+    taskRefs: [T052]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV052]
+    artifacts: [src/Rogue3/GameplayVisualInventory.fs, tests/Rogue3.Tests/element-visuals.catalog]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PM-002. HudScore is removed rather than deprecated, because the three sets that name it are gated to agree exactly and a deprecation period would mean shipping a knowingly inconsistent inventory."]
+  - id: EV053
+    kind: verification
+    subject:
+      type: task
+      id: T053
+    taskRefs: [T053]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-015]
+    obligationRefs: [EV053]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/analysis.json, readiness/performance-evidence.json, readiness/performance-intent.yml, src/Rogue3/PerformanceEvidence.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["GV-001. readiness/014-m13-room-transition-pickups-world-state refreshed from current plan sources; the performance artifacts were regenerated at the exact candidate with their movement explained in the roadmap and in this cycle's report rather than accepted silently."]
+  - id: EV054
+    kind: verification
+    subject:
+      type: task
+      id: T054
+    taskRefs: [T054]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-015]
+    obligationRefs: [EV054]
+    artifacts: [scripts/audit-binding-exceptions.json, scripts/check-audit-bindings.py]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["GV-002. Both the selftest and the plain check exit 0 at the candidate. Exit codes were captured directly rather than read after a pipe, which is the failure three actors in this repository have already been caught by."]
+  - id: EV055
+    kind: deferral
+    subject:
+      type: task
+      id: T055
+    taskRefs: [T055]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV055]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/frames/02-crossing-midpoint/reference-evidence.md, readiness/014-m13-room-transition-pickups-world-state/frames/07-player-pressed-into-north-wall/reference-evidence.md, scripts/render-m13-frames.fsx]
+    sourceRefs: []
+    result: deferred
+    synthetic: false
+    rationale: "Drawing the departed room's contents through a slide needs the departed room's ROOM-LOCAL model state to survive the crossing, which loadM5Room has already overwritten. Both plausible routes - a room snapshot carried on the transition, or room-local state restored from the floor graph - are model-shape changes with their own determinism and performance consequences, and neither is needed for a crossing to read as a crossing. Pulling it in would trade a milestone that closes a blank screen for one that redesigns room state."
+    owner: roadmap
+    scope: "The departed room's obstacles, room-clear drop, reward pedestal and shop stock during the 0.35 s slide. The departed room's floor, wall band, doors and trapdoor fixture ARE in scope for M13 and are drawn and evidenced."
+    laterLifecycleVisibility: "Carried as DEC-011 in clarifications, PD-016 in the plan and CR-017 in the checklist, filed as EHotwagner/rogue3#35 with the committed midpoint frame as its reproduction, and recorded in the M13 roadmap evidence paragraph before this milestone closes."
+    notes: ["DEC-011 accepted deferral: the departed room's obstacles, drop, reward and shop stock are not drawn through the slide. Filed as EHotwagner/rogue3#35 with its reason, the frame that shows it, and acceptance criteria that include re-measuring the scene-node budget."]
+  - id: EV056
+    kind: deferral
+    subject:
+      type: task
+      id: T056
+    taskRefs: [T056]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV056]
+    artifacts: [src/Rogue3/Render.fs]
+    sourceRefs: []
+    result: deferred
+    synthetic: false
+    rationale: "Making the room-clear drop collectable requires changing Rogue3.Entities.CombatRoom, a record outside this item's declared touch-set, with a blast radius across enterRoom, roomCleared, bossCleared, enemyDiedWithNothingWeight and their tests. It is also a different mechanic from an obstacle drop and deserves its own change rather than being smuggled in."
+    owner: roadmap
+    scope: "Entities.CombatRoom.Drop - the pickup rolled when a room's last enemy dies. Obstacle drops ARE in scope for M13 and are positioned, drawn and collectable."
+    laterLifecycleVisibility: "Carried as DEC-012 in clarifications, PD-017 in the plan and CR-018 in the checklist, and filed as EHotwagner/rogue3#36, which states the uncomfortable consequence plainly: the product now has two pickup mechanics for the same six PickupKind values, one collectable and one not."
+    notes: ["DEC-012 accepted deferral: the room-clear drop stays a fixed-position, non-collectable visual because its field lives on Entities.CombatRoom, outside this item's touch-set. Filed as EHotwagner/rogue3#36."]
+  - id: EV057
+    kind: verification
+    subject:
+      type: task
+      id: T057
+    taskRefs: [T057]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-009]
+    obligationRefs: [EV057]
+    artifacts: [src/Rogue3/Model.fs, tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx
+      digest: "sha256:166bf605698de01d13aaa0ea1a5d8d2b677782913145064288e2f6cde0bdf637"
+      outcome: passed
+      passed: 224
+      failed: 0
+      skipped: 0
+    notes: ["PC-005. Rogue3.Collision.sweepCircle is product-owned scaffold source, not a framework member - the plan's original framework reference was dangling and analyze refused it. Its signature is unchanged; the player sweep simply passes a longer static-rect list."]
+lifecycleNotes:
+  - "Next lifecycle action: verify."
