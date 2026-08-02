@@ -145,6 +145,34 @@ scripts/check-audit-bindings.py --json`, plus one sentence on what the branch ad
 pin resolvable forever and still tells the reader what the branch's own tree would say. Quoting only
 the branch figure is the case this whole page exists to stop, and it is not rescued by a digest.
 
+## Never label a pin with a moving description
+
+A pin can be perfectly good and still be wrapped in a phrase that rots. Write the sha; do **not**
+write what the sha currently *is*.
+
+> "re-checked against the current head `77f567d`"
+
+That sentence is falsified by its own next commit — including, and this is the trap, by the commit
+that records the review which corrected it. It went stale three times in one item this way, each
+time repaired by bumping the sha, each repair immediately falsified by the act of committing it.
+
+The fix is not to pin harder. It is to **delete the moving words**:
+
+> "re-checked against `77f567d`"
+
+Now it is permanently true. The sha alone is a fixed pin and needs no relative label; "the current
+head", "the latest commit", "the tip of this branch", "as of now" and "the merge base" all name
+something that moves, and add nothing a bare sha does not already say.
+
+This is a different failure from the branch-sha problem above, and it cannot be fixed the same way.
+A branch sha rots because the *commit* stops being reachable, which pinning to `main` solves. A
+self-referential label rots because the *description* stops being accurate while the sha stays
+perfectly valid — so there is nothing to re-pin, and the only remedy is to not write the description.
+
+The same applies to any figure introduced as "currently", "now" or "at present". `rogue3#53`'s
+"**The ledger is now 72 entries**" was wrong for exactly this reason before it was ever stale: the
+word doing the damage was `now`.
+
 ## The check a reader runs
 
 For a commit pin, the reader settles the figure without asking the author:
