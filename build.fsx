@@ -2713,6 +2713,18 @@ let private runSelfTest () =
         // agrees with the file 63 pins and four merged audit bindings already depend on. This is
         // read-only — it renders the content and compares, and writes nothing, so `Verify` still
         // leaves `git status --porcelain` empty (rogue3#56).
+        //
+        // Does this red a CORRECT tree — the failure this file is written throughout to avoid? No,
+        // and the reasoning is written out because it is the first question a reviewer should ask.
+        // The ledger's content is a function of exactly three things: the set of files under
+        // `.agents/skills`, their digests, and which of them the generated manifest pins. Change the
+        // first and the coverage pass or the `pinned but missing` line is already red; change the
+        // second and the ledger's own drift line is already red; change the third and you have
+        // edited `skill-manifest.json`, which the ledger itself pins, so that is red too. Every tree
+        // this case can fail on is a tree `TemplateDrift` already fails on, and the remedy is the
+        // one command both of them name. The one genuinely NEW red is a hand-edit to the ledger's
+        // formatting — on a file whose own `note` says to regenerate it — which is a tree nobody
+        // should be able to reach quietly.
         expect
             "scripts/kit-pins.json is byte-for-byte what KitPins would write for this tree right now"
             (let root = currentRoot ()
