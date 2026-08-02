@@ -327,8 +327,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e01bfecef3158d4ed79dffbd17021d8b7bca68c9162ec2f476e83df26146a303",
-      "observedSha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2",
-      "reason": "rogue3#46, re-excused after the PR #64 review fix: coverage now keys on the digest-bearing manifest set rather than the name set, because an entry keeping resolvablePath but losing sha256 was being counted as pinned. Same rationale as the previous entry - every stale binding is file:build.fsx and every citing audit predates this item, so rebinding would misattribute their critics."
+      "observedSha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c",
+      "reason": "rogue3#46, final: PR #64 review fixes. byLedger now keys on validated ledger pins (its manifest-side twin was fixed a commit earlier and this half was left behind), dead code and two false comments corrected, and .gitattributes pins EOL for the 190 digest-checked kit files. Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
@@ -439,8 +439,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4",
-      "observedSha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2",
-      "reason": "rogue3#46, re-excused after the PR #64 review fix: coverage now keys on the digest-bearing manifest set rather than the name set, because an entry keeping resolvablePath but losing sha256 was being counted as pinned. Same rationale as the previous entry - every stale binding is file:build.fsx and every citing audit predates this item, so rebinding would misattribute their critics."
+      "observedSha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c",
+      "reason": "rogue3#46, final: PR #64 review fixes. byLedger now keys on validated ledger pins (its manifest-side twin was fixed a commit earlier and this half was left behind), dead code and two false comments corrected, and .gitattributes pins EOL for the 190 digest-checked kit files. Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
@@ -463,16 +463,16 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
-      "observedSha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2",
-      "reason": "rogue3#46, re-excused after the PR #64 review fix: coverage now keys on the digest-bearing manifest set rather than the name set, because an entry keeping resolvablePath but losing sha256 was being counted as pinned. Same rationale as the previous entry - every stale binding is file:build.fsx and every citing audit predates this item, so rebinding would misattribute their critics."
+      "observedSha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c",
+      "reason": "rogue3#46, final: PR #64 review fixes. byLedger now keys on validated ledger pins (its manifest-side twin was fixed a commit earlier and this half was left behind), dead code and two false comments corrected, and .gitattributes pins EOL for the 190 digest-checked kit files. Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-13.audit.json",
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
-      "observedSha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2",
-      "reason": "rogue3#46, re-excused after the PR #64 review fix: coverage now keys on the digest-bearing manifest set rather than the name set, because an entry keeping resolvablePath but losing sha256 was being counted as pinned. Same rationale as the previous entry - every stale binding is file:build.fsx and every citing audit predates this item, so rebinding would misattribute their critics."
+      "observedSha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c",
+      "reason": "rogue3#46, final: PR #64 review fixes. byLedger now keys on validated ledger pins (its manifest-side twin was fixed a commit earlier and this half was left behind), dead code and two false comments corrected, and .gitattributes pins EOL for the 190 digest-checked kit files. Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
@@ -527,8 +527,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
-      "observedSha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2",
-      "reason": "rogue3#46, re-excused after the PR #64 review fix: coverage now keys on the digest-bearing manifest set rather than the name set, because an entry keeping resolvablePath but losing sha256 was being counted as pinned. Same rationale as the previous entry - every stale binding is file:build.fsx and every citing audit predates this item, so rebinding would misattribute their critics."
+      "observedSha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c",
+      "reason": "rogue3#46, final: PR #64 review fixes. byLedger now keys on validated ledger pins (its manifest-side twin was fixed a commit earlier and this half was left behind), dead code and two false comments corrected, and .gitattributes pins EOL for the 190 digest-checked kit files. Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-4.audit.json",
@@ -631,8 +631,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
-      "observedSha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2",
-      "reason": "rogue3#46, re-excused after the PR #64 review fix: coverage now keys on the digest-bearing manifest set rather than the name set, because an entry keeping resolvablePath but losing sha256 was being counted as pinned. Same rationale as the previous entry - every stale binding is file:build.fsx and every citing audit predates this item, so rebinding would misattribute their critics."
+      "observedSha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c",
+      "reason": "rogue3#46, final: PR #64 review fixes. byLedger now keys on validated ledger pins (its manifest-side twin was fixed a commit earlier and this half was left behind), dead code and two false comments corrected, and .gitattributes pins EOL for the 190 digest-checked kit files. Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
@@ -671,8 +671,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "1acae987b6643464764bdff31134e00c1b992413320deeec726a4b9fdd367ae8",
-      "observedSha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2",
-      "reason": "rogue3#46, re-excused after the PR #64 review fix: coverage now keys on the digest-bearing manifest set rather than the name set, because an entry keeping resolvablePath but losing sha256 was being counted as pinned. Same rationale as the previous entry - every stale binding is file:build.fsx and every citing audit predates this item, so rebinding would misattribute their critics."
+      "observedSha256": "3ead376ef0fad9f3cde03c1e6d8969381d718cfd1f73fcee9e03a73a4e080b9c",
+      "reason": "rogue3#46, final: PR #64 review fixes. byLedger now keys on validated ledger pins (its manifest-side twin was fixed a commit earlier and this half was left behind), dead code and two false comments corrected, and .gitattributes pins EOL for the 190 digest-checked kit files. Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
