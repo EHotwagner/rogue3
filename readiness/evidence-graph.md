@@ -6,7 +6,7 @@ Absent OPTIONAL artifacts (interactive launch/image/window/…, profile-dependen
 failures. The required headless baseline (layout + scene evidence) MUST be present, however —
 its absence is a product-evidence defect (evidence-output-contract.md §EvidenceGraph).
 
-- readiness files present: 67
+- readiness files present: 102
 - recognized evidence nodes: 2
 
 ## Sensed readiness files
@@ -24,7 +24,6 @@ its absence is a product-evidence defect (evidence-output-contract.md §Evidence
 - `readiness/009-m8-audio/test-results/m8-full.trx`
 - `readiness/010-m9-win-loss-permadeath/ship-verdict.json`
 - `readiness/011-m10-acceptance-determinism/ship-verdict.json`
-- `readiness/012-m11-playability-visual-legibility/analysis.json`
 - `readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md`
 - `readiness/012-m11-playability-visual-legibility/frames/01-start-room/sha256-e8d8c84e755aa573153a36f0bf4e4ef96ffe5f65a8f7fa313fa122422c5481c7.png`
 - `readiness/012-m11-playability-visual-legibility/frames/02-all-door-states/reference-evidence.md`
@@ -57,12 +56,48 @@ its absence is a product-evidence defect (evidence-output-contract.md §Evidence
 - `readiness/012-m11-playability-visual-legibility/frames/15-particles/sha256-b9b5314102b1be0c8a75fa32d79a0a4ed12285f441abecfec8913fcf64854c02.png`
 - `readiness/012-m11-playability-visual-legibility/frames/16-run-result-overlay/reference-evidence.md`
 - `readiness/012-m11-playability-visual-legibility/frames/16-run-result-overlay/sha256-e26caa0b83ad62b8e624c7fd36e355518af6935e6b94e26be1e87ad6659be0cd.png`
-- `readiness/012-m11-playability-visual-legibility/governance-handoff.json`
 - `readiness/012-m11-playability-visual-legibility/ship-verdict.json`
-- `readiness/012-m11-playability-visual-legibility/ship.json`
 - `readiness/012-m11-playability-visual-legibility/test-results/m11-release-final.trx`
-- `readiness/012-m11-playability-visual-legibility/verify.json`
-- `readiness/012-m11-playability-visual-legibility/work-model.json`
+- `readiness/013-m12-audio-assets/audio-asset-evidence-foreign-cwd.txt`
+- `readiness/013-m12-audio-assets/audio-asset-evidence.txt`
+- `readiness/013-m12-audio-assets/launch-evidence.md`
+- `readiness/013-m12-audio-assets/launch-mode-evidence.txt`
+- `readiness/013-m12-audio-assets/launch-output-after.txt`
+- `readiness/013-m12-audio-assets/launch-output-before.txt`
+- `readiness/013-m12-audio-assets/ship-verdict.json`
+- `readiness/013-m12-audio-assets/test-results/m12-focused-release.trx`
+- `readiness/013-m12-audio-assets/test-results/m12-full-release.trx`
+- `readiness/014-m13-room-transition-pickups-world-state/analysis.json`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/01-crossing-start/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/01-crossing-start/sha256-e09a11b36be375d7edb14651d9837ae8b323b86ce227ad4b62424e17d7861e16.png`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/02-crossing-midpoint/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/02-crossing-midpoint/sha256-a413685764acdd21b405ebea34bdee4b572df77d21a00ed55d6b5a129b328848.png`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/03-crossing-settling/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/03-crossing-settling/sha256-2ebcd49ba4271c3bb7573d30d6cfc26c67174b2ee70136ce1f74456295c84ae1.png`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/04-positioned-drops/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/04-positioned-drops/sha256-56be5a7751fc3972ddded5d1642dbe6c503add983fd77a957f9a8dbea6c95ce9.png`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/05-shop-priced-and-locked/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/05-shop-priced-and-locked/sha256-60ded15b94bd83162e0ca92f93686e4283c1edaa108d8c131c4d447aa1420571.png`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/06-boss-reward-placed/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/06-boss-reward-placed/sha256-4b270be297586503823ffbd4a8613dd6d7730301f7cedd154e76c223c1723f1f.png`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/07-player-pressed-into-north-wall/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/07-player-pressed-into-north-wall/sha256-bb23fc89ad8edf129fe51e0fe5d494480e68c9247f45412cefdb26dce62cc1af.png`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/08-player-invulnerable/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/08-player-invulnerable/sha256-3f0af4517a69911edffcd1a4221318441dd91515b4683f1de3be43e6b0e5f609.png`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/09-player-dodge-roll/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/09-player-dodge-roll/sha256-441162511f80fef3a95c8b89d03f7a0dad7bc274482aa7bb4704c7076ad2f800.png`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/10-player-down/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/10-player-down/sha256-4462f71a44727795afb7f4f57b37abebddaebdaa1be87bb708e099dc55186d13.png`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/11-enemy-telegraph/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/11-enemy-telegraph/sha256-2bf61cd9ea05b8d0db21dc02cff1c112a01f2ad4b808fe7e35efdadb9ddf9e33.png`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/12-hud-regions/reference-evidence.md`
+- `readiness/014-m13-room-transition-pickups-world-state/frames/12-hud-regions/sha256-d5218a8bbc5421f0442f39cfced890945b04e6d0d2b1b8801e12ad2b347ffc2f.png`
+- `readiness/014-m13-room-transition-pickups-world-state/governance-handoff.json`
+- `readiness/014-m13-room-transition-pickups-world-state/ship-verdict.json`
+- `readiness/014-m13-room-transition-pickups-world-state/ship.json`
+- `readiness/014-m13-room-transition-pickups-world-state/test-results/m13-full-release.trx`
+- `readiness/014-m13-room-transition-pickups-world-state/verify.json`
+- `readiness/014-m13-room-transition-pickups-world-state/work-model.json`
 - `readiness/evidence-audit.md`
 - `readiness/evidence-graph.md`
 - `readiness/headless-scene-evidence.txt`

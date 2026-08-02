@@ -21,7 +21,15 @@ type GameplayVisualElement =
     // `DoorState`; the last two are the room's combat lock, which hides whatever the graph says.
     | DoorOpen | DoorLockedKey | DoorBossDoor | DoorHiddenWall | DoorLockedClear | DoorBossSealed
     | RoomWalls | TrapdoorReady
-    | RoomDrop | RoomReward | Trapdoor | Shadow | Player | PlayerShot | EnemyBullet | PlacedBomb | Particle | HudScore | RunResultOverlay
+    // M13: the room being LEFT during a crossing. Without it a slide is a blank screen.
+    | DepartedRoom
+    // M13: the four states that decide whether a player lives, in world space.
+    | PlayerInvulnerable | PlayerDodgeRoll | PlayerDown | EnemyTelegraph
+    // M13: the HUD, one row per REGION. It used to be a single `HudScore` row covering hearts,
+    // currency, charge, banner and the whole minimap, so deleting the boss-room minimap colour left
+    // the coverage audit complete.
+    | HudHearts | HudCurrency | HudActiveCharge | HudMinimap | HudFloorBanner
+    | RoomDrop | RoomReward | Trapdoor | Shadow | Player | PlayerShot | EnemyBullet | PlacedBomb | Particle | RunResultOverlay
 
 let all =
     FSharpType.GetUnionCases typeof<GameplayVisualElement>
@@ -62,6 +70,16 @@ let handle = function
     | DoorLockedClear -> "scene/door/locked-clear"
     | DoorBossSealed -> "scene/door/boss-sealed"
     | RoomWalls -> "scene/room-walls"
+    | DepartedRoom -> "scene/departed-room"
+    | PlayerInvulnerable -> "scene/player-invulnerable"
+    | PlayerDodgeRoll -> "scene/player-dodge-roll"
+    | PlayerDown -> "scene/player-down"
+    | EnemyTelegraph -> "scene/enemy-telegraph"
+    | HudHearts -> "scene/hud/hearts"
+    | HudCurrency -> "scene/hud/currency"
+    | HudActiveCharge -> "scene/hud/active-charge"
+    | HudMinimap -> "scene/hud/minimap"
+    | HudFloorBanner -> "scene/hud/floor-banner"
     | TrapdoorReady -> "scene/trapdoor-ready"
     | RoomDrop -> "scene/room-drop"
     | RoomReward -> "scene/room-reward"
@@ -72,7 +90,6 @@ let handle = function
     | EnemyBullet -> "scene/enemy-bullet"
     | PlacedBomb -> "scene/placed-bomb"
     | Particle -> "effects/particle"
-    | HudScore -> "scene/hud-score"
     | RunResultOverlay -> "scene/run-result"
 
 type VisualBinding =
@@ -150,7 +167,10 @@ let private evidenceModel element =
         { initialModel with M5Boss=Some(spawnBoss 200 kind (vec2 420.0 300.0)) }
     | _, _, Some kind, _ ->
         { initialModel with M5Obstacles=[ obstacleAt (vec2 260.0 260.0) (obstacle kind 300) ] }
-    | _, _, _, Some kind -> { initialModel with M5ObstacleDrops=[ kind ] }
+    // M13: a drop is a POSITIONED pickup, so the fixture must carry a position too — and a distinct
+    // one per kind, so no two pickup elements can render byte-identical scenes.
+    | _, _, _, Some kind ->
+        { initialModel with M5ObstacleDrops=[ { Id=901; Room=initialModel.Floor.CurrentRoom; Kind=kind; Position=vec2 360.0 430.0 } ] }
     | _ ->
         match element with
         | ShopItem -> { initialModel with M5ShopSlots=sampleShopSlots }
@@ -178,13 +198,38 @@ let private evidenceModel element =
         // previous representative state was a no-op that exercised nothing it claimed to. Vary
         // what the HUD actually draws: hearts of all three kinds, currency, charge and a
         // multi-room minimap.
-        | HudScore ->
+        | HudHearts | HudCurrency | HudActiveCharge | HudMinimap | HudFloorBanner ->
             { initialModel with
                 PlayerHealth = { RedContainers=4; RedHalfHearts=5; SoulHalfHearts=3; BlackHalfHearts=2 }
                 PlayerCurrency = { Coins=42; Keys=3; Bombs=7 }
                 ActiveCharge = 4
                 FloorNameTicks = 120
                 Floor = { initialModel.Floor with MapRevealed = initialModel.Floor.Rooms |> Map.toList |> List.map fst |> Set.ofList } }
+        // M13: a crossing in flight. The transition names a REAL neighbouring room, so the shell drawn
+        // behind the slide is a room the floor graph actually holds rather than an empty group.
+        | DepartedRoom ->
+            let neighbour =
+                initialModel.Floor.Rooms.[initialModel.Floor.CurrentRoom].Doors
+                |> List.tryHead
+                |> Option.map _.ToRoom
+                |> Option.defaultValue initialModel.Floor.CurrentRoom
+            { initialModel with
+                M6CameraTransition = Some { Direction=RoomSlideDirection.East; ElapsedTicks=0; FromRoom=neighbour } }
+        | PlayerInvulnerable -> { initialModel with PostHitInvulnTicks = postHitInvulnTicks }
+        | PlayerDodgeRoll ->
+            { initialModel with DodgeRollTicks = rollDurationTicks; PlayerVelocity = vec2 rollSpeed 0.0 }
+        // Dead AND at zero health. `{ initialModel with PlayerLifeState = Dead }` alone published a
+        // frame showing a downed avatar under three full red hearts — a state play cannot reach, and
+        // the two indicators contradicting each other is the opposite of what this element claims.
+        | PlayerDown ->
+            { initialModel with
+                PlayerLifeState = Dead
+                PlayerHealth = { initialModel.PlayerHealth with RedHalfHearts = 0 } }
+        | EnemyTelegraph ->
+            { initialModel with
+                M5Enemies =
+                    [ { spawn 1 100 EnemyKind.Charger (vec2 360.0 300.0) with
+                          State = EnemyState.ChargerWindUp(vec2 1.0 0.0, 20) } ] }
         | RunResultOverlay ->
             finishRun false (Some DeathCause.Trap) { initialModel with RunActive=true;RunStats={emptyRunStats with DepthReached=3} }
         | FloorBackground | Shadow | Player -> initialModel

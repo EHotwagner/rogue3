@@ -1205,10 +1205,15 @@ let m6VisualEvidence (outputDirectory: string) =
                   Rogue3.Entities.obstacleAt (vec2 520.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Pot 3)
                   Rogue3.Entities.obstacleAt (vec2 760.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Spikes 4)
                   Rogue3.Entities.obstacleAt (vec2 1010.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Pit 5) ]
+            // M13: a drop carries a world position, so the visual-evidence fixture places each one
+            // where a player would find it rather than in an indexed strip.
             M5ObstacleDrops =
-                [ Rogue3.Entities.PickupKind.Coin1; Rogue3.Entities.PickupKind.Coin3
-                  Rogue3.Entities.PickupKind.HalfRedHeart; Rogue3.Entities.PickupKind.Key
-                  Rogue3.Entities.PickupKind.Bomb; Rogue3.Entities.PickupKind.SoulHeart ]
+                [ { Id=8101;Room=0;Kind=Rogue3.Entities.PickupKind.Coin1;Position=vec2 200.0 620.0 }
+                  { Id=8102;Room=0;Kind=Rogue3.Entities.PickupKind.Coin3;Position=vec2 280.0 620.0 }
+                  { Id=8103;Room=0;Kind=Rogue3.Entities.PickupKind.HalfRedHeart;Position=vec2 360.0 620.0 }
+                  { Id=8104;Room=0;Kind=Rogue3.Entities.PickupKind.Key;Position=vec2 440.0 620.0 }
+                  { Id=8105;Room=0;Kind=Rogue3.Entities.PickupKind.Bomb;Position=vec2 520.0 620.0 }
+                  { Id=8106;Room=0;Kind=Rogue3.Entities.PickupKind.SoulHeart;Position=vec2 600.0 620.0 } ]
             M5Boss=Some(Rogue3.Entities.spawnBoss 7000 Rogue3.Entities.BossKind.Maw (vec2 1120.0 560.0))
             M5ShopSlots=shop
             M5Room=
@@ -1386,9 +1391,17 @@ let m7UiPerformanceEvidence (path:string) =
               // route's scale and budget verdict stayed green — hud-playing still reports 12 scene
               // elements at both outputs, the same five named regions, and zero bound controls. These are
               // the SECOND derivation: the independent critics' fixes moved Model.fs and Render.fs again.
-              "hud-playing", "779e3ce953ef840002abecf89a7ea456ebbbc650a0b56b6dd69b5a659ef0752c"
-              "run-result", "8fedd0b6902a33c3f4b4c94437354875d99aa6e0863654f3911577a3cb427b0f"
-              "stats-charts", "bd8fd06562c65cfc9e9a54384f6fdfe5ec5e99b56de3d8e12ef263a89b4ce326" ]
+              //
+              // M13 (THIRD derivation): Model.fs gained the wall-slab geometry, room placement, the
+              // positioned floor pickup and its collection scan; Render.fs gained the departed-room
+              // shell, placed shop/reward fixtures, four world-space state visuals and the HUD region
+              // split. Again exactly the three routes that hash those two files moved and `main-menu`
+              // did not, and again every scale verdict is unchanged — hud-playing still reports 12
+              // scene elements at both outputs, which is the check that splitting the HUD inventory
+              // did not change one node of what the viewer receives.
+              "hud-playing", "36af91c03313e53b62424d9be38104e251f9fe54ac482fa4372300b4dadb3b3c"
+              "run-result", "6a71c69d76e28c22b98300de2956643985a9d186480fe6884b8ec87251265449"
+              "stats-charts", "49d8521a9d045b7fe6dbcfad52639df7aefc4497334dcd032c945ff06764409e" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]

@@ -123,7 +123,7 @@
         {
           "locator": "file:scripts/audit-binding-exceptions.json",
           "result": "verified",
-          "sha256": "76fa77c3f6b588419e18e7be85d8fb1b08531af02bc5e60220437c0c29ca4538"
+          "sha256": "c2ad54bb862d3af6cce58beb82e7e0bae63bc921e5f87cfe65a29a6f5133c9ed"
         },
         {
           "locator": "command:git diff 6b4ed07 HEAD -- scripts/audit-binding-exceptions.json",

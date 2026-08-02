@@ -30,6 +30,16 @@ DoorHiddenWall	shown	scene/door/hidden-wall
 DoorLockedClear	shown	scene/door/locked-clear
 DoorBossSealed	shown	scene/door/boss-sealed
 RoomWalls	shown	scene/room-walls
+DepartedRoom	shown	scene/departed-room
+PlayerInvulnerable	shown	scene/player-invulnerable
+PlayerDodgeRoll	shown	scene/player-dodge-roll
+PlayerDown	shown	scene/player-down
+EnemyTelegraph	shown	scene/enemy-telegraph
+HudHearts	shown	scene/hud/hearts
+HudCurrency	shown	scene/hud/currency
+HudActiveCharge	shown	scene/hud/active-charge
+HudMinimap	shown	scene/hud/minimap
+HudFloorBanner	shown	scene/hud/floor-banner
 RoomDrop	shown	scene/room-drop
 RoomReward	shown	scene/room-reward
 Trapdoor	shown	scene/trapdoor
@@ -40,5 +50,4 @@ PlayerShot	shown	scene/player-shot
 EnemyBullet	shown	scene/enemy-bullet
 PlacedBomb	shown	scene/placed-bomb
 Particle	shown	effects/particle
-HudScore	shown	scene/hud-score
 RunResultOverlay	shown	scene/run-result

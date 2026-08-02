@@ -244,9 +244,33 @@ type M6Particle =
 [<RequireQualifiedAccess>]
 type RoomSlideDirection = North | East | South | West
 
+/// A room crossing in flight.
+///
+/// `FromRoom` is M13's addition and it is what makes the slide watchable. `Render.cameraOffset`
+/// translates the entered room a full playfield away at `remaining = 1.0`, so without knowing which
+/// room was LEFT the renderer has nothing to put in the space that offset vacates — which is why M11
+/// suppressed the slide rather than ship 0.35 s of empty screen. The renderer draws that room's shell
+/// one playfield back along the slide axis, so a crossing reads as one room leaving and one arriving.
 type M6CameraTransition =
     { Direction: RoomSlideDirection
-      ElapsedTicks: int }
+      ElapsedTicks: int
+      FromRoom: int }
+
+/// A pickup lying on the floor of the room, at a world position a player can walk to.
+///
+/// Before M13 `Model.M5ObstacleDrops` was a bare `PickupKind list`: a smashed pot recorded WHAT it
+/// dropped and nothing about WHERE, so the renderer drew the drops as an indexed strip at fixed
+/// coordinates and nothing could be collected. `Id` is the destroyed obstacle's id and `Position` is
+/// where it stood, so the coin lies where the pot was.
+type FloorPickup =
+    { Id: int
+      /// The room this pickup is lying in. Without it a drop was destroyed by the next room change:
+      /// `loadM5Room` cleared the list outright while `recordDestroyedObstacle` is durable floor
+      /// state, so smashing a pot and stepping through a door before collecting lost the reward
+      /// permanently and the pot never came back to re-roll it.
+      Room: int
+      Kind: Rogue3.Entities.PickupKind
+      Position: Vec2 }
 
 type HomingTarget = { Id: int; Position: Vec2 }
 
@@ -310,7 +334,7 @@ type Model =
       M5Room: Rogue3.Entities.CombatRoom
       M5Obstacles: Rogue3.Entities.Obstacle list
       M5ShopSlots: Rogue3.Entities.ShopSlot list
-      M5ObstacleDrops: Rogue3.Entities.PickupKind list
+      M5ObstacleDrops: FloorPickup list
       M5ItemPool: Rogue3.Entities.ItemPool
       M5AiDecisions: int
       M5BulletEmissions: int
@@ -338,6 +362,10 @@ type Model =
       /// Doorway sensors examined by the M11 fixed-step door scan. A deterministic cost counter for
       /// the `simulation.door-sensor-candidates` driver, bounded by the four walls of a room.
       TotalDoorSensorQueries: int
+      /// Player-versus-floor-pickup overlap tests performed by the M13 fixed-step collection scan.
+      /// A deterministic cost counter for the `simulation.floor-pickup-candidates` driver, bounded by
+      /// the destructible obstacles a room carries.
+      TotalFloorPickupCandidates: int
       BlackHeartBursts: int
       EdgeActionCount: int
       M6Particles: M6Particle list
@@ -499,6 +527,83 @@ let doorwaySensorContains direction position =
     let depth, lateral = doorwayOffsets direction position
     depth >= 0.0 && depth <= doorwaySensorDepth && abs lateral <= doorwayHalfSpan
 
+// ------------------------------------------------------------------------------------------------
+// M13 room shell geometry. THIS IS THE ONE DESCRIPTION OF THE WALL BAND.
+//
+// It used to live in `Render.fs` alone, so the 24-unit stone band a player looks at was decoration:
+// the player's collision bound was the raw playfield rectangle, and walking north put the player's
+// disc inside — and partly behind — the wall the renderer had just drawn. Moving the geometry here
+// lets `Render.roomWallsScene` and the player's swept cast consume the SAME value, so a slab cannot
+// be drawn without being solid or made solid without being drawn.
+//
+// The gaps are load-bearing and deliberate: every wall that carries a door of ANY state opens a
+// `2 * doorwayHalfSpan` gap. `doorwaySensorDepth` (14) is shallower than `wallThickness` (24), so a
+// slab spanning a locked doorway would hold the player's centre at depth `24 + playerRadius = 37`
+// and `UnlockDoor` could never fire — M11's key-door route, which is driven through movement keys
+// alone, would become unreachable. A player may therefore stand in the MOUTH of a locked doorway;
+// that is the affordance, not an oversight (work item 014, DEC-002).
+// ------------------------------------------------------------------------------------------------
+
+/// Thickness of the drawn stone band that frames a room, in logical room units.
+let wallThickness = 24.0
+
+/// The four wall slabs of a room whose doors occupy `directions`, with a gap at each of those walls.
+///
+/// These are SIMULATION rects (`FS.GG.Game.Core.Rect`) because that is what `Collision.sweepCircle`
+/// speaks and the player sweep is the consumer that must not be able to disagree with the picture.
+/// `Render` converts them into the scene vocabulary, which is a field-for-field copy.
+let roomWallSlabsFor (directions: Set<FloorGeneration.DoorDirection>) : Rect list =
+    let hasDoor direction = Set.contains direction directions
+    [ if hasDoor FloorGeneration.North then
+          yield { X=0.0;Y=0.0;Width=playfieldWidth/2.0-doorwayHalfSpan;Height=wallThickness }
+          yield { X=playfieldWidth/2.0+doorwayHalfSpan;Y=0.0;Width=playfieldWidth/2.0-doorwayHalfSpan;Height=wallThickness }
+      else yield { X=0.0;Y=0.0;Width=playfieldWidth;Height=wallThickness }
+      if hasDoor FloorGeneration.South then
+          yield { X=0.0;Y=playfieldHeight-wallThickness;Width=playfieldWidth/2.0-doorwayHalfSpan;Height=wallThickness }
+          yield { X=playfieldWidth/2.0+doorwayHalfSpan;Y=playfieldHeight-wallThickness;Width=playfieldWidth/2.0-doorwayHalfSpan;Height=wallThickness }
+      else yield { X=0.0;Y=playfieldHeight-wallThickness;Width=playfieldWidth;Height=wallThickness }
+      if hasDoor FloorGeneration.West then
+          yield { X=0.0;Y=0.0;Width=wallThickness;Height=playfieldHeight/2.0-doorwayHalfSpan }
+          yield { X=0.0;Y=playfieldHeight/2.0+doorwayHalfSpan;Width=wallThickness;Height=playfieldHeight/2.0-doorwayHalfSpan }
+      else yield { X=0.0;Y=0.0;Width=wallThickness;Height=playfieldHeight }
+      if hasDoor FloorGeneration.East then
+          yield { X=playfieldWidth-wallThickness;Y=0.0;Width=wallThickness;Height=playfieldHeight/2.0-doorwayHalfSpan }
+          yield { X=playfieldWidth-wallThickness;Y=playfieldHeight/2.0+doorwayHalfSpan;Width=wallThickness;Height=playfieldHeight/2.0-doorwayHalfSpan }
+      else yield { X=playfieldWidth-wallThickness;Y=0.0;Width=wallThickness;Height=playfieldHeight } ]
+
+/// The directions in which `roomId` carries a PASSABLE doorway on the floor graph.
+///
+/// `HiddenWall` is excluded, and that exclusion is the whole point. A hidden wall is DRAWN as
+/// `Scene.filledRectangle ... stone` in the same colour as the band, and its own renderer comment
+/// says "It reads as WALL, not door" -- so opening a collider gap there let the player stand a full
+/// 24 units inside solid-looking stone, which is exactly the defect this milestone's wall row exists
+/// to close. Nothing needs the gap: a secret is revealed by a bomb blast testing `wallMidpoint`
+/// against `bombRadius`, not by the player reaching the wall.
+let roomDoorDirections roomId (floor: FloorGeneration.Floor) =
+    match Map.tryFind roomId floor.Rooms with
+    | None -> Set.empty
+    | Some room ->
+        room.Doors
+        |> List.filter (fun door -> door.State <> FloorGeneration.HiddenWall)
+        |> List.map _.Direction
+        |> Set.ofList
+
+/// The wall slabs of the room the player is standing in — drawn by `Render.roomWallsScene` and swept
+/// by the player in the same fixed step.
+let roomWallSlabs (model: Model) = roomWallSlabsFor (roomDoorDirections model.Floor.CurrentRoom model.Floor)
+
+/// How far past the wall, into the room, a door's threshold is drawn. A placed pickup or pedestal
+/// must clear this too, or it would sit under a door panel.
+let doorApron = 18.0
+
+/// How close the player's centre must come to a floor pickup's centre to collect it.
+let floorPickupRadius = 12.0
+
+/// The floor pickups lying in the room the player is standing in. Drops persist across a crossing,
+/// so everything that draws or collects them asks this rather than reading the whole list.
+let floorPickupsHere (model: Model) =
+    model.M5ObstacleDrops |> List.filter (fun pickup -> pickup.Room = model.Floor.CurrentRoom)
+
 /// The drawn trapdoor sits at the centre of the room it belongs to, so it reads as a floor feature
 /// a player walks onto rather than a decoration parked near the HUD. Rendering and the `DescendFloor`
 /// guard consume this one record, so the fixture a player sees is the fixture the guard tests.
@@ -510,6 +615,76 @@ let trapdoorCenter = vec2 (playfieldWidth / 2.0) (playfieldHeight / 2.0)
 let trapdoorContains (position: Vec2) =
     abs (position.Vx - trapdoorCenter.Vx) <= trapdoorHalfWidth
     && abs (position.Vy - trapdoorCenter.Vy) <= trapdoorHalfHeight
+
+// ------------------------------------------------------------------------------------------------
+// M13 room placement. Shop stock and the reward pedestal used to be drawn at literal screen
+// coordinates — `X = 520 + index*90, Y = 160` and `X = 620, Y = 450` — chosen once and never checked
+// against anything. M11's `13-shop-and-reward` frame shows the result: the first shop slot sits on
+// top of the pot, and the reward plinth overlaps the spike trap.
+//
+// Placement is a deterministic FIRST FIT over an authored candidate list, so it is a pure function of
+// the room. That matters twice: a test and a frame see the same answer, and adding a candidate to the
+// end of the list cannot move an existing room's stock while the earlier candidates still fit.
+// ------------------------------------------------------------------------------------------------
+
+/// How far a placed fixture keeps from an obstacle's centre. An obstacle occupies a 40x40 AABB, so
+/// half its diagonal is ~28.3; 46 leaves a visible gap rather than a touching edge.
+let obstacleClearance = 46.0
+
+/// True when `position` is inside the stone band, or inside a doorway opening plus the apron the door
+/// panel is drawn across. Either would put a fixture under the room shell.
+let insideRoomShell (position: Vec2) =
+    let margin = wallThickness + doorApron
+    position.Vx < margin
+    || position.Vy < margin
+    || position.Vx > playfieldWidth - margin
+    || position.Vy > playfieldHeight - margin
+
+/// The authored candidate positions for placed room fixtures, in the order they are tried. They form
+/// two rows across the lower half of the room — clear of the four doorways, clear of the trapdoor
+/// footprint at the centre, and clear of the HUD bands along the top and the right edge.
+let roomPlacementCandidates : Vec2 list =
+    [ for row in [ 440.0; 520.0 ] do
+        for column in [ 300.0; 440.0; 580.0; 720.0; 860.0; 1000.0 ] -> vec2 column row ]
+
+let private distanceBetween (a: Vec2) (b: Vec2) =
+    let d = sub a b
+    sqrt (d.Vx*d.Vx + d.Vy*d.Vy)
+
+/// True when a fixture may stand at `position` in the room `obstacles` furnishes.
+let placementAccepts (obstacles: Rogue3.Entities.Obstacle list) (taken: Vec2 list) (position: Vec2) =
+    not (insideRoomShell position)
+    && not (trapdoorContains position)
+    && obstacles |> List.forall (fun obstacle -> distanceBetween position obstacle.Position >= obstacleClearance)
+    && taken |> List.forall (fun other -> distanceBetween position other >= obstacleClearance)
+
+/// The first `count` accepted candidate positions for a room furnished with `obstacles`.
+///
+/// Deterministic and total: if the candidate list is exhausted the remaining fixtures fall back to
+/// the last accepted position offset along the row, so a pathologically furnished room still places
+/// its stock somewhere inside the shell rather than throwing or vanishing.
+let placeRoomFixtures (obstacles: Rogue3.Entities.Obstacle list) count : Vec2 list =
+    // The fallback lattice only fires when every authored candidate is rejected -- measured over 121
+    // seeds x six floors x 1,331 fixture-bearing rooms it never fires -- but it must still be honest
+    // when it does. Its first draft stepped 40 units from the previous position and clamped at the
+    // right margin, so past the clamp every further fixture landed on the SAME point, and 40 is
+    // narrower than the `obstacleClearance` the accept predicate enforces everywhere else. A lattice
+    // at `obstacleClearance` spacing inside the shell is distinct by construction.
+    let margin = wallThickness + doorApron
+    let columns = max 1 (int ((playfieldWidth - 2.0 * margin) / obstacleClearance))
+    let fallbackAt index =
+        vec2
+            (margin + obstacleClearance * (0.5 + float (index % columns)))
+            (margin + obstacleClearance * (0.5 + float (index / columns)))
+    let rec take remaining candidates fallbackIndex taken =
+        if remaining <= 0 then List.rev taken
+        else
+            match candidates with
+            | [] -> take (remaining - 1) [] (fallbackIndex + 1) (fallbackAt fallbackIndex :: taken)
+            | candidate :: rest ->
+                if placementAccepts obstacles (List.rev taken) candidate then take (remaining - 1) rest fallbackIndex (candidate :: taken)
+                else take remaining rest fallbackIndex taken
+    take (max 0 count) roomPlacementCandidates 0 []
 
 let basePlayerStats =
     { Damage = 3.5
@@ -779,6 +954,7 @@ let initialModelForSeed seed =
       TotalCombatCandidates = 0
       TotalSecretRevealCandidates = 0
       TotalDoorSensorQueries = 0
+      TotalFloorPickupCandidates = 0
       BlackHeartBursts = 0
       EdgeActionCount = 0
       M6Particles = []
@@ -1280,7 +1456,7 @@ let private resolveBombs model =
                 let typed=result.M5Obstacles|>List.filter(fun value->value.Id<>obstacle.Id)|>fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
                 let blocking=typed|>List.filter(fun value->Rogue3.Entities.blocksMovement Rogue3.Entities.MovementClass.Grounded value.Kind)|>List.map(fun value->toSimRect value.Position 40.0 40.0)
                 let floor=if remaining.IsNone then FloorGeneration.recordDestroyedObstacle result.Floor.CurrentRoom obstacle.Id result.Floor else result.Floor
-                result <- {result with M5Obstacles=typed;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->result.M5ObstacleDrops@[value])|>Option.defaultValue result.M5ObstacleDrops}
+                result <- {result with M5Obstacles=typed;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->result.M5ObstacleDrops@[{Id=obstacle.Id;Room=result.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue result.M5ObstacleDrops}
     { result with
         Bombs = aged |> List.filter (fun bomb -> not (Set.contains bomb.Id exploded))
         AudioEvents = result.AudioEvents @ List.replicate exploded.Count AudioEvent.BombExploded }
@@ -1441,7 +1617,11 @@ let loadM5Room roomId model =
                 Some{value with HitPoints=value.HitPoints*difficultyHpMultiplier model.FloorIndex scaling}
             else None
         { model with Floor={model.Floor with CurrentRoom=roomId};M5Enemies=allEnemies;M5Boss=boss;M5ChoirMemberIds=choirMembers|>List.map _.Id|>Set.ofList;M5Room=roomState
-                     M5Obstacles=typedObstacles;M5ShopSlots=shop;M5ObstacleDrops=[];Enemies=allEnemies|>List.map legacyEnemy;Obstacles=blocking
+                     // M13: uncollected drops SURVIVE a room change. Clearing them here destroyed the
+                     // reward permanently, because `recordDestroyedObstacle` is durable floor state and
+                     // the smashed pot never returns to re-roll. They are kept keyed by room and
+                     // filtered by `floorPickupsHere`; `DescendFloor` is what discards them.
+                     M5Obstacles=typedObstacles;M5ShopSlots=shop;Enemies=allEnemies|>List.map legacyEnemy;Obstacles=blocking
                      EnemyBullets=[];ShotSpawns=[] }
 
 /// The state a player actually boots into for `seed`: the generated floor with its START room
@@ -1508,7 +1688,7 @@ let damageM5Obstacle obstacleId damage model =
         let obstacles=model.M5Obstacles|>List.filter(fun value->value.Id<>obstacleId) |> fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
         let blocking=obstacles|>List.filter(fun value->Rogue3.Entities.blocksMovement Rogue3.Entities.MovementClass.Grounded value.Kind)|>List.map(fun value->toSimRect value.Position 40.0 40.0)
         let floor=if remaining.IsNone then FloorGeneration.recordDestroyedObstacle model.Floor.CurrentRoom obstacleId model.Floor else model.Floor
-        {model with M5Obstacles=obstacles;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->model.M5ObstacleDrops@[value])|>Option.defaultValue model.M5ObstacleDrops}
+        {model with M5Obstacles=obstacles;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->model.M5ObstacleDrops@[{Id=obstacle.Id;Room=model.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue model.M5ObstacleDrops}
 
 let private stepM5Entities model =
     // §14.21 — "a dead actor emits no later attack". Resolve deaths from the ACTOR list rather than
@@ -1629,6 +1809,55 @@ let private stepM5Entities model =
     (nextModel,enemyShocks@bossShocks)
     ||> List.fold(fun current (source,radius,damage)->if magnitude(sub current.PlayerPosition source)<=radius then takePlayerHit damage source current else current)
 
+/// Apply one collected floor pickup. Currency goes through the shared 99 cap; hearts go through the
+/// same `healRed`/`addTemporaryHearts` the shop and the post-boss heal use, so a pickup can never
+/// exceed a container total or the 24-half-heart display cap by a different route.
+let applyFloorPickup (kind: Rogue3.Entities.PickupKind) model =
+    match kind with
+    // The run stat records what was actually BANKED, not the face value. Crediting the face value at
+    // the 99 cap inflated `RunStats.CoinsCollected`, which feeds `runScore` -- a coin that overflowed
+    // the cap is waste, and the product treats cap overflow as waste everywhere else.
+    | Rogue3.Entities.PickupKind.Coin1
+    | Rogue3.Entities.PickupKind.Coin3 ->
+        let face = if kind = Rogue3.Entities.PickupKind.Coin3 then 3 else 1
+        let banked = addCurrency face model.PlayerCurrency.Coins
+        { model with PlayerCurrency = { model.PlayerCurrency with Coins = banked }
+                     RunStats = { model.RunStats with CoinsCollected = model.RunStats.CoinsCollected + (banked - model.PlayerCurrency.Coins) } }
+    | Rogue3.Entities.PickupKind.Key ->
+        { model with PlayerCurrency = { model.PlayerCurrency with Keys = addCurrency 1 model.PlayerCurrency.Keys } }
+    | Rogue3.Entities.PickupKind.Bomb ->
+        { model with PlayerCurrency = { model.PlayerCurrency with Bombs = addCurrency 1 model.PlayerCurrency.Bombs } }
+    | Rogue3.Entities.PickupKind.HalfRedHeart ->
+        { model with PlayerHealth = healRed 1 model.PlayerHealth }
+    | Rogue3.Entities.PickupKind.SoulHeart ->
+        { model with PlayerHealth = addTemporaryHearts 2 0 model.PlayerHealth }
+    | Rogue3.Entities.PickupKind.Nothing -> model
+
+/// M13: walk onto a pickup and it is yours.
+///
+/// Before this, `M5ObstacleDrops` was write-only: smashing a pot appended a `PickupKind` that the
+/// renderer drew in a fixed row and no reducer ever consumed, so the drop table, the drop RNG stream
+/// and the drop visual all existed for a reward a player could not take. The scan is one circle test
+/// per live pickup, counted into `TotalFloorPickupCandidates` so its cost is measured rather than
+/// argued, and a collected pickup is removed in the same step it is applied — so a player standing
+/// still on the spot collects exactly once.
+let collectFloorPickups (model: Model) =
+    let here = floorPickupsHere model
+    if List.isEmpty here then model
+    else
+        let taken =
+            here
+            |> List.filter (fun pickup -> circlesOverlap model.PlayerPosition playerRadius pickup.Position floorPickupRadius)
+        let takenIds = taken |> List.map _.Id |> Set.ofList
+        let scanned =
+            { model with
+                M5ObstacleDrops =
+                    model.M5ObstacleDrops
+                    |> List.filter (fun pickup -> not (pickup.Room = model.Floor.CurrentRoom && Set.contains pickup.Id takenIds))
+                // Only the pickups in THIS room are tested, which is what the driver's ScaleSource says.
+                TotalFloorPickupCandidates = model.TotalFloorPickupCandidates + here.Length }
+        (scanned, taken) ||> List.fold (fun current pickup -> applyFloorPickup pickup.Kind current)
+
 let private stepInput pressedThisTick (model: Model) =
     let resolved = resolveInput model.PlayerPosition pressedThisTick model.Input.Current
     let commandPressed command = Set.contains command model.Input.Current.Commands && not(Set.contains command model.Input.Previous.Commands)
@@ -1647,7 +1876,12 @@ let private stepInput pressedThisTick (model: Model) =
     let displacement = scale fixedDt playerVelocity
     let playerCircle = { Center = toSimPoint model.PlayerPosition; Radius = playerRadius }
     let roomBounds: Rect = { X = 0.0; Y = 0.0; Width = model.Playfield.Vx; Height = model.Playfield.Vy }
-    let movedPlayer = Collision.sweepCircle (Some roomBounds) model.Obstacles playerCircle (toSimPoint displacement)
+    // M13: the drawn stone band is a collider. `roomWallSlabs` is the SAME value `Render.roomWallsScene`
+    // fills, so the wall a player can see is the wall a player stops at. Only the PLAYER sweeps them —
+    // shots keep their existing `shotWalls` set and their playfield bounce, so no projectile behaviour
+    // moves with this change.
+    let wallSlabs = roomWallSlabs model
+    let movedPlayer = Collision.sweepCircle (Some roomBounds) (wallSlabs @ model.Obstacles) playerCircle (toSimPoint displacement)
     let playerPosition = ofSimPoint movedPlayer.Center
     let fireAim = if resolved.Aim = zero then normalizeOrZero model.Facing else resolved.Aim
     let iFramesActive = dodgeStarted || model.DodgeIFrameTicks > 0
@@ -1706,16 +1940,20 @@ let private stepInput pressedThisTick (model: Model) =
             DodgeCooldownTicks = if dodgeStarted then dodgeCooldownTicks - 1 else max 0 (model.DodgeCooldownTicks - 1)
             PostHitInvulnTicks = max 0 (model.PostHitInvulnTicks - 1)
             // Each player axis performs one swept cast, then slideCircle's X and Y contact folds.
-            TotalWallQueries = model.TotalWallQueries + wallQueries + 6 * model.Obstacles.Length
+            // M13 adds the room's own wall slabs to that sweep under the SAME `6 *` accounting, so the
+            // counter still describes the casts the player actually performs.
+            TotalWallQueries = model.TotalWallQueries + wallQueries + 6 * (model.Obstacles.Length + wallSlabs.Length)
             TotalHomingQueries = model.TotalHomingQueries + homingQueries
             EdgeActionCount = model.EdgeActionCount + Set.count pressedThisTick
             AudioEvents =
                 model.AudioEvents
                 @ (if shouldSpawn then [ AudioEvent.ShotFired ] else [])
                 @ (if dodgeStarted then [ AudioEvent.DodgeRolled ] else []) }
-    model.M5Obstacles
-    |> List.filter(fun obstacle->Rogue3.Entities.spikeDamage obstacle.Kind>0 && circlesOverlap steppedModel.PlayerPosition playerRadius obstacle.Position 20.0)
-    |> List.fold(fun current obstacle->takePlayerHit (Rogue3.Entities.spikeDamage obstacle.Kind) obstacle.Position current) steppedModel
+    let spiked =
+        model.M5Obstacles
+        |> List.filter(fun obstacle->Rogue3.Entities.spikeDamage obstacle.Kind>0 && circlesOverlap steppedModel.PlayerPosition playerRadius obstacle.Position 20.0)
+        |> List.fold(fun current obstacle->takePlayerHit (Rogue3.Entities.spikeDamage obstacle.Kind) obstacle.Position current) steppedModel
+    collectFloorPickups spiked
 
 // Pure fixed step: integrate the ball by one step, bounce off the top/bottom walls and the paddles,
 // score and re-serve on a miss. Positions/velocities are `Vec2`, advanced with `add`/`scale`; the
@@ -2057,18 +2295,19 @@ let rec update msg model : Model * AdapterCommand<Msg> =
                 | FloorGeneration.East -> RoomSlideDirection.East
                 | FloorGeneration.South -> RoomSlideDirection.South
                 | FloorGeneration.West -> RoomSlideDirection.West
-            // NOTE: no camera transition is started here, and that is deliberate. `Render.cameraOffset`
-            // begins a slide ONE FULL ROOM away (M6's contract, asserted in M6RenderingEnemySymbologyTests)
-            // and nothing draws the room being left, so the first frames of a slide are an empty screen.
-            // Nothing dispatched `TraverseDoor` before M11, so that had never been seen; making
-            // traversal reachable would have shipped a 0.35 s blank screen on every door a player
-            // crosses. Rendering both rooms through a slide is real work and is on the roadmap.
-            ignore slide
+            // M13: the slide is started, and it is watchable because the transition now names the room
+            // being LEFT. M11 suppressed this: `Render.cameraOffset` begins one full room away (M6's
+            // contract, asserted in M6RenderingEnemySymbologyTests) and nothing drew the departed room,
+            // so every crossing would have shown 0.35 s of empty screen. `Render` now draws that room's
+            // shell one playfield back along the slide axis, so the offset moves two rooms rather than
+            // vacating the screen. The departed id is read BEFORE `loadM5Room` rewrites `CurrentRoom`.
+            let departed = model.Floor.CurrentRoom
 
             loadM5Room
                 roomId
                 { model with
                     Floor = floor
+                    M6CameraTransition = Some { Direction = slide; ElapsedTicks = 0; FromRoom = departed }
                     PlayerPosition = add wall inward }, Cmd.none
     | BossCleared roomId ->
         { model with Floor = FloorGeneration.clearBoss roomId model.Floor }, Cmd.none
@@ -2089,6 +2328,11 @@ let rec update msg model : Model * AdapterCommand<Msg> =
             M5ChoirMemberIds = Set.empty
             M5Obstacles = []
             M5ShopSlots = []
+            // M13: a descent discards every room-local carry-over. Drops belong to rooms on the floor
+            // being left; room ids are REUSED across floors, so keeping either of these would leave a
+            // pickup or a departed-room shell resolving to a different room of the same number.
+            M5ObstacleDrops = []
+            M6CameraTransition = None
             ShotSpawns = []
             Obstacles = []
             HomingTargets = []
@@ -2110,7 +2354,9 @@ let rec update msg model : Model * AdapterCommand<Msg> =
     | DamageM5Obstacle(obstacleId,damage) -> damageM5Obstacle obstacleId damage model,Cmd.none
     | SpawnM6Particles(count, origin, tint) -> spawnM6Particles count origin tint model, Cmd.none
     | BeginM6RoomTransition direction ->
-        { model with M6CameraTransition = Some { Direction = direction; ElapsedTicks = 0 } }, Cmd.none
+        // The evidence-only entry point. It has no crossing to read a departed room from, so it names
+        // the room the model is standing in — the same room a crossing would have departed.
+        { model with M6CameraTransition = Some { Direction = direction; ElapsedTicks = 0; FromRoom = model.Floor.CurrentRoom } }, Cmd.none
     | StartRun seed ->
         let scaling = difficultyScaling model.Profile.Settings.Difficulty
         // M11: start the run in a LOADED start room, through the same seam every other room uses.

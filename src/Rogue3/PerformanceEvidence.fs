@@ -62,7 +62,7 @@ let private performanceIntentSeed: PerformanceIntentDeclaration =
       TargetFps = 60
       WorkloadIds = []
       WorkloadDefinitionDigests = []
-      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 736 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition, four directional doorways per room with one room-wall shell and eight doorway-sensor examinations per frame, and all five pre-M6 visuals"
+      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 820 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition carrying a departed-room shell, four directional doorways per room with one room-wall shell of up to eight solid slabs the player also sweeps, a hidden wall staying unbroken and eight doorway-sensor examinations per frame, six positioned floor pickups scanned twice per frame, and all five pre-M6 visuals"
       MaxP95Ms = 16.67m
       MaxP99Ms = 25.0m
       MaxCatchUpFrames = 0
@@ -228,8 +228,8 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "floor-generation" ] }
       { Id = "collision.shot-wall-queries"
         Category = Simulation
-        ScaleSource = "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once and perform two player-axis casts plus four slide contact folds against 8 stable AABBs"
-        MaximumExpected = 736
+        ScaleSource = "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once and perform two player-axis casts plus four slide contact folds against 8 stable AABBs and, from M13, the 7 solid wall slabs of the room shell (four walls, three of them split by a passable doorway; the fourth carries a hidden wall, which stays solid)"
+        MaximumExpected = 820
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "simulation.homing-target-considerations"
@@ -322,12 +322,86 @@ let performanceCostDrivers =
         MaximumExpected = 1
         VisualElement = Some "EnemyBullet"
         Disposition = RequiredIn [ "maximum-content" ] }
-      { Id = "ui.hud-score"
+      // M13: the HUD is inventoried one REGION at a time. `ui.hud-score` is retired; these four
+      // inherit its disposition unchanged, one node group each in every steady-state frame.
+      { Id = "ui.hud-hearts"
         Category = UiControl
-        ScaleSource = "GameplayVisualInventory.HudScore production renderer binding"
+        ScaleSource = "GameplayVisualInventory.HudHearts production renderer binding"
         MaximumExpected = 1
-        VisualElement = Some "HudScore"
+        VisualElement = Some "HudHearts"
         Disposition = RequiredIn [ "firing"; "maximum-content" ] }
+      { Id = "ui.hud-currency"
+        Category = UiControl
+        ScaleSource = "GameplayVisualInventory.HudCurrency production renderer binding"
+        MaximumExpected = 1
+        VisualElement = Some "HudCurrency"
+        Disposition = RequiredIn [ "firing"; "maximum-content" ] }
+      { Id = "ui.hud-active-charge"
+        Category = UiControl
+        ScaleSource = "GameplayVisualInventory.HudActiveCharge production renderer binding"
+        MaximumExpected = 1
+        VisualElement = Some "HudActiveCharge"
+        Disposition = RequiredIn [ "firing"; "maximum-content" ] }
+      { Id = "ui.hud-minimap"
+        Category = UiControl
+        ScaleSource = "GameplayVisualInventory.HudMinimap production renderer binding"
+        MaximumExpected = 1
+        VisualElement = Some "HudMinimap"
+        Disposition = RequiredIn [ "firing"; "maximum-content" ] }
+      { Id = "ui.hud-floor-banner"
+        Category = UiControl
+        ScaleSource = "GameplayVisualInventory.HudFloorBanner production renderer binding"
+        MaximumExpected = 1
+        VisualElement = Some "HudFloorBanner"
+        Disposition =
+            NonPerformance
+                "a timed floor announcement (FloorNameTicks) that no steady-state workload frame holds; covered by production raster/catalog evidence" }
+      // M13: the room being LEFT during a crossing. `maximum-content` holds an active transition for
+      // every sampled frame, so the second room shell is measured rather than argued.
+      { Id = "scene.departed-room"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.DepartedRoom production renderer binding while a room crossing is in flight"
+        MaximumExpected = 1
+        VisualElement = Some "DepartedRoom"
+        Disposition = RequiredIn [ "maximum-content" ] }
+      // M13: the four world-space state visuals. The dodge workload commits to a roll on its boot
+      // latch, so both player-motion states are measured there; the downed state and an enemy
+      // wind-up are transient and mutually exclusive with the live-player workloads.
+      { Id = "scene.player-invulnerable"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.PlayerInvulnerable production renderer binding during dodge i-frames or post-hit invulnerability"
+        MaximumExpected = 1
+        VisualElement = Some "PlayerInvulnerable"
+        Disposition = RequiredIn [ "effects-fog" ] }
+      { Id = "scene.player-dodge-roll"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.PlayerDodgeRoll production renderer binding during the committed roll"
+        MaximumExpected = 1
+        VisualElement = Some "PlayerDodgeRoll"
+        Disposition = RequiredIn [ "effects-fog" ] }
+      { Id = "scene.player-down"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.PlayerDown production renderer binding"
+        MaximumExpected = 1
+        VisualElement = Some "PlayerDown"
+        Disposition =
+            NonPerformance
+                "the downed state is terminal and mutually exclusive with every live-player workload; covered by production raster/catalog evidence" }
+      { Id = "scene.enemy-telegraph"
+        Category = SceneRender
+        ScaleSource = "GameplayVisualInventory.EnemyTelegraph production renderer binding, one per enemy committed to a wind-up, dash or dive"
+        MaximumExpected = 30
+        VisualElement = Some "EnemyTelegraph"
+        Disposition =
+            NonPerformance
+                "a wind-up is a transient per-actor state the maximum-content roster does not deterministically hold at a sampled frame; bounded above by the measured state.m5-enemies count and covered by production raster/catalog evidence" }
+      // M13: the floor-pickup collection scan is the one M13 addition on the fixed-step hot path.
+      { Id = "simulation.floor-pickup-candidates"
+        Category = Simulation
+        ScaleSource = "Model.TotalFloorPickupCandidates delta: player-versus-floor-pickup overlap tests across one sampled production frame — two 120 Hz steps against the six drops the maximum-content room carries"
+        MaximumExpected = 12
+        VisualElement = None
+        Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "ui.run-result-overlay"
         Category = UiControl
         ScaleSource = "GameplayVisualInventory.RunResultOverlay production terminal renderer binding"
@@ -870,6 +944,7 @@ let private observeCostScale visualCounts driverId routed beforeModel afterModel
         | "collision.combat-candidates", _, _ -> afterModel.TotalCombatCandidates - beforeModel.TotalCombatCandidates
         | "simulation.secret-reveal-candidates", _, _ -> afterModel.TotalSecretRevealCandidates - beforeModel.TotalSecretRevealCandidates
         | "simulation.door-sensor-candidates", _, _ -> afterModel.TotalDoorSensorQueries - beforeModel.TotalDoorSensorQueries
+        | "simulation.floor-pickup-candidates", _, _ -> afterModel.TotalFloorPickupCandidates - beforeModel.TotalFloorPickupCandidates
         | "state.pending-secrets", _, _ -> afterModel.Floor.PendingSecrets.Count
         | "state.placed-bombs", _, _ -> max afterModel.Bombs.Length beforeModel.Bombs.Length
         | "effects.pooled-particles", _, _ -> afterModel.M6Particles.Length
@@ -1252,12 +1327,20 @@ let private maximumContentModel () =
             M5Enemies = maximumM5Enemies
             M5Obstacles = maximumM5Obstacles
             M5ShopSlots = maximumM5ShopSlots
+            // M13: drops are POSITIONED, so the maximum-content fixture places all six well clear of
+            // the player at the room centre — the workload measures the collection SCAN, not a
+            // collection, so every pickup must survive the sampled frames it is counted in.
             M5ObstacleDrops =
-                [ Rogue3.Entities.PickupKind.Coin1; Rogue3.Entities.PickupKind.Coin3
-                  Rogue3.Entities.PickupKind.HalfRedHeart; Rogue3.Entities.PickupKind.Key
-                  Rogue3.Entities.PickupKind.Bomb; Rogue3.Entities.PickupKind.SoulHeart ]
+                [ { Id=9101;Room=0;Kind=Rogue3.Entities.PickupKind.Coin1;Position=vec2 200.0 620.0 }
+                  { Id=9102;Room=0;Kind=Rogue3.Entities.PickupKind.Coin3;Position=vec2 280.0 620.0 }
+                  { Id=9103;Room=0;Kind=Rogue3.Entities.PickupKind.HalfRedHeart;Position=vec2 360.0 620.0 }
+                  { Id=9104;Room=0;Kind=Rogue3.Entities.PickupKind.Key;Position=vec2 440.0 620.0 }
+                  { Id=9105;Room=0;Kind=Rogue3.Entities.PickupKind.Bomb;Position=vec2 520.0 620.0 }
+                  { Id=9106;Room=0;Kind=Rogue3.Entities.PickupKind.SoulHeart;Position=vec2 600.0 620.0 } ]
             M5Boss = Some {maw with HitPoints=100.0;Phase=3;PatternTicksLeft=1}
-            M6CameraTransition = Some { Direction=RoomSlideDirection.East; ElapsedTicks=0 }
+            // M13: the transition names the room it departed, which is what lets the renderer draw a
+            // second room shell behind the slide. Room 0 is the start room of the generated floor.
+            M6CameraTransition = Some { Direction=RoomSlideDirection.East; ElapsedTicks=0; FromRoom=0 }
             // M11: the maximum a SINGLE room can present. A room grid is orthogonal, so a room has at
             // most four doorways, and the four floor-graph door states each take one wall. The
             // combat-lock presentations are deliberately absent: a lock seals every doorway at once,
@@ -1396,7 +1479,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "f6b4dfcaad3a35bb316efeac1a3521dc030f416f46503bf13cd75cecd28fdc7d" }
+        Authorship = Authored "26d191e813857d587638bd1acfb71ee26a7c5899aeabf0b030855f94eaa15219" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -1429,7 +1512,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "4c68efeaed12fd76f29e0eb6bf8d685017c5509345d29b6ed64936965ebf36bf" }
+        Authorship = Authored "0ec57072d9fc208dfd952e3d4c64c215ae83c622ef58a9c868658d1e4b44093d" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -1461,11 +1544,14 @@ let expectedWorkloads =
               "simulation.shot-spawn"
               "scene.player"
               "scene.player-shot"
-              "ui.hud-score"
+              "ui.hud-hearts"
+              "ui.hud-currency"
+              "ui.hud-active-charge"
+              "ui.hud-minimap"
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "e2ee9a32a081e955a839277443f9fa30326957d401b2f3e75f1ae551e25ba54e" }
+        Authorship = Authored "64df35977fec09861b32a24bb5d3430151c8c5661c97de8efbe1480f80de2611" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -1485,10 +1571,14 @@ let expectedWorkloads =
                     2
                     [ JourneyEvent.FixedTick; JourneyEvent.FixedTick ])
         Composition = CompleteComposition
-        CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
+        CostDriverIds =
+            [ "simulation.fixed-step"; "scene.player"; "scene.floor-background"
+              // M13: this workload IS the dodge, so it is where the two player-motion state visuals
+              // are measured rather than asserted about.
+              "scene.player-invulnerable"; "scene.player-dodge-roll" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "bd63d9f43aea827e139c9879278015ccd455d3915967808424a1c04a6238d4ca" }
+        Authorship = Authored "94f5fd39ee1ed3279d651685d72dc713bb156a63ea48531858056ab1c61f1bde" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN floor-generation
       { Id = "floor-generation"
@@ -1518,7 +1608,7 @@ let expectedWorkloads =
         CostDriverIds = [ "generation.floor-room-budget"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "a3859c77305eedcf0262f5c4e1a85d99d7c43ce939955bc8b70fbad1602cd2bb" }
+        Authorship = Authored "cbf8fefc5c63b09de9a02ea2db630fd5de0b4039f8513f9478bc78f2749e8b07" }
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
@@ -1577,6 +1667,8 @@ let expectedWorkloads =
               "scene.boss-maw"
               "scene.shop-item"
               "simulation.door-sensor-candidates"
+              "simulation.floor-pickup-candidates"
+              "scene.departed-room"
               "scene.room-walls"
               "scene.door-open"
               "scene.door-locked-key"
@@ -1603,11 +1695,14 @@ let expectedWorkloads =
               "scene.player"
               "scene.player-shot"
               "scene.enemy-bullet"
-              "ui.hud-score"
+              "ui.hud-hearts"
+              "ui.hud-currency"
+              "ui.hud-active-charge"
+              "ui.hud-minimap"
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "6f4cdc71dde101672320311a29340c239699e3aec95f3875979898b6dcc87073" }
+        Authorship = Authored "77c9c0030c0542a979598957740a5977663dddc58ae585b79dd6b80589894e77" }
       // WORKLOAD-SOURCE-END maximum-content
       // WORKLOAD-SOURCE-BEGIN secret-reveal
       { Id = "secret-reveal"
@@ -1630,7 +1725,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "8f05af70c7afdee55dbcef94acbbb59d372649a51dda9d3c6c4d4964780c92b4" }
+        Authorship = Authored "c3bf021ad4430207580a648a4046a53c114037dfbeee90587584cb08c7293975" }
       // WORKLOAD-SOURCE-END secret-reveal
       ]
 

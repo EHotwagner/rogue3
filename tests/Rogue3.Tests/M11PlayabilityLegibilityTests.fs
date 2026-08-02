@@ -595,7 +595,13 @@ let m11PlayabilityLegibilityTests =
                       Expect.isFalse (intersects bounds panel) $"the HUD region {regionId} does not overlap the {direction} doorway"
 
               // Obstacle drops used to be drawn under the currency readout and clipped behind it.
-              let dropped = { boot with M5ObstacleDrops = [ Entities.PickupKind.Coin1; Entities.PickupKind.Key; Entities.PickupKind.Bomb ] }
+              // M13: they carry a world position now, so the fixture places them where obstacles stood.
+              let dropped =
+                  { boot with
+                      M5ObstacleDrops =
+                          [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin1; Position = vec2 300.0 240.0 }
+                            { Id = 2; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Key; Position = vec2 520.0 240.0 }
+                            { Id = 3; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Bomb; Position = vec2 740.0 240.0 } ] }
               let pickups =
                   Render.renderedElements dropped
                   |> List.filter (fun element -> element.ElementId.StartsWith "Pickup")
