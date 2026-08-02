@@ -1,0 +1,141 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-3.md",
+  "reportSha256": "30f77e8195fc60abc56f3c5803f23b2d94ef8be2e4d9c849e38d7450efab933a",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate feedback/2026-08-01-Rogue3-10.md --audit feedback/audits/2026-08-01-Rogue3-10.audit.json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1"
+        },
+        {
+          "locator": "file:feedback/2026-08-01-Rogue3-12.md",
+          "result": "verified",
+          "sha256": "35e4f57d1bd256fcc58a737acec24be06fd13906a0ad4fcdd9efead8b30508bb"
+        }
+      ],
+      "confidenceLimits": [
+        "The per-audit stale counts measure the tree at 1f19809 and establish nothing about whether those audits were accurate when their cycles were accepted; that is unrecoverable and is the same limit feedback/2026-08-02-Rogue3.md §4.1 records.",
+        "The 58 raw figure is confirmed by two independent implementations - this checker and the skill's own feedback-tool validate - which agree per audit and in total. The 45 figure is the same set after de-duplicating repeated citations of one file at one pin.",
+        "The mechanism is not novel: -12 §4.13 and 2026-08-02 §4.1 are full precedents. What is new is the second measurement point and the enforcement."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx --",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
+          "result": "verified",
+          "sha256": "2d7127addbab83625a31d0d9defe7c9322845209a93b6e02b00f5d7cad11e4f8"
+        }
+      ],
+      "confidenceLimits": [
+        "Verified by running feedback-tool.fsx with no arguments and reading its usage output; no newer release was available in this environment to check whether a rebind subcommand exists upstream."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:scripts/fsgg-coord whoami --mint",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/checkpoints/item-15-audit-binding-tripwire.jsonl",
+          "result": "verified",
+          "sha256": "72a6a6a0d332a83243875b1b698cefc1395a3c0be77edafc094c86c74245d5e2"
+        }
+      ],
+      "confidenceLimits": [
+        "Reproduced three times in this cycle with three different shell forms, but only within one harness; the guard's exact accepted grammar was not characterised and no other worker's experience was inspected.",
+        "No prior report in feedback/ mentions the eval form or this refusal, so the recurrence claim of new rests on a text search rather than on an exhaustive review."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --selftest",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1"
+        }
+      ],
+      "confidenceLimits": [
+        "The positive pattern is reported as necessary and NOT sufficient: the same suite subsequently missed the five bypasses in §4.6. A draft that presented self-testing as making the gate trustworthy was corrected."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#15",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/checkpoints/item-15-audit-binding-tripwire.jsonl",
+          "result": "verified",
+          "sha256": "72a6a6a0d332a83243875b1b698cefc1395a3c0be77edafc094c86c74245d5e2"
+        }
+      ],
+      "confidenceLimits": [
+        "This is a contradiction in the coordination protocol, reasoned from the item's declared Paths and the envelope's mandatory artifacts. No collision was observed and no sibling lane's work was inspected."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --selftest",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#27",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1"
+        }
+      ],
+      "confidenceLimits": [
+        "All five defects are in this cycle's own new code and were fixed before merge; none reached main.",
+        "Each was reproduced against a copy of the real tree before the fix and re-run after, so the closure claim is measured rather than argued.",
+        "The reviewer was fresh-context and separately prompted, but is an agent of the same family as the author; independence is procedural, not organizational, and correlated blind spots cannot be ruled out by this cycle."
+      ]
+    }
+  ]
+}
