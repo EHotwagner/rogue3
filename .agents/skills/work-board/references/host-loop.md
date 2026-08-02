@@ -8,7 +8,12 @@ sequentially in fresh worktrees. Never invent another host's tool name or syntax
 Every wave starts from fresh ground truth. For `work-board`, the ordered planning boundary is: consume
 the complete four-part `check-board` result, classify the current workspace Backlog through
 [backlog-triage](backlog-triage.md), then size the Ready wave with `batch`. Never size before triage.
-Allocate only schedulable touch-set-disjoint lanes and never exceed the host's available worker slots.
+Allocate only schedulable touch-set-disjoint lanes. For `work-board` the slot count is fixed by its
+concurrency model: two concurrent waves of three item workers (six in flight, sized with `batch -n 6`),
+plus two dedicated review subagents that hold no claim and take no item. When the items actively being
+worked across both waves fall to three or fewer, consolidate the survivors into one wave and start the
+second from a freshly reconciled and re-triaged batch rather than waiting for a full drain. Never
+exceed the host's available worker slots, and never exceed these caps.
 Every worker must mint its own `FSGG_WORKER` identity and hold its own claim: a host session, account,
 or parent identity is not a substitute. Give it one bounded item, a stable feedback cycle id, and the
 complete item-driver contract, including the simple-versus-complex SDD lifecycle branch and schema-v2
