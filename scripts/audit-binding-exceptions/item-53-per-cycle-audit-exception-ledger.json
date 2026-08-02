@@ -1,0 +1,126 @@
+{
+  "grandfatherSchema": 2,
+  "note": "Explicit exceptions to the audit-binding check (scripts/check-audit-bindings.py) written by ONE cycle: `--grandfather --cycle <id>` writes this file and nothing else, ever. Each entry excuses ONE stale binding at ONE observed digest, so a digest no cycle ever excused still fails. The checker evaluates the UNION of every file in this directory, so two concurrent cycles excuse the same binding without sharing a path -- and because both entries survive the merge, the digests a binding tolerates only ever GROW: returning a file to a digest some earlier cycle excused is green under that cycle's recorded reason. An entry that excuses nothing right now is reported as dormant, never as a failure, and only the cycle that owns this file prunes it. Adding an entry here is the PREFERRED remedy; rebinding a MERGED audit rewrites what that audit records its critic as having verified (see 7e71d71) and is right only for an audit you re-verified yourself.",
+  "entries": [
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+      "boundSha256": "982f6fdd9f9fbe5c95faec14b14494b05ccafc449846f5f42138772bc89275bf",
+      "observedSha256": "3c9e86805a685d9392e50d4c6e9bbad59c79f9810d88407d09c52f76623d83b9",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edit"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-10.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/skill-manifest.json",
+      "boundSha256": "e97bab4a98ba9a1ee316bc84cb3ca75030185bbfc9b65e63dc8b4a6a915bf0f4",
+      "observedSha256": "d26f8898ec65d8a59c60eb87cc110bc09f1a52480afe431413a823eaf568bdae",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
+      "boundSha256": "e4ca54416bc62bf4b8ffde1a7a87f59fa13c7277c1aa15f2f40695f38d7232da",
+      "observedSha256": "52b6eab3cdccb52b540968d21fca7515eaaae0b96b37ea159152973024d7f800",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+      "boundSha256": "e675ae7fc10ff06e78bc739a94e2f9514bbc72958418e3343c045b65bf4f413c",
+      "observedSha256": "3c9e86805a685d9392e50d4c6e9bbad59c79f9810d88407d09c52f76623d83b9",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edit"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+      "boundSha256": "3d2418ea7becd3eed591e0efaacc542334eb26ffac2ad63b0e86824ed2521460",
+      "observedSha256": "ab88acf7cdc17f0425d61115735b568d599d6e27544d34d6dd4fae2f1961dfd7",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/skill-manifest.json",
+      "boundSha256": "a9e86b4ec1b65c964eb07be767a3b0757d8687295d6a92724f238327adb8c630",
+      "observedSha256": "d26f8898ec65d8a59c60eb87cc110bc09f1a52480afe431413a823eaf568bdae",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3",
+      "observedSha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-15.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/skill-manifest.json",
+      "boundSha256": "a9e86b4ec1b65c964eb07be767a3b0757d8687295d6a92724f238327adb8c630",
+      "observedSha256": "d26f8898ec65d8a59c60eb87cc110bc09f1a52480afe431413a823eaf568bdae",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-15.audit.json",
+      "kind": "evidence",
+      "locator": "file:.claude/skills/skill-manifest.json",
+      "boundSha256": "a9e86b4ec1b65c964eb07be767a3b0757d8687295d6a92724f238327adb8c630",
+      "observedSha256": "d26f8898ec65d8a59c60eb87cc110bc09f1a52480afe431413a823eaf568bdae",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-15.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/kit-pins.json",
+      "boundSha256": "f6276d820369945e9b2b438e5fd68134d68809ddff5b781a523fa843a36e31f6",
+      "observedSha256": "7b080a8324e32cd6bfd055dd25106d91c845d13a3018898d51555d89971690d8",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3",
+      "observedSha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-3.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
+      "boundSha256": "2d7127addbab83625a31d0d9defe7c9322845209a93b6e02b00f5d7cad11e4f8",
+      "observedSha256": "52b6eab3cdccb52b540968d21fca7515eaaae0b96b37ea159152973024d7f800",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-3.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1",
+      "observedSha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1",
+      "observedSha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-9.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3",
+      "observedSha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045",
+      "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
+    }
+  ]
+}

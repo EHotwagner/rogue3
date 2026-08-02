@@ -17,6 +17,21 @@ Parallel work is safe only while identity, claim, worktree, touch-set, and lease
 6. Use `say`, `inbox`, and coordination rooms for overlap; do not communicate through shared files.
 7. Merge through the verified green gate, satisfy post-merge obligations, stamp done, then release/clean.
 
+## Paths a remedy writes are still paths you declare
+
+Invariant 4 is about the files you set out to edit. The trap is the file a *tool* writes on your
+behalf when a gate fails: nobody declares it, because nobody plans to touch it, so `overlap` sees
+nothing and the collision is discovered mid-flight. That is not hypothetical — a repository's
+audit-binding excuse ledger was one shared file that the only non-destructive remedy rewrote, and
+three workers in one bounded fan-out collided on it and had to negotiate an append order by hand
+(EHotwagner/rogue3#41, #53).
+
+So, before claiming: for every gate this repository runs on a pull request, know which path its
+documented remedy writes, and declare that path. Where the remedy writes a path derived from your
+cycle id — the shape that repository settled on — declare that exact path, so `Paths:` states what
+you will actually commit even though no other cycle can contend for it. Run the remedy LAST, after
+the edits it excuses, or you will simply run it twice.
+
 The scheduler, touch-set grammar, claim order, liveness, and messaging facts are generated from the
 typed core in [protocol-facts](references/protocol-facts.md). Load
 [worktrees-and-overlap](references/worktrees-and-overlap.md) when creating workers, changing paths, or

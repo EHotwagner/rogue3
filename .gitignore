@@ -8,6 +8,75 @@
 readiness/*/*
 !readiness/*/ship-verdict.json
 
+# rogue3#56 — the top-level readiness ROLL-UPS that no checkout can reproduce.
+#
+# All three are rewritten by every `./fake.sh build -t Verify` over inputs that are NOT
+# reproducible from a checkout, so tracking them made every gate run produce a
+# committable diff nobody wanted:
+#
+#   evidence-graph.md            enumerates whatever is on disk under `readiness/`, and
+#                                part of that tree is `readiness/*/*` output above plus
+#                                `readiness/logs/*.txt` this very run writes. The list is
+#                                a property of the CHECKOUT, not of the repository — at
+#                                715bef9 the committed graph recorded 102 sensed files of
+#                                which 12 exist in no clean checkout, so every ordinary
+#                                run refused to publish (#26) and the committed graph was
+#                                frozen: it also OMITTED four tracked files that do exist.
+#   performance-evidence.json    measured p50Ms/p95Ms/p99Ms and allocatedBytes, plus the
+#                                inputDigest/receiptDigest/artifactDigest over them and a
+#                                compositionAuthority MVID that moves whenever the assembly
+#                                is rebuilt (src/Rogue3/PerformanceEvidence.fs). 39 leaves
+#                                differed between origin/main and one gate run at 715bef9.
+#   m7-ui-performance.json       measured p95Ms/p99Ms and NOTHING else -- it carries no
+#                                p50Ms, no allocatedBytes and no compositionAuthority at
+#                                all. 8 leaves differed over the same run. The two files
+#                                are grouped here because both are irreproducible, not
+#                                because they record the same things.
+#
+# DELIBERATELY NOT LISTED: `readiness/performance-critic-request.json`. It digests
+# performance-evidence.json and is irreproducible for the same reason, but it is written
+# only by `-t PerformanceCriticRequest`, which `Verify` never calls — so it has never
+# dirtied a gate run, and untracking it would have deleted a record while buying no part
+# of this item's acceptance. It stays tracked, refreshed deliberately by its own target,
+# and its digest over an artifact the repository no longer carries is a historical
+# statement of the same kind a merged audit makes.
+#
+# What stays TRACKED, and where a reviewer should actually look:
+#   readiness/performance-intent.yml       all 7 workload ids, definition digests and the
+#                                          p95/p99/catch-up/structural-cost budgets. It
+#                                          carries NO UI-route information.
+#   src/Rogue3/EvidenceCommands.fs         the four UI-route definition strings and their
+#                                          DECLARED definition digests, which is where the
+#                                          m7 route coverage is really pinned.
+#   readiness/evidence-audit.md            the verdict and node count. Checkout-stable, and
+#                                          the control case for the whole diagnosis: tracked
+#                                          roll-ups are fine, roll-ups that enumerate
+#                                          irreproducible things are not.
+#   layout-evidence.txt / headless-scene-evidence.txt   the baseline the gate requires.
+#
+# WHAT LEAVES GIT, stated plainly rather than implied: the measured percentiles and
+# allocations themselves, and the four UI routes' `observedScale` (retained/bound control
+# counts and per-output named-region rectangles) with their authorship/scale verdicts.
+# Merged SDD evidence under `work/` and `docs/roguelike-dungeon-crawler-roadmap.md` cite
+# these artifacts as committed records and can no longer be read that way; that is the
+# cost rogue3#56 names for this option, and it is paid here rather than hidden.
+#
+# Consequence for the audit-binding gate: a merged audit that cited one of these pinned a
+# sha256 over a run output. Those citations cannot be checked from a repository that does
+# not carry the bytes, and `scripts/check-audit-bindings.py` reports them under `notBound`
+# rather than checking them, keyed on THIS list.
+#
+# What that keying does and does NOT buy. It makes widening the exemption a two-file
+# change a reviewer can see, and removing (or negating) a line here withdraws the
+# exemption and fails the checker. It does NOT detect re-tracking: a `.gitignore` rule has
+# no effect on a file already in the index, and the checker deliberately never asks git
+# what is tracked (a checker that did would exempt everything in an export with no
+# repository). The check that the index and this list agree is a CI step —
+# `.github/workflows/verify.yml`, "Derived roll-ups stay out of the index".
+readiness/evidence-graph.md
+readiness/performance-evidence.json
+readiness/m7-ui-performance.json
+
 # Generic build & tooling output.
 bin/
 obj/
