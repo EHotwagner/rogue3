@@ -895,24 +895,30 @@ let private readKitPins (root: string) : Result<(string * string) list, string> 
         with ex ->
             Error $"{kitPinsRelative}: cannot be read as JSON ({ex.GetType().Name}), so nothing it pins is being checked"
 
-/// The ledger content this tree implies: every file under `.agents/skills` that no
-/// manifest entry names, at its current digest. Shared by the `KitPins` target and by
-/// `SelfTest`, so the remedy the gate prints is the one the tests exercise.
+/// The ledger content this tree implies: every file under `.agents/skills` that the manifest does
+/// not PIN, at its current digest — not merely every file it does not NAME, which is a different
+/// and smaller set whenever an entry has lost its `sha256`. Shared by the `KitPins` target and by
+/// `SelfTest`, so the remedy the gate prints is the one the tests exercise, and so `KitPins` can
+/// actually clear a coverage violation caused by a digestless manifest entry.
 let private computeKitPins (root: string) (manifestPinned: Set<string>) =
     kitTreeFiles root ".agents"
     |> List.filter (fun relative -> not (manifestPinned.Contains relative))
     |> List.map (fun relative -> relative, fileDigest (path [ root; relative ]))
 
-/// The `.agents/...` paths the `.agents` manifest names, and the digest it pins for each entry
-/// that carries one.
+/// The digest the `.agents` manifest pins for each entry that carries one.
 ///
-/// The two are NOT interchangeable and coverage uses only the second. A reviewer showed why: an
-/// entry that keeps its `resolvablePath` but loses its `sha256` is NAMED and not PINNED, and
-/// treating the name as coverage made the gate print `190 of 190 … 0 uncovered` while that file
-/// and its mirror were digest-checked by nothing — with a drifted mirror going unmentioned. The
-/// tree is still red (the manifest pass reports the entry), so nothing hides behind green; but the
-/// NUMBER was wrong, and an overstated number is the thing #46 exists to stop. `named` now has one
-/// consumer, `materializes-when`, and coverage keys on `pinnedSources`.
+/// It returns the NAMED paths too, and every caller discards them — deliberately, and this is the
+/// point of the function. A reviewer showed why a name must never be treated as a pin: an entry
+/// keeping its `resolvablePath` but losing its `sha256` is named and not pinned, and counting the
+/// name as coverage made the gate print `190 of 190 … 0 uncovered` while that file and its mirror
+/// were digest-checked by nothing, with a drifted mirror going unmentioned. The tree is still red
+/// (the manifest pass reports the entry), so nothing hides behind green; the NUMBER was wrong, and
+/// an overstated number is what #46 exists to stop.
+///
+/// `named` is kept, unused, ONLY so that the shape of the fault stays visible at the point where
+/// someone would reintroduce it: the two sets are here, side by side, and the doc says which one
+/// coverage may use. A second reviewer correctly called an earlier version of this comment false
+/// for claiming `named` had a live consumer. It has none.
 let private agentsManifestNames (root: string) =
     let named = System.Collections.Generic.HashSet<string>()
     let pins = ResizeArray<string * string>()
@@ -1154,17 +1160,28 @@ let templateDriftCoverage (root: string) =
     let total = List.length sources + List.length mirrors
     let covered = total - uncovered
 
-    // The breakdown is attribution, not arithmetic: it says WHICH oracle covers what, and it is
-    // reported only for the sources actually present. It cannot contradict `covered`, because
-    // `covered` no longer comes from it.
+    // The breakdown is attribution: it says WHICH oracle covers what. `covered` above no longer
+    // comes from it, so it cannot move the total — but it must still not NAME an oracle for a file
+    // that oracle does not pin. Both halves therefore key on the same validated sets the
+    // enumeration uses. A reviewer found the first version keying `byLedger` on the raw ledger, so
+    // the line could report `63 by scripts/kit-pins.json` four lines above a `coverage:` line
+    // naming one of those 63 as pinned by nothing: the manifest half had been fixed and its mirror
+    // image left behind.
     let _, manifestPins = agentsManifestNames root
+    let manifestPinned = manifestPins |> Seq.map fst |> Set.ofSeq
 
     let ledgerPinned =
         match readKitPins root with
-        | Ok pins -> pins |> List.map fst |> Set.ofList
+        | Ok pins ->
+            pins
+            |> List.filter (fun (relative, pinned) ->
+                not (String.IsNullOrWhiteSpace relative)
+                && not (String.IsNullOrWhiteSpace pinned)
+                && relative.StartsWith(kitSourcePrefix, StringComparison.Ordinal)
+                && not (relative.Split([| '/'; '\\' |]) |> Array.contains ".."))
+            |> List.map fst
+            |> Set.ofList
         | Error _ -> Set.empty
-
-    let manifestPinned = manifestPins |> Seq.map fst |> Set.ofSeq
     let byManifest = sources |> List.filter manifestPinned.Contains |> List.length
     let byLedger = sources |> List.filter (fun s -> not (manifestPinned.Contains s) && ledgerPinned.Contains s) |> List.length
 
@@ -1305,13 +1322,13 @@ let private writeFile (filePath: string) (contents: string) =
     Directory.CreateDirectory(Path.GetDirectoryName filePath: string) |> ignore
     File.WriteAllText(filePath, contents)
 
-/// Rewrites the fixture's kit pin ledger from its current tree, exactly as the `KitPins` target
-/// does on the real one. #46: the remedy the gate prints has to be the remedy the tests exercise,
-/// or "run KitPins" is advice nothing has ever checked.
 /// The fixture's stand-in for the 63 kit files the generated manifest does not name. Named after a
 /// real one: `#46` records appending a line to this exact path as the cheapest surviving evasion.
 let private unnamedRelative = ".agents/skills/work-board/references/deep-detail.md"
 
+/// Rewrites the fixture's kit pin ledger from its current tree, through the SAME writer the
+/// `KitPins` target uses. #46: the remedy the gate prints has to be the remedy the tests exercise,
+/// or "run KitPins" is advice nothing has ever checked.
 let private repinFixture (root: string) = writeKitPins root |> ignore
 
 /// A minimal but structurally faithful tree: one always-materialized skill, one that this
@@ -1775,6 +1792,26 @@ let private runSelfTest () =
             (let v = templateDriftViolations doublePinned
              (v |> List.exists (fun l -> l.Contains kitPinsRelative && l.Contains "has drifted"))
              && (v |> List.exists (fun l -> l.Contains "skill-manifest.json" && l.Contains "has drifted")))
+
+        // REVIEWER (PR #64), the mirror image of the manifest fault above: `byLedger` keyed on the
+        // RAW ledger, so a digestless ledger entry was attributed to `scripts/kit-pins.json` in the
+        // same breath as a `coverage:` line naming that file as pinned by nothing. The existing
+        // `ledgerNoSha` and `counterVsNames` fixtures build exactly this tree and assert only the
+        // COUNT, which is why both passed. This asserts the ATTRIBUTION.
+        let ledgerAttribution, _ = freshFixture ()
+
+        writeFile
+            (path [ ledgerAttribution; kitPinsRelative ])
+            """{ "schemaVersion": 1, "pins": [ { "path": ".agents/skills/work-board/references/deep-detail.md" } ] }"""
+
+        expect
+            "an INVALID ledger entry is attributed to no oracle, not counted as a ledger pin"
+            (let line = templateDriftCoverage ledgerAttribution
+             line.Contains $"0 by {kitPinsRelative}")
+
+        expect
+            "…and the mirror count drops with it, rather than crediting a mirror of an unpinned source"
+            ((templateDriftCoverage ledgerAttribution).Contains "plus 2 mirror(s)")
 
         // SURVIVOR: the breakdown numbers were asserted by nothing, so halving one of them passed.
         let breakdown, _ = freshFixture ()
