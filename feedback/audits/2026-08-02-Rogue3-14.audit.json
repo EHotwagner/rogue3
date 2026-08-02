@@ -1,0 +1,133 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-14.md",
+  "reportSha256": "39e19fd05ccfe8b90ace00c3933ec79b154c982d326c1951992310f7fdf00cd4",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:on a git archive export of 09895b9 with templateDriftViolations rewritten to return the empty list unconditionally, dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release exits 0 reporting Failed: 0, Passed: 235",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh -t SelfTest on that same mutated export exits 1 printing SelfTest: 77 case(s), 15 failure(s)",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.github/workflows/verify.yml",
+          "result": "verified",
+          "sha256": "666f040befeadbc926afe14d40e36eaf9702876d74e68f1dd00d50dec8e8b426"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#52",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:gh pr view 54 --repo EHotwagner/rogue3 --json mergedAt reports 2026-08-02T09:21:39Z with mergeCommit 09895b9b606144fdb4631f53ac673f93644e5455, and gh issue view 26 reports CLOSED at 2026-08-02T09:21:40Z",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh -t SelfTest prints SelfTest: 30 case(s), 0 failure(s) at bfd1288 and SelfTest: 77 case(s), 0 failure(s) at 09895b9",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#52",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The retraction is recorded as a fifth checkpoint rather than by editing the first, so the stale claim remains in the committed record. The timing is exact (checkpoint written 09:16Z, #54 merged 09:21:39Z); no claim is made about why the merge landed when it did."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py exits 0 at bfd1288 reporting 225 bindings, 151 fresh, 74 explicitly excused, 3 not bound, and after editing only .github/workflows/verify.yml exits 1 reporting 1 STALE BINDING(S) on feedback/audits/2026-08-02-Rogue3-11.audit.json file:.github/workflows/verify.yml bound 089b1fdcd2f1 now 3bde3b908c3e",
+          "result": "verified"
+        },
+        {
+          "locator": "command:scripts/fsgg-coord widen rogue3#52 --paths scripts/audit-binding-exceptions.json exits 6 reporting OVERLAP with rogue3#26 worker godwit-8e7b and rogue3#47 worker rook-c2de",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#53",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Graded duplicate: rogue3#53 already records this collision from three workers on the same day. This finding contributes only the CI-configuration case, which none of the three rows tabulated there covers; the underlying defect and its remedy are unchanged.",
+        "No archaeology established how many of the current bindings point at .github/ paths, so the claim is that the class extends beyond src/, not a measurement of how far."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:two consecutive ./fake.sh -t PerformanceEvidence runs on a git archive export of 09895b9 both exit 0 and both rewrite readiness/performance-evidence.json, with run1 differing from run2 and neither matching the committed bytes, in artifactDigest and in the p50Ms/p95Ms/p99Ms values",
+          "result": "verified"
+        },
+        {
+          "locator": "command:gh api repos/EHotwagner/rogue3/branches/main/protection returns 404 Branch not protected",
+          "result": "verified"
+        },
+        {
+          "locator": "command:validate run over each feedback/*.md with its matching feedback/audits/ pair at bfd1288, true exit codes captured without a pipeline, gives pass=3 fail=20 over 23 pairs",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#49",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#56",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The gate inventory was built by reading build.fsx's banner, README.md, docs/product.md and both workflow files. It is believed exhaustive but is a reading of documentation, not a derivation from a machine-readable gate registry, which this repository does not have.",
+        "The performance gate's non-reproducibility was measured over two consecutive runs on one idle host. That establishes run-to-run variance exists; it does not quantify how much worse a shared runner would be."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:on a git archive export of 09895b9 with templateDriftViolations returning the empty list and the line failures <- failures + 1 deleted, ./fake.sh -t SelfTest exits 0 printing SelfTest: 77 case(s), 0 failure(s) alongside 15 FAIL lines, while the workflow guard script over the same output exits 1",
+          "result": "verified"
+        },
+        {
+          "locator": "command:on an export of bfd1288 with the TemplateDrift dispatch arm replaced by writeLog target and real drift appended to .agents/skills/fs-gg-ai/SKILL.md, ./fake.sh -t TemplateDrift exits 0 while ./fake.sh -t SelfTest exits 1",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#57",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The 16-killed/7-survived split is the independent critic's count over its own mutant set, not an exhaustive enumeration of single-edit mutations of build.fsx. Re-derived directly here for the two survivors the workflow guard closes and for the dispatch survivor whose proposed remedy was refuted; the remaining survivors are reported as the critic measured them.",
+        "The guard closes the two counter-disabling survivors as observed through SelfTest's printed output. A mutation that suppressed the FAIL lines as well as the counter would defeat both; that was not tested, and is part of why #57 asks for a fail-fast harness rather than treating the guard as the fix."
+      ]
+    }
+  ]
+}
