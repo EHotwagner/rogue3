@@ -150,15 +150,24 @@ jobs:
       #     What kills them: SelfTest plants a REAL violation in THIS repository on
       #     every run and requires the real check to report it, so the tree under
       #     test IS the repository and no predicate over the root can tell the two
-      #     apart. Re-measured at the #74 branch head over 16 mutant trees exported
+      #     apart. Re-measured at the #74 branch head over 18 mutants exported
       #     OUTSIDE /tmp (that matters -- Path.GetTempPath() is /tmp here, so an
       #     export placed under it makes the temp-path mutant read as killed when it
-      #     is live): 5 repository-fingerprint mutants, each on a drifted AND on a
-      #     clean tree; 4 that fingerprint the PROBE rather than the repository;
-      #     5 that disarm one channel of the defence while exempting the tree; and
-      #     2 controls. Every mutant exits 1; both controls behave (clean 0, drifted
-      #     1). The fingerprint mutants now red a CLEAN tree too: the exemption
-      #     itself is the failure, not merely the drift it would have hidden.
+      #     is live), counted exactly, one tree each:
+      #       5  repository fingerprints, on a DRIFTED tree (Rogue3.slnx present,
+      #          build.fsx present, src/ present, .gitignore present, root not under
+      #          the temp dir)
+      #       2  repository fingerprints on a CLEAN tree, one per check route
+      #       4  that fingerprint the PROBE rather than the repository
+      #       5  that disarm one channel of the defence while exempting the tree
+      #       2  that delete the whole probe block in one contiguous edit
+      #     Every one exits 1. Two further trees are controls and behave: clean 0,
+      #     drifted 1. Six of the fingerprint mutants were also run at d2c4e2f for
+      #     contrast and all six exit 0 there.
+      #     The two CLEAN-tree rows are the substantive change, and they were run
+      #     for one mutant per route rather than for all five: before, an exemption
+      #     was invisible until someone actually drifted a file, and then it hid the
+      #     drift; now the exemption itself reds a tree with nothing wrong with it.
       #     Of the other four survivors of the earlier sweep: two are the
       #     transcript-only non-defeats above, one disables ONE of the probe's two
       #     channels and is killed independently by the other, and one is a

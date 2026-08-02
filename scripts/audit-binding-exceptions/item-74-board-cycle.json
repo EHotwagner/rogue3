@@ -23,7 +23,7 @@
       "kind": "evidence",
       "locator": "file:.github/workflows/verify.yml",
       "boundSha256": "089b1fdcd2f14e1d7f8ba5cce0435059c204ffa0c0574bb80e229885b40142c3",
-      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "observedSha256": "5c150e885ee6b16845e8ff553f373ae1e81d0e68e17af85601e5e5a596fe2d99",
       "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
     },
     {
@@ -31,7 +31,7 @@
       "kind": "evidence",
       "locator": "file:.github/workflows/verify.yml",
       "boundSha256": "089b1fdcd2f14e1d7f8ba5cce0435059c204ffa0c0574bb80e229885b40142c3",
-      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "observedSha256": "5c150e885ee6b16845e8ff553f373ae1e81d0e68e17af85601e5e5a596fe2d99",
       "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
     },
     {
@@ -55,7 +55,7 @@
       "kind": "evidence",
       "locator": "file:.github/workflows/verify.yml",
       "boundSha256": "257798a7cb1afbd8574091fd220c97af368aadbbadefbdb868a21e0c2b2244a6",
-      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "observedSha256": "5c150e885ee6b16845e8ff553f373ae1e81d0e68e17af85601e5e5a596fe2d99",
       "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
     },
     {
@@ -71,7 +71,7 @@
       "kind": "evidence",
       "locator": "file:.github/workflows/verify.yml",
       "boundSha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa",
-      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "observedSha256": "5c150e885ee6b16845e8ff553f373ae1e81d0e68e17af85601e5e5a596fe2d99",
       "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
     },
     {
@@ -79,7 +79,7 @@
       "kind": "evidence",
       "locator": "file:.github/workflows/verify.yml",
       "boundSha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa",
-      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "observedSha256": "5c150e885ee6b16845e8ff553f373ae1e81d0e68e17af85601e5e5a596fe2d99",
       "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
     },
     {
@@ -95,7 +95,7 @@
       "kind": "evidence",
       "locator": "file:.github/workflows/verify.yml",
       "boundSha256": "78b072330cf1e5fb7a271761b72c21609e1ab4c97897468997ca86e1dea771bb",
-      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "observedSha256": "5c150e885ee6b16845e8ff553f373ae1e81d0e68e17af85601e5e5a596fe2d99",
       "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
     },
     {
@@ -103,7 +103,7 @@
       "kind": "evidence",
       "locator": "file:.github/workflows/verify.yml",
       "boundSha256": "78b072330cf1e5fb7a271761b72c21609e1ab4c97897468997ca86e1dea771bb",
-      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "observedSha256": "5c150e885ee6b16845e8ff553f373ae1e81d0e68e17af85601e5e5a596fe2d99",
       "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
     },
     {
@@ -127,7 +127,7 @@
       "kind": "evidence",
       "locator": "file:.github/workflows/verify.yml",
       "boundSha256": "54a9af4b88e13f6a8b81bad23dd1de2a3d498b15072af8085d30efdc65a9d5e9",
-      "observedSha256": "24536d1ece6fe6fee0e177510678289e80aafb5351cbdfc90fe3987505d72857",
+      "observedSha256": "5c150e885ee6b16845e8ff553f373ae1e81d0e68e17af85601e5e5a596fe2d99",
       "reason": "rogue3#74 rewrote build.fsx's SelfTest binding probes and corrected .github/workflows/verify.yml's scope-limits block; merged audits pin the previous bytes of both files by construction."
     },
     {
