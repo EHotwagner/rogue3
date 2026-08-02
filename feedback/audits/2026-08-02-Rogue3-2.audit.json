@@ -1,0 +1,185 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-2.md",
+  "reportSha256": "d1a20683413277cccef843d277d088019d18f65dfa96441672b23b5a9fa01693",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "\u00a74.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/AudioCues.fs",
+          "result": "verified",
+          "sha256": "56f54686b350a877ec7fb69e2878606d42805baaaa09af3346c6dcc010219879"
+        },
+        {
+          "locator": "file:readiness/009-m8-audio/ship-verdict.json",
+          "result": "verified",
+          "sha256": "7527bc7adc0838d67e6d698833d9e161caf7392b18fbb1ef1448948a313cbb68"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M8AudioTests.fs",
+          "result": "verified",
+          "sha256": "6203ca2f944589bea84686d8585c6580397a3c7f0a45e6f189e46cb257fac183"
+        },
+        {
+          "locator": "file:work/009-m8-audio/evidence.yml",
+          "result": "verified",
+          "sha256": "ca34ee2eda8d247b0b76673c51844c5e25257e8b3af00c8d6afc33c959363c13"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "\u00a74.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:work/013-m12-audio-assets/plan.md",
+          "result": "verified",
+          "sha256": "228b088e5c56df4e3c85989f681c0de114517437c8118d93e6cf2208a67de65f"
+        },
+        {
+          "locator": "file:feedback/2026-08-01-Rogue3-11.md",
+          "result": "verified",
+          "sha256": "808c8f153ef263f1989c47b6163788449dc79ec3cc975c2fb166050f2712cc9b"
+        },
+        {
+          "locator": "file:feedback/2026-08-01-Rogue3-12.md",
+          "result": "verified",
+          "sha256": "35e4f57d1bd256fcc58a737acec24be06fd13906a0ad4fcdd9efead8b30508bb"
+        }
+      ],
+      "confidenceLimits": [
+        "The earlier draft's claim that only `--accept-upstream` reclaims the section was refuted by the report critic against the cited prior art and is withdrawn; this entry now claims only a third and fourth occurrence.",
+        "The reclaimed state is not on disk: plan.md was restored in the same session, so the seven-entry loss rests on the pre-run scratch copy and the author's record."
+      ]
+    },
+    {
+      "id": "\u00a74.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:work/013-m12-audio-assets/evidence.yml",
+          "result": "verified",
+          "sha256": "3650b86a967eec213fa79b288d67f1cf73dfda3c88f7bea591479be1a2db26ef"
+        },
+        {
+          "locator": "file:feedback/2026-08-01-Rogue3-12.md",
+          "result": "verified",
+          "sha256": "35e4f57d1bd256fcc58a737acec24be06fd13906a0ad4fcdd9efead8b30508bb"
+        }
+      ],
+      "confidenceLimits": [
+        "The blocked stage was corrected in the same session, so the quoted diagnostic strings are not reconstructible from the tree. The underlying limitation is independently reproducible by citing any non-UTF-8 file."
+      ]
+    },
+    {
+      "id": "\u00a74.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:readiness/013-m12-audio-assets/launch-evidence.md",
+          "result": "verified",
+          "sha256": "877e5dcf6c7cda1ea269edd29b7ce582f317a1f31694d47a4c35c62dcb8d4f12"
+        },
+        {
+          "locator": "file:readiness/013-m12-audio-assets/launch-mode-evidence.txt",
+          "result": "verified",
+          "sha256": "46f0a3e6c1f3e420d7a9babf371ccec06e41f9a6d76688411f7465523c4b7104"
+        },
+        {
+          "locator": "file:src/Rogue3/EvidenceCommands.fs",
+          "result": "verified",
+          "sha256": "729510e7eda14798f7f766eb235c52f06417b4b68e08fa470cb28554b54dc948"
+        },
+        {
+          "locator": "file:src/Rogue3/GameShell.fs",
+          "result": "verified",
+          "sha256": "f18e94f1a8a8b4acc1eec4f4c84f5405f372fdd94bfa21ac4bd1ca5342e8f993"
+        }
+      ],
+      "confidenceLimits": [
+        "Not re-verified on an X11 session; this host offers none. The Xvfb run establishes that an X11 window is created, not that a graceful close would work under a real compositor."
+      ]
+    },
+    {
+      "id": "\u00a74.5",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/AudioCueIds.fs",
+          "result": "verified",
+          "sha256": "731261e6e2fc74a92f6d409fbe7ad0861de48281098e77c9c1c72d465162d2df"
+        },
+        {
+          "locator": "file:work/013-m12-audio-assets/clarifications.md",
+          "result": "verified",
+          "sha256": "c8d0dfd03aacf1d763a830b5b4154cba08b71a1e99cd7f68f6b01064cb49bedf"
+        },
+        {
+          "locator": "file:scripts/generate-audio-assets.fsx",
+          "result": "verified",
+          "sha256": "eec7cdd1ccb6069ed16a706b9acfc43d6ce2d38c585740e38b8ac1527494ad71"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "\u00a74.6",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/AudioSynthesis.fs",
+          "result": "verified",
+          "sha256": "e8313d21d05bc5397ea1096dc2cf18072b37513e9004eafd4e0dd15613879256"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M12AudioAssetTests.fs",
+          "result": "verified",
+          "sha256": "54b3861b30b60d81ffd300b0fb60b74f96bbfb08367d0010c8c6d227341e3bbd"
+        },
+        {
+          "locator": "command:gh pr checks 25 --repo EHotwagner/rogue3",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Cross-platform reproduction is evidenced by one CI run on one second platform, not by a proof over all libm implementations."
+      ]
+    },
+    {
+      "id": "\u00a74.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:tests/Rogue3.Tests/M12AudioAssetTests.fs",
+          "result": "verified",
+          "sha256": "54b3861b30b60d81ffd300b0fb60b74f96bbfb08367d0010c8c6d227341e3bbd"
+        },
+        {
+          "locator": "file:src/Rogue3/FloorGeneration.fs",
+          "result": "verified",
+          "sha256": "e4382605395e26255919800eb48f7a0e5179c52a93862a8d1aa32be9d1d8edf3"
+        },
+        {
+          "locator": "file:readiness/013-m12-audio-assets/test-results/m12-full-release.trx",
+          "result": "verified",
+          "sha256": "01dab96670cb276188de689da50d262c59ae79420c363dd28d4fbc18477b8386"
+        }
+      ],
+      "confidenceLimits": [
+        "The 206/206-green-under-mutation observation was made by the code critic; this author reproduced the mutation afterwards and recorded the corrected result, but the original green run is the critic's."
+      ]
+    }
+  ]
+}
