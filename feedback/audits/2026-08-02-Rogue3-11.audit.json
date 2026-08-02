@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-11.md",
-  "reportSha256": "b4b18ef24f3659956059bbcc19e7c7bc115b453b3f5992574dee2f012d3343b8",
+  "reportSha256": "c8dce39a7d97332684a354e27555053f4e405b6c238c5e8c9cfdcc5330f19594",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -35,11 +35,11 @@
       "missingFacts": [],
       "checkedEvidence": [
         {
-          "locator": "command:validate run over every feedback/*.md with its matching feedback/audits/*.audit.json, true exit codes captured without a pipeline, gives pass=1 fail=19 over 20 pairs at 2798e71, pass=2 fail=20 over 22 pairs at the rebase base 3913c26, and pass=2 fail=20 over the same 22 pairs at this head",
+          "locator": "command:validate run over every feedback/*.md with its matching feedback/audits/*.audit.json, true exit codes captured without a pipeline, gives pass=1 fail=19 over 20 pairs at 2798e71, pass=2 fail=20 over 22 pairs at the rebase base 3913c26, pass=2 fail=20 over that same inherited 22-pair corpus at this head, and pass=3 fail=20 over all 23 pairs including this cycle's own report",
           "result": "verified"
         },
         {
-          "locator": "command:python3 scripts/check-audit-bindings.py exits 0 reporting 216 bindings, 142 fresh, 74 explicitly excused, 2 not bound",
+          "locator": "command:python3 scripts/check-audit-bindings.py exits 0 reporting 225 bindings, 151 fresh, 74 explicitly excused, 3 not bound",
           "result": "verified"
         },
         {
