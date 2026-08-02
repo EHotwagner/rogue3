@@ -304,6 +304,21 @@ let tests =
         |> Set.ofArray
       for removed in [ "Rogue3.Model+Enemy"; "Rogue3.Model+ShopSlot"; "Rogue3.Model+ShopCost" ] do
         Expect.isFalse (Set.contains removed modelTypes) $"the pre-M5 record {removed} stays deleted"
+      // The exact shape #20 deleted was `Obstacles: Rect list` — a free-floating collider cache
+      // beside the typed obstacle list. The by-type count above cannot see it coming back, because
+      // a `Rect list` is not an `Obstacle list`; only this does. `blockingObstacleRects` derives
+      // that set on demand and stores it nowhere, which is the property being protected.
+      // Both rectangle types are checked: `blockingObstacleRects` returns `SimRect list`, which is
+      // the shape the deleted cache held, and `FS.GG.UI.Scene.Rect` is the other `Rect` in scope
+      // across this product — naming only one of them would leave the obvious near-miss open.
+      Expect.equal
+        (fieldsOfType typeof<SimRect list>)
+        [||]
+        "no Model field caches a SimRect list — the derived collider set is computed on demand by blockingObstacleRects, never stored, so it cannot go stale"
+      Expect.equal
+        (fieldsOfType typeof<FS.GG.UI.Scene.Rect list>)
+        [||]
+        "and no Model field caches a Scene.Rect list either"
       let msgCases =
         Reflection.FSharpType.GetUnionCases typeof<Msg> |> Array.map _.Name |> Set.ofArray
       Expect.isFalse (Set.contains "InteractShop" msgCases) "the second shop message is gone"

@@ -402,6 +402,24 @@ type Model =
       Instrumentation: InstrumentationCounters
       BlackHeartBursts: int
       EdgeActionCount: int
+      // Board item #60 retired the `M5`/`M6` prefix from every field on this record, and stopped
+      // there. The two TYPES below still carry it, deliberately and with the cost understood:
+      //
+      //   * `M6Particle` cannot simply become `Particle` — `GameplayVisualInventory`'s
+      //     `GameplayVisualElement` already has a `Particle` case, and both are in scope together in
+      //     the render and evidence files. Trading a meaningless prefix for a real ambiguity in the
+      //     visual inventory is a bad trade.
+      //   * `M6CameraTransition` has no such obstacle; it is held back only to keep these two
+      //     consistent with each other.
+      //
+      // The cost of deferring is REAL and is stated rather than discovered later: `Determinism.encode`
+      // writes record TYPE names as well as field names, so renaming either type is its own change
+      // event and moves all 11 committed digests a second time. That is exactly the double payment
+      // #60 was filed to avoid, so a follow-up should carry both types, the `M5`/`M6` `Msg` cases and
+      // the prefixed function names TOGETHER, in one cycle, or not at all. The cost-driver ids
+      // (`state.m5-enemies`, `scene.m6-camera-transition`, …) are NOT part of that: they are pinned
+      // identifiers folded into `criticInputDigest` and cited by merged audits, so renaming them
+      // would be a semantic change wearing a cosmetic disguise.
       Particles: M6Particle list
       NextParticleId: int
       CameraTransition: M6CameraTransition option
