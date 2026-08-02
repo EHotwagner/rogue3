@@ -50,10 +50,10 @@ let withDoors states (model: Model) =
               FloorGeneration.State = state })
     { model with
         Floor = { model.Floor with Rooms = Map.add roomId { room with Doors = doors } model.Floor.Rooms }
-        M5Room = { model.M5Room with Doors = doors |> List.map (fun _ -> Entities.DoorState.Open) } }
+        Room = { model.Room with Doors = doors |> List.map (fun _ -> Entities.DoorState.Open) } }
 
 let withLock lock (model: Model) =
-    { model with M5Room = { model.M5Room with Doors = model.M5Room.Doors |> List.map (fun _ -> lock) } }
+    { model with Room = { model.Room with Doors = model.Room.Doors |> List.map (fun _ -> lock) } }
 
 let boot = initialModel
 
@@ -102,7 +102,7 @@ let travelTo target (model: Model) =
         |> List.fold
             (fun current roomId ->
                 let cleared =
-                    current.M5Enemies
+                    current.Enemies
                     |> List.map _.Id
                     |> List.fold (fun m enemyId -> update (DamageM5Enemy(enemyId, 99999.0)) m |> fst) current
                 update (TraverseDoor roomId) cleared |> fst)
@@ -146,31 +146,40 @@ shot "08-key-door-in-play" (boot |> clearRoom treasureNeighbour |> travelTo trea
 // ------------------------------------------------------------------------------------------------
 let inventoryFrame name model = shot name model
 
+// M13 changed `ObstacleDrops` from `PickupKind list` to positioned `FloorPickup list`, and this
+// fixture was never updated — the script has not compiled since. It is repaired here rather than
+// left dead, because a contact sheet nothing can render guards nothing. Positions are laid out in a
+// row across the room so each pickup is individually legible, which is what this frame is for.
 inventoryFrame
     "09-pickups-and-drops"
     { boot with
-        M5ObstacleDrops =
+        ObstacleDrops =
             [ Entities.PickupKind.Coin1; Entities.PickupKind.Coin3; Entities.PickupKind.HalfRedHeart
               Entities.PickupKind.Key; Entities.PickupKind.Bomb; Entities.PickupKind.SoulHeart ]
-        M5Room = { boot.M5Room with Drop = Some Entities.PickupKind.Key } }
+            |> List.mapi (fun index kind ->
+                { Id = 6000 + index
+                  Room = boot.Floor.CurrentRoom
+                  Kind = kind
+                  Position = vec2 (360.0 + float index * 110.0) 360.0 })
+        Room = { boot.Room with Drop = Some Entities.PickupKind.Key } }
 
 inventoryFrame
     "10-enemy-roster"
     { boot with
-        M5Enemies =
+        Enemies =
             Entities.roster
             |> List.mapi (fun index kind ->
                 Entities.spawn 3 (500 + index) kind (vec2 (200.0 + float (index % 4) * 200.0) (220.0 + float (index / 4) * 200.0))) }
 
-inventoryFrame "11-boss-hollow-choir" { boot with M5Boss = Some(Entities.spawnBoss 700 Entities.BossKind.HollowChoir (vec2 640.0 300.0)) }
-inventoryFrame "12-boss-maw" { boot with M5Boss = Some(Entities.spawnBoss 701 Entities.BossKind.Maw (vec2 640.0 300.0)) }
+inventoryFrame "11-boss-hollow-choir" { boot with Boss = Some(Entities.spawnBoss 700 Entities.BossKind.HollowChoir (vec2 640.0 300.0)) }
+inventoryFrame "12-boss-maw" { boot with Boss = Some(Entities.spawnBoss 701 Entities.BossKind.Maw (vec2 640.0 300.0)) }
 
 inventoryFrame
     "13-shop-and-reward"
     (let slots, _, _ = Entities.generateShop (FS.GG.Game.Core.Rng.ofSeed 0xA55AUL) (Entities.itemPool [])
      { boot with
-         M5ShopSlots = slots
-         M5Room = { boot.M5Room with Reward = Some Entities.baseItems.Head } })
+         ShopSlots = slots
+         Room = { boot.Room with Reward = Some Entities.baseItems.Head } })
 
 inventoryFrame
     "14-projectiles-and-bombs"

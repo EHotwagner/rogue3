@@ -1252,8 +1252,8 @@ let m6VisualEvidence (outputDirectory: string) =
             update (SpawnM6Particles(120, vec2 640.0 360.0, ParticleTint.Explosion)) initialModel
             |> fst
         { particles with
-            M5Enemies = enemies
-            M5Obstacles =
+            Enemies = enemies
+            Obstacles =
                 [ Rogue3.Entities.obstacleAt (vec2 115.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Rock 1)
                   Rogue3.Entities.obstacleAt (vec2 320.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.TintedRock 2)
                   Rogue3.Entities.obstacleAt (vec2 520.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Pot 3)
@@ -1261,17 +1261,17 @@ let m6VisualEvidence (outputDirectory: string) =
                   Rogue3.Entities.obstacleAt (vec2 1010.0 120.0) (Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Pit 5) ]
             // M13: a drop carries a world position, so the visual-evidence fixture places each one
             // where a player would find it rather than in an indexed strip.
-            M5ObstacleDrops =
+            ObstacleDrops =
                 [ { Id=8101;Room=0;Kind=Rogue3.Entities.PickupKind.Coin1;Position=vec2 200.0 620.0 }
                   { Id=8102;Room=0;Kind=Rogue3.Entities.PickupKind.Coin3;Position=vec2 280.0 620.0 }
                   { Id=8103;Room=0;Kind=Rogue3.Entities.PickupKind.HalfRedHeart;Position=vec2 360.0 620.0 }
                   { Id=8104;Room=0;Kind=Rogue3.Entities.PickupKind.Key;Position=vec2 440.0 620.0 }
                   { Id=8105;Room=0;Kind=Rogue3.Entities.PickupKind.Bomb;Position=vec2 520.0 620.0 }
                   { Id=8106;Room=0;Kind=Rogue3.Entities.PickupKind.SoulHeart;Position=vec2 600.0 620.0 } ]
-            M5Boss=Some(Rogue3.Entities.spawnBoss 7000 Rogue3.Entities.BossKind.Maw (vec2 1120.0 560.0))
-            M5ShopSlots=shop
-            M5Room=
-                { initialModel.M5Room with
+            Boss=Some(Rogue3.Entities.spawnBoss 7000 Rogue3.Entities.BossKind.Maw (vec2 1120.0 560.0))
+            ShopSlots=shop
+            Room=
+                { initialModel.Room with
                     Doors=[Rogue3.Entities.DoorState.Open;Rogue3.Entities.DoorState.LockedClear;Rogue3.Entities.DoorState.BossSealed]
                     Drop=Some Rogue3.Entities.PickupKind.Key
                     Reward=Some Rogue3.Entities.baseItems.Head
@@ -1436,7 +1436,41 @@ let m7UiPerformanceEvidence (path:string) =
         SHA256.HashData bytes |> Convert.ToHexString |> fun value -> value.ToLowerInvariant()
     let declared =
         Map.ofList
-            [ // Board item #63 (EIGHTH derivation, and the FIRST that moves this route). Every
+            [ // Board item #60 (NINTH derivation). The `Model` reshape: the seven `Total*` cost
+              // counters moved into an `InstrumentationCounters` sub-record, and the seventeen
+              // `M5`/`M6`-prefixed fields lost their prefix. Neither is a behaviour change, and
+              // that is precisely why the digest set is the evidence rather than a claim —
+              // `sourceFiles` hashes `Model.fs` BYTES, so a pure rename moves a digest exactly as
+              // far as a rewrite does, and the check available is WHICH digests moved and whether
+              // every observed scale held.
+              //
+              // The three routes that hash `Model.fs` moved and `main-menu` — which hashes
+              // `GameShell.fs` and `M7Ui.fs`, neither touched — is byte-identical, still
+              // `f3475b94…` from #63. Every scale verdict is unchanged, which is the real check on
+              // a mechanical reshape: hud-playing still reports 12 scene elements at both outputs
+              // and the same five named regions at the same coordinates, run-result the same 9
+              // nodes / 3 bound actions / 5 summary text fields, stats-charts the same 19 nodes,
+              // four KPI tiles, 5 depth buckets and 2 damage series. A reshape that dropped a
+              // field's value on the floor would show up there, not in the digest.
+              //
+              // These three moved TWICE inside this one cycle, and the second move is worth naming
+              // because it separates the two digest mechanisms this repository uses. A comment block
+              // was added late to `Model.fs` recording which `M5`/`M6` names were deliberately left
+              // alone; adding it changed `Model.fs` BYTES, so these three route digests — which
+              // hash the file — moved again, while all seven WORKLOAD digests stayed green, because
+              // those fold in `Determinism.encode` of the model VALUE and a comment is not part of a
+              // value. Byte-hashed evidence is sensitive to comments; value-encoded evidence is not.
+              //
+              // Then a THIRD time, for the same reason: a self-review of the diff found the
+              // `resolveShotCombat` counter update rooted at `model.Instrumentation` while its outer
+              // copy is `{ bossModel with … }`. Behaviour-identical today — `damageM5Boss` touches no
+              // counter — but a nested copy-and-update overwrites all seven fields where the flat
+              // line it replaced overrode one, so the spellings only agree by accident. Rooting it at
+              // `bossModel` moved `Model.fs` bytes and therefore these three digests once more. Three
+              // re-derivations of the same three routes in one cycle is the honest cost of byte-hashed
+              // evidence over a file that is still being reviewed.
+              //
+              // Board item #63 (EIGHTH derivation, and the FIRST that moves this route). Every
               // previous re-derivation recorded below moved the three routes that hash `Model.fs`
               // and `Render.fs`, and each one noted that `main-menu` — which hashes `GameShell.fs`
               // and `M7Ui.fs` — was byte-identical, using that as the check that the digest set
@@ -1528,9 +1562,9 @@ let m7UiPerformanceEvidence (path:string) =
               // derivation, noted at the top of this map -- did touch `GameShell.fs`, and
               // `main-menu` moved for the first time. The three digests below are the ones that are
               // byte-identical now.)
-              "hud-playing", "cb44115fce35a1166e3602a65a6819681bdcdb704d65d4348ea41b4e95d03478"
-              "run-result", "2e5355872d5533ee31d04c2d20f6e125d82ce8095fa0ce04679a9666faa75f30"
-              "stats-charts", "363fe2735fbcf73275ac7e29e0de862f21ca4635bc55da3217999149c64439ae" ]
+              "hud-playing", "7c7454a9d65a752445a15a2543f9b7d77dd30e4548fc9157e75527bd21624c65"
+              "run-result", "1b32317d865385c72b8713deb0cf4c130d77a892908eb93a00a7ce5fdd4af398"
+              "stats-charts", "eb99b8b2f4b03c8b208e31b0d5a129b1cbb59f554e6e06fdd4bfd7a3e01074a5" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]

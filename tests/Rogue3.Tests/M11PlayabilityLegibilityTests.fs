@@ -107,7 +107,7 @@ let private audioFromHost effects =
     |> _.Requested
 
 let private clearLoadedRoom (model: Model) =
-    model.M5Enemies
+    model.Enemies
     |> List.map _.Id
     |> List.fold (fun current enemyId -> update (DamageM5Enemy(enemyId, 99999.0)) current |> fst) model
 
@@ -120,7 +120,7 @@ let m11PlayabilityLegibilityTests =
         [ test "FR-007 the room a player boots into presents the floor graph's real exits" {
               Expect.isNonEmpty (currentRoom boot).Doors "the floor graph gives the START room exits"
               Expect.equal
-                  boot.M5Room.Doors.Length
+                  boot.Room.Doors.Length
                   (currentRoom boot).Doors.Length
                   "the derived combat-lock projection carries one entry per floor-graph door, not an empty list"
 
@@ -164,7 +164,7 @@ let m11PlayabilityLegibilityTests =
 
               // The destination is a live combat room, so its doorways seal. Walking at the door does
               // not get the player out until the room is cleared — that is the rule, not a defect.
-              Expect.isFalse crossed.M5Room.Cleared "the destination is a live combat room"
+              Expect.isFalse crossed.Room.Cleared "the destination is a live combat room"
               let pressing, _ = walkUntil (doorwayTarget South) (fun _ -> false) 240 (releaseAll crossed)
               Expect.equal pressing.Floor.CurrentRoom north.ToRoom "a sealed doorway cannot be walked back through"
 
@@ -254,7 +254,7 @@ let m11PlayabilityLegibilityTests =
                   let expected =
                       graphDoors
                       |> List.mapi (fun index door ->
-                          let lock = model.M5Room.Doors |> List.tryItem index |> Option.defaultValue Entities.DoorState.Open
+                          let lock = model.Room.Doors |> List.tryItem index |> Option.defaultValue Entities.DoorState.Open
                           Render.doorPresentation door.State lock)
 
                   Expect.equal
@@ -286,7 +286,7 @@ let m11PlayabilityLegibilityTests =
                                               roomId
                                               { room with Doors = [ { ToRoom = 900; Direction = direction; State = graphState } ] }
                                               boot.Floor.Rooms }
-                              M5Room = { boot.M5Room with Doors = [ lock ] } }
+                              Room = { boot.Room with Doors = [ lock ] } }
                       let element =
                           Render.renderedElements model
                           |> List.find (fun item -> item.ElementId.StartsWith "Door")
@@ -387,7 +387,7 @@ let m11PlayabilityLegibilityTests =
               let cleared =
                   { boot with Floor = clearBoss bossId boot.Floor } |> update (EnterM5Room bossId) |> fst
 
-              Expect.isTrue cleared.M5Room.Trapdoor "clearing the boss leaves a trapdoor the room presents"
+              Expect.isTrue cleared.Room.Trapdoor "clearing the boss leaves a trapdoor the room presents"
 
               let offTrapdoor = { cleared with PlayerPosition = vec2 200.0 200.0 }
               let stillHere = update DescendFloor offTrapdoor |> fst
@@ -411,7 +411,7 @@ let m11PlayabilityLegibilityTests =
               Expect.equal pressed.FloorIndex (boot.FloorIndex + 1) "the interact key on the trapdoor descends a floor"
               Expect.equal pressed.Floor.CurrentRoom 0 "and lands in the new floor's START room"
               Expect.equal pressed.Floor.Rooms.[0].RoomType Start "which really is a START room"
-              Expect.isNonEmpty pressed.M5Room.Doors "loaded through the production room seam, so it presents its exits"
+              Expect.isNonEmpty pressed.Room.Doors "loaded through the production room seam, so it presents its exits"
 
               // The same keypress somewhere with no trapdoor changes nothing.
               let elsewhere = boot |> setKey 'E' true |> tick
@@ -456,16 +456,16 @@ let m11PlayabilityLegibilityTests =
                       (releaseAll walked |> clearLoadedRoom)
 
               Expect.equal atBoss.Floor.CurrentRoom bossId "the walk reaches the boss room"
-              Expect.isSome atBoss.M5Boss "which has a live boss in it"
-              Expect.isFalse atBoss.M5Room.Trapdoor "and no trapdoor until the boss falls"
+              Expect.isSome atBoss.Boss "which has a live boss in it"
+              Expect.isFalse atBoss.Room.Trapdoor "and no trapdoor until the boss falls"
 
               let defeated = update (DamageM5Boss 100000.0) atBoss |> fst
-              Expect.isNone defeated.M5Boss "the boss is defeated"
+              Expect.isNone defeated.Boss "the boss is defeated"
               Expect.hasLength
                   (defeated.Floor.Rooms.[bossId].Fixtures |> List.filter ((=) Trapdoor))
                   1
                   "the floor records exactly one trapdoor"
-              Expect.isTrue defeated.M5Room.Trapdoor "the loaded room presents it"
+              Expect.isTrue defeated.Room.Trapdoor "the loaded room presents it"
               Expect.isTrue
                   (Render.renderedElements defeated |> List.exists (fun element -> element.ElementId = "Trapdoor"))
                   "and the production frame draws it"
@@ -598,7 +598,7 @@ let m11PlayabilityLegibilityTests =
               // M13: they carry a world position now, so the fixture places them where obstacles stood.
               let dropped =
                   { boot with
-                      M5ObstacleDrops =
+                      ObstacleDrops =
                           [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin1; Position = vec2 300.0 240.0 }
                             { Id = 2; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Key; Position = vec2 520.0 240.0 }
                             { Id = 3; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Bomb; Position = vec2 740.0 240.0 } ] }
@@ -636,7 +636,7 @@ let m11PlayabilityLegibilityTests =
 
               // A model whose loaded room claims a trapdoor the FLOOR does not record must not draw one:
               // drawing it would promise a descent the guard then refuses.
-              let desynced = { boot with M5Room = { boot.M5Room with Trapdoor = true } }
+              let desynced = { boot with Room = { boot.Room with Trapdoor = true } }
               Expect.isFalse (trapdoorPresent desynced) "the floor records no fixture"
               Expect.isFalse (has "Trapdoor" desynced) "so nothing is drawn"
           }

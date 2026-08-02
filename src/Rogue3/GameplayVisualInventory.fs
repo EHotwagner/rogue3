@@ -147,7 +147,7 @@ let private enemyBullet =
 
 /// A production model standing in the current floor room, rewritten to carry `doorStates` on the
 /// FLOOR GRAPH plus the derived combat `locks`. M11 renders doors from the graph, so a visual fixture
-/// that only set the cosmetic `M5Room.Doors` list would prove nothing about what a player sees.
+/// that only set the cosmetic `Room.Doors` list would prove nothing about what a player sees.
 let private roomShowing doorStates locks trapdoor drop reward =
     let model = initialModel
     let roomId = model.Floor.CurrentRoom
@@ -164,29 +164,29 @@ let private roomShowing doorStates locks trapdoor drop reward =
         else room.Fixtures
     { model with
         Floor = { model.Floor with Rooms = Map.add roomId { room with Doors = doors; Fixtures = fixtures } model.Floor.Rooms }
-        M5Room = { model.M5Room with Doors = locks; Drop = drop; Reward = reward; Trapdoor = trapdoor } }
+        Room = { model.Room with Doors = locks; Drop = drop; Reward = reward; Trapdoor = trapdoor } }
 
 let private evidenceModel element =
     match kindOfEnemy element, kindOfBoss element, kindOfObstacle element, kindOfPickup element with
     | Some kind, _, _, _ ->
-        { initialModel with M5Enemies=[ spawn 1 100 kind (vec2 320.0 280.0) ] }
+        { initialModel with Enemies=[ spawn 1 100 kind (vec2 320.0 280.0) ] }
     | _, Some kind, _, _ ->
-        { initialModel with M5Boss=Some(spawnBoss 200 kind (vec2 420.0 300.0)) }
+        { initialModel with Boss=Some(spawnBoss 200 kind (vec2 420.0 300.0)) }
     | _, _, Some kind, _ ->
-        { initialModel with M5Obstacles=[ obstacleAt (vec2 260.0 260.0) (obstacle kind 300) ] }
+        { initialModel with Obstacles=[ obstacleAt (vec2 260.0 260.0) (obstacle kind 300) ] }
     // M13: a drop is a POSITIONED pickup, so the fixture must carry a position too — and a distinct
     // one per kind, so no two pickup elements can render byte-identical scenes.
     | _, _, _, Some kind ->
-        { initialModel with M5ObstacleDrops=[ { Id=901; Room=initialModel.Floor.CurrentRoom; Kind=kind; Position=vec2 360.0 430.0 } ] }
+        { initialModel with ObstacleDrops=[ { Id=901; Room=initialModel.Floor.CurrentRoom; Kind=kind; Position=vec2 360.0 430.0 } ] }
     | _ ->
         match element with
-        | ShopItem -> { initialModel with M5ShopSlots=sampleShopSlots }
+        | ShopItem -> { initialModel with ShopSlots=sampleShopSlots }
         // Like `TrapdoorReady`, the fixture must be a model the PURCHASE ROUTE accepts, not merely
         // one that carries stock: the player has to be standing at the slot, and hold enough coin
         // that the frame shows the affordable state rather than the refusal. A representative state
         // that only placed the stock would publish a frame the product never draws.
         | ShopSlotReady ->
-            let stocked = { initialModel with M5ShopSlots=sampleShopSlots; PlayerCurrency={ initialModel.PlayerCurrency with Coins=99 } }
+            let stocked = { initialModel with ShopSlots=sampleShopSlots; PlayerCurrency={ initialModel.PlayerCurrency with Coins=99 } }
             match shopSlotPositions stocked with
             | at :: _ -> { stocked with PlayerPosition=at }
             | [] -> stocked
@@ -230,7 +230,7 @@ let private evidenceModel element =
                 |> Option.map _.ToRoom
                 |> Option.defaultValue initialModel.Floor.CurrentRoom
             { initialModel with
-                M6CameraTransition = Some { Direction=RoomSlideDirection.East; ElapsedTicks=0; FromRoom=neighbour } }
+                CameraTransition = Some { Direction=RoomSlideDirection.East; ElapsedTicks=0; FromRoom=neighbour } }
         | PlayerInvulnerable -> { initialModel with PostHitInvulnTicks = postHitInvulnTicks }
         | PlayerDodgeRoll ->
             { initialModel with DodgeRollTicks = rollDurationTicks; PlayerVelocity = vec2 rollSpeed 0.0 }
@@ -243,7 +243,7 @@ let private evidenceModel element =
                 PlayerHealth = { initialModel.PlayerHealth with RedHalfHearts = 0 } }
         | EnemyTelegraph ->
             { initialModel with
-                M5Enemies =
+                Enemies =
                     [ { spawn 1 100 EnemyKind.Charger (vec2 360.0 300.0) with
                           State = EnemyState.ChargerWindUp(vec2 1.0 0.0, 20) } ] }
         | RunResultOverlay ->

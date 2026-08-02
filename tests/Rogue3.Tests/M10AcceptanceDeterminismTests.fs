@@ -114,7 +114,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
               let combatId = roomOfType Combat fast
               let entered = update (EnterM5Room combatId) fast |> fst
 
-              entered.M5Enemies
+              entered.Enemies
               |> List.map _.Id
               |> List.fold (fun model enemyId -> update (DamageM5Enemy(enemyId, 9999.0)) model |> fst) entered
 
@@ -175,20 +175,20 @@ let private scenarios: (int * string * (unit -> unit)) list =
 
           let model =
               { initialModel with
-                  M5Enemies = roster
-                  M5Room = sealed' }
+                  Enemies = roster
+                  Room = sealed' }
 
           let partial' =
               liveIds
               |> List.take 3
               |> List.fold (fun current enemyId -> update (DamageM5Enemy(enemyId, 9999.0)) current |> fst) model
 
-          Expect.isFalse partial'.M5Room.Cleared "fewer than all enemies dead leaves the room uncleared"
-          Expect.isTrue (partial'.M5Room.Doors |> List.forall ((=) Rogue3.Entities.DoorState.LockedClear)) "all doors remain LockedClear and the player cannot exit"
+          Expect.isFalse partial'.Room.Cleared "fewer than all enemies dead leaves the room uncleared"
+          Expect.isTrue (partial'.Room.Doors |> List.forall ((=) Rogue3.Entities.DoorState.LockedClear)) "all doors remain LockedClear and the player cannot exit"
           let beforeDrop = partial'.DropRng
           let cleared = update (DamageM5Enemy(List.last liveIds, 9999.0)) partial' |> fst
-          Expect.isTrue cleared.M5Room.Cleared "the last enemy's death clears the room in the same transition"
-          Expect.isTrue (cleared.M5Room.Doors |> List.forall ((=) Rogue3.Entities.DoorState.Open)) "all doors transition to Open"
+          Expect.isTrue cleared.Room.Cleared "the last enemy's death clears the room in the same transition"
+          Expect.isTrue (cleared.Room.Doors |> List.forall ((=) Rogue3.Entities.DoorState.Open)) "all doors transition to Open"
           Expect.notEqual cleared.DropRng beforeDrop "a room-clear drop is rolled from DropRng"
 
       6,
@@ -228,7 +228,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
           Expect.equal resolved.RunOutcome (Some RunOutcome.GameOver) "the step resolves to GameOver"
           Expect.isSome resolved.LastRunSummary "with a populated RunSummary"
           Expect.isFalse resolved.RunActive "the run is cleared on transition"
-          Expect.isEmpty resolved.M5Enemies "transient run state is discarded"
+          Expect.isEmpty resolved.Enemies "transient run state is discarded"
           Expect.contains resolved.Profile.UnlockedItems "cracked-lens" "the unlock evaluator awards cracked-lens at bestFloor >= 3"
 
           let requests = profilePersistenceRequestsForTransition (Tick fixedDt) atOneHalfHeart resolved
@@ -299,9 +299,9 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let piercing = spawnShots 0 1 (vec2 400.0 300.0) zero (vec2 1.0 0.0) pierceStats
           Expect.equal (piercing |> List.head |> _.HitsRemaining) 3 "pierce 2 buys three enemy hits"
 
-          let twoEnemies = update (Tick fixedDt) { initialModel with ShotSpawns = piercing; M5Enemies = [ target 1; target 2 ] } |> fst
+          let twoEnemies = update (Tick fixedDt) { initialModel with ShotSpawns = piercing; Enemies = [ target 1; target 2 ] } |> fst
           Expect.isNonEmpty twoEnemies.ShotSpawns "the shot survives its second enemy"
-          let threeEnemies = update (Tick fixedDt) { initialModel with ShotSpawns = piercing; M5Enemies = [ target 1; target 2; target 3 ] } |> fst
+          let threeEnemies = update (Tick fixedDt) { initialModel with ShotSpawns = piercing; Enemies = [ target 1; target 2; target 3 ] } |> fst
           Expect.isEmpty threeEnemies.ShotSpawns "the shot is destroyed after hitting its third enemy"
 
       11,
@@ -313,10 +313,10 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let item = Rogue3.Entities.baseItems |> List.find (fun definition -> definition.Id = "cracked-lens")
           let slot: Rogue3.Entities.ShopSlot =
               { Id = 1; Offer = Rogue3.Entities.ShopOffer.Item item; Price = 7; KeyLocked = false }
-          let rich = { initialModel with PlayerCurrency = { initialModel.PlayerCurrency with Coins = 10 }; M5ShopSlots = [ slot ] }
+          let rich = { initialModel with PlayerCurrency = { initialModel.PlayerCurrency with Coins = 10 }; ShopSlots = [ slot ] }
           let bought = update (InteractM5Shop 1) rich |> fst
           Expect.equal bought.PlayerCurrency.Coins 3 "ten coins minus a seven-coin item leaves three"
-          Expect.equal bought.M5ShopSlots.Head.Offer Rogue3.Entities.ShopOffer.Empty "the shop slot is emptied"
+          Expect.equal bought.ShopSlots.Head.Offer Rogue3.Entities.ShopOffer.Empty "the shop slot is emptied"
           Expect.equal bought.RunStats.ItemsFound 1 "the purchase is recorded as an item found"
           // EHotwagner/rogue3#47 FIXED, through the MESSAGE rather than the reducer: this is the
           // acceptance scenario, so it buys via `InteractM5Shop` and proves the whole update path
@@ -341,7 +341,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let poor = { rich with PlayerCurrency = { rich.PlayerCurrency with Coins = 5 } }
           let rejected = update (InteractM5Shop 1) poor |> fst
           Expect.equal rejected.PlayerCurrency.Coins 5 "five coins are unchanged by a rejected purchase"
-          Expect.equal rejected.M5ShopSlots.Head.Offer (Rogue3.Entities.ShopOffer.Item item) "the item remains in the shop"
+          Expect.equal rejected.ShopSlots.Head.Offer (Rogue3.Entities.ShopOffer.Item item) "the item remains in the shop"
           Expect.equal rejected.RunStats.ItemsFound 0 "and is not granted"
 
       12,
@@ -381,8 +381,8 @@ let private scenarios: (int * string * (unit -> unit)) list =
 
           let easyStart = initialModel |> update (SetDifficulty DifficultyMode.Easy) |> fst |> update (StartRun 91UL) |> fst
           let bossRoom model = update (EnterM5Room(roomOfType Boss model)) model |> fst
-          let hardBoss = (bossRoom started).M5Boss |> Option.get
-          let easyBoss = (bossRoom easyStart).M5Boss |> Option.get
+          let hardBoss = (bossRoom started).Boss |> Option.get
+          let easyBoss = (bossRoom easyStart).Boss |> Option.get
           Expect.isGreaterThan hardBoss.HitPoints easyBoss.HitPoints "the latched hit-point scale reaches the live boss"
 
           let switched = update (SetDifficulty DifficultyMode.Easy) started |> fst
@@ -435,12 +435,12 @@ let private scenarios: (int * string * (unit -> unit)) list =
                       if door.State = Open && reciprocal then Some(roomId, door.ToRoom) else None))
 
           let inRoom = update (EnterM5Room source) { started with Floor = { started.Floor with CurrentRoom = source } } |> fst
-          let potId = inRoom.M5Obstacles |> List.find (fun obstacle -> obstacle.Kind = Rogue3.Entities.ObstacleKind.Pot) |> _.Id
+          let potId = inRoom.Obstacles |> List.find (fun obstacle -> obstacle.Kind = Rogue3.Entities.ObstacleKind.Pot) |> _.Id
           let broken = update (DamageM5Obstacle(potId, 99)) inRoom |> fst
-          Expect.isFalse (broken.M5Obstacles |> List.exists (fun obstacle -> obstacle.Id = potId)) "the pot is destroyed while the player is in the room"
+          Expect.isFalse (broken.Obstacles |> List.exists (fun obstacle -> obstacle.Id = potId)) "the pot is destroyed while the player is in the room"
 
           let fought =
-              broken.M5Enemies
+              broken.Enemies
               |> List.map _.Id
               |> List.fold (fun current enemyId -> update (DamageM5Enemy(enemyId, 9999.0)) current |> fst) broken
 
@@ -463,8 +463,8 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let returned = update (TraverseDoor source) crossed |> fst
           Expect.equal returned.Floor.CurrentRoom source "the return crossing re-enters the first room"
           Expect.isTrue returned.Floor.Rooms.[source].Cleared "its cleared state is preserved"
-          Expect.isEmpty returned.M5Enemies "a cleared room does not repopulate"
-          Expect.isFalse (returned.M5Obstacles |> List.exists (fun obstacle -> obstacle.Id = potId)) "the destroyed obstacle stays destroyed"
+          Expect.isEmpty returned.Enemies "a cleared room does not repopulate"
+          Expect.isFalse (returned.Obstacles |> List.exists (fun obstacle -> obstacle.Id = potId)) "the destroyed obstacle stays destroyed"
           Expect.equal returned.DropRng crossed.DropRng "and its clear drop is never rolled a second time"
 
       16,
@@ -513,24 +513,24 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let started = startedRun 0xC0FFEEUL
           let bossId = roomOfType Boss started
           let entered = update (EnterM5Room bossId) started |> fst
-          Expect.isNonEmpty entered.M5Room.Doors "the boss room has exits"
-          Expect.isTrue (entered.M5Room.Doors |> List.forall ((=) Rogue3.Entities.DoorState.BossSealed)) "every exit becomes BossSealed on activation"
-          Expect.isSome entered.M5Boss "the boss is live"
-          Expect.isNonEmpty entered.M5Enemies "the encounter has ordinary adds"
+          Expect.isNonEmpty entered.Room.Doors "the boss room has exits"
+          Expect.isTrue (entered.Room.Doors |> List.forall ((=) Rogue3.Entities.DoorState.BossSealed)) "every exit becomes BossSealed on activation"
+          Expect.isSome entered.Boss "the boss is live"
+          Expect.isNonEmpty entered.Enemies "the encounter has ordinary adds"
 
           let addsDead =
-              entered.M5Enemies
+              entered.Enemies
               |> List.map _.Id
               |> List.fold (fun current enemyId -> update (DamageM5Enemy(enemyId, 9999.0)) current |> fst) entered
 
-          Expect.isSome addsDead.M5Boss "the boss is still alive"
-          Expect.isTrue (addsDead.M5Room.Doors |> List.forall ((=) Rogue3.Entities.DoorState.BossSealed)) "exits stay sealed while the boss lives"
+          Expect.isSome addsDead.Boss "the boss is still alive"
+          Expect.isTrue (addsDead.Room.Doors |> List.forall ((=) Rogue3.Entities.DoorState.BossSealed)) "exits stay sealed while the boss lives"
 
           let defeated = update (DamageM5Boss 99999.0) addsDead |> fst
-          Expect.isNone defeated.M5Boss "the boss dies"
-          Expect.isTrue (defeated.M5Room.Doors |> List.forall ((=) Rogue3.Entities.DoorState.Open)) "exits open"
-          Expect.isSome defeated.M5Room.Reward "exactly one reward pedestal"
-          Expect.isTrue defeated.M5Room.Trapdoor "and one trapdoor spawn"
+          Expect.isNone defeated.Boss "the boss dies"
+          Expect.isTrue (defeated.Room.Doors |> List.forall ((=) Rogue3.Entities.DoorState.Open)) "exits open"
+          Expect.isSome defeated.Room.Reward "exactly one reward pedestal"
+          Expect.isTrue defeated.Room.Trapdoor "and one trapdoor spawn"
           Expect.hasLength (defeated.Floor.Rooms.[bossId].Fixtures |> List.filter ((=) Trapdoor)) 1 "the floor records exactly one trapdoor"
 
       18,
@@ -541,22 +541,22 @@ let private scenarios: (int * string * (unit -> unit)) list =
           // M11: descend from the room that actually depicts a trapdoor — the cleared boss room —
           // standing on it, which is now the only state `DescendFloor` accepts. The seeded room-local
           // collections are applied AFTER that staging, because `EnterM5Room` on a cleared room
-          // replaces `M5Enemies`/`M5Obstacles`/`M5ShopSlots`/`EnemyBullets` with the room's own
-          // (empty) contents — which would leave `Expect.isEmpty descended.M5Enemies` unable to fail.
+          // replaces `Enemies`/`Obstacles`/`ShopSlots`/`EnemyBullets` with the room's own
+          // (empty) contents — which would leave `Expect.isEmpty descended.Enemies` unable to fail.
           let loaded =
               { standOnTrapdoor started with
                   PlayerItems = [ { Id = "carried"; Modifiers = [] } ]
                   PlayerHealth = { started.PlayerHealth with SoulHalfHearts = 2 }
                   PlayerCurrency = { Coins = 12; Keys = 3; Bombs = 4 }
-                  M5Enemies = [ Rogue3.Entities.spawn 1 4242 Rogue3.Entities.EnemyKind.Grub (vec2 300.0 300.0) ]
+                  Enemies = [ Rogue3.Entities.spawn 1 4242 Rogue3.Entities.EnemyKind.Grub (vec2 300.0 300.0) ]
                   EnemyBullets = [ enemyBullet 1 zero 1 ]
                   Bombs = [ { Id = 1; Position = zero; FuseTicks = 5 } ]
-                  M5ShopSlots = [ { Id = 1; Offer = Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.Key; Price = 1; KeyLocked = false } ]
-                  M5Obstacles = [ Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Rock 1 |> Rogue3.Entities.obstacleAt (vec2 200.0 200.0) ] }
+                  ShopSlots = [ { Id = 1; Offer = Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.Key; Price = 1; KeyLocked = false } ]
+                  Obstacles = [ Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Rock 1 |> Rogue3.Entities.obstacleAt (vec2 200.0 200.0) ] }
 
-          Expect.isNonEmpty loaded.M5Enemies "the pre-descend state really carries live actors"
-          Expect.isNonEmpty loaded.M5Obstacles "and room obstacles"
-          Expect.isNonEmpty loaded.M5ShopSlots "and shop stock"
+          Expect.isNonEmpty loaded.Enemies "the pre-descend state really carries live actors"
+          Expect.isNonEmpty loaded.Obstacles "and room obstacles"
+          Expect.isNonEmpty loaded.ShopSlots "and shop stock"
           Expect.isNonEmpty loaded.EnemyBullets "and bullets"
 
           let descended = update DescendFloor loaded |> fst
@@ -568,11 +568,11 @@ let private scenarios: (int * string * (unit -> unit)) list =
           Expect.equal descended.PlayerStats loaded.PlayerStats "stats persist"
           Expect.equal descended.PlayerHealth loaded.PlayerHealth "health persists"
           Expect.equal descended.PlayerCurrency { Coins = 12; Keys = 3; Bombs = 4 } "coins, keys and bombs persist"
-          Expect.isEmpty descended.M5Enemies "live actors do not"
+          Expect.isEmpty descended.Enemies "live actors do not"
           Expect.isEmpty descended.EnemyBullets "nor bullets"
           Expect.isEmpty descended.Bombs "nor bombs"
-          Expect.isEmpty descended.M5ShopSlots "nor shop stock"
-          Expect.isEmpty descended.M5Obstacles "nor room obstacles"
+          Expect.isEmpty descended.ShopSlots "nor shop stock"
+          Expect.isEmpty descended.Obstacles "nor room obstacles"
           Expect.isTrue (descended.Floor.Rooms |> Map.forall (fun _ room -> room.Cleared = (room.RoomType = Start || room.RoomType = Treasure || room.RoomType = Shop))) "room-clear state does not carry across the descent"
 
       19,
@@ -594,13 +594,13 @@ let private scenarios: (int * string * (unit -> unit)) list =
               { initialModel with
                   PlayerPosition = vec2 100.0 100.0
                   Bombs = [ { Id = 1; Position = vec2 700.0 390.0; FuseTicks = 1 }; { Id = 2; Position = vec2 740.0 390.0; FuseTicks = 400 } ]
-                  M5Enemies = [ target 10 200.0 ] }
+                  Enemies = [ target 10 200.0 ] }
 
           let blasted = update (Tick fixedDt) chain |> fst
           Expect.isEmpty blasted.Bombs "the second bomb inside the blast detonates that step"
-          Expect.floatClose Accuracy.high (blasted.M5Enemies |> List.head |> _.HitPoints) 120.0 "each explosion applies its damage exactly once"
+          Expect.floatClose Accuracy.high (blasted.Enemies |> List.head |> _.HitPoints) 120.0 "each explosion applies its damage exactly once"
           let later = update (Tick(fixedDt * 4.0)) blasted |> fst
-          Expect.floatClose Accuracy.high (later.M5Enemies |> List.head |> _.HitPoints) 120.0 "neither bomb can explode again on a later step"
+          Expect.floatClose Accuracy.high (later.Enemies |> List.head |> _.HitPoints) 120.0 "neither bomb can explode again on a later step"
 
       20,
       "pickup caps and health ordering follow the resource rules",
@@ -629,12 +629,12 @@ let private scenarios: (int * string * (unit -> unit)) list =
                   (Tick fixedDt)
                   { initialModel with
                       PlayerHealth = { initialModel.PlayerHealth with BlackHalfHearts = 2 }
-                      M5Enemies = [ enemy ]
+                      Enemies = [ enemy ]
                       EnemyBullets = [ enemyBullet 1 (add initialModel.PlayerPosition (vec2 10.0 0.0)) 2 ] }
               |> fst
 
           Expect.equal burst.BlackHeartBursts 1 "the production step counts the depleted black heart"
-          Expect.floatClose Accuracy.high (burst.M5Enemies |> List.head |> _.HitPoints) 40.0 "and emits one 10-damage room burst"
+          Expect.floatClose Accuracy.high (burst.Enemies |> List.head |> _.HitPoints) 40.0 "and emits one 10-damage room burst"
 
           let full = { RedContainers = 12; RedHalfHearts = 24; SoulHalfHearts = 0; BlackHalfHearts = 0 }
           Expect.equal (addTemporaryHearts 6 6 full) full "temporary-heart pickups never exceed the documented cap"
@@ -654,22 +654,22 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let live =
               { initialModel with
                   PlayerPosition = vec2 400.0 320.0
-                  M5Enemies = roster }
+                  Enemies = roster }
 
           let stepped = update (Tick fixedDt) live |> fst
-          Expect.equal (stepped.M5AiDecisions - live.M5AiDecisions) roster.Length "every live actor takes exactly one decision per fixed step"
+          Expect.equal (stepped.AiDecisions - live.AiDecisions) roster.Length "every live actor takes exactly one decision per fixed step"
 
           let charger = Rogue3.Entities.spawn 1 700 Rogue3.Entities.EnemyKind.Charger (vec2 380.0 320.0)
 
           let chargerModel =
               { initialModel with
                   PlayerPosition = vec2 400.0 320.0
-                  M5Enemies = [ charger ] }
+                  Enemies = [ charger ] }
 
           let phases =
               [ 1..ticksFor 3.0 ]
               |> List.scan (fun model _ -> update (Tick fixedDt) model |> fst) chargerModel
-              |> List.map (fun model -> model.M5Enemies |> List.tryHead |> Option.map _.State)
+              |> List.map (fun model -> model.Enemies |> List.tryHead |> Option.map _.State)
               |> List.choose id
               |> List.distinct
 
@@ -679,8 +679,8 @@ let private scenarios: (int * string * (unit -> unit)) list =
           // bullets ever start hitting enemies: the actor is the only enemy representation now, and
           // 30.0 is its full hit points.
           let victim = grubAt 800 (vec2 500.0 320.0) 30.0
-          let friendlyFire = update (Tick fixedDt) { initialModel with M5Enemies = [ victim ]; EnemyBullets = [ enemyBullet 1 (vec2 500.0 320.0) 3 ] } |> fst
-          Expect.floatClose Accuracy.high (friendlyFire.M5Enemies |> List.head |> _.HitPoints) 30.0 "enemy bullets cannot damage enemies"
+          let friendlyFire = update (Tick fixedDt) { initialModel with Enemies = [ victim ]; EnemyBullets = [ enemyBullet 1 (vec2 500.0 320.0) 3 ] } |> fst
+          Expect.floatClose Accuracy.high (friendlyFire.Enemies |> List.head |> _.HitPoints) 30.0 "enemy bullets cannot damage enemies"
 
           let ownShots = spawnShots 0 1 initialModel.PlayerPosition zero (vec2 1.0 0.0) basePlayerStats
           let selfHarm = update (Tick fixedDt) { initialModel with ShotSpawns = ownShots } |> fst
@@ -693,7 +693,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
               [ 1..ticksFor 3.0 ]
               |> List.fold
                   (fun model _ -> update (Tick fixedDt) model |> fst)
-                  { initialModel with PlayerPosition = vec2 520.0 320.0; M5Enemies = [ dead ] }
+                  { initialModel with PlayerPosition = vec2 520.0 320.0; Enemies = [ dead ] }
 
           Expect.isEmpty afterDeath.EnemyBullets "a dead actor emits no later attack"
 
@@ -704,7 +704,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
           let entered = update (EnterM5Room(roomOfType Combat started)) started |> fst
 
           Expect.equal
-              (entered.M5Obstacles |> List.map _.Kind |> Set.ofList)
+              (entered.Obstacles |> List.map _.Kind |> Set.ofList)
               (Set.ofList
                   [ Rogue3.Entities.ObstacleKind.Rock; Rogue3.Entities.ObstacleKind.TintedRock
                     Rogue3.Entities.ObstacleKind.Pot; Rogue3.Entities.ObstacleKind.Spikes
@@ -718,12 +718,12 @@ let private scenarios: (int * string * (unit -> unit)) list =
           Expect.equal (Rogue3.Entities.spikeDamage Rogue3.Entities.ObstacleKind.Spikes) 1 "spikes deal contact damage"
 
           let spike = Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Spikes 702 |> Rogue3.Entities.obstacleAt initialModel.PlayerPosition
-          let hurt = update (Tick fixedDt) { initialModel with M5Obstacles = [ spike ] } |> fst
+          let hurt = update (Tick fixedDt) { initialModel with Obstacles = [ spike ] } |> fst
           Expect.equal (totalHalfHearts hurt.PlayerHealth) 5 "standing on spikes hurts"
 
           let rock = Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Rock 704
-          let inert = update (DamageM5Obstacle(704, 999)) { initialModel with M5Obstacles = [ rock ] } |> fst
-          Expect.hasLength inert.M5Obstacles 1 "a rock is indestructible"
+          let inert = update (DamageM5Obstacle(704, 999)) { initialModel with Obstacles = [ rock ] } |> fst
+          Expect.hasLength inert.Obstacles 1 "a rock is indestructible"
           Expect.equal inert.DropRng initialModel.DropRng "and rolls nothing"
 
           // Two blast resolutions reaching the same pot inside ONE fixed step must not double-destroy
@@ -735,13 +735,13 @@ let private scenarios: (int * string * (unit -> unit)) list =
                   (Tick fixedDt)
                   { initialModel with
                       PlayerPosition = vec2 100.0 100.0
-                      M5Obstacles = [ pot ]
+                      Obstacles = [ pot ]
                       Bombs = [ { Id = 1; Position = vec2 700.0 390.0; FuseTicks = 1 }; { Id = 2; Position = vec2 740.0 390.0; FuseTicks = 400 } ] }
               |> fst
 
           Expect.isEmpty doubled.Bombs "both bombs resolved in the same step"
-          Expect.isEmpty doubled.M5Obstacles "the pot is destroyed exactly once"
-          Expect.isLessThanOrEqual doubled.M5ObstacleDrops.Length 1 "and rolled at most one drop"
+          Expect.isEmpty doubled.Obstacles "the pot is destroyed exactly once"
+          Expect.isLessThanOrEqual doubled.ObstacleDrops.Length 1 "and rolled at most one drop"
 
           let again = update (DamageM5Obstacle(703, 99)) doubled |> fst
           Expect.equal again.DropRng doubled.DropRng "a destroyed obstacle cannot draw again"
@@ -758,11 +758,11 @@ let private scenarios: (int * string * (unit -> unit)) list =
               |> List.fold (fun model _ -> update (Tick fixedDt) model |> fst) held
 
           let expectedShots = int (floor (basePlayerStats.FireRate * 1.0)) + 1
-          Expect.equal afterOneSecond.TotalShotSpawns expectedShots "held fire spawns only at the effective fire-rate cadence"
+          Expect.equal afterOneSecond.Instrumentation.TotalShotSpawns expectedShots "held fire spawns only at the effective fire-rate cadence"
 
           let dodgeKeys = Set.singleton (ViewerKeyboard.toKeyId Space)
           let rollStart = update (InputChanged { firing with Keys = dodgeKeys }) initialModel |> fst |> update (Tick fixedDt) |> fst
-          Expect.equal rollStart.TotalShotSpawns 0 "no shot spawns during roll commitment"
+          Expect.equal rollStart.Instrumentation.TotalShotSpawns 0 "no shot spawns during roll commitment"
           Expect.isGreaterThan rollStart.DodgeRollTicks 0 "the roll is committed"
 
           let room: Rect = { X = 0.0; Y = 0.0; Width = 1000.0; Height = 600.0 }
@@ -812,12 +812,12 @@ let private scenarios: (int * string * (unit -> unit)) list =
               { playing with
                   Play =
                       { playing.Play with
-                          M5Enemies = [ enemy ]
+                          Enemies = [ enemy ]
                           EnemyBullets = [ { enemyBullet 1 (vec2 300.0 300.0) 1 with Velocity = vec2 100.0 0.0 } ]
                           Bombs = [ { Id = 1; Position = vec2 700.0 390.0; FuseTicks = 60 } ]
                           DodgeCooldownTicks = 40
                           FloorNameTicks = 100
-                          M6CameraTransition = Some { Direction = RoomSlideDirection.East; ElapsedTicks = 3; FromRoom = 0 }
+                          CameraTransition = Some { Direction = RoomSlideDirection.East; ElapsedTicks = 3; FromRoom = 0 }
                           ShotSpawns = spawnShots 0 1 (vec2 400.0 300.0) zero (vec2 1.0 0.0) basePlayerStats } }
 
           let escape = host.MapKey ViewerKey.Escape true |> Option.get

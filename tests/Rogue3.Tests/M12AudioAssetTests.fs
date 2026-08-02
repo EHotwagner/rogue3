@@ -207,7 +207,7 @@ let private idsRequestedByARealRun () =
             let entered = drive descended (EnterM5Room shopId)
             let stocked =
                 { entered with PlayerCurrency = { entered.PlayerCurrency with Coins = 999; Keys = 99 } }
-            entered.M5ShopSlots
+            entered.ShopSlots
             |> List.fold
                 (fun model (slot: Entities.ShopSlot) ->
                     shopVisited <- true

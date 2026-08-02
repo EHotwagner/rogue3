@@ -60,10 +60,10 @@ let generationTests =
                     PlayerItems = [{Id="carry";Modifiers=[]}]
                     PlayerHealth = {initialModel.PlayerHealth with SoulHalfHearts=2}
                     PlayerCurrency = {Coins=12;Keys=3;Bombs=4}
-                    M5Obstacles = [ obstacle ObstacleKind.Rock 1 |> obstacleAt (vec2 200.0 200.0) ]
+                    Obstacles = [ obstacle ObstacleKind.Rock 1 |> obstacleAt (vec2 200.0 200.0) ]
                     HomingTargets = [{Id=2;Position=zero}]
-                    M5Enemies = [ spawn 1 1 EnemyKind.Grub zero ]
-                    M5ShopSlots = [ { Id=1; Offer=ShopOffer.Consumable PickupKind.Key; Price=5; KeyLocked=false } ]
+                    Enemies = [ spawn 1 1 EnemyKind.Grub zero ]
+                    ShopSlots = [ { Id=1; Offer=ShopOffer.Consumable PickupKind.Key; Price=5; KeyLocked=false } ]
                     EnemyBullets = [{Id=1;Position=zero;Velocity=zero;Radius=1.;Damage=1;Homing=0.;AgeTicks=0}]
                     Bombs = [{Id=1;Position=zero;FuseTicks=1}] }
                 // M11: descent is guarded by the trapdoor it depicts, so stage the route a player
@@ -77,19 +77,19 @@ let generationTests =
                     |> fun staged ->
                         { staged with
                             PlayerPosition = trapdoorCenter
-                            M5Obstacles = [ obstacle ObstacleKind.Rock 1 |> obstacleAt (vec2 200.0 200.0) ]
+                            Obstacles = [ obstacle ObstacleKind.Rock 1 |> obstacleAt (vec2 200.0 200.0) ]
                             HomingTargets = [{Id=2;Position=zero}]
-                            M5Enemies = [ spawn 1 1 EnemyKind.Grub zero ]
-                            M5ShopSlots = [ { Id=1; Offer=ShopOffer.Consumable PickupKind.Key; Price=5; KeyLocked=false } ]
+                            Enemies = [ spawn 1 1 EnemyKind.Grub zero ]
+                            ShopSlots = [ { Id=1; Offer=ShopOffer.Consumable PickupKind.Key; Price=5; KeyLocked=false } ]
                             EnemyBullets = [{Id=1;Position=zero;Velocity=zero;Radius=1.;Damage=1;Homing=0.;AgeTicks=0}]
                             Bombs = [{Id=1;Position=zero;FuseTicks=1}] }
                 |> fun staged ->
                     // Guard the guard: the "drop" assertions below can only fail if the collections
                     // were really populated at the moment of the descent. M10 scenario 18 has always
                     // had this check; this file only had the comment.
-                    Expect.isNonEmpty staged.M5Enemies "the pre-descend state really carries live actors"
-                    Expect.isNonEmpty staged.M5Obstacles "and room obstacles"
-                    Expect.isNonEmpty staged.M5ShopSlots "and shop stock"
+                    Expect.isNonEmpty staged.Enemies "the pre-descend state really carries live actors"
+                    Expect.isNonEmpty staged.Obstacles "and room obstacles"
+                    Expect.isNonEmpty staged.ShopSlots "and shop stock"
                     staged
                 |> update DescendFloor |> fst
             Expect.equal carried.FloorIndex 2 "index advances"
@@ -97,9 +97,9 @@ let generationTests =
             Expect.equal carried.PlayerItems.Head.Id "carry" "items persist"
             Expect.equal carried.PlayerHealth.SoulHalfHearts 2 "health persists"
             Expect.equal carried.PlayerCurrency.Coins 12 "currency persists"
-            Expect.isEmpty carried.M5Enemies "active enemies drop"
-            Expect.isEmpty carried.M5Obstacles "room obstacles drop"
-            Expect.isEmpty carried.M5ShopSlots "shop stock drops"
+            Expect.isEmpty carried.Enemies "active enemies drop"
+            Expect.isEmpty carried.Obstacles "room obstacles drop"
+            Expect.isEmpty carried.ShopSlots "shop stock drops"
             Expect.isEmpty carried.HomingTargets "room targeting facts drop"
             Expect.isEmpty carried.EnemyBullets "bullets drop"
             Expect.isEmpty carried.Bombs "bombs drop"

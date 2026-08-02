@@ -192,7 +192,7 @@ let enemyToken floorIndex playerPosition (actor: EnemyActor) : Token =
         Threat = threatTier definition.Threat
         Speed = speedTier definition.Speed }
 
-let enemyTokens model = model.M5Enemies |> List.map (enemyToken model.FloorIndex model.PlayerPosition)
+let enemyTokens model = model.Enemies |> List.map (enemyToken model.FloorIndex model.PlayerPosition)
 
 let legibility model = enemyTokens model |> Legibility.scoreIn Grammar.Token
 
@@ -311,7 +311,7 @@ let bossToken model (boss: BossActor) =
 // M11 room shell: walls and doors.
 //
 // ONE DOOR MODEL. Everything below reads `Floor.Rooms.[CurrentRoom].Doors` — the floor graph — for a
-// door's existence, its `Direction` and its `DoorState`. `M5Room.Doors` contributes only the derived
+// door's existence, its `Direction` and its `DoorState`. `Room.Doors` contributes only the derived
 // combat lock, index-aligned with the graph list by `loadM5Room`. Before M11 the renderer drew the
 // cosmetic list alone, as an indexed strip at a fixed screen position, so doors neither sat on their
 // walls nor distinguished `LockedKey` from `HiddenWall` — and a room whose cosmetic list was empty
@@ -352,7 +352,7 @@ let roomDoorsOf roomId (locks: DoorState list) model : (FloorGeneration.Door * D
 
 /// The doors of the room the player is currently standing in, paired with the derived combat lock.
 let currentRoomDoors model : (FloorGeneration.Door * DoorState) list =
-    roomDoorsOf model.Floor.CurrentRoom model.M5Room.Doors model
+    roomDoorsOf model.Floor.CurrentRoom model.Room.Doors model
 
 /// The four room walls, with a gap wherever the room has a door. A door cannot be drawn "at its own
 /// wall" while no wall is drawn, and before M11 the room rendered as an unbounded void.
@@ -656,7 +656,7 @@ let roomShellScene roomId model =
 /// The departed room's shell, placed one room back along the slide axis, or nothing when no crossing
 /// is in flight.
 let departedRoomScene model =
-    match model.M6CameraTransition with
+    match model.CameraTransition with
     | None -> None
     | Some transition ->
         let step = departedRoomStep transition.Direction
@@ -746,7 +746,7 @@ let private rendered elementId handle layer scene =
 
 let renderedElementsIn grammar model : RenderedElement list =
     let placements =
-        Rogue3.Model.placeRoomFixtures model.M5Obstacles (model.M5ShopSlots.Length + (if model.M5Room.Reward.IsSome then 1 else 0))
+        Rogue3.Model.placeRoomFixtures model.Obstacles (model.ShopSlots.Length + (if model.Room.Reward.IsSome then 1 else 0))
     [ yield rendered "FloorBackground" "scene/floor-background" RenderLayer.FloorBackground floorBackgroundScene
 
       // M13: the room being LEFT, drawn one playfield back along the slide axis. Emitted on the
@@ -755,12 +755,12 @@ let renderedElementsIn grammar model : RenderedElement list =
       | Some scene -> yield rendered "DepartedRoom" "scene/departed-room" RenderLayer.FloorBackground scene
       | None -> ()
 
-      for obstacle in model.M5Obstacles do
+      for obstacle in model.Obstacles do
           yield rendered (obstacleId obstacle.Kind) (obstacleHandle obstacle.Kind) RenderLayer.Obstacles (obstacleScene obstacle)
 
       // M13: a drop lies where the obstacle stood, and `Model.collectFloorPickups` lets a player walk
       // onto it. It used to be drawn at X=300+index*52, Y=520 — an indexed strip that was neither the
-      // pot's position nor collectable, because `M5ObstacleDrops` carried no position at all.
+      // pot's position nor collectable, because `ObstacleDrops` carried no position at all.
       for pickup in Rogue3.Model.floorPickupsHere model do
           match pickupIdentity pickup.Kind with
           | Some(elementId, handle, radius, fill) ->
@@ -773,7 +773,7 @@ let renderedElementsIn grammar model : RenderedElement list =
       // M13: shop stock stands on the room floor at a placed position, and says what it costs.
       // It used to be drawn at X=520+index*90, Y=160 — a fixed screen row that sits on top of the
       // pot in M11's `13-shop-and-reward` frame, with no price and no lock state anywhere.
-      for index, (slot: Rogue3.Entities.ShopSlot) in model.M5ShopSlots |> List.indexed do
+      for index, (slot: Rogue3.Entities.ShopSlot) in model.ShopSlots |> List.indexed do
           let at = placements |> List.tryItem index |> Option.defaultValue (vec2 (playfieldWidth/2.0) 520.0)
           yield rendered "ShopItem" "scene/shop-item" RenderLayer.Pickups (shopSlotScene at slot)
 
@@ -787,9 +787,9 @@ let renderedElementsIn grammar model : RenderedElement list =
                     (shopSlotReadyScene at (Rogue3.Model.shopSlotRefusal model slot) slot)
       | None -> ()
 
-      match model.M5Room.Reward with
+      match model.Room.Reward with
       | Some reward ->
-          let at = placements |> List.tryItem model.M5ShopSlots.Length |> Option.defaultValue (vec2 (playfieldWidth/2.0) 440.0)
+          let at = placements |> List.tryItem model.ShopSlots.Length |> Option.defaultValue (vec2 (playfieldWidth/2.0) 440.0)
           yield rendered "RoomReward" "scene/room-reward" RenderLayer.Pickups (roomRewardScene at reward)
       | None -> ()
 
@@ -799,7 +799,7 @@ let renderedElementsIn grammar model : RenderedElement list =
           let elementId, handle = doorPresentation door.State lock
           yield rendered elementId handle RenderLayer.Obstacles (doorScene elementId door.Direction)
 
-      match model.M5Room.Drop with
+      match model.Room.Drop with
       | Some pickup ->
           match pickupIdentity pickup with
           | Some(_, _, radius, fill) ->
@@ -809,7 +809,7 @@ let renderedElementsIn grammar model : RenderedElement list =
       | None -> ()
 
       // Rendered from the SAME predicate the descent guard tests, so the fixture a player sees is the
-      // fixture the guard accepts. `M5Room.Trapdoor` alone can be true while the floor records no
+      // fixture the guard accepts. `Room.Trapdoor` alone can be true while the floor records no
       // fixture, and drawing that state would promise a descent the guard then refuses.
       if trapdoorPresent model then
           yield rendered "Trapdoor" "scene/trapdoor" RenderLayer.FloorDecals (trapdoorScene ())
@@ -818,20 +818,20 @@ let renderedElementsIn grammar model : RenderedElement list =
 
       let shadowPositions =
           model.PlayerPosition
-          :: ((model.M5Enemies |> List.map _.Position)
-              @ (model.M5Boss |> Option.map (fun boss -> [boss.Position]) |> Option.defaultValue []))
+          :: ((model.Enemies |> List.map _.Position)
+              @ (model.Boss |> Option.map (fun boss -> [boss.Position]) |> Option.defaultValue []))
       yield rendered "Shadow" "scene/shadow" RenderLayer.Shadows
                 (shadowPositions
                  |> List.map (fun position ->
                      Scene.filledEllipse { X=position.Vx-14.0;Y=position.Vy+8.0;Width=28.0;Height=8.0 } (color 0uy 0uy 0uy 64uy))
                  |> Scene.group)
 
-      for actor in model.M5Enemies do
+      for actor in model.Enemies do
           let id = "Enemy" + string actor.Kind
           yield rendered id ("token/enemy/" + (string actor.Kind).ToLowerInvariant()) RenderLayer.Enemies
                     (Symbology.render grammar (enemyToken model.FloorIndex model.PlayerPosition actor))
 
-      match model.M5Boss with
+      match model.Boss with
       | Some boss ->
           let id = "Boss" + string boss.Kind
           yield rendered id ("token/boss/" + (string boss.Kind).ToLowerInvariant()) RenderLayer.Enemies
@@ -861,7 +861,7 @@ let renderedElementsIn grammar model : RenderedElement list =
       // On Shadows rather than FloorDecals: a telegraph is ground marking that must stay readable
       // where it matters, and FloorDecals sits BELOW Obstacles and Pickups, so a charge lane crossing
       // a rock was visually cut in half exactly where a player needs to read it.
-      for actor in model.M5Enemies do
+      for actor in model.Enemies do
           match telegraphOf actor with
           | Some scene -> yield rendered "EnemyTelegraph" "scene/enemy-telegraph" RenderLayer.Shadows scene
           | None -> ()
@@ -878,9 +878,9 @@ let renderedElementsIn grammar model : RenderedElement list =
                         [ Scene.circle (point bomb.Position) 12.0 (color 35uy 35uy 42uy 255uy)
                           Scene.circle (point (add bomb.Position (vec2 8.0 -9.0))) 3.0 (color 255uy 150uy 48uy 255uy) ])
 
-      if not model.M6Particles.IsEmpty then
+      if not model.Particles.IsEmpty then
           yield rendered "Particle" "effects/particle" RenderLayer.Particles
-                    (particlesScene model.M6Particles)
+                    (particlesScene model.Particles)
 
       // M13: one element per HUD REGION. `hudSceneForSize` composes exactly these node lists in this
       // order, so the viewer's scene is unchanged while the coverage audit can now see a region rot.
@@ -906,7 +906,7 @@ let renderedElementsIn grammar model : RenderedElement list =
 let renderedElements model = renderedElementsIn Grammar.Token model
 
 let cameraOffset model =
-    match model.M6CameraTransition with
+    match model.CameraTransition with
     | None -> zero
     | Some transition ->
         let remaining = 1.0 - min 1.0 (float transition.ElapsedTicks / float m6CameraDurationTicks)

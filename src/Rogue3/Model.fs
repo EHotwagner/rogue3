@@ -258,7 +258,7 @@ type M6CameraTransition =
 
 /// A pickup lying on the floor of the room, at a world position a player can walk to.
 ///
-/// Before M13 `Model.M5ObstacleDrops` was a bare `PickupKind list`: a smashed pot recorded WHAT it
+/// Before M13 `Model.ObstacleDrops` was a bare `PickupKind list`: a smashed pot recorded WHAT it
 /// dropped and nothing about WHERE, so the renderer drew the drops as an indexed strip at fixed
 /// coordinates and nothing could be collected. `Id` is the destroyed obstacle's id and `Position` is
 /// where it stood, so the coin lies where the pot was.
@@ -296,6 +296,50 @@ type ShotSpawn =
       HitEnemyIds: Set<int>
       SimStep: int }
 
+/// The deterministic cost counters the performance workloads read, and nothing else does.
+///
+/// Board item #60 moved these seven fields off `Model` and into one sub-record. They are pure
+/// instrumentation: every one of them is a monotonic tally of work a fixed step performed, written
+/// by the reducer that performs the work and read only to compute a per-frame delta for a cost
+/// driver. No gameplay branch reads one, and none may start to — a counter a rule depends on stops
+/// being free to change when the measurement changes.
+///
+/// There is a second reason the boundary is worth drawing. `Determinism.encode` walks the WHOLE
+/// `Model`, so these tallies sit inside the value the replay golden compares; keeping them in one
+/// named place makes it visible that the golden carries instrumentation as well as state.
+type InstrumentationCounters =
+    { /// Shots emitted, counted past the retained `ShotSpawns` history so the monotonic total
+      /// outlives the bounded list. Drives `simulation.shot-spawn`.
+      TotalShotSpawns: int
+      /// Swept-cast and slide-contact wall queries performed by the player and by shots.
+      /// Drives `collision.shot-wall-queries`.
+      TotalWallQueries: int
+      /// Candidate targets considered by homing shots. Drives
+      /// `simulation.homing-target-considerations`.
+      TotalHomingQueries: int
+      /// Broad-phase combat candidates: shot-versus-enemy, bullet-versus-player and contact tests.
+      /// Drives `collision.combat-candidates`.
+      TotalCombatCandidates: int
+      /// Pending secret/adjacent pairs examined by the §14.14 blast scan. Drives
+      /// `simulation.secret-reveal-candidates`.
+      TotalSecretRevealCandidates: int
+      /// Doorway sensors examined by the M11 fixed-step door scan, bounded by the four walls of a
+      /// room. Drives `simulation.door-sensor-candidates`.
+      TotalDoorSensorQueries: int
+      /// Player-versus-floor-pickup overlap tests performed by the M13 fixed-step collection scan,
+      /// bounded by the destructible obstacles a room carries. Drives
+      /// `simulation.floor-pickup-candidates`.
+      TotalFloorPickupCandidates: int }
+
+let zeroInstrumentation =
+    { TotalShotSpawns = 0
+      TotalWallQueries = 0
+      TotalHomingQueries = 0
+      TotalCombatCandidates = 0
+      TotalSecretRevealCandidates = 0
+      TotalDoorSensorQueries = 0
+      TotalFloorPickupCandidates = 0 }
+
 type Model =
     { Ball: Ball
       LeftPaddleY: float
@@ -329,49 +373,56 @@ type Model =
       // `ShopSlots: ShopSlot list` fields stood here beside the three below, with no rule about
       // which was authoritative. All three are gone. The player's blocking-rect set is now derived
       // on demand by `blockingObstacleRects` and stored nowhere, so it cannot go stale.
-      M5Enemies: Rogue3.Entities.EnemyActor list
-      M5Boss: Rogue3.Entities.BossActor option
-      M5ChoirMemberIds: Set<int>
-      M5Room: Rogue3.Entities.CombatRoom
-      M5Obstacles: Rogue3.Entities.Obstacle list
-      M5ShopSlots: Rogue3.Entities.ShopSlot list
-      M5ObstacleDrops: FloorPickup list
-      M5ItemPool: Rogue3.Entities.ItemPool
-      M5AiDecisions: int
-      M5BulletEmissions: int
-      M5BossBulletEmissions: int
-      M5BossPatternEmissions: int
-      M5NextEntityId: int
-      M5NextBulletId: int
+      Enemies: Rogue3.Entities.EnemyActor list
+      Boss: Rogue3.Entities.BossActor option
+      ChoirMemberIds: Set<int>
+      Room: Rogue3.Entities.CombatRoom
+      Obstacles: Rogue3.Entities.Obstacle list
+      ShopSlots: Rogue3.Entities.ShopSlot list
+      ObstacleDrops: FloorPickup list
+      ItemPool: Rogue3.Entities.ItemPool
+      AiDecisions: int
+      BulletEmissions: int
+      BossBulletEmissions: int
+      BossPatternEmissions: int
+      NextEntityId: int
+      NextBulletId: int
       NextBombId: int
       Facing: Vec2
       LastResolvedInput: ResolvedInput
       FireCooldown: float
       WasFiring: bool
       ShotSpawns: ShotSpawn list
-      TotalShotSpawns: int
       NextShotId: int
       DodgeRollTicks: int
       DodgeIFrameTicks: int
       DodgeCooldownTicks: int
-      TotalWallQueries: int
-      TotalHomingQueries: int
-      TotalCombatCandidates: int
-      /// Pending secret/adjacent pairs examined by the §14.14 blast scan. A deterministic cost
-      /// counter for the `secret-reveal` performance workload, not gameplay state.
-      TotalSecretRevealCandidates: int
-      /// Doorway sensors examined by the M11 fixed-step door scan. A deterministic cost counter for
-      /// the `simulation.door-sensor-candidates` driver, bounded by the four walls of a room.
-      TotalDoorSensorQueries: int
-      /// Player-versus-floor-pickup overlap tests performed by the M13 fixed-step collection scan.
-      /// A deterministic cost counter for the `simulation.floor-pickup-candidates` driver, bounded by
-      /// the destructible obstacles a room carries.
-      TotalFloorPickupCandidates: int
+      /// Board item #60: the seven deterministic cost counters, in one sub-record. Nothing outside
+      /// `PerformanceEvidence` and the tests that pin those measurements may read this.
+      Instrumentation: InstrumentationCounters
       BlackHeartBursts: int
       EdgeActionCount: int
-      M6Particles: M6Particle list
-      M6NextParticleId: int
-      M6CameraTransition: M6CameraTransition option
+      // Board item #60 retired the `M5`/`M6` prefix from every field on this record, and stopped
+      // there. The two TYPES below still carry it, deliberately and with the cost understood:
+      //
+      //   * `M6Particle` cannot simply become `Particle` — `GameplayVisualInventory`'s
+      //     `GameplayVisualElement` already has a `Particle` case, and both are in scope together in
+      //     the render and evidence files. Trading a meaningless prefix for a real ambiguity in the
+      //     visual inventory is a bad trade.
+      //   * `M6CameraTransition` has no such obstacle; it is held back only to keep these two
+      //     consistent with each other.
+      //
+      // The cost of deferring is REAL and is stated rather than discovered later: `Determinism.encode`
+      // writes record TYPE names as well as field names, so renaming either type is its own change
+      // event and moves all 11 committed digests a second time. That is exactly the double payment
+      // #60 was filed to avoid, so a follow-up should carry both types, the `M5`/`M6` `Msg` cases and
+      // the prefixed function names TOGETHER, in one cycle, or not at all. The cost-driver ids
+      // (`state.m5-enemies`, `scene.m6-camera-transition`, …) are NOT part of that: they are pinned
+      // identifiers folded into `criticInputDigest` and cited by merged audits, so renaming them
+      // would be a semantic change wearing a cosmetic disguise.
+      Particles: M6Particle list
+      NextParticleId: int
+      CameraTransition: M6CameraTransition option
       Profile: MetaProfile
       RunStats: RunStats
       ActiveDifficulty: DifficultyScaling option
@@ -629,7 +680,7 @@ let floorPickupRadius = 12.0
 /// The floor pickups lying in the room the player is standing in. Drops persist across a crossing,
 /// so everything that draws or collects them asks this rather than reading the whole list.
 let floorPickupsHere (model: Model) =
-    model.M5ObstacleDrops |> List.filter (fun pickup -> pickup.Room = model.Floor.CurrentRoom)
+    model.ObstacleDrops |> List.filter (fun pickup -> pickup.Room = model.Floor.CurrentRoom)
 
 /// The drawn trapdoor sits at the centre of the room it belongs to, so it reads as a floor feature
 /// a player walks onto rather than a decoration parked near the HUD. Rendering and the `DescendFloor`
@@ -946,44 +997,38 @@ let initialModelForSeed seed =
       HomingTargets = []
       EnemyBullets = []
       Bombs = []
-      M5Enemies = []
-      M5Boss = None
-      M5ChoirMemberIds = Set.empty
-      M5Room =
+      Enemies = []
+      Boss = None
+      ChoirMemberIds = Set.empty
+      Room =
         { IsBoss=false; Cleared=true; Doors=[]; LiveEnemyIds=Set.empty
           Drop=None; Reward=None; Trapdoor=false }
-      M5Obstacles = []
-      M5ShopSlots = []
-      M5ObstacleDrops = []
-      M5ItemPool = generated.ItemPool
-      M5AiDecisions = 0
-      M5BulletEmissions = 0
-      M5BossBulletEmissions = 0
-      M5BossPatternEmissions = 0
-      M5NextEntityId = 10000
-      M5NextBulletId = 10000
+      Obstacles = []
+      ShopSlots = []
+      ObstacleDrops = []
+      ItemPool = generated.ItemPool
+      AiDecisions = 0
+      BulletEmissions = 0
+      BossBulletEmissions = 0
+      BossPatternEmissions = 0
+      NextEntityId = 10000
+      NextBulletId = 10000
       NextBombId = 1
       Facing = vec2 1.0 0.0
       LastResolvedInput = emptyResolvedInput
       FireCooldown = 0.0
       WasFiring = false
       ShotSpawns = []
-      TotalShotSpawns = 0
       NextShotId = 1
       DodgeRollTicks = 0
       DodgeIFrameTicks = 0
       DodgeCooldownTicks = 0
-      TotalWallQueries = 0
-      TotalHomingQueries = 0
-      TotalCombatCandidates = 0
-      TotalSecretRevealCandidates = 0
-      TotalDoorSensorQueries = 0
-      TotalFloorPickupCandidates = 0
+      Instrumentation = zeroInstrumentation
       BlackHeartBursts = 0
       EdgeActionCount = 0
-      M6Particles = []
-      M6NextParticleId = 1
-      M6CameraTransition = None
+      Particles = []
+      NextParticleId = 1
+      CameraTransition = None
       Profile = defaultMetaProfile
       RunStats = emptyRunStats
       ActiveDifficulty = None
@@ -998,7 +1043,7 @@ let initialModelForSeed seed =
 
 // `initialModel` is deliberately NOT defined here any more. M11: the state a player boots into must
 // have the starting room LOADED — its doors, obstacles and fixtures derived from the floor graph
-// through the same `loadM5Room` seam every other room uses. Hand-writing an empty `M5Room` here is
+// through the same `loadM5Room` seam every other room uses. Hand-writing an empty `Room` here is
 // what made the starting room a sealed box. The binding now lives immediately after `loadM5Room`.
 
 /// Uniform centered logical-canvas transform used for world-to-screen presentation.
@@ -1333,31 +1378,31 @@ let descentCarry model =
     { Items = model.PlayerItems; Stats = model.PlayerStats; Health = model.PlayerHealth; Currency = model.PlayerCurrency }
 
 let damageM5Boss damage model =
-    match model.M5Boss with
+    match model.Boss with
     | None -> model
     | Some boss when boss.Kind=Rogue3.Entities.BossKind.HollowChoir -> model
     | Some boss when boss.HitPoints-damage>0.0 ->
-        {model with M5Boss=Some{boss with HitPoints=boss.HitPoints-damage};RunStats=addFloorDamage model.FloorIndex (max 0.0 damage) 0.0 model.RunStats}
+        {model with Boss=Some{boss with HitPoints=boss.HitPoints-damage};RunStats=addFloorDamage model.FloorIndex (max 0.0 damage) 0.0 model.RunStats}
     | Some boss ->
-        let room=Rogue3.Entities.bossCleared model.M5Room.Reward model.M5Room
+        let room=Rogue3.Entities.bossCleared model.Room.Reward model.Room
         let health=
             if (activeScaling model).PostBossHeal then
                 {model.PlayerHealth with RedHalfHearts=min (model.PlayerHealth.RedContainers*2) (model.PlayerHealth.RedHalfHearts+2)}
             else model.PlayerHealth
-        {model with M5Boss=None;M5Room=room;Floor=FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor
+        {model with Boss=None;Room=room;Floor=FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor
                     PlayerHealth=health
                     RunStats={addFloorDamage model.FloorIndex (max 0.0 (min boss.HitPoints damage)) 0.0 model.RunStats with
                                 BossKills=model.RunStats.BossKills+1;FloorsCleared=max model.RunStats.FloorsCleared model.FloorIndex}}
 
 let private resolveShotCombat model =
     // Board item #20: this resolves shots against the ONE actor list. It used to resolve them
-    // against the legacy `Enemies` projection and then copy the hit points back onto `M5Enemies`,
+    // against the legacy `Enemies` projection and then copy the hit points back onto `Enemies`,
     // and it used to REBUILD `Enemies` from a live filter — which is precisely the §14.21 mechanism:
-    // an actor that reached zero vanished from the legacy list here while surviving in `M5Enemies`
+    // an actor that reached zero vanished from the legacy list here while surviving in `Enemies`
     // until the next step. Zero-hit-point actors are now KEPT until `stepM5Entities`'s cleanup, which
     // is the only thing that rolls the drop, credits the kill, splits a grub and clears the room.
     // Dropping them here instead would destroy the drop roll.
-    let liveEnemies = model.M5Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0)
+    let liveEnemies = model.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0)
     let maxRadius = liveEnemies |> List.map (fun enemy -> max 0.0 (actorRadius enemy)) |> List.fold max 0.0
     let grid = SpatialGrid.build spatialCellSize [ for enemy in liveEnemies -> toSimPoint enemy.Position, enemy ]
     let mutable enemies = liveEnemies |> List.map (fun enemy -> enemy.Id, enemy) |> Map.ofList
@@ -1393,7 +1438,7 @@ let private resolveShotCombat model =
             let hitIds = (shot.HitEnemyIds, hits) ||> List.fold (fun ids enemy -> Set.add enemy.Id ids)
             let remainingAfterEnemies = shot.HitsRemaining - hits.Length
             let bossHit =
-                match bossModel.M5Boss with
+                match bossModel.Boss with
                 | Some boss when remainingAfterEnemies > 0
                                  && not (Set.contains boss.Id shot.HitEnemyIds)
                                  && circlesOverlap shot.Position shot.Radius boss.Position 44.0
@@ -1403,21 +1448,29 @@ let private resolveShotCombat model =
                     true
                 | _ -> false
             let hitIds =
-                match bossHit, model.M5Boss with
+                match bossHit, model.Boss with
                 | true, Some boss -> Set.add boss.Id hitIds
                 | _ -> hitIds
             let remaining = remainingAfterEnemies - (if bossHit then 1 else 0)
             if remaining <= 0 then None
             else Some { shot with HitsRemaining = remaining; HitEnemyIds = hitIds })
     { bossModel with
-        // Order is the actor list's own, not a Map's: `M5Enemies` is authoritative and its order is
+        // Order is the actor list's own, not a Map's: `Enemies` is authoritative and its order is
         // what the drop stream and the AI step read.
-        M5Enemies =
-            model.M5Enemies
+        Enemies =
+            model.Enemies
             |> List.map (fun actor -> Map.tryFind actor.Id enemies |> Option.defaultValue actor)
         ShotSpawns = shots
         RunStats=addFloorDamage model.FloorIndex dealt 0.0 bossModel.RunStats
-        TotalCombatCandidates = model.TotalCombatCandidates + candidates
+        // Read through `bossModel`, not `model`, even though the two carry identical counters today.
+        // The outer copy is `{ bossModel with … }`: before the extraction this line overrode ONE
+        // field and inherited the other six from `bossModel`, whereas a nested update rooted at
+        // `model.Instrumentation` would overwrite all seven. `damageM5Boss` — the only thing that
+        // advances `bossModel` here — touches no counter, so the two spellings agree; nothing
+        // enforces that, and this is the spelling that stays correct if it changes.
+        Instrumentation =
+            { bossModel.Instrumentation with
+                TotalCombatCandidates = bossModel.Instrumentation.TotalCombatCandidates + candidates }
         AudioEvents = model.AudioEvents @ List.replicate hitCount AudioEvent.ShotHit }
 
 let private resolveBombs model =
@@ -1437,12 +1490,12 @@ let private resolveBombs model =
     for id in exploded |> Set.toList |> List.sort do
         let bomb = aged |> List.find (fun candidate -> candidate.Id = id)
         let enemies =
-            result.M5Enemies
+            result.Enemies
             |> List.map (fun enemy ->
                 if enemy.HitPoints > 0.0 && circlesOverlap bomb.Position bombRadius enemy.Position (actorRadius enemy) then
                     { enemy with HitPoints = max 0.0 (enemy.HitPoints - 40.0); HitFlashTicks = hitFlashTicks }
                 else enemy)
-        result <- { result with M5Enemies = enemies } |> takePlayerHit 2 bomb.Position
+        result <- { result with Enemies = enemies } |> takePlayerHit 2 bomb.Position
         // §14.14: a blast that reaches the wall shared with a hidden secret carves its door inside
         // THIS step. `revealSecret` moves the door records, the hidden flag, the graph adjacency and
         // the pending set as one value, so no observer can see a door without its adjacency.
@@ -1459,13 +1512,16 @@ let private resolveBombs model =
         result <-
             { result with
                 Floor = revealedFloor
-                TotalSecretRevealCandidates = result.TotalSecretRevealCandidates + candidates.Length }
-        for obstacle in result.M5Obstacles do
+                Instrumentation =
+                    { result.Instrumentation with
+                        TotalSecretRevealCandidates =
+                            result.Instrumentation.TotalSecretRevealCandidates + candidates.Length } }
+        for obstacle in result.Obstacles do
             if circlesOverlap bomb.Position bombRadius obstacle.Position 20.0 then
                 let remaining,drop,rng=Rogue3.Entities.destroyObstacle 40 result.DropRng obstacle
-                let typed=result.M5Obstacles|>List.filter(fun value->value.Id<>obstacle.Id)|>fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
+                let typed=result.Obstacles|>List.filter(fun value->value.Id<>obstacle.Id)|>fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
                 let floor=if remaining.IsNone then FloorGeneration.recordDestroyedObstacle result.Floor.CurrentRoom obstacle.Id result.Floor else result.Floor
-                result <- {result with M5Obstacles=typed;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->result.M5ObstacleDrops@[{Id=obstacle.Id;Room=result.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue result.M5ObstacleDrops}
+                result <- {result with Obstacles=typed;DropRng=rng;Floor=floor;ObstacleDrops=drop|>Option.map(fun value->result.ObstacleDrops@[{Id=obstacle.Id;Room=result.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue result.ObstacleDrops}
     { result with
         Bombs = aged |> List.filter (fun bomb -> not (Set.contains bomb.Id exploded))
         AudioEvents = result.AudioEvents @ List.replicate exploded.Count AudioEvent.BombExploded }
@@ -1481,8 +1537,8 @@ let private resolveEnemyDamage model =
             let before = result.PlayerHealth
             result <- takePlayerHit bullet.Damage bullet.Position result
             if result.PlayerHealth <> before then consumed <- Set.add bullet.Id consumed
-    let enemyGrid = SpatialGrid.build spatialCellSize [ for enemy in result.M5Enemies do if enemy.HitPoints > 0.0 then toSimPoint enemy.Position, enemy ]
-    let maxEnemyRadius = result.M5Enemies |> List.map (fun enemy -> max 0.0 (actorRadius enemy)) |> List.fold max 0.0
+    let enemyGrid = SpatialGrid.build spatialCellSize [ for enemy in result.Enemies do if enemy.HitPoints > 0.0 then toSimPoint enemy.Position, enemy ]
+    let maxEnemyRadius = result.Enemies |> List.map (fun enemy -> max 0.0 (actorRadius enemy)) |> List.fold max 0.0
     let contacts = SpatialGrid.queryRadius (toSimPoint result.PlayerPosition) (playerRadius + maxEnemyRadius) enemyGrid |> List.sortBy (fun enemy -> enemy.Id)
     let mutable contactTicks = Map.empty
     for enemy in contacts do
@@ -1493,15 +1549,18 @@ let private resolveEnemyDamage model =
             if result.PlayerHealth <> before then contactTicks <- Map.add enemy.Id (result.SimStepCount + 1) contactTicks
     { result with
         EnemyBullets = result.EnemyBullets |> List.filter (fun bullet -> not (Set.contains bullet.Id consumed))
-        M5Enemies = result.M5Enemies |> List.map (fun enemy ->
+        Enemies = result.Enemies |> List.map (fun enemy ->
             { enemy with
                 LastContactTick = Map.tryFind enemy.Id contactTicks |> Option.orElse enemy.LastContactTick
                 HitFlashTicks = max 0 (enemy.HitFlashTicks - 1) })
-        TotalCombatCandidates = result.TotalCombatCandidates + bullets.Length + contacts.Length }
+        Instrumentation =
+            { result.Instrumentation with
+                TotalCombatCandidates =
+                    result.Instrumentation.TotalCombatCandidates + bullets.Length + contacts.Length } }
 
 let private resolveCombat model =
     let burstsBefore = model.BlackHeartBursts
-    let aliveBefore = model.M5Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.map _.Id |> Set.ofList
+    let aliveBefore = model.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.map _.Id |> Set.ofList
     let lifeBefore = model.PlayerLifeState
     let enemyBullets =
         model.EnemyBullets
@@ -1514,7 +1573,7 @@ let private resolveCombat model =
             let next=add bullet.Position (scale fixedDt velocity)
             let age=bullet.AgeTicks+1
             let obstacleHit =
-                model.M5Obstacles
+                model.Obstacles
                 |> List.exists(fun obstacle->Rogue3.Entities.blocksShots obstacle.Kind && circlesOverlap next bullet.Radius obstacle.Position 20.0)
             if age>480 || obstacleHit || next.Vx<0.0 || next.Vx>playfieldWidth || next.Vy<0.0 || next.Vy>playfieldHeight then None
             else Some{bullet with Position=next;Velocity=velocity;AgeTicks=age})
@@ -1522,13 +1581,13 @@ let private resolveCombat model =
     let burstsThisStep = model.BlackHeartBursts - burstsBefore
     let enemies =
         if burstsThisStep > 0 then
-            model.M5Enemies |> List.map (fun enemy -> { enemy with HitPoints = max 0.0 (enemy.HitPoints - 10.0 * float burstsThisStep) })
-        else model.M5Enemies
+            model.Enemies |> List.map (fun enemy -> { enemy with HitPoints = max 0.0 (enemy.HitPoints - 10.0 * float burstsThisStep) })
+        else model.Enemies
     let resolved =
         { model with
-            M5Enemies = enemies
+            Enemies = enemies
             PlayerLifeState = if totalHalfHearts model.PlayerHealth = 0 then Dead else model.PlayerLifeState }
-    let aliveAfter = resolved.M5Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.map _.Id |> Set.ofList
+    let aliveAfter = resolved.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.map _.Id |> Set.ofList
     let deathCount = Set.difference aliveBefore aliveAfter |> Set.count
     let events =
         resolved.AudioEvents
@@ -1622,16 +1681,16 @@ let loadM5Room roomId model =
                 let value=Rogue3.Entities.spawnBoss (roomId*100) bossKind (vec2 640. 280.)
                 Some{value with HitPoints=value.HitPoints*difficultyHpMultiplier model.FloorIndex scaling}
             else None
-        { model with Floor={model.Floor with CurrentRoom=roomId};M5Enemies=allEnemies;M5Boss=boss;M5ChoirMemberIds=choirMembers|>List.map _.Id|>Set.ofList;M5Room=roomState
+        { model with Floor={model.Floor with CurrentRoom=roomId};Enemies=allEnemies;Boss=boss;ChoirMemberIds=choirMembers|>List.map _.Id|>Set.ofList;Room=roomState
                      // M13: uncollected drops SURVIVE a room change. Clearing them here destroyed the
                      // reward permanently, because `recordDestroyedObstacle` is durable floor state and
                      // the smashed pot never returns to re-roll. They are kept keyed by room and
                      // filtered by `floorPickupsHere`; `DescendFloor` is what discards them.
-                     M5Obstacles=typedObstacles;M5ShopSlots=shop
+                     Obstacles=typedObstacles;ShopSlots=shop
                      EnemyBullets=[];ShotSpawns=[] }
 
 /// The state a player actually boots into for `seed`: the generated floor with its START room
-/// LOADED. Before M11 the boot model hand-wrote `M5Room` with `Doors=[]` and `Trapdoor=false`, so the
+/// LOADED. Before M11 the boot model hand-wrote `Room` with `Doors=[]` and `Trapdoor=false`, so the
 /// first room a player ever saw had no exits by construction — the room was a sealed box and the
 /// renderer was telling the truth about it.
 let bootModelForSeed seed = initialModelForSeed seed |> loadM5Room 0
@@ -1639,39 +1698,39 @@ let bootModelForSeed seed = initialModelForSeed seed |> loadM5Room 0
 let initialModel = bootModelForSeed 0xC0FFEEUL
 
 let damageM5Enemy enemyId damage model =
-    match model.M5Enemies |> List.tryFind(fun actor->actor.Id=enemyId) with
+    match model.Enemies |> List.tryFind(fun actor->actor.Id=enemyId) with
     | None -> model
     | Some actor when actor.HitPoints-damage>0.0 ->
         let hp=actor.HitPoints-damage
-        {model with M5Enemies=model.M5Enemies|>List.map(fun a->if a.Id=enemyId then {a with HitPoints=hp} else a)
+        {model with Enemies=model.Enemies|>List.map(fun a->if a.Id=enemyId then {a with HitPoints=hp} else a)
                     RunStats=addFloorDamage model.FloorIndex (max 0.0 damage) 0.0 model.RunStats}
     | Some actor ->
-        let children=Rogue3.Entities.grubSplit model.FloorIndex model.M5NextEntityId actor
-        let survivors=model.M5Enemies|>List.filter(fun a->a.Id<>enemyId)
+        let children=Rogue3.Entities.grubSplit model.FloorIndex model.NextEntityId actor
+        let survivors=model.Enemies|>List.filter(fun a->a.Id<>enemyId)
         let childIds=children|>List.map _.Id|>Set.ofList
-        let live=Set.union (Set.remove enemyId model.M5Room.LiveEnemyIds) childIds
+        let live=Set.union (Set.remove enemyId model.Room.LiveEnemyIds) childIds
         let room,rng=
-            if model.M5Room.IsBoss || not(Set.isEmpty childIds) then {model.M5Room with LiveEnemyIds=live},model.DropRng
-            else Rogue3.Entities.enemyDiedWithNothingWeight (activeScaling model).DropNothingWeight enemyId model.DropRng model.M5Room
-        let choirDeath=Set.contains enemyId model.M5ChoirMemberIds
+            if model.Room.IsBoss || not(Set.isEmpty childIds) then {model.Room with LiveEnemyIds=live},model.DropRng
+            else Rogue3.Entities.enemyDiedWithNothingWeight (activeScaling model).DropNothingWeight enemyId model.DropRng model.Room
+        let choirDeath=Set.contains enemyId model.ChoirMemberIds
         let boss =
-            if choirDeath then model.M5Boss|>Option.map(fun value->{value with ChoirKillTicks=(model.SimStepCount::value.ChoirKillTicks)|>List.truncate 3})
-            else model.M5Boss
+            if choirDeath then model.Boss|>Option.map(fun value->{value with ChoirKillTicks=(model.SimStepCount::value.ChoirKillTicks)|>List.truncate 3})
+            else model.Boss
         let choirDefeated =
             boss
             |> Option.exists(fun value->value.Kind=Rogue3.Entities.BossKind.HollowChoir && value.ChoirKillTicks.Length=3 && not(Rogue3.Entities.choirRevives value.ChoirKillTicks))
         let room = if choirDefeated then Rogue3.Entities.bossCleared room.Reward room else {room with LiveEnemyIds=Set.union room.LiveEnemyIds childIds}
         let kills = model.RunStats.KillsByType |> Map.change actor.Kind (fun count->Some(1 + Option.defaultValue 0 count))
         let stats = addFloorDamage model.FloorIndex (max 0.0 (min actor.HitPoints damage)) 0.0 model.RunStats
-        {model with M5Enemies=survivors@children
-                    M5Boss=(if choirDefeated then None else boss);M5ChoirMemberIds=Set.remove enemyId model.M5ChoirMemberIds
-                    M5Room=room
+        {model with Enemies=survivors@children
+                    Boss=(if choirDefeated then None else boss);ChoirMemberIds=Set.remove enemyId model.ChoirMemberIds
+                    Room=room
                     // Room-clear is durable floor state, so a later visit rebuilds the room already
                     // cleared and never rolls its clear drop again (§14.5, §14.15).
                     Floor=
                         (if choirDefeated then FloorGeneration.clearBoss model.Floor.CurrentRoom model.Floor else model.Floor)
                         |> fun floor -> if room.Cleared then FloorGeneration.recordRoomCleared model.Floor.CurrentRoom floor else floor
-                    DropRng=rng;M5NextEntityId=model.M5NextEntityId+children.Length
+                    DropRng=rng;NextEntityId=model.NextEntityId+children.Length
                     RunStats={stats with KillsByType=kills}}
 
 // Board item #47 moved `purchaseM5ShopSlot` DOWN, next to `applyFloorPickup` and `grantItem`. It
@@ -1679,22 +1738,22 @@ let damageM5Enemy enemyId damage model =
 // just charged for. The move is the fix's precondition, not a tidy-up.
 
 let damageM5Obstacle obstacleId damage model =
-    match model.M5Obstacles|>List.tryFind(fun obstacle->obstacle.Id=obstacleId) with
+    match model.Obstacles|>List.tryFind(fun obstacle->obstacle.Id=obstacleId) with
     | None -> model
     | Some obstacle ->
         let remaining,drop,rng=Rogue3.Entities.destroyObstacle damage model.DropRng obstacle
-        let obstacles=model.M5Obstacles|>List.filter(fun value->value.Id<>obstacleId) |> fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
+        let obstacles=model.Obstacles|>List.filter(fun value->value.Id<>obstacleId) |> fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
         let floor=if remaining.IsNone then FloorGeneration.recordDestroyedObstacle model.Floor.CurrentRoom obstacleId model.Floor else model.Floor
-        {model with M5Obstacles=obstacles;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->model.M5ObstacleDrops@[{Id=obstacle.Id;Room=model.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue model.M5ObstacleDrops}
+        {model with Obstacles=obstacles;DropRng=rng;Floor=floor;ObstacleDrops=drop|>Option.map(fun value->model.ObstacleDrops@[{Id=obstacle.Id;Room=model.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue model.ObstacleDrops}
 
 let private stepM5Entities model =
     // §14.21 — "a dead actor emits no later attack". Resolve deaths from the ACTOR list rather than
     // from the legacy `Enemies` projection: shot resolution drops zero-hit-point entries from
     // `Enemies` at the start of the next step, so an actor that reached zero could survive in
-    // `M5Enemies` unseen by this cleanup and keep taking turns. Sorted by id so the drop-stream draw
+    // `Enemies` unseen by this cleanup and keep taking turns. Sorted by id so the drop-stream draw
     // order for simultaneous deaths is unchanged.
     let model =
-        model.M5Enemies
+        model.Enemies
         |> List.filter(fun actor->actor.HitPoints<=0.0)
         |> List.map _.Id
         |> List.sort
@@ -1702,7 +1761,7 @@ let private stepM5Entities model =
     let mutable rng = model.DropRng
     let mutable actionsByActor : (Vec2 * Rogue3.Entities.EnemyAction list) list = []
     let stepped =
-        model.M5Enemies
+        model.Enemies
         |> List.sortBy (fun enemy -> enemy.Id)
         |> List.map (fun enemy ->
             let result =
@@ -1718,7 +1777,7 @@ let private stepM5Entities model =
                 else result
             let movement = if enemy.Kind=Rogue3.Entities.EnemyKind.Fly then Rogue3.Entities.MovementClass.Flying else Rogue3.Entities.MovementClass.Grounded
             let blocked =
-                model.M5Obstacles
+                model.Obstacles
                 |> List.exists(fun obstacle->Rogue3.Entities.blocksMovement movement obstacle.Kind && circlesOverlap result.Actor.Position (Rogue3.Entities.definition enemy.Kind).Radius obstacle.Position 20.0)
             let result =
                 if blocked then
@@ -1731,7 +1790,7 @@ let private stepM5Entities model =
             rng <- result.DropRng
             actionsByActor <- (result.Actor.Position,result.Actions)::actionsByActor
             result.Actor)
-    let mutable nextBullet=model.M5NextBulletId
+    let mutable nextBullet=model.NextBulletId
     let createBullet position direction speed damage homing radius =
         let bullet={Id=nextBullet;Position=position;Velocity=scale speed (normalizeOrZero direction);Radius=radius;Damage=damage;Homing=homing;AgeTicks=0}
         nextBullet<-nextBullet+1
@@ -1751,7 +1810,7 @@ let private stepM5Entities model =
                 | Rogue3.Entities.EnemyAction.FireRing(count,speed) -> yield! radial position count 360.0 0.0 speed 1 0.0 3.0 None
                 | _ -> () ]
     let bossResult=
-        model.M5Boss
+        model.Boss
         |> Option.map(Rogue3.Entities.stepBoss model.PlayerPosition (model.SimStepCount+1))
         |> Option.map(fun result->
             let charge=result.Actions|>List.tryPick(function Rogue3.Entities.BossAction.Charge direction->Some direction|_->None)
@@ -1763,9 +1822,9 @@ let private stepM5Entities model =
             let maggotCount=result.Actions|>List.sumBy(function Rogue3.Entities.BossAction.SpawnMaggots count->count|_->0)
             let reviveCount=if result.Actions|>List.contains Rogue3.Entities.BossAction.ReviveChoir then 3 else 0
             [ for index in 0..maggotCount-1 ->
-                Rogue3.Entities.spawn model.FloorIndex (model.M5NextEntityId+index) Rogue3.Entities.EnemyKind.Maggot (add result.Boss.Position (vec2 (float(index*28-14)) 0.))
+                Rogue3.Entities.spawn model.FloorIndex (model.NextEntityId+index) Rogue3.Entities.EnemyKind.Maggot (add result.Boss.Position (vec2 (float(index*28-14)) 0.))
               for index in 0..reviveCount-1 ->
-                Rogue3.Entities.spawn model.FloorIndex (model.M5NextEntityId+maggotCount+index) Rogue3.Entities.EnemyKind.Caster (add result.Boss.Position (vec2 (float(index*120-120)) 120.)) ]
+                Rogue3.Entities.spawn model.FloorIndex (model.NextEntityId+maggotCount+index) Rogue3.Entities.EnemyKind.Caster (add result.Boss.Position (vec2 (float(index*120-120)) 120.)) ]
     let revivedChoirIds =
         bossSpawned
         |> List.filter(fun actor->actor.Kind=Rogue3.Entities.EnemyKind.Caster && bossResult|>Option.exists(fun result->result.Actions|>List.contains Rogue3.Entities.BossAction.ReviveChoir))
@@ -1781,17 +1840,17 @@ let private stepM5Entities model =
         | None -> []
     let nextModel =
         { model with
-            M5Enemies=stepped@bossSpawned
-            M5Boss=bossResult|>Option.map _.Boss
-            M5ChoirMemberIds=Set.union model.M5ChoirMemberIds revivedChoirIds
+            Enemies=stepped@bossSpawned
+            Boss=bossResult|>Option.map _.Boss
+            ChoirMemberIds=Set.union model.ChoirMemberIds revivedChoirIds
             DropRng=rng
-            M5AiDecisions=model.M5AiDecisions+stepped.Length
-            M5BulletEmissions=model.M5BulletEmissions+bullets.Length+bossBullets.Length
-            M5BossBulletEmissions=model.M5BossBulletEmissions+bossBullets.Length
-            M5BossPatternEmissions=model.M5BossPatternEmissions+(bossResult|>Option.map(fun result->result.Actions|>List.sumBy(function Rogue3.Entities.BossAction.Emit _->1|_->0))|>Option.defaultValue 0)
-            M5NextBulletId=nextBullet
-            M5NextEntityId=model.M5NextEntityId+bossSpawned.Length
-            M5Room={model.M5Room with LiveEnemyIds=Set.union model.M5Room.LiveEnemyIds (bossSpawned|>List.map _.Id|>Set.ofList)}
+            AiDecisions=model.AiDecisions+stepped.Length
+            BulletEmissions=model.BulletEmissions+bullets.Length+bossBullets.Length
+            BossBulletEmissions=model.BossBulletEmissions+bossBullets.Length
+            BossPatternEmissions=model.BossPatternEmissions+(bossResult|>Option.map(fun result->result.Actions|>List.sumBy(function Rogue3.Entities.BossAction.Emit _->1|_->0))|>Option.defaultValue 0)
+            NextBulletId=nextBullet
+            NextEntityId=model.NextEntityId+bossSpawned.Length
+            Room={model.Room with LiveEnemyIds=Set.union model.Room.LiveEnemyIds (bossSpawned|>List.map _.Id|>Set.ofList)}
             EnemyBullets=bullets@bossBullets@model.EnemyBullets }
     let enemyShocks =
         actionsByActor
@@ -1947,15 +2006,15 @@ let private withShopStock roomId (slots: Rogue3.Entities.ShopSlot list) (floor: 
 /// question before payment would refuse a sale the reducer would have completed — and the prompt would
 /// then disagree with the button.
 let private purchaseOutcome slotId model =
-    match model.M5ShopSlots|>List.tryFind(fun slot->slot.Id=slotId) with
+    match model.ShopSlots|>List.tryFind(fun slot->slot.Id=slotId) with
     | None -> None
     | Some slot ->
         let coins,keys,updated,ok=Rogue3.Entities.purchase model.PlayerCurrency.Coins model.PlayerCurrency.Keys slot
         if not ok then None else
-        let remaining = model.M5ShopSlots|>List.map(fun item->if item.Id=slotId then updated else item)
+        let remaining = model.ShopSlots|>List.map(fun item->if item.Id=slotId then updated else item)
         let paid =
             {model with PlayerCurrency={model.PlayerCurrency with Coins=coins;Keys=keys}
-                        M5ShopSlots=remaining
+                        ShopSlots=remaining
                         Floor=withShopStock model.Floor.CurrentRoom remaining model.Floor}
         match slot.Offer with
         | Rogue3.Entities.ShopOffer.Item item -> Some(grantItem item paid)
@@ -1979,7 +2038,7 @@ let purchaseM5ShopSlot slotId model =
 
 /// M13: walk onto a pickup and it is yours.
 ///
-/// Before this, `M5ObstacleDrops` was write-only: smashing a pot appended a `PickupKind` that the
+/// Before this, `ObstacleDrops` was write-only: smashing a pot appended a `PickupKind` that the
 /// renderer drew in a fixed row and no reducer ever consumed, so the drop table, the drop RNG stream
 /// and the drop visual all existed for a reward a player could not take. The scan is one circle test
 /// per live pickup, counted into `TotalFloorPickupCandidates` so its cost is measured rather than
@@ -1995,18 +2054,21 @@ let collectFloorPickups (model: Model) =
         let takenIds = taken |> List.map _.Id |> Set.ofList
         let scanned =
             { model with
-                M5ObstacleDrops =
-                    model.M5ObstacleDrops
+                ObstacleDrops =
+                    model.ObstacleDrops
                     |> List.filter (fun pickup -> not (pickup.Room = model.Floor.CurrentRoom && Set.contains pickup.Id takenIds))
                 // Only the pickups in THIS room are tested, which is what the driver's ScaleSource says.
-                TotalFloorPickupCandidates = model.TotalFloorPickupCandidates + here.Length }
+                Instrumentation =
+                    { model.Instrumentation with
+                        TotalFloorPickupCandidates =
+                            model.Instrumentation.TotalFloorPickupCandidates + here.Length } }
         (scanned, taken) ||> List.fold (fun current pickup -> applyFloorPickup pickup.Kind current)
 
 // ------------------------------------------------------------------------------------------------
 // Board item #47 — taking the room's reward.
 //
 // The treasure pedestal and the boss reward reach the player by the same route M13 gave the obstacle
-// drop: walk onto it. Before this they had NO route at all — `M5Room.Reward` was rendered and never
+// drop: walk onto it. Before this they had NO route at all — `Room.Reward` was rendered and never
 // consumed, the exact "write-only reward a player cannot take" shape `collectFloorPickups` above was
 // written to close for pots.
 // ------------------------------------------------------------------------------------------------
@@ -2022,13 +2084,13 @@ let roomRewardRadius = 20.0
 /// Both sides derive from `placeRoomFixtures`; `M13RoomTransitionWorldStateTests` pins the renderer
 /// to it and `M14ItemGrantTests` pins this function to it, so the two cannot drift apart silently.
 let roomRewardPosition (model: Model) =
-    placeRoomFixtures model.M5Obstacles (model.M5ShopSlots.Length + 1)
-    |> List.tryItem model.M5ShopSlots.Length
+    placeRoomFixtures model.Obstacles (model.ShopSlots.Length + 1)
+    |> List.tryItem model.ShopSlots.Length
 
 /// A pedestal may be taken on sight. A BOSS reward may not be taken until the boss is down —
 /// otherwise a player walks past the sealed-in boss, grabs the prize and leaves.
 let roomRewardCollectable (model: Model) =
-    model.M5Room.Reward.IsSome && (not model.M5Room.IsBoss || model.M5Room.Cleared)
+    model.Room.Reward.IsSome && (not model.Room.IsBoss || model.Room.Cleared)
 
 /// Drop the reward fixture from durable floor state, so re-entering the room does not re-grant it.
 /// The same durability rule as `FloorGeneration.recordDestroyedObstacle` (§14.15).
@@ -2048,12 +2110,12 @@ let private withoutRewardFixture roomId (floor: FloorGeneration.Floor) =
 /// recomputed, and removed from BOTH the live room and the floor record in the same step — so a
 /// player standing still on the plinth collects exactly once, and so does one who leaves and returns.
 let collectRoomReward (model: Model) =
-    match model.M5Room.Reward with
+    match model.Room.Reward with
     | Some reward when roomRewardCollectable model ->
         match roomRewardPosition model with
         | Some at when circlesOverlap model.PlayerPosition playerRadius at roomRewardRadius ->
             { model with
-                M5Room = { model.M5Room with Reward = None }
+                Room = { model.Room with Reward = None }
                 Floor = withoutRewardFixture model.Floor.CurrentRoom model.Floor }
             |> grantItem reward
         | _ -> model
@@ -2081,14 +2143,14 @@ let shopSlotRadius = roomRewardRadius
 
 /// Where this room's shop stock stands, in slot order.
 ///
-/// `Render.renderedElementsIn` places slot `index` at `placeRoomFixtures model.M5Obstacles n |> item
+/// `Render.renderedElementsIn` places slot `index` at `placeRoomFixtures model.Obstacles n |> item
 /// index` for an `n` that also counts the reward plinth. `placeRoomFixtures` is a PREFIX function —
-/// it accepts candidates in order and takes the first `count` — so the first `M5ShopSlots.Length`
+/// it accepts candidates in order and takes the first `count` — so the first `ShopSlots.Length`
 /// positions are the same list whether or not a reward is also being placed. Asking for exactly the
 /// slot count here therefore yields the renderer's own positions, and `M14ItemGrantTests` pins that
 /// against `Render.renderedElements` rather than against a restatement of this formula.
 let shopSlotPositions (model: Model) =
-    placeRoomFixtures model.M5Obstacles model.M5ShopSlots.Length
+    placeRoomFixtures model.Obstacles model.ShopSlots.Length
 
 /// True when `slot` would actually be sold to this player right now.
 ///
@@ -2118,14 +2180,14 @@ let shopSlotRefusal (model: Model) (slot: Rogue3.Entities.ShopSlot) : string opt
 /// An EMPTIED slot is skipped: a bare plinth is not something to press interact at, and letting it
 /// answer here would shadow a stocked neighbour placed close by. Nearest-first, so two slots whose
 /// reach circles overlap resolve to the one the player is actually closest to rather than to
-/// whichever happens to come first in `M5ShopSlots`.
+/// whichever happens to come first in `ShopSlots`.
 let shopSlotUnderPlayer (model: Model) : (Rogue3.Entities.ShopSlot * Vec2) option =
-    if List.isEmpty model.M5ShopSlots then None
+    if List.isEmpty model.ShopSlots then None
     else
         let positions = shopSlotPositions model
         // `List.tryItem`, not `List.zip`: the renderer indexes the placement list the same way, and a
         // total lookup here cannot turn a placement shortfall into an exception inside a fixed step.
-        model.M5ShopSlots
+        model.ShopSlots
         |> List.indexed
         |> List.choose (fun (index, slot) -> positions |> List.tryItem index |> Option.map (fun at -> slot, at))
         |> List.filter (fun (slot, _) -> slot.Offer <> Rogue3.Entities.ShopOffer.Empty)
@@ -2158,7 +2220,7 @@ let private stepInput pressedThisTick (model: Model) =
     let wallSlabs = roomWallSlabs model
     // Board item #20: derived here, once per step, rather than read from a stored `Obstacles` cache
     // four reducers had to remember to refresh. Same elements, same order, no staleness possible.
-    let obstacleRects = blockingObstacleRects model.M5Obstacles
+    let obstacleRects = blockingObstacleRects model.Obstacles
     let movedPlayer = Collision.sweepCircle (Some roomBounds) (wallSlabs @ obstacleRects) playerCircle (toSimPoint displacement)
     let playerPosition = ofSimPoint movedPlayer.Center
     let fireAim = if resolved.Aim = zero then normalizeOrZero model.Facing else resolved.Aim
@@ -2183,7 +2245,7 @@ let private stepInput pressedThisTick (model: Model) =
         |> List.truncate maxShotSpawnHistory
 
     let shotPassThrough =
-        model.M5Obstacles
+        model.Obstacles
         |> List.filter(fun obstacle->not(Rogue3.Entities.blocksShots obstacle.Kind))
         |> List.map(fun obstacle->toSimRect obstacle.Position obstacleExtent obstacleExtent)
         |> Set.ofList
@@ -2208,7 +2270,6 @@ let private stepInput pressedThisTick (model: Model) =
             FireCooldown = nextCooldown
             WasFiring = not iFramesActive && resolved.FireHeld && fireAim <> zero
             ShotSpawns = steppedShots
-            TotalShotSpawns = model.TotalShotSpawns + spawned.Length
             Bombs = bombs
             PlayerCurrency = currency
             NextBombId = nextBombId
@@ -2217,18 +2278,24 @@ let private stepInput pressedThisTick (model: Model) =
             DodgeIFrameTicks = if dodgeStarted then dodgeIFrameTicks else model.DodgeIFrameTicks
             DodgeCooldownTicks = if dodgeStarted then dodgeCooldownTicks - 1 else max 0 (model.DodgeCooldownTicks - 1)
             PostHitInvulnTicks = max 0 (model.PostHitInvulnTicks - 1)
-            // Each player axis performs one swept cast, then slideCircle's X and Y contact folds.
-            // M13 adds the room's own wall slabs to that sweep under the SAME `6 *` accounting, so the
-            // counter still describes the casts the player actually performs.
-            TotalWallQueries = model.TotalWallQueries + wallQueries + 6 * (obstacleRects.Length + wallSlabs.Length)
-            TotalHomingQueries = model.TotalHomingQueries + homingQueries
+            Instrumentation =
+                { model.Instrumentation with
+                    TotalShotSpawns = model.Instrumentation.TotalShotSpawns + spawned.Length
+                    // Each player axis performs one swept cast, then slideCircle's X and Y contact
+                    // folds. M13 adds the room's own wall slabs to that sweep under the SAME `6 *`
+                    // accounting, so the counter still describes the casts the player performs.
+                    TotalWallQueries =
+                        model.Instrumentation.TotalWallQueries
+                        + wallQueries
+                        + 6 * (obstacleRects.Length + wallSlabs.Length)
+                    TotalHomingQueries = model.Instrumentation.TotalHomingQueries + homingQueries }
             EdgeActionCount = model.EdgeActionCount + Set.count pressedThisTick
             AudioEvents =
                 model.AudioEvents
                 @ (if shouldSpawn then [ AudioEvent.ShotFired ] else [])
                 @ (if dodgeStarted then [ AudioEvent.DodgeRolled ] else []) }
     let spiked =
-        model.M5Obstacles
+        model.Obstacles
         |> List.filter(fun obstacle->Rogue3.Entities.spikeDamage obstacle.Kind>0 && circlesOverlap steppedModel.PlayerPosition playerRadius obstacle.Position 20.0)
         |> List.fold(fun current obstacle->takePlayerHit (Rogue3.Entities.spikeDamage obstacle.Kind) obstacle.Position current) steppedModel
     collectFloorPickups spiked |> collectRoomReward
@@ -2241,7 +2308,7 @@ let m6CameraDurationTicks = 42 // 0.35 s * 120 Hz
 
 let private stepM6Presentation model =
     let particles =
-        model.M6Particles
+        model.Particles
         |> List.choose (fun particle ->
             let age = particle.AgeTicks + 1
             if age >= particle.LifetimeTicks then None
@@ -2251,18 +2318,18 @@ let private stepM6Presentation model =
                         Position = add particle.Position (scale fixedDt particle.Velocity)
                         AgeTicks = age })
     let transition =
-        model.M6CameraTransition
+        model.CameraTransition
         |> Option.bind (fun camera ->
             let elapsed = camera.ElapsedTicks + 1
             if elapsed >= m6CameraDurationTicks then None
             else Some { camera with ElapsedTicks = elapsed })
-    { model with M6Particles = particles; M6CameraTransition = transition }
+    { model with Particles = particles; CameraTransition = transition }
 
 let private spawnM6Particles count origin tint model =
     let requested = max 0 count
     let spawned =
         [ for offset in 0 .. requested - 1 do
-              let id = model.M6NextParticleId + offset
+              let id = model.NextParticleId + offset
               let angle = float (id % 16) * Math.PI / 8.0
               let speed = 40.0 + float (id % 5) * 12.0
               yield
@@ -2275,8 +2342,8 @@ let private spawnM6Particles count origin tint model =
                     Shape = if id % 2 = 0 then ParticleShape.Circle else ParticleShape.Quad
                     Tint = tint } ]
     { model with
-        M6Particles = (model.M6Particles @ spawned) |> List.rev |> List.truncate m6MaxParticles |> List.rev
-        M6NextParticleId = model.M6NextParticleId + requested }
+        Particles = (model.Particles @ spawned) |> List.rev |> List.truncate m6MaxParticles |> List.rev
+        NextParticleId = model.NextParticleId + requested }
 
 let private stepSimWithInput pressedThisTick model =
     let model = stepInput pressedThisTick model |> resolveCombat |> stepM5Entities |> stepM6Presentation
@@ -2339,14 +2406,14 @@ let private interactPressed isFirstStep pressedThisTick (model: Model) =
 
 /// True when the current room's derived combat lock has sealed the doorway at `index`.
 let private doorwaySealed index (model: Model) =
-    match List.tryItem index model.M5Room.Doors with
+    match List.tryItem index model.Room.Doors with
     | None
     | Some Rogue3.Entities.DoorState.Open -> false
     | Some _ -> true
 
 /// True when `roomId` records the trapdoor fixture AND the loaded room agrees.
 let trapdoorPresent (model: Model) =
-    model.M5Room.Trapdoor
+    model.Room.Trapdoor
     && (match Map.tryFind model.Floor.CurrentRoom model.Floor.Rooms with
         | Some room -> room.Fixtures |> List.contains FloorGeneration.Trapdoor
         | None -> false)
@@ -2368,7 +2435,11 @@ let playerRoomIntentsIn isFirstStep pressedThisTick (model: Model) : Model * Msg
         | Some room -> room.Doors
         | None -> []
 
-    let scanned = { model with TotalDoorSensorQueries = model.TotalDoorSensorQueries + doors.Length }
+    let scanned =
+        { model with
+            Instrumentation =
+                { model.Instrumentation with
+                    TotalDoorSensorQueries = model.Instrumentation.TotalDoorSensorQueries + doors.Length } }
 
     let doorIntents =
         doors
@@ -2463,7 +2534,7 @@ let private advanceSim (dispatch: Msg -> Model -> Model) dtSeconds (model: Model
         let mutable m = { model with AudioEvents = [] }
         let mutable executed = 0
         let mutable terminalStep = false
-        let hadFinalBoss = model.FloorIndex=6 && model.M5Boss.IsSome
+        let hadFinalBoss = model.FloorIndex=6 && model.Boss.IsSome
         for stepIndex in 1..steps do
             if not terminalStep then
                 let pressed = if stepIndex = 1 then pressedThisTick else Set.empty
@@ -2475,7 +2546,7 @@ let private advanceSim (dispatch: Msg -> Model -> Model) dtSeconds (model: Model
                 executed <- executed+1
                 terminalStep <-
                     (m.PlayerLifeState=Dead || totalHalfHearts m.PlayerHealth=0)
-                    || (hadFinalBoss && m.M5Boss.IsNone)
+                    || (hadFinalBoss && m.Boss.IsNone)
         m,executed
 
     { stepped with
@@ -2558,7 +2629,7 @@ let rec update msg model : Model * AdapterCommand<Msg> =
     | Tick dtSeconds ->
         let advanced=advanceSim (fun message state -> update message state |> fst) dtSeconds model |> finishDeathIfNeeded
         let terminal=
-            if advanced.RunActive && model.FloorIndex=6 && model.M5Boss.IsSome && advanced.M5Boss.IsNone then
+            if advanced.RunActive && model.FloorIndex=6 && model.Boss.IsSome && advanced.Boss.IsNone then
                 finishRun true None advanced
             else advanced
         terminal,Cmd.none
@@ -2634,7 +2705,7 @@ let rec update msg model : Model * AdapterCommand<Msg> =
                 roomId
                 { model with
                     Floor = floor
-                    M6CameraTransition = Some { Direction = slide; ElapsedTicks = 0; FromRoom = departed }
+                    CameraTransition = Some { Direction = slide; ElapsedTicks = 0; FromRoom = departed }
                     PlayerPosition = add wall inward }, Cmd.none
     | BossCleared roomId ->
         { model with Floor = FloorGeneration.clearBoss roomId model.Floor }, Cmd.none
@@ -2644,29 +2715,29 @@ let rec update msg model : Model * AdapterCommand<Msg> =
     | DescendFloor when not (canDescend model) -> model, Cmd.none
     | DescendFloor ->
         let nextIndex = model.FloorIndex + 1
-        let generated = FloorGeneration.generateWithPool model.RunSeed nextIndex model.M5ItemPool
+        let generated = FloorGeneration.generateWithPool model.RunSeed nextIndex model.ItemPool
         { model with
             FloorIndex = nextIndex
             Floor = generated.Floor
             LayoutRng = generated.LayoutRng
-            M5ItemPool = generated.ItemPool
-            M5Enemies = []
-            M5Boss = None
-            M5ChoirMemberIds = Set.empty
-            M5Obstacles = []
-            M5ShopSlots = []
+            ItemPool = generated.ItemPool
+            Enemies = []
+            Boss = None
+            ChoirMemberIds = Set.empty
+            Obstacles = []
+            ShopSlots = []
             // M13: a descent discards every room-local carry-over. Drops belong to rooms on the floor
             // being left; room ids are REUSED across floors, so keeping either of these would leave a
             // pickup or a departed-room shell resolving to a different room of the same number.
-            M5ObstacleDrops = []
+            ObstacleDrops = []
             // Board item #47: the reward is room-local for the same reason, and it is now COLLECTABLE,
             // so a stale one is worse than a cosmetic leftover — a fixed step between this message and
             // the `EnterM5Room 0` that production always pairs with it could grant the departed
             // floor's item at the new floor's plinth position. `playerRoomIntentsIn` raises the pair
             // with no step in between, but `PerformanceEvidence` dispatches `DescendFloor` alone, so
             // this does not rest on the pairing holding everywhere.
-            M5Room = { model.M5Room with Reward = None }
-            M6CameraTransition = None
+            Room = { model.Room with Reward = None }
+            CameraTransition = None
             ShotSpawns = []
             HomingTargets = []
             EnemyBullets = []
@@ -2677,17 +2748,17 @@ let rec update msg model : Model * AdapterCommand<Msg> =
     | EnterM5Room roomId -> loadM5Room roomId model, Cmd.none
     | DamageM5Enemy(enemyId,damage) ->
         let next=damageM5Enemy enemyId damage model
-        if model.FloorIndex=6 && model.M5Boss.IsSome && next.M5Boss.IsNone then finishRun true None next,Cmd.none else next,Cmd.none
+        if model.FloorIndex=6 && model.Boss.IsSome && next.Boss.IsNone then finishRun true None next,Cmd.none else next,Cmd.none
     | DamageM5Boss damage ->
         let next=damageM5Boss damage model
-        if model.FloorIndex=6 && model.M5Boss.IsSome && next.M5Boss.IsNone then finishRun true None next,Cmd.none else next,Cmd.none
+        if model.FloorIndex=6 && model.Boss.IsSome && next.Boss.IsNone then finishRun true None next,Cmd.none else next,Cmd.none
     | InteractM5Shop slotId -> purchaseM5ShopSlot slotId model, Cmd.none
     | DamageM5Obstacle(obstacleId,damage) -> damageM5Obstacle obstacleId damage model,Cmd.none
     | SpawnM6Particles(count, origin, tint) -> spawnM6Particles count origin tint model, Cmd.none
     | BeginM6RoomTransition direction ->
         // The evidence-only entry point. It has no crossing to read a departed room from, so it names
         // the room the model is standing in — the same room a crossing would have departed.
-        { model with M6CameraTransition = Some { Direction = direction; ElapsedTicks = 0; FromRoom = model.Floor.CurrentRoom } }, Cmd.none
+        { model with CameraTransition = Some { Direction = direction; ElapsedTicks = 0; FromRoom = model.Floor.CurrentRoom } }, Cmd.none
     | StartRun seed ->
         let scaling = difficultyScaling model.Profile.Settings.Difficulty
         // M11: start the run in a LOADED start room, through the same seam every other room uses.

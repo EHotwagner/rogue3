@@ -89,9 +89,9 @@ let m7UiMenusStatsTests =
             let easy, hard = start DifficultyMode.Easy, start DifficultyMode.Hard
             let combatId = easy.Floor.Rooms |> Map.values |> Seq.find (fun room -> room.RoomType=FloorGeneration.Combat) |> _.Id
             let easyRoom, hardRoom = loadM5Room combatId easy, loadM5Room combatId hard
-            Expect.equal (hardRoom.M5Enemies.Length-easyRoom.M5Enemies.Length) 1 "Hard adds one elite to a combat room"
-            let easyBase = easyRoom.M5Enemies |> List.last
-            let matchingHard = hardRoom.M5Enemies |> List.find (fun actor -> actor.Id=easyBase.Id)
+            Expect.equal (hardRoom.Enemies.Length-easyRoom.Enemies.Length) 1 "Hard adds one elite to a combat room"
+            let easyBase = easyRoom.Enemies |> List.last
+            let matchingHard = hardRoom.Enemies |> List.find (fun actor -> actor.Id=easyBase.Id)
             Expect.floatClose Accuracy.high (matchingHard.HitPoints/easyBase.HitPoints) (1.18/1.08) "enemy HP uses the latched floor scale"
 
             let hit model =
@@ -161,7 +161,7 @@ let m7UiMenusStatsTests =
         test "live projectile hits feed damage-per-floor and typed kill stats exactly once" {
             let combatId = initialModel.Floor.Rooms |> Map.values |> Seq.find (fun room -> room.RoomType=FloorGeneration.Combat) |> _.Id
             let room = loadM5Room combatId initialModel
-            let enemy = room.M5Enemies.Head
+            let enemy = room.Enemies.Head
             let shot =
                 { Id=9001;Position=enemy.Position;Direction=Rogue3.Geometry.vec2 1.0 0.0;Velocity=Rogue3.Geometry.zero
                   Damage=enemy.HitPoints;FireRate=1.0;Speed=0.0;Range=1.0;Radius=actorRadius enemy;Knockback=0.0
@@ -169,7 +169,7 @@ let m7UiMenusStatsTests =
                   DistanceTravelled=0.0;HitEnemyIds=Set.empty;SimStep=room.SimStepCount }
             let resolved = stepSim {room with ShotSpawns=[shot]}
             Expect.floatClose Accuracy.high resolved.RunStats.DamageDealt enemy.HitPoints "applied projectile damage is accumulated"
-            let kind = room.M5Enemies |> List.find (fun actor -> actor.Id=enemy.Id) |> _.Kind
+            let kind = room.Enemies |> List.find (fun actor -> actor.Id=enemy.Id) |> _.Kind
             Expect.equal resolved.RunStats.KillsByType[kind] 1 "M5 cleanup records one typed kill after the projectile death"
         }
 

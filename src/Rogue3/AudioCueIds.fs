@@ -60,7 +60,7 @@ let gameOverTheme = "game-over"
 let victoryTheme = "victory"
 
 /// How many `floor-<n>-theme` loops the declaration carries. Six, because the product's own victory
-/// condition hard-codes floor six as the last one (`Model.fs`: `model.FloorIndex=6 && model.M5Boss.IsSome`
+/// condition hard-codes floor six as the last one (`Model.fs`: `model.FloorIndex=6 && model.Boss.IsSome`
 /// finishes the run), so a run visits floors 1..6.
 [<Literal>]
 let floorThemeCount = 6

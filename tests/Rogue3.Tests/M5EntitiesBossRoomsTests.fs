@@ -159,25 +159,25 @@ let tests =
     testCase "production update enters combat, kills roster, clears doors, and rolls once" <| fun _ ->
       let combatId=initialModel.Floor.Rooms|>Map.toList|>List.find(fun(_,room)->room.RoomType=Combat)|>fst
       let entered=update (EnterM5Room combatId) initialModel|>fst
-      Expect.isGreaterThan entered.M5Enemies.Length 0 "anchors instantiated"
-      Expect.equal (entered.M5Obstacles|>List.map _.Kind|>Set.ofList) (Set.ofList [ObstacleKind.Rock;ObstacleKind.TintedRock;ObstacleKind.Pot;ObstacleKind.Spikes;ObstacleKind.Pit]) "generated room instantiates every obstacle policy"
-      Expect.isTrue (entered.M5Room.Doors|>List.forall((=)Rogue3.Entities.DoorState.LockedClear)) "production seal"
+      Expect.isGreaterThan entered.Enemies.Length 0 "anchors instantiated"
+      Expect.equal (entered.Obstacles|>List.map _.Kind|>Set.ofList) (Set.ofList [ObstacleKind.Rock;ObstacleKind.TintedRock;ObstacleKind.Pot;ObstacleKind.Spikes;ObstacleKind.Pit]) "generated room instantiates every obstacle policy"
+      Expect.isTrue (entered.Room.Doors|>List.forall((=)Rogue3.Entities.DoorState.LockedClear)) "production seal"
       let before=entered.DropRng
-      let cleared=entered.M5Enemies|>List.map _.Id|>List.fold(fun model id->update (DamageM5Enemy(id,9999.)) model|>fst) entered
-      Expect.isTrue cleared.M5Room.Cleared "production clear"
-      Expect.isTrue (cleared.M5Room.Doors|>List.forall((=)Rogue3.Entities.DoorState.Open)) "production open"
+      let cleared=entered.Enemies|>List.map _.Id|>List.fold(fun model id->update (DamageM5Enemy(id,9999.)) model|>fst) entered
+      Expect.isTrue cleared.Room.Cleared "production clear"
+      Expect.isTrue (cleared.Room.Doors|>List.forall((=)Rogue3.Entities.DoorState.Open)) "production open"
       Expect.notEqual cleared.DropRng before "one production drop draw"
 
     testCase "production boss runs phase-three pattern and defeat grants reward trapdoor" <| fun _ ->
       let generated=generate 0xABCDUL 3
-      let model={initialModel with FloorIndex=3;Floor=generated.Floor;LayoutRng=generated.LayoutRng;M5ItemPool=generated.ItemPool}
+      let model={initialModel with FloorIndex=3;Floor=generated.Floor;LayoutRng=generated.LayoutRng;ItemPool=generated.ItemPool}
       let bossId=model.Floor.Rooms|>Map.toList|>List.find(fun(_,room)->room.RoomType=Boss)|>fst
       let entered=update (EnterM5Room bossId) model|>fst
-      let boss=entered.M5Boss|>Option.get
+      let boss=entered.Boss|>Option.get
       let phase3={boss with HitPoints=100.;PatternTicksLeft=1}
-      let fired=update (Tick fixedDt) {entered with M5Boss=Some phase3}|>fst
-      Expect.equal fired.M5Boss.Value.Phase 3 "production phase"
-      Expect.equal fired.M5BossPatternEmissions 1 "declarative pattern emitted"
+      let fired=update (Tick fixedDt) {entered with Boss=Some phase3}|>fst
+      Expect.equal fired.Boss.Value.Phase 3 "production phase"
+      Expect.equal fired.BossPatternEmissions 1 "declarative pattern emitted"
       Expect.isGreaterThan fired.EnemyBullets.Length 0 "pattern materialized"
       let firstBullet=fired.EnemyBullets.Head
       Expect.isGreaterThan (magnitude firstBullet.Velocity) 0. "pattern has trajectory"
@@ -185,85 +185,85 @@ let tests =
       let moved=advanced.EnemyBullets|>List.find(fun bullet->bullet.Id=firstBullet.Id)
       Expect.notEqual moved.Position firstBullet.Position "production projectile advances"
       let defeated=update (DamageM5Boss 9999.) fired|>fst
-      Expect.isNone defeated.M5Boss "boss removed"
-      Expect.isTrue defeated.M5Room.Trapdoor "trapdoor"
-      Expect.isSome defeated.M5Room.Reward "preselected reward"
+      Expect.isNone defeated.Boss "boss removed"
+      Expect.isTrue defeated.Room.Trapdoor "trapdoor"
+      Expect.isSome defeated.Room.Reward "preselected reward"
 
     testCase "production shop purchase empties slot and never restocks" <| fun _ ->
       let generated=generate 0x123456UL 2
-      let model={initialModel with FloorIndex=2;Floor=generated.Floor;LayoutRng=generated.LayoutRng;M5ItemPool=generated.ItemPool;PlayerCurrency={initialModel.PlayerCurrency with Coins=99;Keys=99}}
+      let model={initialModel with FloorIndex=2;Floor=generated.Floor;LayoutRng=generated.LayoutRng;ItemPool=generated.ItemPool;PlayerCurrency={initialModel.PlayerCurrency with Coins=99;Keys=99}}
       let shopId=model.Floor.Rooms|>Map.toList|>List.find(fun(_,room)->room.RoomType=Shop)|>fst
       let entered=update (EnterM5Room shopId) model|>fst
-      let slot=entered.M5ShopSlots.Head
+      let slot=entered.ShopSlots.Head
       let bought=update (InteractM5Shop slot.Id) entered|>fst
-      Expect.equal bought.M5ShopSlots.Head.Offer ShopOffer.Empty "emptied via update"
+      Expect.equal bought.ShopSlots.Head.Offer ShopOffer.Empty "emptied via update"
       let again=update (InteractM5Shop slot.Id) bought|>fst
-      Expect.equal again.M5ShopSlots bought.M5ShopSlots "no restock"
+      Expect.equal again.ShopSlots bought.ShopSlots "no restock"
 
     testCase "production obstacles block ground not shots hurt on spikes and destroy once" <| fun _ ->
       // Board item #20: the blocking rect is DERIVED from this obstacle by `blockingObstacleRects`,
       // so the test no longer hands the model a hand-written twin that could disagree with it.
       let pit=obstacle ObstacleKind.Pit 701|>obstacleAt(vec2 120. 100.)
       let input={initialModel.Input.Current with Keys=Set.singleton(ViewerKeyboard.toKeyId(Letter 'D'));MousePosition=Some(vec2 400. 100.);MousePrimaryDown=true}
-      let blocked={initialModel with PlayerPosition=vec2 86. 100.;PlayerVelocity=vec2 240. 0.;M5Obstacles=[pit]}|>update(InputChanged input)|>fst|>update(Tick fixedDt)|>fst
+      let blocked={initialModel with PlayerPosition=vec2 86. 100.;PlayerVelocity=vec2 240. 0.;Obstacles=[pit]}|>update(InputChanged input)|>fst|>update(Tick fixedDt)|>fst
       Expect.floatClose Accuracy.high 87. blocked.PlayerPosition.Vx "grounded player stops at pit"
       Expect.isGreaterThan blocked.ShotSpawns.Length 0 "shot passes through pit"
       let spike=obstacle ObstacleKind.Spikes 702|>obstacleAt initialModel.PlayerPosition
-      let hurt=update(Tick fixedDt) {initialModel with M5Obstacles=[spike]}|>fst
+      let hurt=update(Tick fixedDt) {initialModel with Obstacles=[spike]}|>fst
       Expect.equal hurt.PlayerHealth.RedHalfHearts 5 "spike damages grounded player"
       let pot=obstacle ObstacleKind.Pot 703|>obstacleAt(vec2 200. 200.)
-      let before={initialModel with M5Obstacles=[pot]}
+      let before={initialModel with Obstacles=[pot]}
       let broken=update(DamageM5Obstacle(703,1)) before|>fst
       let repeated=update(DamageM5Obstacle(703,1)) broken|>fst
-      Expect.isEmpty broken.M5Obstacles "pot destroyed"
+      Expect.isEmpty broken.Obstacles "pot destroyed"
       Expect.equal repeated.DropRng broken.DropRng "destroyed obstacle cannot draw twice"
-      Expect.isLessThanOrEqual broken.M5ObstacleDrops.Length 1 "at most one drop"
+      Expect.isLessThanOrEqual broken.ObstacleDrops.Length 1 "at most one drop"
       let rock=obstacle ObstacleKind.Rock 704
-      let inert=update(DamageM5Obstacle(704,999)) {initialModel with M5Obstacles=[rock]}|>fst
-      Expect.hasLength inert.M5Obstacles 1 "rock remains indestructible"
+      let inert=update(DamageM5Obstacle(704,999)) {initialModel with Obstacles=[rock]}|>fst
+      Expect.hasLength inert.Obstacles 1 "rock remains indestructible"
       let blockingRock=rock|>obstacleAt(vec2 108. 100.)
       let grounded=spawn 1 705 EnemyKind.Maggot (vec2 80. 100.)
       let flying=spawn 1 706 EnemyKind.Fly (vec2 80. 100.)
-      let actorModel actor={initialModel with PlayerPosition=vec2 300. 100.;M5Enemies=[actor];M5Obstacles=[blockingRock]}
+      let actorModel actor={initialModel with PlayerPosition=vec2 300. 100.;Enemies=[actor];Obstacles=[blockingRock]}
       let groundedStep=update(Tick fixedDt) (actorModel grounded)|>fst
-      Expect.equal groundedStep.M5Enemies.Head.Position grounded.Position "grounded enemy respects rock"
+      Expect.equal groundedStep.Enemies.Head.Position grounded.Position "grounded enemy respects rock"
       let pitForFly=obstacle ObstacleKind.Pit 707|>obstacleAt(vec2 110. 100.)
-      let flyingStep=update(Tick fixedDt) {(actorModel flying) with M5Obstacles=[pitForFly]}|>fst
-      Expect.notEqual flyingStep.M5Enemies.Head.Position flying.Position "flying enemy crosses pit"
+      let flyingStep=update(Tick fixedDt) {(actorModel flying) with Obstacles=[pitForFly]}|>fst
+      Expect.notEqual flyingStep.Enemies.Head.Position flying.Position "flying enemy crosses pit"
       let enemyBullet={Id=708;Position=vec2 80. 100.;Velocity=vec2 3600. 0.;Radius=3.;Damage=1;Homing=0.;AgeTicks=0}
-      let stopped=update(Tick fixedDt) {initialModel with M5Obstacles=[blockingRock];EnemyBullets=[enemyBullet]}|>fst
+      let stopped=update(Tick fixedDt) {initialModel with Obstacles=[blockingRock];EnemyBullets=[enemyBullet]}|>fst
       Expect.isFalse (stopped.EnemyBullets|>List.exists(fun bullet->bullet.Id=708)) "enemy bullet hits shot-blocking rock"
 
     testCase "split children join the live set before room clear" <| fun _ ->
       let grub=spawn 2 800 EnemyKind.Grub (vec2 300. 300.)
       let room={IsBoss=false;Cleared=false;Doors=[Rogue3.Entities.DoorState.LockedClear];LiveEnemyIds=Set.singleton grub.Id;Drop=None;Reward=None;Trapdoor=false}
-      let model={initialModel with FloorIndex=2;M5Enemies=[grub];M5Room=room}
+      let model={initialModel with FloorIndex=2;Enemies=[grub];Room=room}
       let split=update(DamageM5Enemy(grub.Id,9999.)) model|>fst
-      Expect.isFalse split.M5Room.Cleared "children prevent premature clear"
-      Expect.equal split.M5Enemies.Length 2 "two live children"
-      Expect.equal split.M5Room.LiveEnemyIds.Count 2 "children are in room accounting"
+      Expect.isFalse split.Room.Cleared "children prevent premature clear"
+      Expect.equal split.Enemies.Length 2 "two live children"
+      Expect.equal split.Room.LiveEnemyIds.Count 2 "children are in room accounting"
 
     testCase "production choir deaths drive deterministic outside-window revival" <| fun _ ->
       let generated=generate 0xBEEFUL 2
-      let model={initialModel with FloorIndex=2;Floor=generated.Floor;LayoutRng=generated.LayoutRng;M5ItemPool=generated.ItemPool}
+      let model={initialModel with FloorIndex=2;Floor=generated.Floor;LayoutRng=generated.LayoutRng;ItemPool=generated.ItemPool}
       let bossId=model.Floor.Rooms|>Map.toList|>List.find(fun(_,room)->room.RoomType=Boss)|>fst
       let entered=update(EnterM5Room bossId) model|>fst
-      let members=entered.M5ChoirMemberIds|>Set.toList
+      let members=entered.ChoirMemberIds|>Set.toList
       Expect.equal members.Length 3 "three linked caster actors"
       let blockedBossDamage=update(DamageM5Boss 9999.) entered|>fst
-      Expect.isSome blockedBossDamage.M5Boss "linked casters protect the Choir"
+      Expect.isSome blockedBossDamage.Boss "linked casters protect the Choir"
       let success=
         List.zip members [0;ticks 1.;ticks 3.9]
         |> List.fold(fun current (id,tick)->update(DamageM5Enemy(id,9999.)) {current with SimStepCount=tick}|>fst) entered
-      Expect.isNone success.M5Boss "within-window caster deaths defeat Choir"
-      Expect.isTrue success.M5Room.Trapdoor "successful window clears boss room"
+      Expect.isNone success.Boss "within-window caster deaths defeat Choir"
+      Expect.isTrue success.Room.Trapdoor "successful window clears boss room"
       let killed=
         List.zip members [0;ticks 2.;ticks 4.1]
         |> List.fold(fun current (id,tick)->update(DamageM5Enemy(id,9999.)) {current with SimStepCount=tick}|>fst) entered
-      Expect.isEmpty killed.M5ChoirMemberIds "actual actors died"
+      Expect.isEmpty killed.ChoirMemberIds "actual actors died"
       let revived=update(Tick fixedDt) killed|>fst
-      Expect.equal revived.M5ChoirMemberIds.Count 3 "three linked casters respawn"
-      Expect.isEmpty revived.M5Boss.Value.ChoirKillTicks "window reset"
+      Expect.equal revived.ChoirMemberIds.Count 3 "three linked casters respawn"
+      Expect.isEmpty revived.Boss.Value.ChoirKillTicks "window reset"
 
     // ------------------------------------------------------------------------------------------
     // Board item #20 — the product carries ONE generation of world state.
@@ -275,12 +275,52 @@ let tests =
       // carried `Enemies`/`Obstacles`/`ShopSlots` beside `M5Enemies`/`M5Obstacles`/`M5ShopSlots`
       // with no rule about which was authoritative, and a reader picking the wrong one is what
       // shipped the §14.21 dead-actor defect.
-      let modelFields =
-        Reflection.FSharpType.GetRecordFields typeof<Model> |> Array.map _.Name |> Set.ofArray
-      for removed in [ "Enemies"; "Obstacles"; "ShopSlots" ] do
-        Expect.isFalse (Set.contains removed modelFields) $"Model must not carry the pre-M5 field {removed}"
-      for surviving in [ "M5Enemies"; "M5Obstacles"; "M5ShopSlots" ] do
-        Expect.isTrue (Set.contains surviving modelFields) $"Model still carries {surviving}, the one that survived"
+      //
+      // Board item #60 retired the `M5` prefix, so the surviving generation now OCCUPIES the three
+      // names the removed one used to. That makes the original by-NAME absence check unsatisfiable
+      // and, worse, silently self-contradictory — both lists became `Enemies`/`Obstacles`/
+      // `ShopSlots`. The property #20 exists to protect was never really about the names: it is
+      // that exactly ONE field describes each concern, and that the one that survived is the
+      // ENTITIES-typed generation. That is what is asserted here, by TYPE, which no rename can
+      // satisfy vacuously.
+      let fieldsOfType (target: System.Type) =
+        Reflection.FSharpType.GetRecordFields typeof<Model>
+        |> Array.filter (fun field -> field.PropertyType = target)
+        |> Array.map _.Name
+      for name, generation in
+        [ "Enemies", typeof<Rogue3.Entities.EnemyActor list>
+          "Obstacles", typeof<Rogue3.Entities.Obstacle list>
+          "ShopSlots", typeof<Rogue3.Entities.ShopSlot list> ] do
+        // `generation.Name` renders a generic as `FSharpList\`1` — the element type, which is the
+        // entire point, is missing from the message. `ToString()` keeps it.
+        Expect.equal
+          (fieldsOfType generation)
+          [| name |]
+          $"exactly one Model field carries {generation} and it is {name} — a second field OF THE SAME TYPE is the two-generation defect returning. A twin of a DIFFERENT type is caught by the Rect-cache assertions below, not by this one"
+      // The pre-M5 records themselves were deleted with the fields, and stay deleted. A revived
+      // `Model.Enemy` is how a second generation would come back while the count check above still
+      // reads one, because the reborn field would be typed on the reborn record.
+      let modelTypes =
+        typeof<Model>.Assembly.GetTypes()
+        |> Array.choose (fun t -> if isNull t.FullName then None else Some t.FullName)
+        |> Set.ofArray
+      for removed in [ "Rogue3.Model+Enemy"; "Rogue3.Model+ShopSlot"; "Rogue3.Model+ShopCost" ] do
+        Expect.isFalse (Set.contains removed modelTypes) $"the pre-M5 record {removed} stays deleted"
+      // The exact shape #20 deleted was `Obstacles: Rect list` — a free-floating collider cache
+      // beside the typed obstacle list. The by-type count above cannot see it coming back, because
+      // a `Rect list` is not an `Obstacle list`; only this does. `blockingObstacleRects` derives
+      // that set on demand and stores it nowhere, which is the property being protected.
+      // Both rectangle types are checked: `blockingObstacleRects` returns `SimRect list`, which is
+      // the shape the deleted cache held, and `FS.GG.UI.Scene.Rect` is the other `Rect` in scope
+      // across this product — naming only one of them would leave the obvious near-miss open.
+      Expect.equal
+        (fieldsOfType typeof<SimRect list>)
+        [||]
+        "no Model field caches a SimRect list — the derived collider set is computed on demand by blockingObstacleRects, never stored, so it cannot go stale"
+      Expect.equal
+        (fieldsOfType typeof<FS.GG.UI.Scene.Rect list>)
+        [||]
+        "and no Model field caches a Scene.Rect list either"
       let msgCases =
         Reflection.FSharpType.GetUnionCases typeof<Msg> |> Array.map _.Name |> Set.ofArray
       Expect.isFalse (Set.contains "InteractShop" msgCases) "the second shop message is gone"
@@ -294,10 +334,69 @@ let tests =
       for derived in [ "Radius"; "ContactDamage" ] do
         Expect.isFalse (Set.contains derived actorFields) $"{derived} is read from `definition`, never stored per instance"
 
+    // ------------------------------------------------------------------------------------------
+    // Board item #60 — the model surface carries no milestone numbers, and instrumentation is
+    // separated from gameplay state.
+    // ------------------------------------------------------------------------------------------
+
+    testCase "the model surface carries no milestone prefix and no loose cost counter" <| fun _ ->
+      // Reflection for the same reason #20's guard above uses it: this reads the shape the product
+      // compiles, so a re-introduced `M5Foo` field cannot pass by living in a file nothing greps.
+      let modelFields =
+        Reflection.FSharpType.GetRecordFields typeof<Model> |> Array.map _.Name
+      // Every leading digit is skipped, not just one. An earlier version required
+      // `Char.IsUpper name.[2]`, which silently passed `M13ObstacleDrops` because `name.[2]` is '3'
+      // — and this project's milestones already run to M14, so the two-digit case is the one that
+      // would actually occur.
+      let carriesMilestonePrefix (name: string) =
+        if name.Length < 3 || name.[0] <> 'M' || not (System.Char.IsDigit name.[1]) then false
+        else
+          let rest = name.Substring 1
+          let digits = rest |> Seq.takeWhile System.Char.IsDigit |> Seq.length
+          digits < rest.Length && System.Char.IsUpper rest.[digits]
+      let prefixed = modelFields |> Array.filter carriesMilestonePrefix
+      Expect.isEmpty prefixed "no Model field carries a milestone-number prefix; the milestone is not a property of the state"
+      // The detector itself is guarded, because a prefix check that stopped detecting would pass
+      // silently forever. The two-digit case is the one an earlier version of this test missed.
+      for positive in [ "M5Enemies"; "M6Particles"; "M13ObstacleDrops"; "M14Items" ] do
+        Expect.isTrue (carriesMilestonePrefix positive) $"{positive} is a milestone-prefixed name and must be detected as one"
+      for negative in [ "Enemies"; "Model"; "M"; "M5"; "Multishot"; "MaxAgeTicks"; "M5x" ] do
+        Expect.isFalse (carriesMilestonePrefix negative) $"{negative} is not a milestone-prefixed name"
+      // The seven cost counters live in the sub-record and NOT loose on Model. Both halves matter:
+      // the absence alone is satisfied by deleting them, which would silently unbind every
+      // performance cost driver.
+      let counters =
+        [ "TotalShotSpawns"; "TotalWallQueries"; "TotalHomingQueries"; "TotalCombatCandidates"
+          "TotalSecretRevealCandidates"; "TotalDoorSensorQueries"; "TotalFloorPickupCandidates" ]
+      let instrumentationFields =
+        Reflection.FSharpType.GetRecordFields typeof<InstrumentationCounters>
+        |> Array.map _.Name
+        |> Set.ofArray
+      for counter in counters do
+        Expect.isFalse
+          (Array.contains counter modelFields)
+          $"{counter} is instrumentation, not gameplay state, so it does not sit loose on Model"
+        Expect.isTrue
+          (Set.contains counter instrumentationFields)
+          $"{counter} still exists, on InstrumentationCounters — its cost driver reads it"
+      Expect.equal
+        instrumentationFields
+        (Set.ofList counters)
+        "InstrumentationCounters holds exactly the seven counters and nothing else has drifted into it"
+      Expect.isTrue
+        (Array.contains "Instrumentation" modelFields)
+        "Model reaches the counters through exactly one field"
+      // Every counter starts at zero, so a fresh run's deltas are the run's own work. `initialModel`
+      // building this by hand is how one of the seven could silently start non-zero.
+      Expect.equal
+        initialModel.Instrumentation
+        zeroInstrumentation
+        "the initial model starts every counter at zero"
+
     testCase "a shot that kills an enemy resolves that death exactly once through the drop cleanup" <| fun _ ->
       // §14.21 closure. The defect was that `resolveShotCombat` rebuilt the legacy `Enemies` list
       // from a live filter, so a killed actor vanished from the list cleanup read while surviving
-      // in `M5Enemies` — and a dead actor kept taking turns. With one list there is nothing to
+      // in `Enemies` — and a dead actor kept taking turns. With one list there is nothing to
       // vanish from: the actor stays at zero hit points until `stepM5Entities`'s cleanup removes
       // it, and that cleanup is the ONLY thing that rolls the drop, credits the kill and clears
       // the room. Restore the "drop zero-hit-point actors in shot resolution" behaviour and every
@@ -307,12 +406,12 @@ let tests =
                 LiveEnemyIds=Set.singleton victim.Id;Drop=None;Reward=None;Trapdoor=false}
       let stats={basePlayerStats with Pierce=0}
       let shot=spawnShots 0 1 (vec2 400. 300.) zero (vec2 1. 0.) stats|>List.exactlyOne
-      let before={initialModel with M5Enemies=[victim];M5Room=room;ShotSpawns=[shot]}
+      let before={initialModel with Enemies=[victim];Room=room;ShotSpawns=[shot]}
       let after=update(Tick fixedDt) before|>fst
-      Expect.isFalse (after.M5Enemies|>List.exists(fun actor->actor.Id=victim.Id)) "no representation of the killed actor survives the step"
+      Expect.isFalse (after.Enemies|>List.exists(fun actor->actor.Id=victim.Id)) "no representation of the killed actor survives the step"
       Expect.equal (after.RunStats.KillsByType|>Map.tryFind EnemyKind.Grub) (Some 1) "the cleanup credits exactly one typed kill"
-      Expect.isFalse (Set.contains victim.Id after.M5Room.LiveEnemyIds) "and removes it from the room's live set"
-      Expect.isTrue after.M5Room.Cleared "so the last death clears the room"
+      Expect.isFalse (Set.contains victim.Id after.Room.LiveEnemyIds) "and removes it from the room's live set"
+      Expect.isTrue after.Room.Cleared "so the last death clears the room"
       Expect.notEqual after.DropRng before.DropRng "the death rolled its drop exactly once, advancing the drop stream"
 
     testCase "an actor's radius and contact damage come from its kind, and combat uses them" <| fun _ ->
@@ -331,13 +430,13 @@ let tests =
       let shot = spawnShots 0 1 (vec2 400. 300.) zero (vec2 1. 0.) stats |> List.exactlyOne
       let fireAt kind =
         let actor = {spawn 1 77 kind (vec2 425. 300.) with HitPoints=500.0}
-        let stepped = stepSim {initialModel with ShotSpawns=[shot]; M5Enemies=[actor]}
-        stepped.M5Enemies |> List.exactlyOne |> _.HitPoints
+        let stepped = stepSim {initialModel with ShotSpawns=[shot]; Enemies=[actor]}
+        stepped.Enemies |> List.exactlyOne |> _.HitPoints
       Expect.isLessThan (fireAt EnemyKind.Brute) 500.0 "a Brute's 22-unit radius reaches the shot"
       Expect.equal (fireAt EnemyKind.Fly) 500.0 "a Fly's 8-unit radius does not"
 
     testCase "a death emits exactly one EnemyDied audio event and a survivor emits none" <| fun _ ->
-      // `resolveCombat` derives the death count from `M5Enemies` now, and a critic found that
+      // `resolveCombat` derives the death count from `Enemies` now, and a critic found that
       // dropping either `HitPoints > 0.0` filter left the suite green while the game stopped
       // emitting death audio entirely. Nothing in the product asserted the simulation ever emits
       // this event; the cue-mapping tests hand-build their own event lists.
@@ -347,7 +446,7 @@ let tests =
         let victim = {spawn 1 4300 EnemyKind.Grub (vec2 400. 300.) with HitPoints=hp; SplitEligible=false}
         let room = {IsBoss=false;Cleared=false;Doors=[Rogue3.Entities.DoorState.LockedClear]
                     LiveEnemyIds=Set.singleton victim.Id;Drop=None;Reward=None;Trapdoor=false}
-        let stepped = update(Tick fixedDt) {initialModel with ShotSpawns=[shot];M5Enemies=[victim];M5Room=room} |> fst
+        let stepped = update(Tick fixedDt) {initialModel with ShotSpawns=[shot];Enemies=[victim];Room=room} |> fst
         stepped.AudioEvents |> List.filter ((=) AudioEvent.EnemyDied) |> List.length
       Expect.equal (fire 1.0) 1 "a killed actor emits exactly one death cue"
       Expect.equal (fire 500.0) 0 "an actor that survives the same shot emits none"
@@ -365,12 +464,12 @@ let tests =
         {initialModel with
           PlayerPosition=vec2 100. 100.
           Bombs=[{Id=1;Position=vec2 700. 390.;FuseTicks=1}]
-          M5Enemies=[victim];M5Room=room}
+          Enemies=[victim];Room=room}
       let after = update(Tick fixedDt) before |> fst
       Expect.isEmpty after.Bombs "the bomb resolves in this step"
-      Expect.isFalse (after.M5Enemies|>List.exists(fun actor->actor.Id=victim.Id)) "and the actor it killed is gone in the SAME step"
+      Expect.isFalse (after.Enemies|>List.exists(fun actor->actor.Id=victim.Id)) "and the actor it killed is gone in the SAME step"
       Expect.equal (after.RunStats.KillsByType|>Map.tryFind EnemyKind.Grub) (Some 1) "with its kill credited once"
-      Expect.isTrue after.M5Room.Cleared "and the room cleared once"
+      Expect.isTrue after.Room.Cleared "and the room cleared once"
       Expect.notEqual after.DropRng before.DropRng "and its drop rolled once"
 
     testCase "shots pass through a Pit and are stopped by a Rock" <| fun _ ->
@@ -382,22 +481,22 @@ let tests =
       let aim = {initialModel.Input.Current with MousePosition=Some(vec2 1100. 300.); MousePrimaryDown=true}
       let survivors kind =
         let blocker = obstacle kind 4500 |> obstacleAt (vec2 520. 300.)
-        {initialModel with PlayerPosition=vec2 400. 300.; M5Obstacles=[blocker]}
+        {initialModel with PlayerPosition=vec2 400. 300.; Obstacles=[blocker]}
         |> update (InputChanged aim) |> fst
         |> fun start -> [1..60] |> List.fold (fun current _ -> update (Tick fixedDt) current |> fst) start
         |> fun ended -> ended.ShotSpawns |> List.filter (fun shot -> shot.Position.Vx > 560.0) |> List.length
       Expect.isGreaterThan (survivors ObstacleKind.Pit) 0 "a Pit blocks movement but not shots"
       Expect.equal (survivors ObstacleKind.Rock) 0 "a Rock blocks both"
 
-    testCase "the player's blocking rects are derived from M5Obstacles with no stored copy" <| fun _ ->
+    testCase "the player's blocking rects are derived from Obstacles with no stored copy" <| fun _ ->
       // The removed `Obstacles` field was this expression, cached at four assignment sites. The
       // derivation is the single description now, so destroying an obstacle changes what the player
       // sweeps without any reducer remembering to refresh anything.
       let rock=obstacle ObstacleKind.Rock 900|>obstacleAt(vec2 300. 300.)
       let spikes=obstacle ObstacleKind.Spikes 901|>obstacleAt(vec2 500. 300.)
       let pot=obstacle ObstacleKind.Pot 902|>obstacleAt(vec2 700. 300.)
-      let model={initialModel with M5Obstacles=[rock;spikes;pot]}
-      Expect.hasLength (blockingObstacleRects model.M5Obstacles) 2 "spikes do not block movement; the rock and the pot do"
+      let model={initialModel with Obstacles=[rock;spikes;pot]}
+      Expect.hasLength (blockingObstacleRects model.Obstacles) 2 "spikes do not block movement; the rock and the pot do"
       let smashed=update(DamageM5Obstacle(902,1)) model|>fst
-      Expect.hasLength (blockingObstacleRects smashed.M5Obstacles) 1 "a destroyed pot leaves the collider set in the same reducer"
+      Expect.hasLength (blockingObstacleRects smashed.Obstacles) 1 "a destroyed pot leaves the collider set in the same reducer"
   ]

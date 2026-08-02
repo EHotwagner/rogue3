@@ -9,7 +9,7 @@ module Rogue3M14ItemGrantTests
 //     (and for a `Consumable` offer it did not even do that: it charged and handed over nothing);
 //   * the treasure room's `ItemPedestal` was drawn from the shared item pool, marked Placed, and then
 //     DISCARDED by `loadM5Room`, which surfaced a reward only `if isBoss`;
-//   * the `BossReward` did reach `M5Room.Reward` and was rendered, but no reducer ever consumed it.
+//   * the `BossReward` did reach `Room.Reward` and was rendered, but no reducer ever consumed it.
 //
 // Every test here is written to fail against the tree it was written on. That is the point: a suite
 // that merely asserts "the reducer returns a model" passed green through all three.
@@ -149,7 +149,7 @@ let private inShop coins =
     { boot with
         FloorIndex = 2
         Floor = shopFloor.Floor
-        M5ItemPool = shopFloor.ItemPool
+        ItemPool = shopFloor.ItemPool
         PlayerCurrency = { boot.PlayerCurrency with Coins = coins } }
     |> update (EnterM5Room shopRoomId)
     |> fst
@@ -172,7 +172,7 @@ let private standAtSlot slotId (at: Vec2) model =
 /// reach is what makes a per-step repeat visible, since the first purchase empties the slot it bought
 /// and a correctly-gated press has nothing further to take.
 let private straddledPair (model: Model) =
-    let placed = List.zip (model.M5ShopSlots |> List.map _.Id) (shopSlotPositions model)
+    let placed = List.zip (model.ShopSlots |> List.map _.Id) (shopSlotPositions model)
     let reach = shopSlotRadius + playerRadius
     let (farId, farAt), (nearId, nearAt) =
         List.allPairs placed placed
@@ -195,7 +195,7 @@ let private crowdedShop coins =
     let blocking =
         placeRoomFixtures [] 12
         |> List.mapi (fun index at -> Rogue3.Entities.obstacle Rogue3.Entities.ObstacleKind.Rock index |> Rogue3.Entities.obstacleAt at)
-    { inShop coins with M5ShopSlots = slots; M5Obstacles = blocking }
+    { inShop coins with ShopSlots = slots; Obstacles = blocking }
 
 let private readyElements model =
     Render.renderedElements model |> List.filter (fun element -> element.ElementId = "ShopSlotReady")
@@ -388,7 +388,7 @@ let m14ItemGrantTests =
 
           test "buying an item hands the item over" {
               let item = itemNamed "coal-heart"
-              let model = { rich boot with M5ShopSlots = [ slotOffering (Rogue3.Entities.ShopOffer.Item item) 13 ] }
+              let model = { rich boot with ShopSlots = [ slotOffering (Rogue3.Entities.ShopOffer.Item item) 13 ] }
               let bought = update (InteractM5Shop 1) model |> fst
 
               Expect.equal bought.PlayerCurrency.Coins 37 "the coins are taken"
@@ -404,7 +404,7 @@ let m14ItemGrantTests =
               // bomb or a heart and applied none of them. Routed through the same `applyFloorPickup`
               // a floor drop uses, so the caps are the shared ones.
               let buy offer =
-                  let model = { rich boot with M5ShopSlots = [ slotOffering offer 5 ] }
+                  let model = { rich boot with ShopSlots = [ slotOffering offer 5 ] }
                   update (InteractM5Shop 1) model |> fst
 
               let keyed = buy (Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.Key)
@@ -421,7 +421,7 @@ let m14ItemGrantTests =
               // neither: `HalfRedHeart` at 3 and `Coin3` at 3.
               let hurt = { rich boot with PlayerHealth = { boot.PlayerHealth with RedHalfHearts = 2 } }
               let healed =
-                  update (InteractM5Shop 1) { hurt with M5ShopSlots = [ slotOffering (Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.HalfRedHeart) 3 ] }
+                  update (InteractM5Shop 1) { hurt with ShopSlots = [ slotOffering (Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.HalfRedHeart) 3 ] }
                   |> fst
               Expect.equal healed.PlayerHealth.RedHalfHearts 3 "a bought half red heart heals exactly one half"
 
@@ -440,7 +440,7 @@ let m14ItemGrantTests =
               let model =
                   { boot with
                       PlayerCurrency = { boot.PlayerCurrency with Coins = 10 }
-                      M5ShopSlots = [ slotOffering (Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.Coin3) 3 ] }
+                      ShopSlots = [ slotOffering (Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.Coin3) 3 ] }
               let bought = update (InteractM5Shop 1) model |> fst
 
               Expect.equal bought.PlayerCurrency.Coins 10 "three coins out, three coins in, so the purse is unchanged"
@@ -448,7 +448,7 @@ let m14ItemGrantTests =
               Expect.equal (runScore bought.RunStats) (runScore model.RunStats) "so the run score does not move"
 
               let single =
-                  update (InteractM5Shop 1) { model with M5ShopSlots = [ slotOffering (Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.Coin1) 1 ] }
+                  update (InteractM5Shop 1) { model with ShopSlots = [ slotOffering (Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.Coin1) 1 ] }
                   |> fst
               Expect.equal single.PlayerCurrency.Coins 10 "a one-coin offer is the same wash"
               Expect.equal single.RunStats.CoinsCollected model.RunStats.CoinsCollected "and is likewise not income"
@@ -459,7 +459,7 @@ let m14ItemGrantTests =
               let model =
                   { boot with
                       PlayerCurrency = { boot.PlayerCurrency with Coins = 2 }
-                      M5ShopSlots = [ slotOffering (Rogue3.Entities.ShopOffer.Item item) 13 ] }
+                      ShopSlots = [ slotOffering (Rogue3.Entities.ShopOffer.Item item) 13 ] }
               let refused = update (InteractM5Shop 1) model |> fst
 
               Expect.equal refused.PlayerCurrency.Coins 2 "the coins stay"
@@ -515,7 +515,7 @@ let m14ItemGrantTests =
                   |> Option.defaultWith (fun () -> failtest "the shop room is reachable from the floor's start room")
               Expect.isGreaterThan route.Length 1 "and it is not the room the player starts in"
 
-              let atStart = { boot with FloorIndex = 2; Floor = shopFloor.Floor; M5ItemPool = shopFloor.ItemPool } |> update (EnterM5Room start) |> fst
+              let atStart = { boot with FloorIndex = 2; Floor = shopFloor.Floor; ItemPool = shopFloor.ItemPool } |> update (EnterM5Room start) |> fst
               let firstHop = route |> List.item 1
               let firstDirection =
                   atStart.Floor.Rooms.[start].Doors |> List.find (fun door -> door.ToRoom = firstHop) |> _.Direction
@@ -529,9 +529,9 @@ let m14ItemGrantTests =
                   |> List.fold (fun model roomId -> update (TraverseDoor roomId) model |> fst) (releaseMovement walked)
 
               Expect.equal arrived.Floor.CurrentRoom shopRoomId "the walk reaches the shop room"
-              Expect.isNonEmpty arrived.M5ShopSlots "which arrives stocked"
+              Expect.isNonEmpty arrived.ShopSlots "which arrives stocked"
               Expect.isNonEmpty
-                  (arrived.M5ShopSlots |> List.filter (fun slot -> slot.Offer <> Rogue3.Entities.ShopOffer.Empty))
+                  (arrived.ShopSlots |> List.filter (fun slot -> slot.Offer <> Rogue3.Entities.ShopOffer.Empty))
                   "with something actually for sale"
           }
 
@@ -542,7 +542,7 @@ let m14ItemGrantTests =
               // that makes the two agree has to be asserted rather than assumed.
               let model = inShop 50
               let sensed = shopSlotPositions model
-              Expect.hasLength sensed model.M5ShopSlots.Length "one sensed position per stocked slot"
+              Expect.hasLength sensed model.ShopSlots.Length "one sensed position per stocked slot"
 
               let drawn =
                   Render.renderedElements model
@@ -571,7 +571,7 @@ let m14ItemGrantTests =
               // THE item. Only `KeyChanged` and `Tick` are dispatched from here to the assertion.
               let model = inShop 50
               let slot, at =
-                  List.zip model.M5ShopSlots (shopSlotPositions model)
+                  List.zip model.ShopSlots (shopSlotPositions model)
                   |> List.find (fun (slot, _) -> match slot.Offer with Rogue3.Entities.ShopOffer.Item _ -> not slot.KeyLocked | _ -> false)
               let item = match slot.Offer with Rogue3.Entities.ShopOffer.Item value -> value | other -> failtest $"expected an item offer, got {other}"
 
@@ -590,7 +590,7 @@ let m14ItemGrantTests =
               Expect.notEqual bought.PlayerStats basePlayerStats "which is not the base line any more"
               Expect.equal bought.RunStats.ItemsFound 1 "counted exactly once"
               Expect.equal
-                  (bought.M5ShopSlots |> List.find (fun other -> other.Id = slot.Id) |> _.Offer)
+                  (bought.ShopSlots |> List.find (fun other -> other.Id = slot.Id) |> _.Offer)
                   Rogue3.Entities.ShopOffer.Empty
                   "and the slot is emptied"
           }
@@ -598,7 +598,7 @@ let m14ItemGrantTests =
           test "a bought CONSUMABLE arrives through the same key press" {
               let model = inShop 50
               let slot, at =
-                  List.zip model.M5ShopSlots (shopSlotPositions model)
+                  List.zip model.ShopSlots (shopSlotPositions model)
                   |> List.find (fun (slot, _) -> match slot.Offer with Rogue3.Entities.ShopOffer.Consumable _ -> true | _ -> false)
               let kind = match slot.Offer with Rogue3.Entities.ShopOffer.Consumable value -> value | other -> failtest $"expected a consumable, got {other}"
 
@@ -643,7 +643,7 @@ let m14ItemGrantTests =
               for label, kind, atCap in capped do
                   let slot: Rogue3.Entities.ShopSlot =
                       { Id = 0; Offer = Rogue3.Entities.ShopOffer.Consumable kind; Price = 3; KeyLocked = false }
-                  let standing = atCap { inShop 50 with M5ShopSlots = [ slot ] }
+                  let standing = atCap { inShop 50 with ShopSlots = [ slot ] }
 
                   Expect.isFalse (shopSlotAffordable standing slot) $"{label} is not on offer"
                   Expect.equal (shopSlotRefusal standing slot) (Some "FULL") $"{label} is refused for the reason a player can act on"
@@ -651,7 +651,7 @@ let m14ItemGrantTests =
                   let pressed = update (InteractM5Shop 0) standing |> fst
                   Expect.equal pressed.PlayerCurrency standing.PlayerCurrency $"{label} costs nothing"
                   Expect.equal pressed.PlayerHealth standing.PlayerHealth $"{label} changes no health"
-                  Expect.equal (pressed.M5ShopSlots |> List.map _.Offer) [ slot.Offer ] $"{label} is still on the plinth afterwards"
+                  Expect.equal (pressed.ShopSlots |> List.map _.Offer) [ slot.Offer ] $"{label} is still on the plinth afterwards"
 
                   let cues =
                       AudioCues.forTransition (InteractM5Shop 0) standing pressed
@@ -665,7 +665,7 @@ let m14ItemGrantTests =
                   { Id = 0; Offer = Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.HalfRedHeart; Price = 3; KeyLocked = false }
               let hurt =
                   { inShop 50 with
-                      M5ShopSlots = [ heart ]
+                      ShopSlots = [ heart ]
                       PlayerHealth = { (inShop 50).PlayerHealth with RedHalfHearts = 2 } }
               Expect.isTrue (shopSlotAffordable hurt heart) "a hurt player can buy the same heart"
               let healed = update (InteractM5Shop 0) hurt |> fst
@@ -678,13 +678,13 @@ let m14ItemGrantTests =
               // before payment would wrongly refuse.
               let coins: Rogue3.Entities.ShopSlot =
                   { Id = 0; Offer = Rogue3.Entities.ShopOffer.Consumable Rogue3.Entities.PickupKind.Coin3; Price = 3; KeyLocked = false }
-              let flush = { inShop 99 with M5ShopSlots = [ coins ] }
+              let flush = { inShop 99 with ShopSlots = [ coins ] }
               Expect.isTrue (shopSlotAffordable flush coins) "the Coin3 fallback still sells at the coin cap"
               Expect.equal (update (InteractM5Shop 0) flush |> fst).PlayerCurrency.Coins 99 "and leaves the purse where it was"
           }
 
           test "buying one slot does not MOVE the plinths the player is not standing at" {
-              // A surviving mutant found this hole: `shopSlotPositions` counts `M5ShopSlots.Length`,
+              // A surviving mutant found this hole: `shopSlotPositions` counts `ShopSlots.Length`,
               // and counting only the still-stocked slots instead passes every other test in this
               // file. It would also make every remaining plinth slide sideways the instant a
               // neighbour was bought, under the player's feet and under the renderer at once — and
@@ -694,10 +694,10 @@ let m14ItemGrantTests =
               let model = inShop 50
               let before = shopSlotPositions model
               let target =
-                  model.M5ShopSlots
+                  model.ShopSlots
                   |> List.find (fun slot -> slot.Offer <> Rogue3.Entities.ShopOffer.Empty && not slot.KeyLocked)
               let bought = update (InteractM5Shop target.Id) model |> fst
-              Expect.notEqual (bought.M5ShopSlots |> List.map _.Offer) (model.M5ShopSlots |> List.map _.Offer) "the purchase really happened"
+              Expect.notEqual (bought.ShopSlots |> List.map _.Offer) (model.ShopSlots |> List.map _.Offer) "the purchase really happened"
               Expect.equal (shopSlotPositions bought) before "every slot is still drawn and sensed where it was"
 
               // And the renderer agrees, at the position rather than merely in count — the same
@@ -709,7 +709,7 @@ let m14ItemGrantTests =
                   Render.renderedElements m
                   |> List.filter (fun element -> element.ElementId = "ShopItem")
                   |> List.indexed
-                  |> List.filter (fun (index, _) -> List.tryItem index m.M5ShopSlots |> Option.map _.Id <> Some target.Id)
+                  |> List.filter (fun (index, _) -> List.tryItem index m.ShopSlots |> Option.map _.Id <> Some target.Id)
                   |> List.map (fun (_, element) -> boundsOf element.Scene)
               Expect.isNonEmpty (untouched bought) "there is a neighbouring slot to compare"
               Expect.equal (untouched bought) (untouched model) "and the renderer draws the untouched slots in the same places"
@@ -724,7 +724,7 @@ let m14ItemGrantTests =
               // plinth (`withoutRewardFixture`) and the smashed pot (§14.15).
               let model = inShop 99
               let slot, at =
-                  List.zip model.M5ShopSlots (shopSlotPositions model)
+                  List.zip model.ShopSlots (shopSlotPositions model)
                   |> List.find (fun (slot, _) -> match slot.Offer with Rogue3.Entities.ShopOffer.Item _ -> not slot.KeyLocked | _ -> false)
               let standing, _ = standAtSlot slot.Id at model
               let bought = pressInteract standing
@@ -739,11 +739,11 @@ let m14ItemGrantTests =
 
               let revisited = update (EnterM5Room bought.Floor.CurrentRoom) bought |> fst
               Expect.equal
-                  (revisited.M5ShopSlots |> List.find (fun other -> other.Id = slot.Id) |> _.Offer)
+                  (revisited.ShopSlots |> List.find (fun other -> other.Id = slot.Id) |> _.Offer)
                   Rogue3.Entities.ShopOffer.Empty
                   "re-entering the shop finds that slot still sold"
               Expect.isNonEmpty
-                  (revisited.M5ShopSlots |> List.filter (fun other -> other.Offer <> Rogue3.Entities.ShopOffer.Empty))
+                  (revisited.ShopSlots |> List.filter (fun other -> other.Offer <> Rogue3.Entities.ShopOffer.Empty))
                   "while the slots that were NOT bought are still for sale"
 
               let standingAgain, _ = walkUntil at (fun current -> magnitude (sub current.PlayerPosition at) < shopSlotRadius) 900 revisited
@@ -766,7 +766,7 @@ let m14ItemGrantTests =
                   (positions |> List.exists (fun at -> magnitude (sub strolled.PlayerPosition at) < shopSlotRadius + playerRadius))
                   "the stroll really did end standing on a slot"
               Expect.equal strolled.PlayerCurrency model.PlayerCurrency "and not one coin was spent"
-              Expect.equal strolled.M5ShopSlots model.M5ShopSlots "the stock is untouched"
+              Expect.equal strolled.ShopSlots model.ShopSlots "the stock is untouched"
               Expect.isEmpty strolled.PlayerItems "and nothing was granted"
           }
 
@@ -780,7 +780,7 @@ let m14ItemGrantTests =
               Expect.isNone (shopSlotUnderPlayer parked) "the player is outside every slot's reach"
               let pressed = pressInteract parked
               Expect.equal pressed.PlayerCurrency model.PlayerCurrency "and pressing interact spends nothing"
-              Expect.equal pressed.M5ShopSlots model.M5ShopSlots "and empties nothing"
+              Expect.equal pressed.ShopSlots model.ShopSlots "and empties nothing"
               Expect.isEmpty pressed.PlayerItems "and grants nothing"
           }
 
@@ -792,11 +792,11 @@ let m14ItemGrantTests =
               // frame whose `dt` is large enough to drain several steps at once.
               let model = inShop 99
               let slot, at =
-                  List.zip model.M5ShopSlots (shopSlotPositions model)
+                  List.zip model.ShopSlots (shopSlotPositions model)
                   |> List.find (fun (slot, _) -> not slot.KeyLocked && slot.Offer <> Rogue3.Entities.ShopOffer.Empty)
               let standing, _ = standAtSlot slot.Id at model
               let emptyCount (m: Model) =
-                  m.M5ShopSlots |> List.filter (fun other -> other.Offer = Rogue3.Entities.ShopOffer.Empty) |> List.length
+                  m.ShopSlots |> List.filter (fun other -> other.Offer = Rogue3.Entities.ShopOffer.Empty) |> List.length
 
               let held = holdInteract 60 standing
               Expect.equal (emptyCount held) (emptyCount standing + 1) "sixty steps of a held key empty exactly one slot"
@@ -815,7 +815,7 @@ let m14ItemGrantTests =
               // interact at empty floor.
               let model = inShop 0
               let slot, at =
-                  List.zip model.M5ShopSlots (shopSlotPositions model)
+                  List.zip model.ShopSlots (shopSlotPositions model)
                   |> List.find (fun (slot, _) -> not slot.KeyLocked && slot.Offer <> Rogue3.Entities.ShopOffer.Empty)
               Expect.isFalse (shopSlotAffordable model slot) "a penniless player cannot afford it"
 
@@ -823,7 +823,7 @@ let m14ItemGrantTests =
               let refused = pressInteract standing
 
               Expect.equal refused.PlayerCurrency standing.PlayerCurrency "nothing is charged"
-              Expect.equal refused.M5ShopSlots standing.M5ShopSlots "nothing is emptied"
+              Expect.equal refused.ShopSlots standing.ShopSlots "nothing is emptied"
               Expect.isEmpty refused.PlayerItems "nothing is granted"
               Expect.equal refused.RunStats.ItemsFound 0 "and nothing is counted"
 
@@ -848,9 +848,9 @@ let m14ItemGrantTests =
                   // A KEY-LOCKED slot cannot be paid for in coins at all, so its refusal must not
                   // quote a coin price the player could never spend.
                   // The boot player starts holding a key, so the keyless state has to be stated.
-                  match model.M5ShopSlots |> List.tryFind _.KeyLocked with
+                  match model.ShopSlots |> List.tryFind _.KeyLocked with
                   | Some locked ->
-                      let at = List.item (model.M5ShopSlots |> List.findIndex (fun other -> other.Id = locked.Id)) (shopSlotPositions model)
+                      let at = List.item (model.ShopSlots |> List.findIndex (fun other -> other.Id = locked.Id)) (shopSlotPositions model)
                       let keyless = { model with PlayerPosition = at; PlayerCurrency = { model.PlayerCurrency with Keys = 0 } }
                       Expect.isFalse (shopSlotAffordable keyless locked) "a keyless player cannot take a key-locked slot"
                       Expect.equal (sceneTexts (readyElements keyless |> List.exactlyOne).Scene) [ "NEED KEY" ] "a key-locked slot asks for a key, not for coins"
@@ -890,7 +890,7 @@ let m14ItemGrantTests =
                   Expect.isNone (shopSlotUnderPlayer beyond) $"standing past the reach of {at} does not"
 
               // An EMPTIED slot is a bare plinth: no prompt, and no message raised.
-              let soldOut = { model with M5ShopSlots = model.M5ShopSlots |> List.map (fun slot -> { slot with Offer = Rogue3.Entities.ShopOffer.Empty }) }
+              let soldOut = { model with ShopSlots = model.ShopSlots |> List.map (fun slot -> { slot with Offer = Rogue3.Entities.ShopOffer.Empty }) }
               let onEmpty = { soldOut with PlayerPosition = List.head positions }
               Expect.isNone (shopSlotUnderPlayer onEmpty) "an emptied slot is not something to interact with"
               Expect.isEmpty (readyElements onEmpty) "and shows no prompt"
@@ -901,11 +901,11 @@ let m14ItemGrantTests =
               // The tie between two slots, which the authored candidate row (140 units apart, against
               // a 33-unit reach) can never produce but the fallback lattice can: it steps by
               // `obstacleClearance`, which is narrower than two reaches. Without the nearest-first
-              // rule this resolves to whichever slot happens to come first in `M5ShopSlots`, which is
+              // rule this resolves to whichever slot happens to come first in `ShopSlots`, which is
               // a purchase the player did not aim at.
               let model = crowdedShop 50
               let nearId, farId, between = straddledPair model
-              let positions = List.zip (model.M5ShopSlots |> List.map _.Id) (shopSlotPositions model) |> Map.ofList
+              let positions = List.zip (model.ShopSlots |> List.map _.Id) (shopSlotPositions model) |> Map.ofList
               let reach = shopSlotRadius + playerRadius
               let standing = { model with PlayerPosition = between }
 
@@ -917,7 +917,7 @@ let m14ItemGrantTests =
               // And the same through the production route: exactly one slot is emptied, that one.
               let bought = pressInteract standing
               let emptiedIds =
-                  bought.M5ShopSlots
+                  bought.ShopSlots
                   |> List.filter (fun slot -> slot.Offer = Rogue3.Entities.ShopOffer.Empty)
                   |> List.map _.Id
               Expect.equal emptiedIds [ nearId ] "and the press empties that slot and no other"
@@ -940,7 +940,7 @@ let m14ItemGrantTests =
                       Input = { model.Input with Current = { model.Input.Current with Commands = Set.singleton "active" } } }
               // One host frame worth four fixed steps.
               let pressed = update (Tick(fixedDt * 4.0)) commanding |> fst
-              let emptied = pressed.M5ShopSlots |> List.filter (fun slot -> slot.Offer = Rogue3.Entities.ShopOffer.Empty) |> List.length
+              let emptied = pressed.ShopSlots |> List.filter (fun slot -> slot.Offer = Rogue3.Entities.ShopOffer.Empty) |> List.length
               Expect.equal emptied 1 "a four-step frame under a held command buys exactly one slot"
               Expect.equal pressed.PlayerCurrency.Coins 98 "and charges exactly one price"
           }
@@ -973,7 +973,7 @@ let m14ItemGrantTests =
               let roomId = shopFloor.Floor.CurrentRoom
               let contested =
                   { crowdedShop 50 with
-                      M5Room = { (inShop 50).M5Room with Trapdoor = true }
+                      Room = { (inShop 50).Room with Trapdoor = true }
                       Floor =
                         { shopFloor.Floor with
                             CurrentRoom = roomId
@@ -997,7 +997,7 @@ let m14ItemGrantTests =
 
               // The control: take the stock away and the SAME press descends, so the guard is what
               // decided, not the absence of a trapdoor.
-              let hatchOnly = { both with M5ShopSlots = [] }
+              let hatchOnly = { both with ShopSlots = [] }
               Expect.equal (pressInteract hatchOnly).FloorIndex (both.FloorIndex + 1) "with no stock underfoot the same press descends"
           }
 
@@ -1013,7 +1013,7 @@ let m14ItemGrantTests =
               let roomId = shopFloor.Floor.CurrentRoom
               let contested coins =
                   { crowdedShop coins with
-                      M5Room = { (inShop coins).M5Room with Trapdoor = true }
+                      Room = { (inShop coins).Room with Trapdoor = true }
                       Floor =
                         { shopFloor.Floor with
                             CurrentRoom = roomId
@@ -1057,13 +1057,13 @@ let m14ItemGrantTests =
                   [ AudioCueIds.itemPickup; AudioCueIds.pickupCoin; AudioCueIds.pickupKey; AudioCueIds.pickupBomb; AudioCueIds.pickupHeart ]
               let model = inShop 50
               let itemSlot, itemAt =
-                  List.zip model.M5ShopSlots (shopSlotPositions model)
+                  List.zip model.ShopSlots (shopSlotPositions model)
                   |> List.find (fun (slot, _) -> match slot.Offer with Rogue3.Entities.ShopOffer.Item _ -> not slot.KeyLocked | _ -> false)
               let standing, _ = standAtSlot itemSlot.Id itemAt model
 
               let pressed = setKey 'E' true standing
               let after = tick pressed
-              Expect.notEqual after.M5ShopSlots standing.M5ShopSlots "the tick really did complete a purchase"
+              Expect.notEqual after.ShopSlots standing.ShopSlots "the tick really did complete a purchase"
 
               let requested =
                   AudioCues.forTransition (Tick fixedDt) pressed after
@@ -1080,12 +1080,12 @@ let m14ItemGrantTests =
               // A bought CONSUMABLE is the half that has no `AudioEvent` behind it, so it is audible
               // only because the offer diff is read on `Tick`.
               let consumableSlot, consumableAt =
-                  List.zip model.M5ShopSlots (shopSlotPositions model)
+                  List.zip model.ShopSlots (shopSlotPositions model)
                   |> List.find (fun (slot, _) -> match slot.Offer with Rogue3.Entities.ShopOffer.Consumable _ -> true | _ -> false)
               let atConsumable, _ = standAtSlot consumableSlot.Id consumableAt model
               let consumablePressed = setKey 'E' true atConsumable
               let consumableAfter = tick consumablePressed
-              Expect.notEqual consumableAfter.M5ShopSlots atConsumable.M5ShopSlots "the consumable was bought"
+              Expect.notEqual consumableAfter.ShopSlots atConsumable.ShopSlots "the consumable was bought"
               let consumableRequested =
                   AudioCues.forTransition (Tick fixedDt) consumablePressed consumableAfter
                   |> Audio.interpret
@@ -1097,12 +1097,12 @@ let m14ItemGrantTests =
               // A REFUSED purchase requests none of them, so the two are distinguishable at the sink.
               let poor = inShop 0
               let poorSlot, poorAt =
-                  List.zip poor.M5ShopSlots (shopSlotPositions poor)
+                  List.zip poor.ShopSlots (shopSlotPositions poor)
                   |> List.find (fun (slot, _) -> not slot.KeyLocked && slot.Offer <> Rogue3.Entities.ShopOffer.Empty)
               let poorStanding, _ = standAtSlot poorSlot.Id poorAt poor
               let poorPressed = setKey 'E' true poorStanding
               let poorAfter = tick poorPressed
-              Expect.equal poorAfter.M5ShopSlots poorStanding.M5ShopSlots "the refused press really did buy nothing"
+              Expect.equal poorAfter.ShopSlots poorStanding.ShopSlots "the refused press really did buy nothing"
               let poorRequested =
                   AudioCues.forTransition (Tick fixedDt) poorPressed poorAfter
                   |> Audio.interpret
@@ -1117,7 +1117,7 @@ let m14ItemGrantTests =
               let elsewhere =
                   { model with
                       Floor = { model.Floor with CurrentRoom = model.Floor.CurrentRoom + 1 }
-                      M5ShopSlots = model.M5ShopSlots |> List.map (fun slot -> { slot with Offer = Rogue3.Entities.ShopOffer.Empty }) }
+                      ShopSlots = model.ShopSlots |> List.map (fun slot -> { slot with Offer = Rogue3.Entities.ShopOffer.Empty }) }
               let crossingRequested =
                   AudioCues.forTransition (Tick fixedDt) model elsewhere
                   |> Audio.interpret
@@ -1147,7 +1147,7 @@ let m14ItemGrantTests =
               // had already consumed the item from the shared pool.
               //
               // The pool is CARRIED ACROSS FLOORS in production — `DescendFloor` feeds
-              // `model.M5ItemPool` into `FloorGeneration.generateWithPool` — and it holds six items
+              // `model.ItemPool` into `FloorGeneration.generateWithPool` — and it holds six items
               // (`Entities.baseItems`). A sweep that calls `FloorGeneration.generate` per floor hands
               // every floor a FRESH full pool and so reports item rewards a real run never sees. A
               // fresh-context critic measured the difference on the boot seed: per-floor generation
@@ -1165,20 +1165,20 @@ let m14ItemGrantTests =
                               RunSeed = seed
                               FloorIndex = floorIndex
                               Floor = generated.Floor
-                              M5ItemPool = generated.ItemPool }
+                              ItemPool = generated.ItemPool }
                       for room in generated.Floor.Rooms |> Map.values do
                           match room.Fixtures |> List.tryPick (function ItemPedestal item | BossReward item -> Some item | _ -> None) with
                           | Some awarded ->
                               itemRewards <- itemRewards + 1
                               Expect.equal
-                                  ((loadM5Room room.Id model).M5Room.Reward |> Option.map _.Id)
+                                  ((loadM5Room room.Id model).Room.Reward |> Option.map _.Id)
                                   (Some awarded.Id)
                                   $"seed {seed} floor {floorIndex} room {room.Id}: the item fixture reaches the live room"
                           | None ->
                               if room.Fixtures |> List.exists (function ConsumableReward _ -> true | _ -> false) then
                                   discardedFallbacks <- discardedFallbacks + 1
                                   Expect.isNone
-                                      (loadM5Room room.Id model).M5Room.Reward
+                                      (loadM5Room room.Id model).Room.Reward
                                       $"seed {seed} floor {floorIndex} room {room.Id}: the consumable fallback is still discarded (EHotwagner/rogue3#51)"
 
               Expect.isGreaterThan itemRewards 0 "the chained sweep still finds item rewards to check"
@@ -1198,7 +1198,7 @@ let m14ItemGrantTests =
               // `roomRewardPosition` against a restatement of its own body, which proves nothing —
               // so this goes through `Render.renderedElements`, the way M13 pins the shop row.
               let slots, _, _ = Rogue3.Entities.generateShop (FS.GG.Game.Core.Rng.ofSeed 0xA55AUL) (Rogue3.Entities.itemPool [])
-              let model = { boot with M5ShopSlots = slots; M5Room = { boot.M5Room with Reward = Some(itemNamed "void-map") } }
+              let model = { boot with ShopSlots = slots; Room = { boot.Room with Reward = Some(itemNamed "void-map") } }
               let at = roomRewardPosition model |> Option.defaultWith (fun () -> failtest "the reward has a collection point")
 
               match Render.renderedElements model |> List.filter (fun element -> element.ElementId = "RoomReward") with
@@ -1218,7 +1218,7 @@ let m14ItemGrantTests =
               // route. Against the tree this was written on the pedestal was not even present.
               let treasure = roomOfType Treasure boot
               let loaded = loadM5Room treasure { boot with Floor = { boot.Floor with CurrentRoom = treasure } }
-              let pedestal = loaded.M5Room.Reward |> Option.defaultWith (fun () -> failtest "the treasure room presents a reward")
+              let pedestal = loaded.Room.Reward |> Option.defaultWith (fun () -> failtest "the treasure room presents a reward")
               let at = roomRewardPosition loaded |> Option.defaultWith (fun () -> failtest "the reward has a position")
 
               let taken, steps = walkUntil at (fun model -> not model.PlayerItems.IsEmpty) 600 loaded
@@ -1228,7 +1228,7 @@ let m14ItemGrantTests =
               Expect.equal taken.PlayerStats (statsOf pedestal.Id) "and the stat line those modifiers produce"
               Expect.notEqual taken.PlayerStats basePlayerStats "which is not the base line any more"
               Expect.equal taken.RunStats.ItemsFound 1 "counted exactly once"
-              Expect.isNone taken.M5Room.Reward "the plinth is empty afterwards"
+              Expect.isNone taken.Room.Reward "the plinth is empty afterwards"
 
               // Standing on the spot must not re-grant: the reward is removed in the step it is
               // applied, the same rule `collectFloorPickups` follows for a coin.
@@ -1256,7 +1256,7 @@ let m14ItemGrantTests =
                   "the player really is outside the collection circle"
               Expect.isEmpty parked.PlayerItems "and standing there takes nothing"
               Expect.equal parked.RunStats.ItemsFound 0 "and counts nothing"
-              Expect.isSome parked.M5Room.Reward "the reward is still on its plinth"
+              Expect.isSome parked.Room.Reward "the reward is still on its plinth"
           }
 
           test "a taken reward does not come back when the room is re-entered" {
@@ -1272,7 +1272,7 @@ let m14ItemGrantTests =
                   "the floor record no longer carries the reward fixture"
 
               let revisited = loadM5Room treasure taken
-              Expect.isNone revisited.M5Room.Reward "re-entering presents no reward"
+              Expect.isNone revisited.Room.Reward "re-entering presents no reward"
               let relingered = walkTo at (fun _ -> false) 240 revisited
               Expect.equal relingered.PlayerItems.Length 1 "and standing on the old spot grants nothing"
               Expect.equal relingered.RunStats.ItemsFound 1 "and counts nothing"
@@ -1285,7 +1285,7 @@ let m14ItemGrantTests =
               // sight" was true by accident, not by test. Force the uncleared case explicitly.
               let treasure = roomOfType Treasure boot
               let loaded = loadM5Room treasure { boot with Floor = { boot.Floor with CurrentRoom = treasure } }
-              let uncleared = { loaded with M5Room = { loaded.M5Room with IsBoss = false; Cleared = false } }
+              let uncleared = { loaded with Room = { loaded.Room with IsBoss = false; Cleared = false } }
               Expect.isTrue (roomRewardCollectable uncleared) "an uncleared ordinary room does not guard its pedestal"
 
               let at = roomRewardPosition uncleared |> Option.defaultWith (fun () -> failtest "the reward has a position")
@@ -1300,7 +1300,7 @@ let m14ItemGrantTests =
           test "the boss reward cannot be taken until the boss is down, and can be taken after" {
               let bossRoom = roomOfType Boss boot
               let loaded = loadM5Room bossRoom { boot with Floor = { boot.Floor with CurrentRoom = bossRoom } }
-              Expect.isSome loaded.M5Room.Reward "the boss room presents its reward"
+              Expect.isSome loaded.Room.Reward "the boss room presents its reward"
               Expect.isFalse (roomRewardCollectable loaded) "but a live boss guards it"
 
               let at = roomRewardPosition loaded |> Option.defaultWith (fun () -> failtest "the reward has a position")
@@ -1313,11 +1313,11 @@ let m14ItemGrantTests =
               // lays down the trapdoor fixture asserted at the end of this test.
               let cleared =
                   { guarded with
-                      M5Room = Rogue3.Entities.bossCleared guarded.M5Room.Reward guarded.M5Room
+                      Room = Rogue3.Entities.bossCleared guarded.Room.Reward guarded.Room
                       Floor = FloorGeneration.clearBoss bossRoom guarded.Floor
-                      M5Boss = None }
+                      Boss = None }
               Expect.isTrue (roomRewardCollectable cleared) "a cleared boss room releases its reward"
-              let reward = cleared.M5Room.Reward |> Option.defaultWith (fun () -> failtest "the reward survives the clear")
+              let reward = cleared.Room.Reward |> Option.defaultWith (fun () -> failtest "the reward survives the clear")
               let takenAt = roomRewardPosition cleared |> Option.defaultWith (fun () -> failtest "the reward has a position")
               let taken = walkTo takenAt (fun model -> not model.PlayerItems.IsEmpty) 600 cleared
 
@@ -1333,7 +1333,7 @@ let m14ItemGrantTests =
                   (taken.Floor.Rooms.[bossRoom].Fixtures |> List.exists (function ItemPedestal _ | BossReward _ -> true | _ -> false))
                   "the floor record no longer carries the boss reward fixture"
               let revisited = loadM5Room bossRoom taken
-              Expect.isNone revisited.M5Room.Reward "re-entering the boss room presents no reward"
+              Expect.isNone revisited.Room.Reward "re-entering the boss room presents no reward"
               let relingered = walkTo takenAt (fun _ -> false) 240 revisited
               Expect.equal relingered.PlayerItems.Length 1 "and standing on the old spot grants nothing further"
 
@@ -1361,15 +1361,15 @@ let m14ItemGrantTests =
               // trapdoor fixture, the loaded room must agree, and the player must be standing on it.
               let staged =
                   { staged with
-                      M5Room = Rogue3.Entities.bossCleared staged.M5Room.Reward staged.M5Room
-                      M5Boss = None
+                      Room = Rogue3.Entities.bossCleared staged.Room.Reward staged.Room
+                      Boss = None
                       Floor = FloorGeneration.clearBoss bossRoom staged.Floor
                       PlayerPosition = trapdoorCenter }
-              Expect.isSome staged.M5Room.Reward "the staged boss room is holding a reward"
+              Expect.isSome staged.Room.Reward "the staged boss room is holding a reward"
               Expect.isTrue (canDescend staged) "and the staged room really does permit a descent"
 
               let descended = update DescendFloor staged |> fst
               Expect.isGreaterThan descended.FloorIndex staged.FloorIndex "the descent happened"
-              Expect.isNone descended.M5Room.Reward "and it did not carry the departed floor's reward with it"
+              Expect.isNone descended.Room.Reward "and it did not carry the departed floor's reward with it"
           }
         ]

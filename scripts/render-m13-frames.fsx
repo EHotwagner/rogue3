@@ -86,8 +86,8 @@ let doorwayTarget =
 let crossed = walkUntil doorwayTarget (fun m -> m.Floor.CurrentRoom <> departed) 900 boot
 let atTick elapsed =
     { crossed with
-        M6CameraTransition =
-            crossed.M6CameraTransition |> Option.map (fun transition -> { transition with ElapsedTicks = elapsed }) }
+        CameraTransition =
+            crossed.CameraTransition |> Option.map (fun transition -> { transition with ElapsedTicks = elapsed }) }
 
 // Sampled so the SET reads as one motion. A fresh-context visual critic pointed out that tick 0 is
 // the departed room alone -- correct (the entered room is exactly one playfield away, which is M6's
@@ -105,7 +105,7 @@ shot "03-crossing-settling" (atTick 34)
 // Drops lie where the obstacles stood, and a player walks onto them. Smash every obstacle in the
 // room through the production reducer, so the positions are the ones the game itself produces.
 let smashed =
-    boot.M5Obstacles
+    boot.Obstacles
     |> List.fold (fun model obstacle -> update (DamageM5Obstacle(obstacle.Id, 999)) model |> fst) boot
 
 // The whole pickup vocabulary, each one AT A REAL OBSTACLE POSITION. The first version of this frame
@@ -117,14 +117,14 @@ let dropKinds =
     [ Entities.PickupKind.Coin1; Entities.PickupKind.Coin3; Entities.PickupKind.HalfRedHeart
       Entities.PickupKind.Key; Entities.PickupKind.Bomb; Entities.PickupKind.SoulHeart ]
 
-printfn "real reducer drops: %A" (smashed.M5ObstacleDrops |> List.map (fun d -> d.Kind, d.Position.Vx, d.Position.Vy))
-printfn "obstacle anchors:   %A" (boot.M5Obstacles |> List.map (fun o -> o.Kind, o.Position.Vx, o.Position.Vy))
+printfn "real reducer drops: %A" (smashed.ObstacleDrops |> List.map (fun d -> d.Kind, d.Position.Vx, d.Position.Vy))
+printfn "obstacle anchors:   %A" (boot.Obstacles |> List.map (fun o -> o.Kind, o.Position.Vx, o.Position.Vy))
 
 shot
     "04-positioned-drops"
     { boot with
-        M5ObstacleDrops =
-            boot.M5Obstacles
+        ObstacleDrops =
+            boot.Obstacles
             |> List.truncate dropKinds.Length
             |> List.mapi (fun index obstacle ->
                 { Id = 6000 + index
@@ -132,19 +132,19 @@ shot
                   Kind = dropKinds.[index]
                   Position = obstacle.Position })
         // The obstacles that dropped them are gone, which is what makes the position legible.
-        M5Obstacles = boot.M5Obstacles |> List.skip (min boot.M5Obstacles.Length dropKinds.Length) }
+        Obstacles = boot.Obstacles |> List.skip (min boot.Obstacles.Length dropKinds.Length) }
 
 // A priced, partly key-locked shop standing on the room floor, clear of the furniture.
 let shopSlots, _, _ = Entities.generateShop (FS.GG.Game.Core.Rng.ofSeed 0xA55AUL) (Entities.itemPool [])
 shot
     "05-shop-priced-and-locked"
     { boot with
-        M5ShopSlots =
+        ShopSlots =
             shopSlots
             |> List.mapi (fun index slot -> if index = 1 then { slot with KeyLocked = true } else slot) }
 
 // The boss reward on its plinth, with the shop absent so the placement of a single fixture is legible.
-shot "06-boss-reward-placed" { boot with M5Room = { boot.M5Room with Reward = Some Entities.baseItems.Head } }
+shot "06-boss-reward-placed" { boot with Room = { boot.Room with Reward = Some Entities.baseItems.Head } }
 
 // ------------------------------------------------------------------------------------------------
 // 7. The wall is the wall. Drive the player hard into the north wall and look at where it stops.
@@ -173,7 +173,7 @@ shot
 shot
     "11-enemy-telegraph"
     { boot with
-        M5Enemies =
+        Enemies =
             // Both wind-ups are aimed AT THE PLAYER, which is what a telegraph is for. The first
             // version used arbitrary vectors and the Fly's arrow pointed noticeably away from the
             // threat it is supposed to be teaching you to dodge.

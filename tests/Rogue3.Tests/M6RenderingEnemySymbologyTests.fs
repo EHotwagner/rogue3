@@ -11,7 +11,7 @@ open Rogue3.Entities
 let private rosterModel =
     roster
     |> List.mapi (fun index kind -> spawn 1 (1000+index) kind (vec2 (180.0+float index*105.0) 320.0))
-    |> fun enemies -> { initialModel with M5Enemies=enemies }
+    |> fun enemies -> { initialModel with Enemies=enemies }
 
 [<Tests>]
 let m6RenderingEnemySymbologyTests =
@@ -26,7 +26,7 @@ let m6RenderingEnemySymbologyTests =
         test "EnemyActor ChannelMap preserves hitboxes and distinguishes the whole roster" {
             let tokens = Render.enemyTokens rosterModel
             Expect.equal tokens.Length roster.Length "all eight kinds are projected"
-            List.zip rosterModel.M5Enemies tokens
+            List.zip rosterModel.Enemies tokens
             |> List.iter (fun (actor, token) ->
                 let definition = definition actor.Kind
                 Expect.equal token.R definition.Radius "drawn radius equals the collision radius"
@@ -55,28 +55,28 @@ let m6RenderingEnemySymbologyTests =
 
         test "particle pool keeps the newest 600 and fixed steps advance fade and expiry" {
             let spawned = update (SpawnM6Particles(650, vec2 320.0 240.0, ParticleTint.Explosion)) initialModel |> fst
-            Expect.equal spawned.M6Particles.Length m6MaxParticles "pool is capped"
-            Expect.equal spawned.M6Particles.Head.Id 51 "oldest overflow is recycled"
-            Expect.equal (spawned.M6Particles |> List.last).Id 650 "newest request is retained"
-            let first = spawned.M6Particles.Head
+            Expect.equal spawned.Particles.Length m6MaxParticles "pool is capped"
+            Expect.equal spawned.Particles.Head.Id 51 "oldest overflow is recycled"
+            Expect.equal (spawned.Particles |> List.last).Id 650 "newest request is retained"
+            let first = spawned.Particles.Head
             let stepped = stepSim spawned
-            let advanced = stepped.M6Particles |> List.find (fun p -> p.Id=first.Id)
+            let advanced = stepped.Particles |> List.find (fun p -> p.Id=first.Id)
             Expect.equal advanced.AgeTicks 1 "particle age advances on the fixed tick"
             Expect.notEqual advanced.Position first.Position "velocity advances position"
             Expect.isLessThan (Render.particleOpacity advanced) (Render.particleOpacity first) "fade is monotone"
             let expiring = { first with LifetimeTicks=1; AgeTicks=0 }
-            let expired = stepSim { initialModel with M6Particles=[ expiring ] }
-            Expect.isEmpty expired.M6Particles "a particle is culled exactly when age reaches lifetime"
+            let expired = stepSim { initialModel with Particles=[ expiring ] }
+            Expect.isEmpty expired.Particles "a particle is culled exactly when age reaches lifetime"
         }
 
         test "room camera slide is active before 0.35 seconds and identity at 42 ticks" {
             let started = update (BeginM6RoomTransition RoomSlideDirection.East) initialModel |> fst
             Expect.equal (Render.cameraOffset started) (vec2 playfieldWidth 0.0) "entry begins one room away"
             let beforeSettle = [1..41] |> List.fold (fun model _ -> stepSim model) started
-            Expect.isSome beforeSettle.M6CameraTransition "41/120 seconds is still in transition"
+            Expect.isSome beforeSettle.CameraTransition "41/120 seconds is still in transition"
             Expect.notEqual (Render.cameraOffset beforeSettle) zero "pre-settle frame remains translated"
             let settled = stepSim beforeSettle
-            Expect.isNone settled.M6CameraTransition "42 ticks equals exactly 0.35 seconds"
+            Expect.isNone settled.CameraTransition "42 ticks equals exactly 0.35 seconds"
             Expect.equal (Render.cameraOffset settled) zero "settled render lowers to identity"
         }
     ]
