@@ -1,0 +1,302 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-8.md",
+  "reportSha256": "cfebfcbe736551b5e7a4e599871e8abc8595dd67a3d79084e91146d979affefc",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "\u00a74.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "c36bf58bf29a6fb439139b2261947e51b0242f17cb18b047e0cff057b5904265"
+        },
+        {
+          "locator": "file:readiness/performance-evidence.json",
+          "result": "verified",
+          "sha256": "b27ded9bc6dd6ece93f4c7a1402d8176aafd24e73b56c579a7da77ba17eec5be"
+        },
+        {
+          "locator": "command:dotnet run -c Release --project src/Rogue3 -- --performance-evidence readiness/performance-evidence.json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:readiness/015-unify-world-state-generations/critic-history.md",
+          "result": "verified",
+          "sha256": "0dbdbd149c81d45d30ae9476be55956cfce43e75a4590856291051d8d09e3c38"
+        },
+        {
+          "locator": "file:feedback/checkpoints/item-20-parallel-world-state-generations.jsonl",
+          "result": "verified",
+          "sha256": "6f88de4dfb439fad0d1be663c34354d7b2251a0270ceb89a608f85de79378de8"
+        }
+      ],
+      "confidenceLimits": [
+        "The 310/390/560/2100 figures are structural counters measured on this host over one workload; they are host-independent but describe this fixture, not production frames."
+      ]
+    },
+    {
+      "id": "\u00a74.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "8f32200b108f16a458759bba56afb008624c18b5f6ebeb849cfcae3769ea8427"
+        },
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "c36bf58bf29a6fb439139b2261947e51b0242f17cb18b047e0cff057b5904265"
+        },
+        {
+          "locator": "file:readiness/performance-evidence.json",
+          "result": "verified",
+          "sha256": "b27ded9bc6dd6ece93f4c7a1402d8176aafd24e73b56c579a7da77ba17eec5be"
+        },
+        {
+          "locator": "command:git show d8d0024:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "No git archaeology was done to establish which commit first introduced the 32x32 versus 40x40 mismatch; the claim is about the tree at d8d0024."
+      ]
+    },
+    {
+      "id": "\u00a74.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "8f32200b108f16a458759bba56afb008624c18b5f6ebeb849cfcae3769ea8427"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs",
+          "result": "verified",
+          "sha256": "89d4788fce4a8256b59d0a80a477694074aeaff500f36b71f83a17645cbca3a1"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs",
+          "result": "verified",
+          "sha256": "b169841f51aa1cd663a4bbb90eae0db21cbfa7296f2e0ec7cd9868f916fd6e6a"
+        },
+        {
+          "locator": "command:git show d8d0024:src/Rogue3/Model.fs",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#47",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The player-facing gap is pre-existing and was not introduced by this cycle; what this cycle did was remove the unreachable code that concealed it."
+      ]
+    },
+    {
+      "id": "\u00a74.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:work/015-unify-world-state-generations/clarifications.md",
+          "result": "verified",
+          "sha256": "76893f389893cde1a0067f4f9c13e35257b80b0487a191881c7378cf14d2bb31"
+        },
+        {
+          "locator": "file:work/015-unify-world-state-generations/spec.md",
+          "result": "verified",
+          "sha256": "4e4dc2d9a03426b8330ab7f052b316239b37e3df23fb0ad5e19ec35f89297e03"
+        },
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "8f32200b108f16a458759bba56afb008624c18b5f6ebeb849cfcae3769ea8427"
+        },
+        {
+          "locator": "command:git show d8d0024:src/Rogue3/Model.fs",
+          "result": "verified"
+        },
+        {
+          "locator": "file:readiness/015-unify-world-state-generations/critic-history.md",
+          "result": "verified",
+          "sha256": "0dbdbd149c81d45d30ae9476be55956cfce43e75a4590856291051d8d09e3c38"
+        }
+      ],
+      "confidenceLimits": [
+        "The before/after step numbers are one critic's measurement over one Grub-and-bomb scenario, reproduced by building both revisions; other kill shapes were not enumerated."
+      ]
+    },
+    {
+      "id": "\u00a74.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:readiness/015-unify-world-state-generations/critic-history.md",
+          "result": "verified",
+          "sha256": "0dbdbd149c81d45d30ae9476be55956cfce43e75a4590856291051d8d09e3c38"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs",
+          "result": "verified",
+          "sha256": "083fb605aae90c2b86a48285cd3698e70077e276afb43e6ad81db3403f6a3ed0"
+        },
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "8f32200b108f16a458759bba56afb008624c18b5f6ebeb849cfcae3769ea8427"
+        },
+        {
+          "locator": "command:dotnet test Rogue3.slnx --nologo",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "19 of 38 is the critic's count. The author independently reproduced only the four mutations acted on, not the remaining fifteen."
+      ]
+    },
+    {
+      "id": "\u00a74.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:work/015-unify-world-state-generations/evidence.yml",
+          "result": "verified",
+          "sha256": "e3efe47ccd2d5a1e7a4a1d88e8e15505dccbb0e582add51a10a3d0d6229a98de"
+        },
+        {
+          "locator": "file:readiness/015-unify-world-state-generations/ship-verdict.json",
+          "result": "verified",
+          "sha256": "9fde2c38f6034317e0c29c9b434cefce75040eb472b5221789779736dd632a4e"
+        },
+        {
+          "locator": "file:scripts/audit-binding-exceptions.json",
+          "result": "verified",
+          "sha256": "68c77d1a0614d3d8e02593d59bc41ed8a4ed5526287339a11b2b8e3f5d6c4bbb"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        },
+        {
+          "locator": "file:readiness/015-unify-world-state-generations/critic-history.md",
+          "result": "verified",
+          "sha256": "0dbdbd149c81d45d30ae9476be55956cfce43e75a4590856291051d8d09e3c38"
+        }
+      ],
+      "confidenceLimits": [
+        "The classification gap is inferred from the tool accepting the entries; no attempt was made to read the CLI source to confirm no such check exists."
+      ]
+    },
+    {
+      "id": "\u00a74.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:readiness/performance-evidence.json",
+          "result": "verified",
+          "sha256": "b27ded9bc6dd6ece93f4c7a1402d8176aafd24e73b56c579a7da77ba17eec5be"
+        },
+        {
+          "locator": "command:dotnet run -c Release --project src/Rogue3 -- --performance-evidence readiness/performance-evidence.json",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git diff --numstat readiness/performance-evidence.json",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#26",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "compositionAuthority was established by a critic as per-build rather than per-run; the other changed keys are per-run."
+      ]
+    },
+    {
+      "id": "\u00a74.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#20",
+          "result": "verified"
+        },
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "c36bf58bf29a6fb439139b2261947e51b0242f17cb18b047e0cff057b5904265"
+        },
+        {
+          "locator": "file:src/Rogue3/EvidenceCommands.fs",
+          "result": "verified",
+          "sha256": "9bcca9582b936a1b03e9f180cbe677af2cdebd0b09dc7634650b9d54c7eec105"
+        },
+        {
+          "locator": "file:feedback/checkpoints/item-20-parallel-world-state-generations.jsonl",
+          "result": "verified",
+          "sha256": "6f88de4dfb439fad0d1be663c34354d7b2251a0270ceb89a608f85de79378de8"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-7.md",
+          "result": "verified",
+          "sha256": "8534f033ade722761e2f5450f1e5932c80c8e6d4023a24b891f9625f5ffc63fc"
+        }
+      ],
+      "confidenceLimits": [
+        "The widen-before-edit ordering rests on issue-body edit timestamps against file mtimes, which a critic checked; mtimes are not proof of authorship order, only consistent with it."
+      ]
+    },
+    {
+      "id": "\u00a74.9",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:work/015-unify-world-state-generations/plan.md",
+          "result": "verified",
+          "sha256": "afc405af799dbc7e8f61807675aefb64581e501cc89580950cdd7251ed722704"
+        },
+        {
+          "locator": "command:fsgg-sdd plan --work 015-unify-world-state-generations --text",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/2026-08-01-Rogue3-11.md",
+          "result": "verified",
+          "sha256": "808c8f153ef263f1989c47b6163788449dc79ec3cc975c2fb166050f2712cc9b"
+        },
+        {
+          "locator": "file:feedback/2026-08-01-Rogue3-12.md",
+          "result": "verified",
+          "sha256": "35e4f57d1bd256fcc58a737acec24be06fd13906a0ad4fcdd9efead8b30508bb"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-2.md",
+          "result": "verified",
+          "sha256": "d1a20683413277cccef843d277d088019d18f65dfa96441672b23b5a9fa01693"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-6.md",
+          "result": "verified",
+          "sha256": "2907265d6336207e44483cd26023e37588a1efc6d8640899994f5b757777e6ba"
+        }
+      ],
+      "confidenceLimits": [
+        "Reproduced only at fs.gg.sdd.cli 0.32.0, the pinned version; no newer release was available to re-verify against."
+      ]
+    }
+  ]
+}
