@@ -1895,6 +1895,235 @@ let private runViolationCheck target (violations: string list) =
 
 let private currentRoot () = Directory.GetCurrentDirectory()
 
+// ---------------------------------------------------------------------------
+// #74: the POSITIVE CONTROL. A check cannot certify it is bound to the real tree
+// by looking at the tree — so stop looking, and MAKE THE TREE FAIL.
+//
+// #57 closed every exemption keyed on `root` vs the CURRENT DIRECTORY by standing
+// the process somewhere else. #74 is the survivor of that: an exemption keyed on
+// what the root CONTAINS.
+//
+//     if File.Exists (path [ root; "Rogue3.slnx" ]) then [] else
+//
+// One line at the head of `templateDriftViolations`. Every fixture case still
+// passes — fixtures are synthetic temp roots with no `Rogue3.slnx` — and only the
+// real repository is exempted. Measured at d2c4e2f, with real drift appended to
+// `.agents/skills/fs-gg-ai/SKILL.md`: `164 case(s), 0 failure(s)`, `verdict: pass`,
+// exit 0. Three more fingerprints of the same shape were measured on the same tree
+// and all three survived identically: `build.fsx` present, `src/` present, and
+// `not (root.StartsWith (Path.GetTempPath()))` — which #57 believed it had closed
+// and had not, because that form never mentions the current directory either.
+//
+// #74's own body calls this an arms race with no fixed point, and it is one for as
+// long as the answer is a better fingerprint. The fixed point is elsewhere: stop
+// trying to make the FIXTURE indistinguishable from the repository and make the
+// tree under test BE the repository. Plant a real violation in the real tree, at
+// the real path, require the real check to report it, and put the tree back.
+//
+// Nothing a predicate can read distinguishes "this repository" from "this
+// repository with a violation planted in it" — not a marker file, not a directory
+// name, not the root's path, not `.git`, not anything a later fingerprint reaches
+// for — because they are the same tree, one appended line apart. An exemption that
+// fires for the repository fires here too, the planted violation goes unreported,
+// and the probe fails. That is the whole of the defence, and it is why it does not
+// have to be extended each time someone invents another fingerprint.
+//
+// What it costs, stated plainly because it is a real cost: for a few milliseconds
+// per `SelfTest` run this target MUTATES A TRACKED FILE and creates a directory
+// under `readiness/`. Both are restored in a `finally`, and the restore is VERIFIED
+// (re-digested against the bytes taken before the plant) rather than assumed — a
+// restore that did not happen raises here, in this run, instead of being discovered
+// as unexplained drift in the next one. If the process is killed inside the window,
+// the leftovers are loud rather than silent: the drifted kit file shows in
+// `git status` AND reds `TemplateDrift`, the planted directory reds
+// `GeneratedGuidanceCheck`, and both carry `selfTestProbeMarker` so a reader who
+// meets one knows what it is and that removing it is safe.
+// ---------------------------------------------------------------------------
+
+/// The string a stranded probe leftover is recognised BY A HUMAN by. It is deliberately not a
+/// path: the drift probe derives its target from the manifest rather than naming a file, so there
+/// is no literal in this file that says which kit file a given run will touch.
+let private selfTestProbeMarker = "rogue3-selftest-binding-probe"
+
+/// Runs `body realRoot` with the process standing in a directory that is NOT this repository.
+///
+/// #57 / M21: the trick that motivates it is `if root = Directory.GetCurrentDirectory() then []`
+/// — an exemption that fires only for the real repository while every fixture case (which uses a
+/// temp root) still passes. Normalising the comparison defeats a mere second SPELLING of the root;
+/// it does not defeat this, because the process is standing somewhere else entirely, so no
+/// root-vs-cwd equality can hold however it is normalised. Both check functions derive every path
+/// they touch from `root`, so relocating the process cannot change their answers.
+///
+/// Extracted for #74 so the binding probe below runs under the SAME relocation the plain checks
+/// do. Two copies of this dance would be two things to keep true, and the cwd-keyed class and the
+/// content-keyed class have to be closed by defences that compose rather than by defences that
+/// each cover half the call sites — which is exactly the asymmetry that left the one-line
+/// exemption on `generatedGuidanceViolations` live after #57 covered `templateDriftViolations`.
+let private fromOutsideTheRepository (body: string -> 'a) : 'a =
+    let here = Directory.GetCurrentDirectory()
+    let realRoot = Path.GetFullPath here
+
+    // A directory this code CREATES, not `Path.GetTempPath()` itself. `GetTempPath` honours
+    // $TMPDIR, so `TMPDIR=$PWD` would relocate the process to the repository root and turn this
+    // entire defence into a silent no-op — measured: the cwd-keyed exemption went from caught to
+    // green, with drift on disk. A fresh subdirectory is a different directory whatever $TMPDIR says.
+    let elsewhere =
+        path [ Path.GetTempPath(); "rogue3-selftest-elsewhere-" + Guid.NewGuid().ToString("N") ]
+
+    Directory.CreateDirectory elsewhere |> ignore
+
+    try
+        Directory.SetCurrentDirectory elsewhere
+
+        // Fail CLOSED rather than check from the wrong place: if the relocation did not actually
+        // move us, the calls below would be exactly the ones M21 exempts.
+        if Path.GetFullPath(Directory.GetCurrentDirectory()) = realRoot then
+            failwith
+                "SelfTest could not evaluate the repository checks from outside the repository, so the M21 class is unguarded here (#57)."
+
+        body realRoot
+    finally
+        Directory.SetCurrentDirectory here
+
+        try
+            Directory.Delete(elsewhere, true)
+        with _ ->
+            ()
+
+/// What one binding probe observed: the violations the check reported while a real violation was
+/// planted in the real tree, and the fragment the caller requires those violations to name.
+type private BindingProbe =
+    { /// What the check said with the plant in place.
+      Observed: string list
+      /// The identifying fragment the plant must be reported BY. Derived from the tree, so a
+      /// reader of a failure sees which file or directory this run used.
+      Expected: string }
+
+    /// Whether the check reported the thing that was planted. Nothing else counts: a check that
+    /// reported some OTHER violation would satisfy "the list is non-empty" while still being
+    /// exempted for the tree, which is the overstatement #46 exists to stop one target over.
+    member this.Reported = this.Observed |> List.exists (fun v -> v.Contains this.Expected)
+
+/// #74, the `TemplateDrift` route. Appends bytes to a kit file the manifest itself pins, requires
+/// `templateDriftViolations` to report THAT file as drifted, and restores it.
+///
+/// The target is DERIVED from the manifest rather than written here as a path literal, for the
+/// same reason `agentsManifestPins` does not return the names it merely mentions: a literal is a
+/// thing a single-edit mutant can key on, and there is no reason to hand it one. Sorted, so the
+/// choice is deterministic and a failure names the same file twice running.
+///
+/// Raises rather than reporting where it cannot plant or cannot restore. A probe that quietly did
+/// not run is the defect this whole target exists to prevent, and a probe that quietly did not put
+/// the file back would leave the repository drifted behind a green gate.
+let private templateDriftBindingProbe (root: string) : BindingProbe =
+    let relative =
+        agentsManifestPins root |> Seq.map fst |> Seq.sort |> Seq.tryHead
+
+    match relative with
+    | None ->
+        failwith
+            "SelfTest could not plant drift in this repository's kit tree: the skill manifest pins no file, so the check's binding to the real tree is unproven (#74)."
+    | Some relative ->
+        let file = path [ root; relative ]
+
+        let before =
+            try
+                File.ReadAllBytes file
+            with ex ->
+                failwithf
+                    "SelfTest could not read %s to plant drift in it (%s), so the check's binding to the real tree is unproven (#74)."
+                    relative
+                    (ex.GetType().Name)
+
+        let observed =
+            try
+                try
+                    // A comment line, so the planted bytes are self-describing if this run is
+                    // killed before the `finally` puts them back.
+                    File.AppendAllText(
+                        file,
+                        $"\n<!-- {selfTestProbeMarker}: transient SelfTest drift; if you are reading this, a SelfTest run was killed mid-probe. Discard this line (git checkout -- {relative}). -->\n"
+                    )
+
+                    templateDriftViolations root
+                finally
+                    File.WriteAllBytes(file, before)
+            with ex ->
+                failwithf
+                    "SelfTest failed while probing %s (%s); the file has been restored (#74)."
+                    relative
+                    ex.Message
+
+        // The restore is CHECKED, not assumed. `File.WriteAllBytes` in a `finally` is the same
+        // shape of promise as the one #62 item 4 found being made by `File.ReadAllBytes` — total
+        // right up until the filesystem says otherwise — and the cost of it being wrong here is a
+        // tracked file left drifted by the target whose job is to notice that.
+        match tryDigest file with
+        | Ok after when after = lowerHex (System.Security.Cryptography.SHA256.HashData before) -> ()
+        | _ ->
+            failwithf
+                "SelfTest could not restore %s after probing it — this repository is now DRIFTED and must be repaired with `git checkout -- %s` (#74)."
+                relative
+                relative
+
+        { Observed = observed; Expected = relative }
+
+/// #74, the `GeneratedGuidanceCheck` route. Covering one check and not the other is what left the
+/// identical one-line exemption on `generatedGuidanceViolations` live after #57, so this exists
+/// for the same reason its twin does and is asserted by the same two channels.
+///
+/// Plants the symmetry violation — generated guidance present for one declared agent and not the
+/// others — by creating directories only. Nothing tracked is modified on this route, so the worst
+/// a killed run leaves behind is an empty directory tree whose name says what it is.
+let private guidanceBindingProbe (root: string) : BindingProbe =
+    let probeName = selfTestProbeMarker + "-" + Guid.NewGuid().ToString("N")
+    let probeRoot = path [ root; "readiness"; probeName ]
+
+    // The agent whose guidance is present. Read from `.fsgg/agents.yml` through the same reader
+    // the check uses, so a repository that renames its agents does not silently stop probing.
+    let agentLeaves =
+        if not (File.Exists(path [ root; ".fsgg"; "agents.yml" ])) then
+            []
+        else
+            File.ReadAllLines(path [ root; ".fsgg"; "agents.yml" ])
+            |> Array.choose (fun line ->
+                let m = Regex.Match(line, @"^\s*generatedRoot:\s*(.+?)\s*$")
+
+                if m.Success then
+                    Some((yamlScalar m.Groups.[1].Value).TrimEnd('/').Split('/') |> Array.last)
+                else
+                    None)
+            |> List.ofArray
+
+    match agentLeaves with
+    | [] | [ _ ] ->
+        // One agent cannot be asymmetric with itself, so there is no violation to plant and the
+        // probe cannot speak. Raise rather than return a vacuous pass: `.fsgg/agents.yml` declares
+        // two agents in this repository, and a tree where it declares fewer is one where this
+        // defence is absent and must say so.
+        failwith
+            "SelfTest could not plant a guidance violation: .fsgg/agents.yml declares fewer than two generated agents, so GeneratedGuidanceCheck's binding to the real tree is unproven (#74)."
+    | present :: _ ->
+        let observed =
+            try
+                try
+                    Directory.CreateDirectory(path [ probeRoot; "agent-commands"; present ]) |> ignore
+                    generatedGuidanceViolations root
+                finally
+                    try
+                        Directory.Delete(probeRoot, true)
+                    with _ ->
+                        ()
+            with ex ->
+                failwithf "SelfTest failed while probing GeneratedGuidanceCheck (%s) (#74)." ex.Message
+
+        if Directory.Exists probeRoot then
+            failwithf
+                "SelfTest could not remove its planted guidance probe at readiness/%s, which will red GeneratedGuidanceCheck until it is deleted (#74)."
+                probeName
+
+        { Observed = observed; Expected = probeName }
+
 /// #46: the coverage line is printed on EVERY run, green or red, and before the verdict. A gate
 /// that speaks only when it fails leaves a reader to infer full coverage from silence — which is
 /// precisely the misreading of a green `TemplateDrift` that #46 was filed to stop.
@@ -2258,10 +2487,36 @@ let private runSelfTest () =
         Directory.CreateDirectory root |> ignore
         root, plantFixture root
 
+    // #74: what the binding probes observed, so the verdict block can re-read them as a raise
+    // without planting a second time. `None` is itself a verdict — a run that never probed cannot
+    // say the checks are still bound to this tree — and the verdict block says so.
+    let mutable bindingProbes: (BindingProbe * BindingProbe) option = None
+
     try
         // The gate must be green where it ships, or it is useless as a gate.
         expect "TemplateDrift is clean on this repository" (List.isEmpty (templateDriftViolations (currentRoot ())))
         expect "GeneratedGuidanceCheck is clean on this repository" (List.isEmpty (generatedGuidanceViolations (currentRoot ())))
+
+        // #74: the two cases above are NEGATIVE controls — they say the checks find nothing on a
+        // tree where there is nothing to find, which is also exactly what a check that has stopped
+        // looking at this tree says. These are the POSITIVE controls: a real violation is planted
+        // in the real repository, at the real path, and the real check has to report it.
+        //
+        // Run from OUTSIDE the repository, so one probe closes both classes at once: an exemption
+        // keyed on the current directory is defeated by where the process is standing, and an
+        // exemption keyed on anything the root CONTAINS or is CALLED is defeated by the tree under
+        // test being the repository itself. See the block above `fromOutsideTheRepository`.
+        //
+        // Recorded into `bindingProbes` as well as asserted here, because the verdict block re-reads
+        // them as a RAISE. Two channels over ONE plant, on the pattern the failure-path probe
+        // already uses: rewriting these two `expect` conditions to `true` leaves the raise, and
+        // deleting the raise leaves these.
+        let driftProbe = fromOutsideTheRepository templateDriftBindingProbe
+        let guidanceProbe = fromOutsideTheRepository guidanceBindingProbe
+        bindingProbes <- Some(driftProbe, guidanceProbe)
+
+        expect "TemplateDrift reports drift planted in THIS repository's own kit tree" driftProbe.Reported
+        expect "GeneratedGuidanceCheck reports a violation planted in THIS repository's own tree" guidanceProbe.Reported
 
         // #26 pinned the ENGINE-written `## Sensed readiness files` heading against the
         // COMMITTED graph, so an engine rename would fail here rather than leave the rule
@@ -4068,49 +4323,38 @@ let private runSelfTest () =
         // Deliberately AFTER the case verdict: a genuinely drifted tree should report every case and
         // fail on the summary, not abort on the first violation with no transcript.
         //
-        // #57 / M21: and both are evaluated over the same tree from a DIFFERENT WORKING DIRECTORY.
-        // M21's whole trick is `if root = Directory.GetCurrentDirectory() then []` — an exemption
-        // that fires only for the real repository, while every fixture case (which uses a temp root)
-        // still passes. Normalising the comparison (`Path.GetFullPath root = Path.GetFullPath cwd`)
-        // defeats a mere second SPELLING of the root. It does not defeat this: the process is
-        // standing somewhere else entirely, so `root` is the repository and the current directory is
-        // not, and no root-vs-cwd equality can hold however it is normalised. Both check functions
-        // derive every path they touch from `root`, so relocating the process cannot change their
-        // answers.
+        // #57 / M21: and both are evaluated over the same tree from a DIFFERENT WORKING DIRECTORY —
+        // see `fromOutsideTheRepository`, which now carries that dance for this block and for #74's
+        // binding probes, so the two defences cannot drift apart.
         //
         // BOTH checks, not just TemplateDrift: covering one and not the other left the identical
         // one-line exemption on `generatedGuidanceViolations` as a live gate defeat.
         let driftFromElsewhere, guidanceFromElsewhere =
-            let here = Directory.GetCurrentDirectory()
-            let realRoot = Path.GetFullPath here
+            fromOutsideTheRepository (fun realRoot ->
+                templateDriftViolations realRoot, generatedGuidanceViolations realRoot)
 
-            // A directory this code CREATES, not `Path.GetTempPath()` itself. `GetTempPath` honours
-            // $TMPDIR, so `TMPDIR=$PWD` would relocate the process to the repository root and turn
-            // this entire defence into a silent no-op — measured: the cwd-keyed exemption went from
-            // caught to green, with drift on disk. A fresh subdirectory is a different directory
-            // whatever $TMPDIR says.
-            let elsewhere =
-                path [ Path.GetTempPath(); "rogue3-selftest-elsewhere-" + Guid.NewGuid().ToString("N") ]
+        // #74: the RAISE channel for the binding probes, on the same argument as the block above —
+        // `driftProbe.Reported` and `guidanceProbe.Reported` are booleans reaching an `expect`, and
+        // a boolean reaching an `expect` can be rewritten to `true` in one edit. These read the
+        // SAME recorded observations, so nothing is planted twice; what they add is that deleting
+        // the probe calls, or emptying what they returned, has to be done in two places.
+        //
+        // `None` is the mutation this exists for: removing the two `expect` lines above also removes
+        // the assignment, and a run that never probed its binding to this tree must not report pass.
+        match bindingProbes with
+        | None ->
+            failwith
+                "SelfTest did not probe whether its checks are still bound to THIS repository, so a green verdict says nothing about this tree (#74)."
+        | Some (driftProbe, guidanceProbe) ->
+            if not driftProbe.Reported then
+                failwithf
+                    "TemplateDrift did not report drift planted in this repository's own %s, so it is not checking this tree (#74). Every fixture case can pass while this one does not."
+                    driftProbe.Expected
 
-            Directory.CreateDirectory elsewhere |> ignore
-
-            try
-                Directory.SetCurrentDirectory elsewhere
-
-                // Fail CLOSED rather than check from the wrong place: if the relocation did not
-                // actually move us, the two calls below would be exactly the ones M21 exempts.
-                if Path.GetFullPath(Directory.GetCurrentDirectory()) = realRoot then
-                    failwith
-                        "SelfTest could not evaluate the repository checks from outside the repository, so the M21 class is unguarded here (#57)."
-
-                templateDriftViolations realRoot, generatedGuidanceViolations realRoot
-            finally
-                Directory.SetCurrentDirectory here
-
-                try
-                    Directory.Delete(elsewhere, true)
-                with _ ->
-                    ()
+            if not guidanceProbe.Reported then
+                failwithf
+                    "GeneratedGuidanceCheck did not report the violation planted at readiness/%s in this repository, so it is not checking this tree (#74)."
+                    guidanceProbe.Expected
 
         // Called AFTER the directory is restored: the success path calls `writeLog`, which writes to
         // a RELATIVE path and would otherwise land in the temp dir. The coverage line is printed
