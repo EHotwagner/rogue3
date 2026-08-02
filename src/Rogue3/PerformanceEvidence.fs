@@ -1349,10 +1349,17 @@ let private maximumM5ShopSlots =
 let private maximumContentModel () =
     let maw = Rogue3.Entities.spawnBoss 9999 Rogue3.Entities.BossKind.Maw (vec2 1000. 600.)
     let maximumFloor = initialModel.Floor
+    // Board item #60: this base is bound rather than inlined so the counter override below can
+    // extend `baseModel.Instrumentation` instead of `zeroInstrumentation`. Before the extraction the
+    // line was `TotalShotSpawns = maximumShotSpawnHistory`, which overrode ONE field; writing
+    // `{ zeroInstrumentation with … }` would silently zero the other six as well. That is
+    // behaviour-identical only for as long as `withInput` leaves every counter at zero, which is
+    // true today and is not a property anything enforces.
+    let baseModel = withInput maximumGamepadInput
     let fixture =
-        { withInput maximumGamepadInput with
+        { baseModel with
             ShotSpawns = maximumShotHistory
-            Instrumentation = { zeroInstrumentation with TotalShotSpawns = maximumShotSpawnHistory }
+            Instrumentation = { baseModel.Instrumentation with TotalShotSpawns = maximumShotSpawnHistory }
             NextShotId = maximumShotSpawnHistory + 1
             PlayerStats = { basePlayerStats with Homing = 1.0; Multishot = 3; Pierce = 30 }
             HomingTargets = maximumTargets

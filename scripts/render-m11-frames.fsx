@@ -146,12 +146,21 @@ shot "08-key-door-in-play" (boot |> clearRoom treasureNeighbour |> travelTo trea
 // ------------------------------------------------------------------------------------------------
 let inventoryFrame name model = shot name model
 
+// M13 changed `ObstacleDrops` from `PickupKind list` to positioned `FloorPickup list`, and this
+// fixture was never updated — the script has not compiled since. It is repaired here rather than
+// left dead, because a contact sheet nothing can render guards nothing. Positions are laid out in a
+// row across the room so each pickup is individually legible, which is what this frame is for.
 inventoryFrame
     "09-pickups-and-drops"
     { boot with
         ObstacleDrops =
             [ Entities.PickupKind.Coin1; Entities.PickupKind.Coin3; Entities.PickupKind.HalfRedHeart
               Entities.PickupKind.Key; Entities.PickupKind.Bomb; Entities.PickupKind.SoulHeart ]
+            |> List.mapi (fun index kind ->
+                { Id = 6000 + index
+                  Room = boot.Floor.CurrentRoom
+                  Kind = kind
+                  Position = vec2 (360.0 + float index * 110.0) 360.0 })
         Room = { boot.Room with Drop = Some Entities.PickupKind.Key } }
 
 inventoryFrame

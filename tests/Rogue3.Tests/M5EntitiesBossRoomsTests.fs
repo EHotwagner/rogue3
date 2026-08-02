@@ -291,10 +291,12 @@ let tests =
         [ "Enemies", typeof<Rogue3.Entities.EnemyActor list>
           "Obstacles", typeof<Rogue3.Entities.Obstacle list>
           "ShopSlots", typeof<Rogue3.Entities.ShopSlot list> ] do
+        // `generation.Name` renders a generic as `FSharpList\`1` — the element type, which is the
+        // entire point, is missing from the message. `ToString()` keeps it.
         Expect.equal
           (fieldsOfType generation)
           [| name |]
-          $"exactly one Model field carries {generation.Name}, and it is {name} — a second one is the two-generation defect returning under any name"
+          $"exactly one Model field carries {generation} and it is {name} — a second field OF THE SAME TYPE is the two-generation defect returning. A twin of a DIFFERENT type is caught by the Rect-cache assertions below, not by this one"
       // The pre-M5 records themselves were deleted with the fields, and stay deleted. A revived
       // `Model.Enemy` is how a second generation would come back while the count check above still
       // reads one, because the reborn field would be typed on the reborn record.
@@ -342,14 +344,24 @@ let tests =
       // compiles, so a re-introduced `M5Foo` field cannot pass by living in a file nothing greps.
       let modelFields =
         Reflection.FSharpType.GetRecordFields typeof<Model> |> Array.map _.Name
-      let prefixed =
-        modelFields
-        |> Array.filter (fun name ->
-          name.Length > 2
-          && name.[0] = 'M'
-          && System.Char.IsDigit name.[1]
-          && System.Char.IsUpper name.[2])
+      // Every leading digit is skipped, not just one. An earlier version required
+      // `Char.IsUpper name.[2]`, which silently passed `M13ObstacleDrops` because `name.[2]` is '3'
+      // — and this project's milestones already run to M14, so the two-digit case is the one that
+      // would actually occur.
+      let carriesMilestonePrefix (name: string) =
+        if name.Length < 3 || name.[0] <> 'M' || not (System.Char.IsDigit name.[1]) then false
+        else
+          let rest = name.Substring 1
+          let digits = rest |> Seq.takeWhile System.Char.IsDigit |> Seq.length
+          digits < rest.Length && System.Char.IsUpper rest.[digits]
+      let prefixed = modelFields |> Array.filter carriesMilestonePrefix
       Expect.isEmpty prefixed "no Model field carries a milestone-number prefix; the milestone is not a property of the state"
+      // The detector itself is guarded, because a prefix check that stopped detecting would pass
+      // silently forever. The two-digit case is the one an earlier version of this test missed.
+      for positive in [ "M5Enemies"; "M6Particles"; "M13ObstacleDrops"; "M14Items" ] do
+        Expect.isTrue (carriesMilestonePrefix positive) $"{positive} is a milestone-prefixed name and must be detected as one"
+      for negative in [ "Enemies"; "Model"; "M"; "M5"; "Multishot"; "MaxAgeTicks"; "M5x" ] do
+        Expect.isFalse (carriesMilestonePrefix negative) $"{negative} is not a milestone-prefixed name"
       // The seven cost counters live in the sub-record and NOT loose on Model. Both halves matter:
       // the absence alone is satisfied by deleting them, which would silently unbind every
       // performance cost driver.
