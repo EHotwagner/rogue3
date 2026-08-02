@@ -21,6 +21,17 @@ open System.Text.RegularExpressions
 
 let path parts = Path.Combine(Array.ofList parts)
 
+/// The text of a file, or the reason there isn't any. #62 (4): a gate that reads a file it cannot
+/// open must SAY SO — an unhandled `IOException` aborts the run with no line about the tree it was
+/// asked to describe. Declared here, far above its callers, because the first of them is the
+/// evidence-graph publication rule three hundred lines below and the last is the kit walk three
+/// thousand lines below, and they must not each grow their own.
+let tryReadText (filePath: string) : Result<string, string> =
+    try
+        Ok(File.ReadAllText filePath)
+    with ex ->
+        Error $"cannot be read ({ex.GetType().Name})"
+
 let targetFromArgs args =
     let rec loop values =
         match values with
@@ -368,15 +379,24 @@ let private applyEvidenceGraphPublicationRule (graphPath: string) (previouslyPub
     // An emission that exited 0 but left no graph — or left one with no sensed
     // section — has sensed NOTHING, which is the rule's own worst case rather than
     // an IO error to rethrow at the caller. Restoring then also puts the file back.
+    //
+    // #62 (4): both reads are total. A graph the process cannot OPEN is the same thing to this rule
+    // as one that is absent or has no sensed section — it has sensed nothing — and the paragraph
+    // above already says so; it just did not say it to `File.ReadAllText`. Before this, an
+    // unreadable graph threw out of `runEvidenceGraphEmission`'s `with`, was re-raised, and aborted
+    // `Verify` with no line, which is exactly the shape #62 item 4 records one target over.
     let emitted =
         if File.Exists graphPath then
-            sensedReadinessFiles (File.ReadAllText graphPath) |> Option.defaultValue Set.empty
+            match tryReadText graphPath with
+            | Ok text -> sensedReadinessFiles text |> Option.defaultValue Set.empty
+            | Error _ -> Set.empty
         else
             Set.empty
 
-    match sensedReadinessFiles (File.ReadAllText previouslyPublished) with
-    | None -> Unevaluatable $"the published graph has no `{sensedSectionHeading}` section to compare against"
-    | Some published ->
+    match tryReadText previouslyPublished |> Result.map sensedReadinessFiles with
+    | Error reason -> Unevaluatable $"the published graph {reason}, so there is nothing to compare against"
+    | Ok None -> Unevaluatable $"the published graph has no `{sensedSectionHeading}` section to compare against"
+    | Ok (Some published) ->
         let dropped = Set.difference published emitted |> Set.toList
 
         if List.isEmpty dropped then
@@ -433,6 +453,10 @@ let private evidenceGraphPublicationReport (graphPath: string) publication =
 let private emittedGraphSectionWarning (graphPath: string) : string list =
     if not (File.Exists graphPath) then
         [ $"EvidenceGraph: {graphPath} does not exist after an emission that exited 0, so there is no graph for the publication rule — or for EvidenceAudit — to read." ]
+    elif (match tryReadText graphPath with | Error _ -> true | Ok _ -> false) then
+        // #62 (4). This function WARNS by contract, so an unreadable graph warns too rather than
+        // throwing past the caller that is about to restore the published bytes.
+        [ $"EvidenceGraph: the freshly emitted {graphPath} exists but could not be read, so neither the publication rule nor EvidenceAudit can see what this run sensed." ]
     else
         match sensedReadinessFiles (File.ReadAllText graphPath) with
         | Some sensed when Set.isEmpty sensed ->
@@ -853,25 +877,41 @@ let private tryDigest (filePath: string) : Result<string, string> =
 /// that will not open and a file that will not parse — are the same thing to a gate: an oracle it
 /// cannot consult, which must be reported rather than treated as an empty one.
 let private tryReadJson (filePath: string) : Result<System.Text.Json.JsonDocument, string> =
+    // Deliberately NOT routed through `tryReadText`: the exception TYPE is the diagnostic here —
+    // `UnauthorizedAccessException` and `JsonException` send a reader to different repairs — and
+    // folding the read into a `Result` first would flatten both into one name.
     try
         Ok(System.Text.Json.JsonDocument.Parse(File.ReadAllText filePath))
     with ex ->
         Error $"cannot be read as JSON ({ex.GetType().Name}), so nothing it declares is being checked"
 
-/// #62 (1) and (2): the target of a symbolic link, or `None` for a real file or directory.
-/// `LinkTarget` is non-null for exactly the reparse points that make a path stand in for bytes the
-/// repository does not store; it is what distinguishes "this tree has 190 files" from "this tree
-/// has 95 files and a link that makes them look like 190".
-let private linkTarget (fullPath: string) : string option =
-    let info: FileSystemInfo =
-        if Directory.Exists fullPath then
-            DirectoryInfo(fullPath) :> FileSystemInfo
-        else
-            FileInfo(fullPath) :> FileSystemInfo
+/// #62 (1) and (2): `Ok None` for a real file or directory, `Ok (Some target)` for a symbolic link,
+/// `Error` when the probe itself failed. `LinkTarget` is non-null for exactly the reparse points
+/// that make a path stand in for bytes the repository does not store; it is what distinguishes
+/// "this tree has 190 files" from "this tree has 95 files and a link that makes them look like 190".
+///
+/// It is TOTAL for the reason everything else in this block is, and the reason is worth stating
+/// because a critic had to find it: the first version of this function was the one new filesystem
+/// call in #62's own fix that could still throw. On Unix `LinkTarget` returns null when `readlink`
+/// fails, so it was benign here; on Windows the reparse-point read can throw, and it runs once per
+/// entry, 190+ times, inside the walk. That is item 4's exact symptom — an unhandled exception out
+/// of the target with no violation line — reintroduced by item 1's fix, in the commit whose own
+/// comment three screens up says every read that feeds a verdict is total. A path this cannot
+/// classify is reported and NOT counted: "might be a link" has to fall the same way as "is a link",
+/// or the denominator starts describing files again on the one tree that cannot be examined.
+let private tryLinkTarget (fullPath: string) : Result<string option, string> =
+    try
+        let info: FileSystemInfo =
+            if Directory.Exists fullPath then
+                DirectoryInfo(fullPath) :> FileSystemInfo
+            else
+                FileInfo(fullPath) :> FileSystemInfo
 
-    match info.LinkTarget with
-    | null -> None
-    | target -> Some target
+        match info.LinkTarget with
+        | null -> Ok None
+        | target -> Ok(Some target)
+    with ex ->
+        Error $"cannot be examined ({ex.GetType().Name}), so whether it stands in for bytes outside this repository is unknown and it is reported rather than counted"
 
 /// Digests are shown truncated. A manifest is an INPUT, so its `sha256` may be malformed;
 /// truncating it blindly would crash the gate on the one tree it most needs to report on.
@@ -1124,6 +1164,18 @@ let private kitTreeScan (root: string) (owner: string) : string list * string li
         problems.Add
             $"{relativeTo full} is a symbolic link (-> {target}), not something this repository stores: its bytes live outside the tree these digests pin, so it is reported rather than counted as covered"
 
+    /// `true` when the entry was reported and must not be counted — a link, or a path whose type
+    /// could not be established at all.
+    let reportedAsLink (full: string) =
+        match tryLinkTarget full with
+        | Ok None -> false
+        | Ok (Some target) ->
+            reportLink full target
+            true
+        | Error reason ->
+            problems.Add $"{relativeTo full} {reason}"
+            true
+
     let rec walk (dir: string) =
         let entries =
             try
@@ -1136,9 +1188,8 @@ let private kitTreeScan (root: string) (owner: string) : string list * string li
             problems.Add $"{relativeTo dir}: cannot be listed ({ex.GetType().Name}), so nothing under it is being checked"
         | Ok entries ->
             for entry in entries do
-                match linkTarget entry with
-                | Some target -> reportLink entry target
-                | None -> if Directory.Exists entry then walk entry else files.Add(relativeTo entry)
+                if not (reportedAsLink entry) then
+                    if Directory.Exists entry then walk entry else files.Add(relativeTo entry)
 
     /// The walk yields depth-first, and the caller this most matters to is `computeKitPins`, which
     /// WRITES `scripts/kit-pins.json` in the order it receives. `Directory.GetFiles(…,
@@ -1156,13 +1207,9 @@ let private kitTreeScan (root: string) (owner: string) : string list * string li
     let ownerRoot = path [ root; owner ]
     let treeRoot = path [ root; owner; "skills" ]
 
-    match (if Directory.Exists ownerRoot then linkTarget ownerRoot else None) with
-    | Some target -> reportLink ownerRoot target
-    | None ->
-        if Directory.Exists treeRoot then
-            match linkTarget treeRoot with
-            | Some target -> reportLink treeRoot target
-            | None -> walk treeRoot
+    if not (Directory.Exists ownerRoot && reportedAsLink ownerRoot) then
+        if Directory.Exists treeRoot && not (reportedAsLink treeRoot) then
+            walk treeRoot
 
     sorted files, sorted problems
 
@@ -1306,12 +1353,35 @@ let private renderKitPins (pins: (string * string) list) =
 /// reviewer's mutant that made the TARGET write an empty ledger survived every case because only
 /// the fixture's copy was ever run.
 let private writeKitPins (root: string) =
-    let manifestPins = agentsManifestPins root
-    let pins, unpinnable = computeKitPins root (manifestPins |> Seq.map fst |> Set.ofSeq)
-    let target = path [ root; kitPinsRelative ]
-    Directory.CreateDirectory(Path.GetDirectoryName target: string) |> ignore
-    File.WriteAllText(target, renderKitPins pins)
-    pins, unpinnable
+    // #62 (4), the last instance of "writes a ledger it knows is wrong and exits 0", found by a
+    // critic one input over from the one this cycle fixed first. `agentsManifestPins` reports a
+    // manifest it cannot read as NO PINS — correct for a check that reports the manifest separately,
+    // and catastrophic for the WRITER: with no manifest pins, `computeKitPins` pins all 95 sources,
+    // the tracked ledger is silently rewritten 32 entries larger, and the target exits 0. So this
+    // path establishes the manifest is readable BEFORE it writes anything, and writes nothing when
+    // it is not. A remedy that cannot see its own input must not overwrite the file it maintains.
+    let manifestFile = path [ root; ".agents"; "skills"; "skill-manifest.json" ]
+
+    let manifestProblem =
+        if not (File.Exists manifestFile) then
+            Some ".agents/skills/skill-manifest.json is missing, so the complement this ledger pins cannot be computed — every kit file would be pinned here instead of only the files the manifest does not name"
+        else
+            match tryReadJson manifestFile with
+            | Error reason ->
+                Some $".agents/skills/skill-manifest.json: {reason}, so the complement this ledger pins cannot be computed"
+            | Ok doc ->
+                doc.Dispose()
+                None
+
+    match manifestProblem with
+    | Some reason -> [], [ reason ]
+    | None ->
+        let manifestPins = agentsManifestPins root
+        let pins, unpinnable = computeKitPins root (manifestPins |> Seq.map fst |> Set.ofSeq)
+        let target = path [ root; kitPinsRelative ]
+        Directory.CreateDirectory(Path.GetDirectoryName target: string) |> ignore
+        File.WriteAllText(target, renderKitPins pins)
+        pins, unpinnable
 
 /// Every materialized kit file matches the digest its manifest pins. Returns one line per
 /// violation; an empty list is a genuine pass.
@@ -2854,6 +2924,23 @@ let private runSelfTest () =
              | Error reason -> reason.Contains "cannot be read"
              | Ok _ -> false)
 
+        // The link PROBE is a filesystem call too, and it was the one new call in #62's own fix that
+        // could still throw — item 4 reintroduced by item 1, found by a critic. On Unix `LinkTarget`
+        // returns null when `readlink` fails, so this case reaches the `with` through a path the
+        // constructor rejects rather than through a permission; the point is that the function has
+        // one, and that an unclassifiable path is refused rather than counted.
+        expect
+            "a path the link probe cannot classify is a REASON, not an exception"
+            (match tryLinkTarget "\000not-a-path" with
+             | Error reason -> reason.Contains "cannot be examined"
+             | Ok _ -> false)
+
+        expect
+            "…and a path that simply does not exist is not a link, and does not throw either"
+            (match tryLinkTarget (path [ sandbox; "no-such-entry-" + Guid.NewGuid().ToString("N") ]) with
+             | Ok None -> true
+             | _ -> false)
+
         /// Makes a path unreadable and answers whether it really became unreadable. A run as root
         /// ignores the mode entirely, and a case that quietly proves nothing is the defect this
         /// target exists to stop — so the probe READS BACK rather than trusting the mode it just set.
@@ -3008,6 +3095,73 @@ let private runSelfTest () =
                 (match outcome with
                  | Error _ -> false
                  | Ok violations -> violations |> List.exists (fun v -> v.Contains "agents.yml" && v.Contains "cannot be read"))
+
+        // A critic reading the candidate ran the SAME grep the commit message claims to have run and
+        // found it incomplete: `sensedReadinessFiles (File.ReadAllText …)` appears three times on the
+        // `Verify` path, and `runEvidenceGraphEmission` re-raises, so an unreadable
+        // `readiness/evidence-graph.md` still aborted with no line — item 4's shape, one target over,
+        // inside the commit that claimed the class was closed. Both readers are now total, and both
+        // fall the way this rule's own doc comment already said they should.
+        let graphUnreadable = path [ sandbox; "graph-unreadable-" + Guid.NewGuid().ToString("N") ]
+        Directory.CreateDirectory graphUnreadable |> ignore
+        let emittedGraphPath = path [ graphUnreadable; "graph.md" ]
+        let publishedGraphPath = path [ graphUnreadable; "graph.published.md" ]
+        let graphBody = "# Evidence graph\n\n## Sensed readiness files\n\n- `readiness/a.txt`\n"
+        writeFile emittedGraphPath graphBody
+        writeFile publishedGraphPath graphBody
+
+        if tryMakeUnreadable publishedGraphPath then
+            let outcome =
+                try
+                    Ok(applyEvidenceGraphPublicationRule emittedGraphPath publishedGraphPath false)
+                with ex ->
+                    Error(ex.GetType().Name)
+
+            restoreReadable publishedGraphPath
+
+            expect
+                "an UNREADABLE published evidence graph makes the publication rule ABSTAIN rather than abort Verify"
+                (match outcome with
+                 | Ok (Unevaluatable reason) -> reason.Contains "cannot be read"
+                 | _ -> false)
+
+        if tryMakeUnreadable emittedGraphPath then
+            let outcome =
+                try
+                    Ok(emittedGraphSectionWarning emittedGraphPath)
+                with ex ->
+                    Error(ex.GetType().Name)
+
+            restoreReadable emittedGraphPath
+
+            expect
+                "an UNREADABLE freshly emitted evidence graph WARNS rather than aborting Verify"
+                (match outcome with
+                 | Ok lines -> lines |> List.exists (fun l -> l.Contains "could not be read")
+                 | Error _ -> false)
+
+        // The last "writes a ledger it knows is wrong and exits 0": `KitPins` reads the generated
+        // manifest to compute the COMPLEMENT it pins, and a manifest it cannot read looks exactly
+        // like a manifest that pins nothing — which would silently rewrite the tracked ledger 32
+        // entries larger, at exit 0.
+        let kitPinsBlindManifest, _ = freshFixture ()
+        let blindManifestPath = path [ kitPinsBlindManifest; ".agents"; "skills"; "skill-manifest.json" ]
+        let ledgerBefore = File.ReadAllText(path [ kitPinsBlindManifest; kitPinsRelative ])
+
+        if tryMakeUnreadable blindManifestPath then
+            let written, refusals =
+                try
+                    writeKitPins kitPinsBlindManifest
+                with ex ->
+                    [], [ ex.GetType().Name ]
+
+            restoreReadable blindManifestPath
+
+            expect
+                "KitPins REFUSES to rewrite the ledger when it cannot read the manifest, instead of pinning everything"
+                (List.isEmpty written
+                 && (refusals |> List.exists (fun r -> r.Contains "skill-manifest.json"))
+                 && File.ReadAllText(path [ kitPinsBlindManifest; kitPinsRelative ]) = ledgerBefore)
 
         // Malformed, not unreadable — the same class, reachable on every platform and with no
         // permissions involved, so these run where the mode-bit cases above cannot.
@@ -3791,6 +3945,10 @@ let helpBanner =
     + "           reported by name (#46). The coverage line prints on every run, green or red.\n"
     + "  KitPins  Rewrites scripts/kit-pins.json from the current tree. Run it only after a DELIBERATE kit\n"
     + "           edit: the changed pin is the reviewable record that a kit file was meant to change.\n"
+    + "           The file is fully DERIVED — SelfTest asserts it is byte-for-byte what this target would\n"
+    + "           write for the current tree — so hand-editing it, including its note, reds SelfTest while\n"
+    + "           TemplateDrift stays green. This target can also FAIL: it refuses to write a ledger it\n"
+    + "           knows is incomplete rather than exiting 0 over one (#62).\n"
     + "  GeneratedGuidanceCheck  Every agent .fsgg/agents.yml declares has its guidancePath present and\n"
     + "           non-empty, and generated guidance never exists for one agent only.\n"
     + "  SelfTest Plants a violation for each check above and requires it to be reported, so a check that\n"
@@ -3815,7 +3973,15 @@ let helpBanner =
     + "               so that no SINGLE one leaves the gate green, not so that three cannot be made together.\n"
     + "           rogue3#52's acceptance criterion — 'a PR that makes any build.fsx check unconditionally pass\n"
     + "           is red in CI' — is therefore still NOT fully met, by the first residual above.\n"
-    + "           See #62 for the checker's own known blind spots (symlinked kit roots, unreadable files).\n"
+    + "           #62's blind spots — symlinked kit roots and kit files, a manifest pin outside the kit tree,\n"
+    + "           and an unreadable input aborting the run with no violation line — are CLOSED. What is not:\n"
+    + "             * a kit file replaced by a HARD link, or a bind mount over a kit tree, still reads as a\n"
+    + "               real file. Symbolic links are what this detects; the bytes of a hard link are in the\n"
+    + "               tree and a clone does not dangle, so it overstates far less, but it is not nothing.\n"
+    + "             * an UNREADABLE kit file is still COUNTED as pinned by the coverage line, beside the\n"
+    + "               violation naming it. The gate is red, so nothing is hidden — but the number is the one\n"
+    + "               thing #62 is about, and this is the one case where it still describes a file the run\n"
+    + "               could not read.\n"
     + "           Two environment variables belong to the probe and are otherwise unset: FSGG_SELFTEST_INJECT_FAILURE\n"
     + "           (inject one failing case and do not recurse) and FSGG_SELFTEST_RESULT_PATH (where to write the\n"
     + "           structured result). Both are FAIL-CLOSED if set by accident — they red the run, never green it.\n"
