@@ -1219,7 +1219,10 @@ let private kitTreeScan (root: string) (owner: string) : string list * string li
     /// `work-board-best` and `work-board-normal`), which the "a directory and a file share a prefix"
     /// sentence does not describe and which reorders for the same reason. Over the ledger's 63 pins
     /// that is **4 pins moved, 8 changed diff lines** — not the six the first commit message claimed.
-    /// A gratuitous diff on a file four merged audits bind, for no change at all.
+    /// A gratuitous diff, for no change at all, on a file one merged audit binds twice
+    /// (`feedback/audits/2026-08-02-Rogue3-15.audit.json` — checked, not assumed: the first version of
+    /// this comment said FOUR, which is the count for `scripts/audit-binding-exceptions.json` and not
+    /// for this ledger).
     let sorted (values: ResizeArray<string>) = values |> List.ofSeq |> List.sort
 
     // The two roots the item names, checked BEFORE the walk: `.claude` itself may be the link, in
@@ -2899,7 +2902,7 @@ let private runSelfTest () =
         // hand-written walk is depth-first and the array it replaced was sorted flat; the two differ
         // wherever a directory and a file share a prefix. This was not caught by reading — the first
         // version of the walk reordered six lines of the real `scripts/kit-pins.json`, a gratuitous
-        // diff on a file four merged audits bind, discovered only by running `KitPins` and looking at
+        // diff on a file a merged audit binds, discovered only by running `KitPins` and looking at
         // `git diff`. The fixture plants exactly that pair so a dropped sort cannot pass.
         let walkOrder, _ = freshFixture ()
         writeFile (path [ walkOrder; ".agents/skills/fs-gg-kit/section/nested.md" ]) "# nested\n"

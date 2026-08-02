@@ -275,8 +275,10 @@ jobs:
           # rogue3#62. A case whose PRECONDITION cannot be established on this host
           # records nothing at all, so a runner that refuses symbolic links or runs
           # as root reports a smaller, entirely healthy-looking total and exits 0 --
-          # measured at 164 -> 156 and 164 -> 161 for those two hosts, both still
-          # "0 failure(s)". `cases -lt 1` cannot see that, and the only other signal
+          # measured at 164 -> 156 (8 cases in 4 groups) and 164 -> 153 (11 cases
+          # in 8 groups) for those two hosts, both still "0 failure(s)"; a real root
+          # run also loses the two unlistable-directory cases, which carry their own
+          # probe. `cases -lt 1` cannot see any of that, and the only other signal
           # was a note in the transcript, which is the one channel #57 established
           # must not be trusted. THIS runner (ubuntu-latest, non-root, symlinks
           # permitted) skips nothing, so requiring zero is a statement about the
