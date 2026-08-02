@@ -26,7 +26,7 @@ let path parts = Path.Combine(Array.ofList parts)
 /// asked to describe. Declared here, far above its callers, because the first of them is the
 /// evidence-graph publication rule three hundred lines below and the last is the kit walk three
 /// thousand lines below, and they must not each grow their own.
-let tryReadText (filePath: string) : Result<string, string> =
+let private tryReadText (filePath: string) : Result<string, string> =
     try
         Ok(File.ReadAllText filePath)
     with ex ->
