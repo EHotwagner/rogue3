@@ -1508,15 +1508,25 @@ let private secretRevealJourneyBoot () = secretRevealModel ()
 /// The digest moving is therefore expected and proves nothing on its own. What was REVIEWED is the
 /// rest of the artifact, which did NOT move: every workload reported exactly one failing reason
 /// (this stale declaration) and zero cost-driver problems, and every observed cost equalled its
-/// declared `MaximumExpected` — including all of `maximum-content`, where `costDriverProblems`
-/// demands EXACT equality rather than a ceiling. That last part is the load-bearing check on this
-/// particular change: the seven counters are now written through a nested copy-and-update, and an
-/// increment dropped in that rewrite would surface as `collision.combat-candidates`,
-/// `collision.shot-wall-queries`, `simulation.homing-target-considerations`,
-/// `simulation.shot-spawn`, `simulation.door-sensor-candidates`,
-/// `simulation.floor-pickup-candidates` or `simulation.secret-reveal-candidates` missing its exact
-/// value. All seven matched. A green digest copy without that reading is how a reshape ships a
-/// silently unwired counter.
+/// declared `MaximumExpected`. That is the load-bearing check on this particular change, because
+/// the seven counters are now written through a NESTED copy-and-update and an increment dropped in
+/// that rewrite has to surface somewhere.
+///
+/// Six of the seven are `RequiredIn [ "maximum-content" ]`, where `costDriverProblems` demands
+/// EXACT equality rather than a ceiling, so a dropped, doubled or mis-targeted increment reds the
+/// run: `simulation.shot-spawn` 3, `collision.shot-wall-queries` 740,
+/// `simulation.homing-target-considerations` 2400, `collision.combat-candidates` 2100,
+/// `simulation.floor-pickup-candidates` 12, `simulation.door-sensor-candidates` 8.
+///
+/// The seventh, `simulation.secret-reveal-candidates`, is `RequiredIn [ "secret-reveal" ]`, where
+/// the check is the weaker `observed < MaximumExpected`. Its declared maximum is 1 and it observed
+/// 1, so a dropped increment WOULD red it (0 < 1) — but a doubled one would not. Stated exactly
+/// rather than folded into the other six, because the guarantee is genuinely weaker there and a
+/// reader entitled to assume otherwise is how the next reshape ships an unwired counter.
+///
+/// `TotalWallQueries`, `TotalHomingQueries`, `TotalSecretRevealCandidates` and
+/// `TotalDoorSensorQueries` have no assertion anywhere in the test suite. For those four this
+/// evidence is the ONLY thing standing between a nested-record rewrite and a silently dead counter.
 let expectedWorkloads =
     [ // WORKLOAD-SOURCE-BEGIN idle
       { Id = "idle"
