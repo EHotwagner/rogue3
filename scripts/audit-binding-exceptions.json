@@ -45,6 +45,14 @@
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
       "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+      "boundSha256": "982f6fdd9f9fbe5c95faec14b14494b05ccafc449846f5f42138772bc89275bf",
+      "observedSha256": "37ee5cbb2dfd2f87a1107f7a181685ee33ca851365d12e7858eb8763e9555a57",
+      "reason": "rogue3#40: the feedback-report validator had the same no-fixed-point binding as this gate. Fixing it required editing .agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs (the digest rule and the not-bound reporting) and .agents/skills/fs-gg-feedback-report/SKILL.md (documenting the one-path exemption and the new selftest). Excused rather than rebound, following 7e71d71 and #38: feedback/audits/2026-08-01-Rogue3-12.audit.json \u00a74.14 and feedback/audits/2026-08-02-Rogue3-3.audit.json \u00a74.2 record critics who read the PRE-fix bytes, and repointing them would claim those critics examined code that did not exist when those reports were written."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
+      "kind": "evidence",
       "locator": "file:docs/roguelike-dungeon-crawler-roadmap.md",
       "boundSha256": "071c767013d14a4e24c6c599a3a442814d7bc5ddd5686b5e40a1389a4d6a1ee0",
       "observedSha256": "28b92cf98eeb1a58d3037d8dabd4e7437631e3d7097f949662e097ab839d0ad1",
@@ -425,6 +433,14 @@
       "boundSha256": "729510e7eda14798f7f766eb235c52f06417b4b68e08fa470cb28554b54dc948",
       "observedSha256": "9bcca9582b936a1b03e9f180cbe677af2cdebd0b09dc7634650b9d54c7eec105",
       "reason": "Board item EHotwagner/rogue3#20 removed the pre-M5 world-state generation from the Model: the Enemies, Obstacles and ShopSlots fields, the Enemy, ShopSlot and ShopCost types, the InteractShop message and the purchaseShopSlot reducer. src/Rogue3/Model.fs lost those and gained the single blockingObstacleRects derivation plus the actorRadius/actorContactDamage readers; src/Rogue3/Entities.fs gained Velocity, LastContactTick and HitFlashTicks on EnemyActor; src/Rogue3/PerformanceEvidence.fs replaced the legacy maximum-content enemy and obstacle fixtures with spawnable actors and placed obstacles and re-declared seven workload definition digests, five ScaleSource strings and three MaximumExpected values; src/Rogue3/EvidenceCommands.fs re-declared the three model-hashing UI-route digests; six test files were re-pointed at the surviving representation and seven guard tests were added, four of them because an independent critic's mutation run found the claims unguarded; readiness/ artifacts were regenerated at the candidate. The two performance readiness artifacts mint per-run journey receipts, so a verification re-run re-invalidates their bindings; that is recorded as finding 4.7 of feedback/2026-08-02-Rogue3-8.md. Excused rather than rebound, following 7e71d71 and the defect recorded in feedback/2026-08-01-Rogue3-12.md 4.13: repointing an earlier cycle's audit would claim its critic examined code that did not exist when that report was written."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-3.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
+      "boundSha256": "2d7127addbab83625a31d0d9defe7c9322845209a93b6e02b00f5d7cad11e4f8",
+      "observedSha256": "8ac8477c68de364f2f88d64f56c095530f16250a76f31b9c88f834563943944d",
+      "reason": "rogue3#40: the feedback-report validator had the same no-fixed-point binding as this gate. Fixing it required editing .agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs (the digest rule and the not-bound reporting) and .agents/skills/fs-gg-feedback-report/SKILL.md (documenting the one-path exemption and the new selftest). Excused rather than rebound, following 7e71d71 and #38: feedback/audits/2026-08-01-Rogue3-12.audit.json \u00a74.14 and feedback/audits/2026-08-02-Rogue3-3.audit.json \u00a74.2 record critics who read the PRE-fix bytes, and repointing them would claim those critics examined code that did not exist when those reports were written."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-3.audit.json",

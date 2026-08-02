@@ -324,6 +324,31 @@ complete stable finding coverage, critic vocabulary/mode, unresolved actionabili
 and evidence digests. Changing or deleting cited evidence invalidates a previously green audit.
 It intentionally does not validate old schema-v1 reports.
 
+One citation is deliberately exempt from the digest check: a `file:` locator that resolves to
+`scripts/audit-binding-exceptions.json`, the audit-binding gate's excuse ledger. Excusing any stale
+binding rewrites that ledger, so pinning its digest is a fixed-point equation with no fixed point —
+a report whose finding is *about* the ledger, and therefore cites it, would be invalidated by the
+documented remedy for an unrelated violation. The exemption is exactly that one path, decided on the
+resolved location rather than the locator text; a citation onto another `*.audit.json` is **not**
+exempt. Exempt citations are reported, never silently skipped:
+
+```
+feedback-tool: 1 citation(s) NOT BOUND -- reported rather than checked:
+  §4.4 file:scripts/audit-binding-exceptions.json
+    this is the audit-binding excuse ledger itself: ...
+feedback-tool: 1 citation(s) were not checked (listed above).
+```
+
+so a reader can always tell "this citation is exempt" apart from "the validator missed it". The
+locator still has to resolve inside the workspace and the file still has to exist — only the digest
+is unbindable. A pinned `sha256` on that one locator is optional and is never compared.
+
+Prove the validator still fails a stale binding before trusting a verdict it gives:
+
+```sh
+dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest
+```
+
 ## Final roll-up
 
 When a roadmap contains multiple cycle reports, aggregate rather than concatenate:
