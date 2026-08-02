@@ -226,18 +226,45 @@ let private cueForPickup = function
 
 // A shop interaction is an explicit acquisition event. Do not infer pickups from arbitrary model
 // increases: run resets and the difficulty-owned post-boss heal also increase those fields.
+//
+// Board item #55 made this STATE-DERIVED, and had to. A purchase is now reached the way a descent is
+// reached: the player presses interact inside a fixed step, `Model.playerRoomIntentsIn` raises
+// `InteractM5Shop`, and `advanceSim` folds it through `update` — so the audio seam is called with
+// `Tick`, and never sees the shop message at all on a real purchase. A message-keyed cue was audible
+// only to a test that dispatched the message by hand, which is the identical defect the
+// `floor-descend` note in `directEventCues` records. The message arm is KEPT so a direct dispatch is
+// still cued, and both arms read the same offer diff.
+//
+// The diff is what a purchase actually does: `Entities.purchase` empties the slot it charged for, so
+// the transition is `Offer <> Empty` becoming `Empty`, on a slot id that survives. Requiring the
+// AFTER state to be `Empty` is what keeps a room change silent — walking into a second shop replaces
+// `M5ShopSlots` wholesale with freshly generated, non-empty stock under the same ids 0..2, and a bare
+// `before.Offer <> after.Offer` would have cued that as three purchases. The room and floor guard is
+// the belt to that braces: no cue is possible across a transition that moved the player elsewhere.
 let private m5ShopPickupCues msg previous next =
-    match msg with
-    | InteractM5Shop slotId ->
-        match previous.M5ShopSlots |> List.tryFind (fun slot -> slot.Id = slotId),
-              next.M5ShopSlots |> List.tryFind (fun slot -> slot.Id = slotId) with
-        | Some before, Some after when before.Offer <> after.Offer ->
-            match before.Offer with
-            | Rogue3.Entities.ShopOffer.Item _ -> [ sfx AudioCueIds.itemPickup 0.85 ]
-            | Rogue3.Entities.ShopOffer.Consumable kind -> cueForPickup kind |> Option.toList
-            | Rogue3.Entities.ShopOffer.Empty -> []
-        | _ -> []
-    | _ -> []
+    let sameRoom =
+        previous.Floor.CurrentRoom = next.Floor.CurrentRoom && previous.FloorIndex = next.FloorIndex
+    let purchasedOffers =
+        if not sameRoom then []
+        else
+            next.M5ShopSlots
+            |> List.choose (fun after ->
+                if after.Offer <> Rogue3.Entities.ShopOffer.Empty then None
+                else
+                    previous.M5ShopSlots
+                    |> List.tryFind (fun before -> before.Id = after.Id)
+                    |> Option.bind (fun before ->
+                        if before.Offer = Rogue3.Entities.ShopOffer.Empty then None else Some before.Offer))
+    // On `Tick` the ITEM half is already cued by `AudioEvent.ItemGranted`, which `Model.grantItem`
+    // appends and `advanceSim` keeps to the end of the tick — cueing it here as well would play
+    // `item-pickup` twice for one purchase. On the message path that event is discarded unplayed
+    // (`advanceSim` clears `AudioEvents` at the head of the next tick), so there it is cued here.
+    let itemAlreadyCued = match msg with | Tick _ -> true | _ -> false
+    purchasedOffers
+    |> List.collect (function
+        | Rogue3.Entities.ShopOffer.Item _ -> if itemAlreadyCued then [] else [ sfx AudioCueIds.itemPickup 0.85 ]
+        | Rogue3.Entities.ShopOffer.Consumable kind -> cueForPickup kind |> Option.toList
+        | Rogue3.Entities.ShopOffer.Empty -> [])
 
 let private doorAndBossCues previous next =
     let locked = function

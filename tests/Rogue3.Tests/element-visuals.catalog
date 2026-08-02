@@ -23,6 +23,7 @@ BossGnawer	shown	token/boss/gnawer
 BossHollowChoir	shown	token/boss/hollowchoir
 BossMaw	shown	token/boss/maw
 ShopItem	shown	scene/shop-item
+ShopSlotReady	shown	scene/shop-slot-ready
 DoorOpen	shown	scene/door/open
 DoorLockedKey	shown	scene/door/locked-key
 DoorBossDoor	shown	scene/door/boss-door

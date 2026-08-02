@@ -1408,9 +1408,31 @@ let m7UiPerformanceEvidence (path:string) =
               // five named regions, run-result the same actions and text fields, stats-charts the same
               // series. That is the check that a refactor which claims to change no behaviour did not
               // change one node of what the viewer receives.
-              "hud-playing", "0350d3a7ee6ea6a3d5e0b5d0bb94e61a57d5d9c832e98582069c5b7044ba2710"
-              "run-result", "3cdd3d4195dbab6da031f5147ec62394d9c1de58b1e1039ff23db7a751ec7bef"
-              "stats-charts", "929efbeec64a34bd0ca31e09ae565b4dc4e4dd6cd5bab38475a955b0ae646f95" ]
+              //
+              // Board item #47 (FIFTH derivation) — NOT DECLARED AT THE TIME, and that is the point.
+              // PR #59 gave `Model.fs` the item-grant spine (`grantItem`, `collectRoomReward`, the
+              // relocated `purchaseM5ShopSlot`) and `AudioCues.fs` the state-derived item cue, which
+              // moved all three model-hashing routes, and the digests below were left pointing at the
+              // pre-#47 bytes. `main` at 95b1170 therefore FAILED `./fake.sh build -t Verify` with
+              // `status=failed m7-ui-performance`, and nothing caught it because
+              // `.github/workflows/verify.yml` runs the feedback selftest and `dotnet test` only — it
+              // never runs the `Verify` target that owns this check. Recorded here rather than
+              // silently absorbed, because a re-derivation that hides why it was needed is how the
+              // next one goes unnoticed too.
+              //
+              // Board item #55 (SIXTH derivation): `Model.fs` gained the shop-slot proximity sensor
+              // (`shopSlotRadius`/`shopSlotPositions`/`shopSlotAffordable`/`shopSlotUnderPlayer`), the
+              // interact branch in `playerRoomIntentsIn` that raises `InteractM5Shop`, and
+              // `withShopStock`, which makes an emptied offer durable floor state; `Render.fs` gained
+              // `shopSlotReadyScene` and the `ShopSlotReady` element. Once again exactly the three
+              // routes that hash those two files move and `main-menu` — which hashes `GameShell.fs`
+              // and `M7Ui.fs` — is byte-identical, which is the check that the digest set moved where
+              // the source moved and nowhere else. Every scale verdict is unchanged: hud-playing still
+              // reports 12 scene elements at both outputs and the same five named regions, because the
+              // shop prompt is a WORLD-SPACE element and this route measures the HUD.
+              "hud-playing", "b90de279bf828d59cd3906b90ba8f197668dfd804db6ebb9c3cf6cdd80907907"
+              "run-result", "b9bae075c3a533ae2ee7a5fd09c9ab49f60f0fe8bd3a538488ee3d5491f4e662"
+              "stats-charts", "eb71d62d6181d99eff7c6dc00eae0aea4e44c02d0c805c98522b2a685fb44b3f" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]
