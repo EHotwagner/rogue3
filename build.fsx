@@ -1681,20 +1681,33 @@ let generatedGuidanceViolations (root: string) =
 
             let readinessRoot = path [ root; "readiness" ]
 
+            // #62 (4), same class again and the last instance of it in this file: a directory that
+            // will not list threw straight out of the target. Enumerated by the same grep that found
+            // the reads — `Directory.Get*` is as able to throw as `File.ReadAll*`, and this pair is
+            // the only remaining one on a verdict path.
+            let subdirectories (dir: string) =
+                try
+                    Ok(Directory.GetDirectories dir)
+                with ex ->
+                    Error $"{(Path.GetRelativePath(root, dir)).Replace('\\', '/')}: cannot be listed ({ex.GetType().Name}), so the guidance under it is not being checked"
+
             if Directory.Exists readinessRoot then
-                for workDir in Directory.GetDirectories readinessRoot do
-                    let commands = path [ workDir; "agent-commands" ]
+                match subdirectories readinessRoot with
+                | Error reason -> violations.Add reason
+                | Ok workDirs ->
+                    for workDir in workDirs do
+                        let commands = path [ workDir; "agent-commands" ]
 
-                    if Directory.Exists commands then
-                        let present =
-                            Directory.GetDirectories commands
-                            |> Array.map Path.GetFileName
-                            |> Set.ofArray
+                        if Directory.Exists commands then
+                            match subdirectories commands with
+                            | Error reason -> violations.Add reason
+                            | Ok present ->
+                                let present = present |> Array.map Path.GetFileName |> Set.ofArray
 
-                        for leaf in leaves do
-                            if not (present.Contains leaf) then
-                                let work = Path.GetFileName workDir
-                                violations.Add $"readiness/{work}/agent-commands has generated guidance but none for `{leaf}`"
+                                for leaf in leaves do
+                                    if not (present.Contains leaf) then
+                                        let work = Path.GetFileName workDir
+                                        violations.Add $"readiness/{work}/agent-commands has generated guidance but none for `{leaf}`"
 
         List.ofSeq violations
 
@@ -2933,6 +2946,47 @@ let private runSelfTest () =
                     (match outcome with
                      | Error _ -> false
                      | Ok violations -> violations |> List.exists (fun v -> v.Contains "references" && v.Contains "cannot be listed"))
+
+        // The same class in the OTHER target's directory walk, which the grep found and reading did
+        // not: `Directory.GetDirectories` over `readiness/<work>/agent-commands` threw straight out
+        // of `GeneratedGuidanceCheck`.
+        let unlistableCommands, _ = freshFixture ()
+        let commandsDir = path [ unlistableCommands; "readiness"; "015-work"; "agent-commands" ]
+
+        for agent in [ "claude"; "codex" ] do
+            Directory.CreateDirectory(path [ commandsDir; agent ]) |> ignore
+
+        if not (OperatingSystem.IsWindows()) then
+            let becameUnlistable =
+                try
+                    DirectoryInfo(commandsDir).UnixFileMode <- UnixFileMode.None
+
+                    try
+                        Directory.GetDirectories commandsDir |> ignore
+                        false
+                    with _ ->
+                        true
+                with _ ->
+                    false
+
+            if becameUnlistable then
+                let outcome =
+                    try
+                        Ok(generatedGuidanceViolations unlistableCommands)
+                    with ex ->
+                        Error(ex.GetType().Name)
+
+                try
+                    DirectoryInfo(commandsDir).UnixFileMode <-
+                        UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
+                with _ ->
+                    ()
+
+                expect
+                    "a generated-guidance DIRECTORY that cannot be listed is reported rather than aborting GeneratedGuidanceCheck"
+                    (match outcome with
+                     | Error _ -> false
+                     | Ok violations -> violations |> List.exists (fun v -> v.Contains "agent-commands" && v.Contains "cannot be listed"))
 
         // The neighbouring target, guarded in the same change for the same reason: #62 names
         // `fileDigest`, and a worker who guards only the seam an issue names has not fixed the
