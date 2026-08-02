@@ -1,0 +1,215 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-6.md",
+  "reportSha256": "2907265d6336207e44483cd26023e37588a1efc6d8640899994f5b757777e6ba",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#38",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1"
+        },
+        {
+          "locator": "file:feedback/audits/2026-08-02-Rogue3-7.audit.json",
+          "result": "verified",
+          "sha256": "ce4ead620070dcafa83b6edb048a570078789a38142a383d2e80dd5496850198"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --grandfather --reason \"convergence probe\"",
+          "result": "verified"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic reproduced the non-convergence independently in a clean `git archive origin/main` sandbox: four consecutive --grandfather runs produced four distinct ledger digests, the plain check exited 1 after every one, and the rebind route then failed with the quoted `1 OBSOLETE EXCEPTION(S)` message. The four digest VALUES quoted in the report are run-local and are not reproducible as strings; the mechanism is.",
+        "The report's 'one hand-edit of a merged audit' was an understatement in the reviewed draft: the first rebind re-serialised the whole -7 audit into \\u00a7 escaping, rewriting 17 lines. That was redone as a one-line change before this audit was written, and `git diff --stat` on that file now shows 1 insertion and 1 deletion."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.gitignore",
+          "result": "verified",
+          "sha256": "62a471dc3da66ba16fbfb1c7d6ae44efb017540624eff49b38eb9f8553b56775"
+        },
+        {
+          "locator": "command:git check-ignore -v --no-index readiness/014-m13-room-transition-pickups-world-state/frames/01-crossing-start/sha256-e09a11b36be375d7edb14651d9837ae8b323b86ce227ad4b62424e17d7861e16.png",
+          "result": "verified"
+        },
+        {
+          "locator": "command:gh run view 30734467205 --repo EHotwagner/rogue3 --log-failed",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The reviewed draft cited `git check-ignore -v` without --no-index, which exits 1 with no output now that the frames are force-added. The locator was corrected to --no-index so a reader can reproduce the rule against a tracked file."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:work/014-m13-room-transition-pickups-world-state/plan.md",
+          "result": "verified",
+          "sha256": "36308012d5babdd29155385426f153bb9bf64efd88dc7f61c1191021ec4777da"
+        },
+        {
+          "locator": "command:fsgg-sdd plan --work 014-m13-room-transition-pickups-world-state --text",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-2.md",
+          "result": "contradictory",
+          "sha256": "d1a20683413277cccef843d277d088019d18f65dfa96441672b23b5a9fa01693"
+        },
+        {
+          "locator": "file:feedback/2026-08-01-Rogue3-11.md",
+          "result": "contradictory",
+          "sha256": "808c8f153ef263f1989c47b6163788449dc79ec3cc975c2fb166050f2712cc9b"
+        },
+        {
+          "locator": "file:feedback/2026-08-01-Rogue3-12.md",
+          "result": "contradictory",
+          "sha256": "35e4f57d1bd256fcc58a737acec24be06fd13906a0ad4fcdd9efead8b30508bb"
+        }
+      ],
+      "confidenceLimits": [
+        "The three prior reports are recorded as `contradictory` against the REVIEWED DRAFT, which claimed they attributed the loss to --accept-upstream and that the plain command was a new narrowing. They say the opposite: -2 §4.2 explicitly withdraws that inference, and -11 §4.5 and -12 §4.6 both cite the plain command. The finding was rewritten as a duplicate with no new fact, the occurrence count corrected to five, and the wrong attribution corrected where it actually lived — this work item's own plan.md advisory note.",
+        "The disposition names no issue number because none exists in the tracker for this defect; the report says so rather than implying a filed issue. Filing a fifth restatement was judged noise; what would move it is a fix or a maintainer response."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "2409694ddce38f59b4687065c378055cb9cf9344af65eb756c01325a7b1123c4"
+        },
+        {
+          "locator": "command:dotnet run -c Release --project src/Rogue3 -- --performance-evidence readiness/performance-evidence.json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:readiness/performance-intent.yml",
+          "result": "verified",
+          "sha256": "7be84d813d30ffec5f3ce34c34578e6613d679054dd78f858f409da6b63e4cd2"
+        },
+        {
+          "locator": "file:work/014-m13-room-transition-pickups-world-state/plan.md",
+          "result": "verified",
+          "sha256": "36308012d5babdd29155385426f153bb9bf64efd88dc7f61c1191021ec4777da"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic returned this as `incomplete` because the reviewed draft's distinctive claim — that only three of seven workloads moved on the second round, since an empty FSharpList encodes identically whatever its element type — is contradicted by the committed rounds, in both of which all seven moved. The claim came from an intermediate state no commit preserves. It was withdrawn rather than defended, and is now recorded as a known unknown in the finding itself; what remains is the digest-fold mechanism and the ordering constraint, both inspectable in the cited source and reproduced by the cited command."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "697ba5244ee40ad5c5e5ece39faf89ec61fbd8cbbf3f718b95b37a1bc7187bdd"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs",
+          "result": "verified",
+          "sha256": "a3553bb4fd1f6aa6c0d97107c31d8fc4a40d50482f5b453c607b1363bf6663b9"
+        },
+        {
+          "locator": "file:src/Rogue3/Render.fs",
+          "result": "verified",
+          "sha256": "422fb85bc64fcfd02b3b23607222b179b598ffc86ae5c01e7f9f29868c1b41b8"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic recomputed the 46 hidden-wall doors on floors 1-6 of seed 0xC0FFEE exactly from the built assembly (6+6+8+8+8+10). The counterexample coordinates (638.78, 707.00) and the 24.00-unit penetration figure came from a throwaway /tmp probe and are NOT re-derivable from this tree; they are reproduced in readiness/014-.../critic-history.md and marked there as such. The shipped FR-009 test derives its own counterexample rather than pinning those numbers.",
+        "The reviewed draft omitted two dedupe results the critic supplied: the drop-loss defect is the new defect introduced while closing #36, and its root shape is what #20 is open against. Both are now stated in the Recurrence line."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:scripts/render-m13-frames.fsx",
+          "result": "verified",
+          "sha256": "c1718e55dc62e096df8ffd636cd1e673ec6ded0105580baaf93e8b5ac132f9d2"
+        },
+        {
+          "locator": "file:readiness/014-m13-room-transition-pickups-world-state/critic-history.md",
+          "result": "verified",
+          "sha256": "d3c32b4030c91fa205595f7d196169ebb308274726db16049270cca0b4b099f8"
+        },
+        {
+          "locator": "file:src/Rogue3/GameplayVisualInventory.fs",
+          "result": "verified",
+          "sha256": "c4ea8a350fdd027ffa65c1ce7b8adde0e333e169bbe6075d42f2169a3756d9a8"
+        },
+        {
+          "locator": "command:dotnet fsi scripts/render-m13-frames.fsx",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic ran the harness and confirmed it now emits `real reducer drops: [(Coin1, 370.0, 480.0)]` against `obstacle anchors: ... (TintedRock, 370.0, 480.0) ...` — an exact match for the claim — and that all twelve frames regenerate to byte-identical sha256 filenames.",
+        "The reviewed draft cited two frames/*/reference-evidence.md files as evidence. Those are generated protocol receipts carrying a verdict, a package identity and an image path; they carry no caption and no claim, so they could not evidence 'a frame captioned X did not show X'. The locators were replaced with the harness (which holds the captions), the committed critic history, and the command that regenerates the frames."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:readiness/014-m13-room-transition-pickups-world-state/critic-history.md",
+          "result": "verified",
+          "sha256": "d3c32b4030c91fa205595f7d196169ebb308274726db16049270cca0b4b099f8"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs",
+          "result": "verified",
+          "sha256": "a3553bb4fd1f6aa6c0d97107c31d8fc4a40d50482f5b453c607b1363bf6663b9"
+        },
+        {
+          "locator": "file:src/Rogue3/Render.fs",
+          "result": "verified",
+          "sha256": "422fb85bc64fcfd02b3b23607222b179b598ffc86ae5c01e7f9f29868c1b41b8"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#35",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic verified the substantive claims: the FR-013 self-referential assertion was real, both no-guard rows are now genuinely guarded, y = 37.00 is printed by the committed harness, and the pickup colours and redrawn visuals are at the cited source lines.",
+        "It correctly identified that the process counts — eighteen/sixteen/two mutations, the 16,860-obstacle sweep, ~thirty rendered states, the merge-base HUD hashing, y = 683 — were narration with no committed artifact, and that this repository has committed critic history twice before. The remedy applied was to commit readiness/014-.../critic-history.md reproducing all three critics' findings verbatim, marking every figure that came from a throwaway /tmp script as not re-derivable from the tree. The counts themselves still rest on the critics' transcripts; what changed is that a reader can now see which ones do."
+      ]
+    }
+  ]
+}

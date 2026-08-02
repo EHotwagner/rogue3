@@ -94,7 +94,7 @@ No blocking planning findings recorded.
 ## Advisory Notes
 - Optional Governance pointers remain compatibility facts only.
 - The lesson this item encodes: M11 shipped `shipReady` with a room whose crossing rendered a blank screen, and the only reason it did not ship *that* is that a human looked at a frame and the milestone chose to suppress the slide instead. Five of the five rows here came from looking. A product whose visual obligations are discharged only by element-id and node-count assertions has no gate that can see a blank screen, which is why VO-006 is a first-class obligation of this plan and not a nicety.
-- Performance intent for this work item is authored above under `## Performance Intent`. Three previous cycles recorded `fsgg-sdd plan --accept-upstream` reclaiming that section back to its placeholder line. `plan.md` is copied to a scratch path before each `fsgg-sdd plan` run; if the section is reclaimed it is restored, not accepted.
+- Performance intent for this work item is authored above under `## Performance Intent`. Four previous cycles recorded `fsgg-sdd plan` reclaiming that section back to its placeholder line. NOTE: an earlier version of this note attributed it to `--accept-upstream`; that is wrong and the prior reports do not say it — `feedback/2026-08-02-Rogue3-2.md` §4.2 explicitly withdraws that inference, and `-11` §4.5 and `-12` §4.6 both cite the plain command. The plain command does it, which is what was observed here. `plan.md` is copied to a scratch path before each `fsgg-sdd plan` run; if the section is reclaimed it is restored, not accepted.
 
 ## Lifecycle Notes
 - Next lifecycle action: `fsgg-sdd tasks --work 014-m13-room-transition-pickups-world-state`.
