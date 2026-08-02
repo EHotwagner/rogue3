@@ -1,0 +1,256 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-18.md",
+  "reportSha256": "9199146b71e1ed60650d6a5fe31f37e6b677f93e6775ee96d39883de081ca27c",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#63",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:FS-GG/FS.GG.Rendering#1196",
+          "result": "verified"
+        },
+        {
+          "locator": "file:docs/api-surface/SkiaViewer/SkiaViewer.fsi",
+          "result": "verified",
+          "sha256": "9dd5427829652f35bc5bc6a18927fe135e952fa48344c08b0f548281e3f77109"
+        }
+      ],
+      "confidenceLimits": [
+        "The mechanism is inference from the observation plus the contract text, not established; the finding hedges it in place.",
+        "The symptoms are the issue author's. No debugger was run inside the framework and no two-output reproduction was performed by this cycle."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:docs/api-surface/Controls.Elmish/ControlsElmish.fsi",
+          "result": "verified",
+          "sha256": "f24b8a83bdd7a69f01314f7753abceded5f750d845bd6c4a597b466e3166d080"
+        },
+        {
+          "locator": "file:docs/api-surface/SkiaViewer/SkiaViewer.fsi",
+          "result": "verified",
+          "sha256": "9dd5427829652f35bc5bc6a18927fe135e952fa48344c08b0f548281e3f77109"
+        },
+        {
+          "locator": "issue:FS-GG/FS.GG.Rendering#1196",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:tests/Rogue3.Tests/BehaviorTests.fs",
+          "result": "verified",
+          "sha256": "932c729d8e8b882a8e7b528c2e09df8bcacdd094fe78aa71c0faffb8c2486397"
+        },
+        {
+          "locator": "issue:FS-GG/FS.GG.Rendering#1022",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#63",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The claim that the product's coverage still had this shape at 715bef9 rests on the test's content at that commit, confirmed by diff, not on a coverage measurement."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:tests/Rogue3.Tests/BehaviorTests.fs",
+          "result": "verified",
+          "sha256": "932c729d8e8b882a8e7b528c2e09df8bcacdd094fe78aa71c0faffb8c2486397"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/ShellBehaviorTests.fs",
+          "result": "verified",
+          "sha256": "c97baffd061cc73c01e2d1cc7358d4190dc0bf17231d7e2ad8ef62071188750f"
+        },
+        {
+          "locator": "file:feedback/checkpoints/item-63-borderless-display-mode.jsonl",
+          "result": "verified",
+          "sha256": "370602bdc4864d469b16b9a9e8ba7b4d6e5a578f9461502809689ec27cfb31da"
+        },
+        {
+          "locator": "command:git show e0110c8:tests/Rogue3.Tests/BehaviorTests.fs",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The mutated tree the critic used no longer exists; the 273-passed/1-failed result on the reverted-and-neutralised candidate remains the author's contemporaneous record."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:tests/Rogue3.Tests/BehaviorTests.fs",
+          "result": "verified",
+          "sha256": "932c729d8e8b882a8e7b528c2e09df8bcacdd094fe78aa71c0faffb8c2486397"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/Rogue3.Tests.fsproj",
+          "result": "verified",
+          "sha256": "46a4b80b61bbda070d43828e955430cfd82573729c202f2a58b2cc48dadc1539"
+        },
+        {
+          "locator": "command:dotnet test Rogue3.slnx -c Release --no-build",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The unmatchable-probe run that confirmed the asserted diagnostic string is the author's record; that specific run is not reproducible from the shipped tree."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.github/workflows/verify.yml",
+          "result": "verified",
+          "sha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa"
+        },
+        {
+          "locator": "file:src/Rogue3/EvidenceCommands.fs",
+          "result": "verified",
+          "sha256": "3446b7eeb2ccc76564281b194d66d95cbda6f52dbbff022fc6c5729d65b04557"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#61",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic did not execute the Verify target, because it rewrites tracked readiness artifacts; it verified the precondition arithmetically and corroborated it with readiness/logs/PerformanceEvidence.txt.",
+        "The in-source latency note (p95 0.274 -> 0.282 ms) does not match readiness/m7-ui-performance.json's current p95Ms. This is per-run timing noise of the kind EHotwagner/rogue3#56 records, not a contradiction: the in-source numbers are an observation of two specific runs, and the claim they support -- unchanged within noise against a 16.67 ms budget -- holds at both."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:scripts/audit-binding-exceptions.json",
+          "result": "verified",
+          "sha256": "d78cc5cac08694820b1bfd8142aa38a8036da82b5bb419641ccd607f79b28c11"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#53",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Program.fs",
+          "result": "verified",
+          "sha256": "30f369ee3a57f73b4f5d290ff0e4c1223c7cbc863b5d24336bf15c38ec94328a"
+        },
+        {
+          "locator": "file:src/Rogue3/EvidenceCommands.fs",
+          "result": "verified",
+          "sha256": "3446b7eeb2ccc76564281b194d66d95cbda6f52dbbff022fc6c5729d65b04557"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#75",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The player-facing consequence is derived from the two code paths, not observed; no product launch was performed this cycle."
+      ]
+    },
+    {
+      "id": "§4.9",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-7.md",
+          "result": "verified",
+          "sha256": "8534f033ade722761e2f5450f1e5932c80c8e6d4023a24b891f9625f5ffc63fc"
+        },
+        {
+          "locator": "command:git show --stat 67d4a06",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git diff 715bef9 -- tests/",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "git show --stat 67d4a06 establishes the digest re-derivation as a discrete commit but cannot establish the temporal claim that the report asserted it before it happened: that commit PRECEDES the report commit 1e9191a, and the claim concerns an uncommitted draft. It rests on the author's testimony and the checkpoint file. This is a permanent limit on shape (a)'s evidence, not a defect in the locator.",
+        "This finding reached actionable only on the fifth actionability pass, having failed on its own self-consistency four times. Two of its enumerated errors -- points (4) and (5) in its Avoidable cost line -- are miscounts the finding itself committed while describing miscounts, retained deliberately as the report's own worked example.",
+        "A non-blocking wording limit the critic raised at 714790b was closed after its pass, by narrowing §1's description of §4.9's cost line from 'narrates' to 'totals' and giving pass (5) the same point count treatment as pass (4). The critic did not re-verify the text after those two edits; they alter no claim it checked."
+      ]
+    },
+    {
+      "id": "§4.10",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/WindowOptions.fs",
+          "result": "verified",
+          "sha256": "7565a9c2a0a46cf43002e5b65074f6b0062be8f7e727be245d8002303cc2c64e"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/BehaviorTests.fs",
+          "result": "verified",
+          "sha256": "932c729d8e8b882a8e7b528c2e09df8bcacdd094fe78aa71c0faffb8c2486397"
+        },
+        {
+          "locator": "file:docs/scaffold-map.md",
+          "result": "verified",
+          "sha256": "31efa21fbea4714d00ed877e55a5515c6c2d3236ca9418f150bf6aa1dbf05dd2"
+        },
+        {
+          "locator": "command:dotnet test Rogue3.slnx -c Release --no-build",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The 60-mutant sweep (36 killed / 23 survived / 1 build-fail) and the claim that five mutants over WindowOptions.fs survived a green 275-test suite are the mutation critic's record; those trees no longer exist. The result is structurally corroborated: with no behavioural test over the file, its mutants necessarily survive.",
+        "The finding's 'no test exercised its behaviour' is the corrected form of an earlier 'zero tests' overstatement -- GovernanceTests.fs referenced WindowOptions.fs three times at 715bef9, as a compile-order index and a source-text scan, neither of which calls a function in it."
+      ]
+    }
+  ]
+}
