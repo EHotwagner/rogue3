@@ -181,6 +181,18 @@ let private runGeneratedEvidence (target: string) : int =
 
     runMethod.Invoke(null, [| box target; box (Directory.GetCurrentDirectory()) |]) :?> int
 
+// A redirected pipe reaches EOF when the LAST writer closes it, and that is not necessarily the
+// child we started: every grandchild inherits the same write handles. MSBuild's worker nodes are
+// exactly that case — `dotnet build`/`dotnet run` spawn them as children with `/nodeReuse:true`, and
+// they deliberately SURVIVE the command that spawned them so the next build can reuse them. So a
+// command that has already exited 0 can leave stdout/stderr open indefinitely, and `ReadToEnd` on
+// those pipes then blocks forever. Because the console echo, the readiness log write and the
+// exit-code check all come AFTER that read, the observable symptom is total silence and a zero-byte
+// log from a target that actually finished. Hence: collect incrementally, so nothing the command
+// produced is ever lost, and bound the post-exit drain, so a surviving pipe holder can delay EOF but
+// can never delay us.
+let private postExitDrainSeconds = 10.0
+
 let runProcess (target: string) (fileName: string) (arguments: string) =
     Directory.CreateDirectory("readiness/logs") |> ignore
     let logPath = Path.Combine("readiness", "logs", target + ".txt")
@@ -201,13 +213,48 @@ let runProcess (target: string) (fileName: string) (arguments: string) =
         | Some proc -> proc
         | None -> failwithf "%s failed command launch: %s %s" target fileName arguments
 
-    // Drain stdout and stderr concurrently before waiting: reading one stream to
-    // end before the other deadlocks when the child fills the other pipe.
-    let stdoutTask = proc.StandardOutput.ReadToEndAsync()
-    let stderrTask = proc.StandardError.ReadToEndAsync()
-    proc.WaitForExit()
-    let stdout = stdoutTask.Result
-    let stderr = stderrTask.Result
+    // Collect both streams concurrently and incrementally. Concurrently because reading one stream
+    // to end before the other deadlocks when the child fills the other pipe; incrementally because
+    // an abandoned drain must still yield everything received up to that point.
+    let outBuffer = Text.StringBuilder()
+    let errBuffer = Text.StringBuilder()
+
+    let collect (buffer: Text.StringBuilder) (line: string) =
+        if not (isNull line) then
+            lock buffer (fun () -> buffer.AppendLine line |> ignore)
+
+    proc.OutputDataReceived.Add(fun received -> collect outBuffer received.Data)
+    proc.ErrorDataReceived.Add(fun received -> collect errBuffer received.Data)
+    proc.BeginOutputReadLine()
+    proc.BeginErrorReadLine()
+
+    // The timeout overload waits for the PROCESS only. The no-argument `WaitForExit()` additionally
+    // waits for the asynchronous readers to reach EOF, which is the unbounded wait being avoided, so
+    // it is used below only under a deadline.
+    while not (proc.WaitForExit 500) do
+        ()
+
+    let drainedInTime =
+        Threading.Tasks.Task
+            .Run(fun () -> proc.WaitForExit())
+            .Wait(TimeSpan.FromSeconds postExitDrainSeconds)
+
+    let stdout = lock outBuffer (fun () -> outBuffer.ToString())
+
+    // The abandoned-drain notice is reported on the error channel so the single existing path puts it
+    // in BOTH the console echo and readiness/logs/<target>.txt.
+    let drainDiagnostic =
+        if drainedInTime then
+            ""
+        else
+            sprintf
+                "%s: stdout/stderr stayed open %.0fs after the command exited with code %d — a surviving grandchild (MSBuild `/nodeReuse:true` worker nodes do this) still holds the inherited handles. Everything the command produced before that point is above; the exit code is authoritative.%s"
+                target
+                postExitDrainSeconds
+                proc.ExitCode
+                Environment.NewLine
+
+    let stderr = lock errBuffer (fun () -> errBuffer.ToString()) + drainDiagnostic
 
     let output = stdout + stderr
 
@@ -222,6 +269,108 @@ let runProcess (target: string) (fileName: string) (arguments: string) =
 
     if proc.ExitCode <> 0 then
         failwithf "%s failed with exit code %d; see %s" target proc.ExitCode logPath
+
+// `Run` launches the INTERACTIVE product, and it is the one pass-through that must not redirect.
+// Capturing an interactive launch buys nothing — readiness/logs/Run.txt is not part of the evidence
+// graph — and costs everything: the product's console is withheld until it exits, so a window that
+// is up and running is indistinguishable from a hang, and the inherited pipes are what stalled the
+// target in the first place. Inheriting the console instead makes `-t Run` behave exactly like the
+// `dotnet run --project src/<Name>` it wraps: output is live, and there is no pipe to strand.
+// FSGG_RUN_TIMEOUT_SECONDS bounds an unattended launch (a positive number of seconds arms the
+// watchdog); unset, the product runs for as long as the operator keeps it open.
+let private interactiveWatchdog () =
+    match Environment.GetEnvironmentVariable "FSGG_RUN_TIMEOUT_SECONDS" with
+    | null
+    | "" -> None
+    | raw ->
+        match Double.TryParse(raw, Globalization.NumberStyles.Float, Globalization.CultureInfo.InvariantCulture) with
+        | true, seconds when seconds > 0.0 -> Some seconds
+        | _ ->
+            failwithf
+                "FSGG_RUN_TIMEOUT_SECONDS must be a positive number of seconds; got %s"
+                raw
+
+let runInteractive (target: string) (fileName: string) (arguments: string) =
+    Directory.CreateDirectory("readiness/logs") |> ignore
+    let logPath = Path.Combine("readiness", "logs", target + ".txt")
+    let startInfo = ProcessStartInfo(fileName, arguments)
+    startInfo.UseShellExecute <- false
+    startInfo.WorkingDirectory <- Directory.GetCurrentDirectory()
+
+    let watchdog = interactiveWatchdog ()
+
+    printfn
+        "%s: launching %s %s — console inherited, so output below is the product's own and is live%s"
+        target
+        fileName
+        arguments
+        (match watchdog with
+         | Some seconds -> sprintf " (watchdog %.0fs)" seconds
+         | None -> "")
+
+    let started = DateTime.UtcNow
+
+    let proc =
+        try
+            Process.Start(startInfo) |> Option.ofObj
+        with ex ->
+            failwithf "%s failed command launch: %s %s; diagnostics=%s" target fileName arguments ex.Message
+
+    use proc =
+        match proc with
+        | Some proc -> proc
+        | None -> failwithf "%s failed command launch: %s %s" target fileName arguments
+
+    let exited =
+        match watchdog with
+        | None ->
+            while not (proc.WaitForExit 500) do
+                ()
+
+            true
+        | Some seconds -> proc.WaitForExit(int (min seconds 86400.0 * 1000.0))
+
+    let elapsed = DateTime.UtcNow - started
+
+    let record note =
+        let log =
+            sprintf
+                "%s: %s %s%s%s ran %.1fs; %s%s"
+                target
+                fileName
+                arguments
+                Environment.NewLine
+                "console inherited (not captured) — the product wrote straight to this terminal;"
+                elapsed.TotalSeconds
+                note
+                Environment.NewLine
+
+        match tryWriteTextLog logPath log with
+        | Some diagnostic -> failwithf "%s failed readiness log write; %s" target diagnostic
+        | None -> ()
+
+    if not exited then
+        try
+            proc.Kill true
+        with _ ->
+            ()
+
+        record "watchdog expired before the product exited, so it was terminated"
+
+        failwithf
+            "%s failed: %s %s neither exited nor was closed within the FSGG_RUN_TIMEOUT_SECONDS watchdog (%.1fs); the product was terminated. See %s"
+            target
+            fileName
+            arguments
+            elapsed.TotalSeconds
+            logPath
+
+    record (sprintf "exit code %d" proc.ExitCode)
+
+    if proc.ExitCode <> 0 then
+        failwithf "%s failed with exit code %d; see %s" target proc.ExitCode logPath
+
+    printfn "%s completed for generated rogue3 (exit code 0 after %.1fs)" target elapsed.TotalSeconds
 
 let runGeneratedTests () =
     runProcess "Test" "dotnet" "test tests/Rogue3.Tests/Rogue3.Tests.fsproj -m:1 --disable-build-servers"
@@ -274,7 +423,7 @@ let run target =
     // (FR-010, no divergence). Test/Verify below are FROZEN — their bodies are unchanged.
     | "Restore" -> runProcess "Restore" "dotnet" (sprintf "restore \"%s\"" (singleRootSolution ()))
     | "Build" -> runProcess "Build" "dotnet" (sprintf "build \"%s\"" (singleRootSolution ()))
-    | "Run" -> runProcess "Run" "dotnet" (sprintf "run --project src/%s" (singleSrcProject ()))
+    | "Run" -> runInteractive "Run" "dotnet" (sprintf "run --project src/%s" (singleSrcProject ()))
     | "Pack" -> runProcess "Pack" "dotnet" (sprintf "pack \"%s\" -c Release" (singleRootSolution ()))
     | "Test" ->
         runGeneratedTests ()
@@ -325,7 +474,9 @@ let helpBanner =
     + "           The first Verify on a fresh scaffold fails until you generate the headless evidence baseline\n"
     + "           (readiness/layout-evidence.txt + headless-scene-evidence.txt) and author performance workloads.\n"
     + "           A linked performance-debt issue permits baseline capture but never satisfies acceptance.\n\n"
-    + "  Restore | Build | Run | Pack   Pass-through to stock `dotnet` over the single root .slnx.\n\n"
+    + "  Restore | Build | Run | Pack   Pass-through to stock `dotnet` over the single root .slnx.\n"
+    + "           Run inherits this console, so the product's output is live and it stays up until the\n"
+    + "           product exits; set FSGG_RUN_TIMEOUT_SECONDS to bound an unattended launch.\n\n"
     + "  Help:  ./build.sh --help   |   dotnet fsi build.fsx help   (fsi reserves --help/-h on the script path)"
 
 let private isHelpToken (token: string) =

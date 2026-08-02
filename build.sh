@@ -28,6 +28,8 @@ FS.GG.UI generated rogue3 — build targets
            (readiness/layout-evidence.txt + headless-scene-evidence.txt) once — see docs/rogue3.md.
 
   Restore | Build | Run | Pack   Pass-through to stock dotnet over the single root .slnx.
+           Run inherits this console, so the product's output is live and it stays up until the
+           product exits; set FSGG_RUN_TIMEOUT_SECONDS to bound an unattended launch.
 BANNER
 }
 
