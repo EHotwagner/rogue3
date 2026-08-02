@@ -295,6 +295,28 @@ let private seedWorkspace (root: string) (ledgerSalt: string) =
     let vendored = Path.Combine(root, "vendor", "scripts", "audit-binding-exceptions.json")
     // Depth 3, so relativising against the wrong root is not accidentally equal.
     let deep = Path.Combine(root, "src", "deep", "nested", "Thing.fs")
+    // rogue3#53: the ledger is now one file per cycle under a directory, and
+    // THAT is the path an excuse actually lands in today.
+    let cycleLedger =
+        Path.Combine(root, "scripts", "audit-binding-exceptions", "item-alpha.json")
+    // Near misses for the DIRECTORY. A bare `startswith` would exempt the first;
+    // dropping the `.json` suffix test would exempt the second.
+    let siblingDirectory =
+        Path.Combine(root, "scripts", "audit-binding-exceptions-other", "x.json")
+
+    let insideButNotJson =
+        Path.Combine(root, "scripts", "audit-binding-exceptions", "notes.md")
+
+    // The ledger DIRECTORY name somewhere else entirely: a substring match
+    // rather than a path prefix would exempt it.
+    let vendoredDirectory =
+        Path.Combine(root, "vendor", "scripts", "audit-binding-exceptions", "x.json")
+
+    // Case variant of the DIRECTORY. The gate compares case-sensitively on every
+    // platform and this validator is required to agree; folding case here would
+    // exempt a path the gate still binds.
+    let casedDirectory =
+        Path.Combine(root, "scripts", "Audit-Binding-Exceptions", "x.json")
 
     writeFile ledger (ledgerBody ledgerSalt)
     writeFile source "let thing = 1\n"
@@ -305,8 +327,14 @@ let private seedWorkspace (root: string) (ledgerSalt: string) =
     writeFile cased "cased\n"
     writeFile vendored "vendored\n"
     writeFile deep "let deep = 1\n"
+    writeFile cycleLedger (ledgerBody ledgerSalt)
+    writeFile siblingDirectory "sibling directory\n"
+    writeFile insideButNotJson "notes\n"
+    writeFile vendoredDirectory "vendored directory\n"
+    writeFile casedDirectory "cased directory\n"
 
     {| ledger = sha256Text (File.ReadAllText ledger)
+       cycleLedger = sha256Text (File.ReadAllText cycleLedger)
        source = sha256Text (File.ReadAllText source)
        sibling = sha256Text (File.ReadAllText sibling)
        otherAudit = sha256Text (File.ReadAllText otherAudit)
@@ -390,6 +418,57 @@ let private selftest () =
         check
             "rewriting the ledger three times never changes the verdict"
             (verdicts = [ true; true; true ])
+
+        // --- the ledger is one file PER CYCLE (rogue3#53) --------------------
+        // The gate's excuse now lands in scripts/audit-binding-exceptions/<id>.json.
+        // If only the legacy path were exempt, this validator would call every
+        // such citation stale and rogue3#38 would return under a new name.
+        let root = newRoot "cycle-ledger"
+        let pins = seedWorkspace root "one"
+
+        let cyclePath = "file:scripts/audit-binding-exceptions/item-alpha.json"
+        let staleCycle = runCase root [ cite cyclePath (Some staleDigest) ]
+
+        check
+            "a STALE digest on a PER-CYCLE ledger file is not an error"
+            (List.isEmpty staleCycle.errors)
+
+        check
+            "the per-cycle ledger citation is reported as not bound"
+            (staleCycle.notBound |> List.exists (fun c -> c.locator = cyclePath))
+
+        check
+            "a FRESH digest on a per-cycle ledger file is also accepted and still not bound"
+            (let r = runCase root [ cite cyclePath (Some pins.cycleLedger) ]
+             List.isEmpty r.errors && r.notBound.Length = 1)
+
+        check
+            "a per-cycle ledger citation does not require a sha256"
+            (List.isEmpty (runCase root [ cite cyclePath None ]).errors)
+
+        // Resolved path, not locator text -- at the new path too.
+        let traversingCycle =
+            runCase
+                root
+                [ cite "file:feedback/../scripts/audit-binding-exceptions/item-alpha.json" (Some staleDigest) ]
+
+        check
+            "a TRAVERSING locator onto a per-cycle ledger file is exempt too"
+            (List.isEmpty traversingCycle.errors && traversingCycle.notBound.Length = 1)
+
+        // Rewriting ONE cycle's file must not change the verdict for a citation
+        // onto it -- the rogue3#40 fixed point, at the path excuses now use.
+        let cycleVerdicts =
+            [ for salt in [ "two"; "three"; "four" ] do
+                  writeFile
+                      (Path.Combine(root, "scripts", "audit-binding-exceptions", "item-alpha.json"))
+                      (ledgerBody salt)
+
+                  yield List.isEmpty (runCase root [ cite cyclePath (Some pins.cycleLedger) ]).errors ]
+
+        check
+            "rewriting a per-cycle ledger file three times never changes the verdict"
+            (cycleVerdicts = [ true; true; true ])
 
         // --- the exemption is NOT a class ------------------------------------
         let root = newRoot "non-exempt"
@@ -527,6 +606,22 @@ let private selftest () =
         stillBound
             "file:scripts/Audit-Binding-Exceptions.json"
             "a CASE variant is still bound -- the gate compares case-sensitively on every platform, so this validator must too"
+
+        stillBound
+            "file:scripts/audit-binding-exceptions-other/x.json"
+            "a DIRECTORY whose name merely starts with the ledger's is still bound -- a bare startswith would exempt it"
+
+        stillBound
+            "file:scripts/audit-binding-exceptions/notes.md"
+            "a NON-.json file inside the ledger directory is still bound -- dropping the suffix test would exempt it"
+
+        stillBound
+            "file:vendor/scripts/audit-binding-exceptions/x.json"
+            "the ledger DIRECTORY name in another directory is still bound -- a substring match would exempt it"
+
+        stillBound
+            "file:scripts/Audit-Binding-Exceptions/x.json"
+            "a CASE variant of the ledger DIRECTORY is still bound -- the gate compares case-sensitively on every platform, so this validator must too"
 
         let deepOrdinary = runCase root [ cite "file:src/deep/nested/Thing.fs" (Some staleDigest) ]
 
