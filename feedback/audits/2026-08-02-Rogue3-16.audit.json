@@ -1,7 +1,7 @@
 {
  "auditSchema": 1,
  "report": "feedback/2026-08-02-Rogue3-16.md",
- "reportSha256": "cf257a344ee2b5106d1c18c497e7fe038d6e4391ba7bc4975b5642948f68bcb8",
+ "reportSha256": "306d378c3a107712b0600bc262a56f81db462dc94931803d3fa6bf4df798d6f4",
  "criticMode": "fresh-context-subagent",
  "criticPromptVersion": "actionability-v1",
  "findings": [
@@ -34,7 +34,11 @@
     }
    ],
    "confidenceLimits": [
-    "skeleton"
+    "Critic reproduced both exits independently in its own worktree: `./fake.sh build -t Verify` exits 1 at 95b1170 with `status=failed m7-ui-performance routes=4`, and exits 0 at the candidate dirtying exactly readiness/m7-ui-performance.json and readiness/performance-evidence.json. Baseline suite measured green at 253 in the same run.",
+    "The finding is STRONGER than it first claimed, and was corrected upward after audit rather than down. It scoped the red baseline to 95b1170; the critic also ran Verify at the current origin/main tip 48b3a6a, two merges later: still exit 1, still `status=failed m7-ui-performance routes=4`, still 253 tests. main is red today, not historically.",
+    "The digest pair was read out of the artifact rather than taken on trust: hud-playing declares 0350d3a7ee6e… and computes c09c299cddeb…, main-menu declares and computes 89c6080c3acf… and is the one route with authorshipPassed=true. Three of four routes fail, exactly as stated.",
+    "`git show 95b1170:.github/workflows/verify.yml` has exactly three `run:` steps — feedback-tool selftest, dotnet restore, dotnet test -c Release — and no fake.sh invocation, confirming the mid-cycle-move claim. The current workflow's exclusion comment names rogue3#26 and rogue3#56, as the finding says.",
+    "issue:EHotwagner/rogue3#67 is deliberately not cited here (it is this author's own duplicate); it is checked under §4.9 instead."
    ]
   },
   {
@@ -58,7 +62,10 @@
     }
    ],
    "confidenceLimits": [
-    "skeleton"
+    "The 269 figure is now labelled with the commit it reproduces at. The critic measured f4b65da — the first worker's final commit — at 269/269 green, and the candidate at 272/272. Before the correction the locator named a count that reproduced nowhere.",
+    "No mutation artifact is committed for the 18/13/5 and 21/21 rows, unlike feedback/audits/2026-08-02-Rogue3-13.mutations.md which the previous cycle produced for the same claim class. §1 and the finding both now disclose this: the counts are author measurements and cannot be re-derived from the tree.",
+    "The `withShopStock` docstring does record the deleted `List.exists` guard and its reason verbatim, so the one novel claim in this finding — a survivor that was dead code rather than a missing test — is durably evidenced in the tree even though the counts are not.",
+    "The critic did not re-run any of the 18/18/3 mutants. What it verified is that the test surface the finding says came out of them exists and bites: the edge-of-reach, straddled-pair, rebindable-command and text-and-colour tests are all present, and unwiring the shop intent reds ten of them."
    ]
   },
   {
@@ -71,7 +78,7 @@
      "result": "verified"
     },
     {
-     "locator": "command:dotnet test after wiring and before test edits -> 253 passed 0 failed",
+     "locator": "command:dotnet test at 95b1170 with a minimal production dispatch site added (raise InteractM5Shop for the first stocked slot on the interact edge, nothing else) -> Failed: 0, Passed: 253 0 failed",
      "result": "verified"
     },
     {
@@ -91,7 +98,10 @@
     }
    ],
    "confidenceLimits": [
-    "skeleton"
+    "This is the one finding whose decisive claim the critic reconstructed from scratch rather than taking on trust. At 95b1170 it gave `InteractM5Shop` a minimal production dispatch site — raise `InteractM5Shop slot.Id` for the first stocked slot on the interact edge, nothing else changed — and measured `Failed: 0, Passed: 253`. The claim reproduces exactly: giving the message a production dispatch site reds nothing. That reconstruction is now named on the locator, so a reader can re-run it; the first draft named a working state that was not a commit.",
+    "The three prose statements were confirmed to exist at 95b1170 as comments, not assertions: M14ItemGrantTests.fs:23 and :251, M10AcceptanceDeterminismTests.fs:326, and Model.fs:153. All three are replaced by assertions or corrected prose at the candidate.",
+    "A control worth recording: checking out 1f76e9f's whole src/ onto 95b1170's tests reds two tests, and both are the visual-inventory/catalog gate reacting to the new ShopSlotReady element — neither is about dispatch. That is what isolates the claim to the wiring itself.",
+    "The finding's own remedy recurred inside this cycle, which is the strongest evidence for it: two comments written by this item were themselves false and are corrected in §6."
    ]
   },
   {
@@ -115,7 +125,9 @@
     }
    ],
    "confidenceLimits": [
-    "skeleton"
+    "The original fsi-probe locator was not re-runnable — the defect is fixed at the candidate and no probe script is committed — and has been replaced by the mutation pin, which is. Replacing `Floor=withShopStock model.Floor.CurrentRoom remaining model.Floor` with `Floor=model.Floor` gives `Failed: 1, Passed: 271, Total: 272`, naming exactly 'a bought slot stays bought when the player leaves and comes back'. The regression net is real and single-purpose.",
+    "The specific numbers in Observed (`PlayerItems = [\"choir-bell\"; \"choir-bell\"]`, coins 99 → 86 → 73) were NOT independently reproduced; they depend on a shop fixture the critic did not rebuild, and §1 now records that every such journey figure comes from an uncommitted probe. Nothing contradicts them, and the mechanism is visible in the source: at 95b1170 `loadM5Room` reads stock from `FloorGeneration.ShopStock` and no reducer writes it back.",
+    "The framing that this is the same rule as `withoutRewardFixture` and `FloorGeneration.recordDestroyedObstacle` is stated in the `withShopStock` docstring in the tree, so the family claim is durable rather than only in the report."
    ]
   },
   {
@@ -139,7 +151,10 @@
     }
    ],
    "confidenceLimits": [
-    "skeleton"
+    "Reproduced directly through the generated load script: `placeRoomFixtures [] 200 |> List.filter trapdoorContains` returns exactly [(617, 341); (663, 341)], as stated.",
+    "The '168' needed the qualifier it now carries. (617, 341) is item 180 of that 200-element list; it is lattice index 168 only after subtracting the twelve authored candidates. A reader who evaluates `List.item 168` gets (65, 341) and would have concluded the finding was wrong.",
+    "The 'never fired across 121 seeds x six floors x 1,331 fixture-bearing rooms' figure is recorded as a comment in Model.fs and was not re-derived by the critic; it is an author measurement.",
+    "`Entities.generateShop` was read and does make exactly three slots against twelve authored candidates, so the 'latent, not live' scoping is correct at the source level. §4.10's fix depends on this scoping and states it independently."
    ]
   },
   {
@@ -162,7 +177,10 @@
     }
    ],
    "confidenceLimits": [
-    "skeleton"
+    "Every figure in this finding was re-measured at the candidate after audit, because the first draft carried mid-cycle numbers presented as a measurement of the branch. `python3 scripts/check-audit-bindings.py` at the candidate: 27 audits, 254 bindings, 160 fresh, 42 explicitly excused, 3 not bound, 52 stale, exit 1. At origin/main 48b3a6a: 0 stale, exit 0 — which is what makes 'all 52 are this change's' a measurement rather than an inference.",
+    "The `scripts/fsgg-coord set-paths` locator was withdrawn rather than marked verified. It is state-changing and notifies live siblings, following the convention feedback/2026-08-02-Rogue3-11.md records and feedback/audits/2026-08-02-Rogue3-15.audit.json §4.3 restates for `widen`; a reviewer cannot re-derive its verdict. The ledger itself cannot be cited either — the validator reports `file:scripts/audit-binding-exceptions.json` as a citation that can never be satisfied, because excusing any binding rewrites the file and invalidates the digest just pinned. The checker script is cited instead.",
+    "The finding's thesis is stronger than the numbers backing it, and the tree is the evidence: the checker's own output reads `file changed again since it was excused (ledger excused 7e318a82dcb2, file is now 82ffaaff9f78)` for Model.fs, with the same shape on EvidenceCommands.fs and PerformanceEvidence.fs. Three source fixes inside one cycle each re-staled the excuse written for the previous one — the single-observed-digest trap the ledger's own remedy text warns about, hit three times without a second worker involved.",
+    "issue #53 is open and does name this contention, so the 'existing issue' disposition is correct."
    ]
   },
   {
@@ -191,7 +209,10 @@
     }
    ],
    "confidenceLimits": [
-    "skeleton"
+    "Reproduced by re-introducing the defect: deleting the `required \"scene.shop-slot-ready\" \"ShopSlotReady\"` cost-driver entry produces `status=failed performance-coverage` with exactly 53 required names against 52 bound, the single set difference being ShopSlotReady, and the two lists measuring 663 and 649 characters. Every number checks out.",
+    "The cost figure was corrected after audit: the failure does NOT require a full four-minute Verify. `./fake.sh build -t PerformanceEvidence` exits 1 with the identical message in well under a minute. The discoverability complaint is what stands — nothing points a first-time author at that target — and both the Impact and the Avoidable cost now say so.",
+    "The five-edit claim was checked structurally: ShopSlotReady appears as a DU case, a `handle` arm and an `evidenceModel` arm in GameplayVisualInventory.fs, a row in element-visuals.catalog, and the cost-driver entry in PerformanceEvidence.fs. Five sites, as stated.",
+    "Verify at the candidate was measured exit 0 by the critic, dirtying only the two declared readiness artifacts, matching §10."
    ]
   },
   {
@@ -210,7 +231,11 @@
     }
    ],
    "confidenceLimits": [
-    "skeleton"
+    "This finding was NARROWED after audit because it overstated itself. `dotnet fsi load-Rogue3.fsx` exits 0 and prints nothing — the script loads. The critic probed `Rogue3.Model.initialModel`, `.PlayerPosition`, `shopSlotRadius`, `placeRoomFixtures` and `trapdoorContains` through the generated script with no extra `#r` and all worked, so 'cannot load the product' and 'must hand-build a `#r` line per DLL' were both false in general.",
+    "The locator now names the reproducible form and it verifies exactly: `#load \"load-Rogue3.fsx\"` followed by `Rogue3.Model.initialModel.LayoutRng` gives `error FS0074: The type referenced through 'FS.GG.Game.Core.Rng' is defined in an assembly that is not referenced`, and after adding FS.GG.Game.Core the next touch fails the same way on FS.GG.UI.KeyboardInput. Two assemblies deep, as the escalation claim says.",
+    "The doc-versus-behaviour half is untouched by the narrowing and is the part worth reporting upstream: the generated header promises 'the Rogue3 and its transitive dependencies in one step' against a file that references exactly one assembly.",
+    "The critic used the working form of this script for its own §4.5 reproduction — two `#r` lines plus `#load` — which is direct evidence that the workaround is small. §7 is corrected to match.",
+    "The '12 minutes and three failed fsi invocations' cost is an author self-report and is not checkable."
    ]
   },
   {
@@ -236,7 +261,11 @@
     }
    ],
    "confidenceLimits": [
-    "skeleton"
+    "The duplicate-filing claim is verified from GitHub rather than from the report: #61 is OPEN, titled 'Verify is red on main since #59: three M7 route definition digests were not re-declared', created 2026-08-02T10:08:59Z; #67 is CLOSED as NOT_PLANNED, created 10:55:36Z. Both are about the same observation.",
+    "Both timestamps were corrected after audit — from 'about 40 minutes' to 47 and from '10:10' to 10:08:59Z — which matters more here than elsewhere, because this finding is entirely a claim about timing. The true interval is 46m37s. §4.1's Avoidable cost carried the same stale figure and is corrected with it.",
+    "The `scripts/fsgg-coord inbox --json` locator was withdrawn rather than marked verified: `inbox` reports now, not then, so 'nine messages, none read' is not checkable by any later critic. It is replaced by the GitHub timestamp, which is.",
+    "The process half re-verified at audit time: `ps -p 2270316` returns no process and no Rogue3.dll process exists on the host. This corroborates the correction but is a later measurement than the report's, so it cannot rule out that a process existed at 10:52.",
+    "The finding is honest that both costs were its own."
    ]
   },
   {
@@ -264,7 +293,12 @@
     }
    ],
    "confidenceLimits": [
-    "skeleton"
+    "The load-bearing half was reproduced by actually restoring the old code: replacing `not purchaseTransacts` with `List.isEmpty shopIntents` measures `Failed: 1`, the single failure being 'a slot the player cannot AFFORD does not swallow the descent'. The gate reddens on exactly the test written for it and on nothing else — the strongest form of this claim, and it holds. Both counts on the locator were stale by two commits and are corrected to 271/272.",
+    "The test was read rather than trusted: it asserts its own preconditions (`canDescend` true, sensor answers, sensed slot unaffordable) before asserting the descent, and carries the affordable case as a control, so it cannot pass vacuously if the fixture stops reaching the contested state.",
+    "The Observed repro — five presses leaving floorIndex=2, coins=0, items=0 — depends on the test-only `crowdedShop` fixture and an uncommitted probe. §1 records that, and the regression test is the re-runnable form of the claim.",
+    "The Observed line deliberately walks back its own independence claim: the reachability critic found this cold, but the mutation critic's confirmation came after seeing that report, and only its surviving mutant was independent. A self-limiting correction on an unverifiable claim rather than a self-serving one.",
+    "The process half — that the defect lived only in a dead worker's context and in no committed artifact — is not independently verifiable by a fresh critic and is taken on the report's word.",
+    "The reachability caveat holds at the source level: `Entities.generateShop` makes three slots against twelve authored candidates, and FloorGeneration adds Trapdoor only on a boss clear, so the contested position is reachable only through #69's fallback lattice."
    ]
   },
   {
@@ -293,7 +327,11 @@
     }
    ],
    "confidenceLimits": [
-    "skeleton"
+    "Reproduced by deleting the guard rather than by reading it: dropping the `stocked.PlayerCurrency = paid.PlayerCurrency && stocked.PlayerHealth = paid.PlayerHealth` arm gives `Failed: 1`, the single failure being 'the shop refuses a consumable that would land NOTHING, rather than charging for it'. The count on the locator was stale and is corrected to 271/272.",
+    "The prices in Observed are corroborated from source even though the journey was not re-run: `Entities.generateShop` stocks exactly HalfRedHeart at 3, Key at 5, Bomb at 5, SoulHeart at 6, plus a Coin3 fallback at 3 — so 99 → 96 for a heart and 99 → 94 for a key or bomb are the right numbers, and `NEED 3c` is what the old Render-side wording would have printed.",
+    "`Render.shopSlotReadyScene` was confirmed to take its refusal string as a parameter supplied by `Model.shopSlotRefusal` at the call site, so 'both halves now read one function' is structural in the tree rather than asserted.",
+    "The claim that the previous consumable test 'compared two nil effects and passed' was not independently reconstructed against the pre-fix test file; it is taken on the report's word. The strengthened assertion that fixes it is in the tree and was read.",
+    "The post-payment ordering of the landing test is load-bearing and is pinned by its own case in the same test: at the coin cap the Coin3 fallback still sells, because the payment makes room for the coins it returns. A check made before payment would refuse a sale the reducer completes."
    ]
   }
  ]
