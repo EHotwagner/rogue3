@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-10.md",
-  "reportSha256": "272264a8fbf736804e60caa9481d2ff63973265e1036cc168d5ce1fe25190069",
+  "reportSha256": "116acc231321c910a5e489ad05c955909281b302b2ec27ddd48b60fcad53391f",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -25,7 +25,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1"
+          "sha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4"
         },
         {
           "locator": "issue:EHotwagner/rogue3#34",
@@ -56,7 +56,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1"
+          "sha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4"
         }
       ],
       "confidenceLimits": []
@@ -78,7 +78,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1"
+          "sha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4"
         },
         {
           "locator": "issue:EHotwagner/rogue3#34",
@@ -108,7 +108,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1"
+          "sha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4"
         },
         {
           "locator": "issue:EHotwagner/rogue3#46",
@@ -180,9 +180,13 @@
           "result": "verified"
         },
         {
+          "locator": "command:python3 scripts/check-audit-bindings.py --selftest",
+          "result": "verified"
+        },
+        {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1"
+          "sha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4"
         }
       ],
       "confidenceLimits": []

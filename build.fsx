@@ -453,6 +453,29 @@ let private shortDigest (digest: string) =
     elif digest.Length <= 12 then digest
     else digest.Substring(0, 12)
 
+/// Hex case is not part of a digest's identity. Comparing ordinally would turn a manifest
+/// re-emitted in upper case into 96 violations on a tree where nothing has drifted — the
+/// red-on-a-correct-tree failure this gate exists to avoid.
+let private digestEquals (a: string) (b: string) =
+    String.Equals(a, b, StringComparison.OrdinalIgnoreCase)
+
+/// One YAML scalar, as generated files actually write them: `x`, `"x"`, `'x'`, or `x # comment`.
+/// A parser that only accepts the bare form reports a missing guidance target on a correct tree.
+let private yamlScalar (raw: string) =
+    let withoutComment =
+        match raw.IndexOf(" #", StringComparison.Ordinal) with
+        | -1 -> raw
+        | i -> raw.Substring(0, i)
+
+    let trimmed = withoutComment.Trim()
+
+    if trimmed.Length >= 2
+       && ((trimmed.StartsWith "\"" && trimmed.EndsWith "\"")
+           || (trimmed.StartsWith "'" && trimmed.EndsWith "'")) then
+        trimmed.Substring(1, trimmed.Length - 2)
+    else
+        trimmed
+
 /// The scaffolded profile, read from the one place that records it. `materializes-when`
 /// is evaluated against this, so a kit file that is absent BECAUSE this profile does not
 /// take it is not reported as drift.
@@ -476,7 +499,7 @@ let private scaffoldProfile (root: string) =
 /// `always` | `profile == x` | `profile in [a, b, c]`. An expression this cannot read is
 /// reported rather than skipped: silently ignoring a condition is how the no-op arose.
 let private materializesHere (profile: string option) (expression: string) =
-    let expr = expression.Trim()
+    let expr = yamlScalar expression
 
     if expr = "" || expr = "always" then
         Ok true
@@ -485,11 +508,11 @@ let private materializesHere (profile: string option) (expression: string) =
         let membership = Regex.Match(expr, @"^profile\s+in\s+\[(.*)\]$")
 
         if equality.Success then
-            Ok(profile = Some(equality.Groups.[1].Value.Trim()))
+            Ok(profile = Some(yamlScalar equality.Groups.[1].Value))
         elif membership.Success then
             let allowed =
                 membership.Groups.[1].Value.Split(',')
-                |> Array.map (fun s -> s.Trim())
+                |> Array.map yamlScalar
                 |> Array.filter (fun s -> s <> "")
 
             Ok(match profile with
@@ -518,7 +541,7 @@ let templateDriftViolations (root: string) =
     let manifestPaths = skillManifests |> List.map (fun owner -> owner, path [ root; owner; "skills"; "skill-manifest.json" ])
 
     match manifestPaths |> List.filter (snd >> File.Exists) with
-    | [ (ownerA, a); (ownerB, b) ] when fileDigest a <> fileDigest b ->
+    | [ (ownerA, a); (ownerB, b) ] when not (digestEquals (fileDigest a) (fileDigest b)) ->
         violations.Add $"the two skill manifests disagree: {ownerA}/skills/skill-manifest.json is {shortDigest (fileDigest a)}, {ownerB}/skills/skill-manifest.json is {shortDigest (fileDigest b)} — one of them has been edited alone"
     | _ -> ()
 
@@ -564,7 +587,7 @@ let templateDriftViolations (root: string) =
                             else
                                 let actual = fileDigest target
 
-                                if actual <> pinned then
+                                if not (digestEquals actual pinned) then
                                     violations.Add $"{manifestName}: {relative} has drifted — pinned {shortDigest pinned}, found {shortDigest actual}"
 
     // Both manifests pin `.agents/...` paths, but the kit is MIRRORED into `.claude/...` and the
@@ -602,7 +625,7 @@ let templateDriftViolations (root: string) =
                         else
                             let actual = fileDigest mirroredFull
 
-                            if actual <> pinned then
+                            if not (digestEquals actual pinned) then
                                 violations.Add $"mirror: {mirrored} differs from the digest pinned for {relative} — pinned {shortDigest pinned}, found {shortDigest actual}"
 
     List.ofSeq violations
@@ -628,23 +651,40 @@ let generatedGuidanceViolations (root: string) =
             | Some (id, guidance, generated) -> agents.Add(id, guidance, generated)
             | None -> ()
 
-        for line in lines do
-            let idMatch = Regex.Match(line, @"^\s*-\s*id:\s*(\S+)\s*$")
-            let guidanceMatch = Regex.Match(line, @"^\s*guidancePath:\s*(\S+)\s*$")
-            let generatedMatch = Regex.Match(line, @"^\s*generatedRoot:\s*(\S+)\s*$")
+        // Only the `agents:` block declares agents. Without this, any later section of a
+        // generated agents.yml that happens to use `- id:` items (a `commands:` list, say)
+        // is read as a phantom agent and reds the gate on a correct tree.
+        let mutable inAgents = false
 
-            if idMatch.Success then
+        for line in lines do
+            if Regex.IsMatch(line, @"^agents:\s*$") then
+                inAgents <- true
+            elif Regex.IsMatch(line, @"^\S") then
                 flush ()
-                current <- Some(idMatch.Groups.[1].Value, None, None)
-            elif guidanceMatch.Success then
-                current <- current |> Option.map (fun (i, _, g) -> i, Some guidanceMatch.Groups.[1].Value, g)
-            elif generatedMatch.Success then
-                current <- current |> Option.map (fun (i, gu, _) -> i, gu, Some generatedMatch.Groups.[1].Value)
+                current <- None
+                inAgents <- false
+
+            if inAgents then
+                // Scalars are captured to end of line and then unquoted/de-commented, so
+                // `guidancePath: "CLAUDE.md"` and `guidancePath: CLAUDE.md # target` both resolve.
+                let idMatch = Regex.Match(line, @"^\s*-\s*id:\s*(.+?)\s*$")
+                let guidanceMatch = Regex.Match(line, @"^\s*guidancePath:\s*(.+?)\s*$")
+                let generatedMatch = Regex.Match(line, @"^\s*generatedRoot:\s*(.+?)\s*$")
+
+                if idMatch.Success then
+                    flush ()
+                    current <- Some(yamlScalar idMatch.Groups.[1].Value, None, None)
+                elif guidanceMatch.Success then
+                    current <- current |> Option.map (fun (i, _, g) -> i, Some(yamlScalar guidanceMatch.Groups.[1].Value), g)
+                elif generatedMatch.Success then
+                    current <- current |> Option.map (fun (i, gu, _) -> i, gu, Some(yamlScalar generatedMatch.Groups.[1].Value))
 
         flush ()
 
         let requireEquivalence =
-            lines |> Array.exists (fun l -> Regex.IsMatch(l, @"^\s*requireEquivalentClaudeAndCodexBehavior:\s*true\s*$"))
+            lines |> Array.exists (fun l ->
+                let m = Regex.Match(l, @"^\s*requireEquivalentClaudeAndCodexBehavior:\s*(.+?)\s*$")
+                m.Success && (let v = (yamlScalar m.Groups.[1].Value).ToLowerInvariant() in v = "true" || v = "yes"))
 
         if agents.Count = 0 then
             violations.Add ".fsgg/agents.yml declares no agents, so nothing pins the guidance targets"
@@ -722,6 +762,12 @@ let private plantFixture (root: string) =
     // the mirrored twin the kit materializes alongside it, byte-identical by construction
     writeFile (path [ root; ".claude/skills/fs-gg-kit/SKILL.md" ]) skillBody
     let digest = fileDigest (path [ root; skillRelative ])
+    // A skill whose condition MATCHES this profile by equality. Without it, a mutation that
+    // makes the `profile == x` branch always answer "no" is invisible: the only equality entry
+    // in the fixture would be one that is absent anyway.
+    let equalRelative = ".agents/skills/fs-gg-equal/SKILL.md"
+    writeFile (path [ root; equalRelative ]) skillBody
+    writeFile (path [ root; ".claude/skills/fs-gg-equal/SKILL.md" ]) skillBody
 
     let manifest =
         $"""{{
@@ -729,6 +775,8 @@ let private plantFixture (root: string) =
   "skills": [
     {{ "id": "fs-gg-kit", "scope": "product", "sha256": "{digest}",
        "resolvablePath": "{skillRelative}", "materializes-when": "always" }},
+    {{ "id": "fs-gg-equal", "scope": "product", "sha256": "{digest}",
+       "resolvablePath": "{equalRelative}", "materializes-when": "profile == game" }},
     {{ "id": "fs-gg-samples", "scope": "product", "sha256": "{digest}",
        "resolvablePath": ".agents/skills/fs-gg-samples/SKILL.md",
        "materializes-when": "profile == sample-pack" }}
@@ -842,6 +890,69 @@ let private runSelfTest () =
         let oneManifest = path [ tampered; ".agents"; "skills"; "skill-manifest.json" ]
         File.WriteAllText(oneManifest, (File.ReadAllText oneManifest).Replace("\"scope\": \"product\"", "\"scope\": \"product\", \"note\": \"tampered\""))
         expect "editing ONE manifest alone is reported" (templateDriftViolations tampered |> List.exists (fun v -> v.Contains "disagree"))
+
+        // RED-ON-A-CORRECT-TREE routes an independent reviewer found. Each of these trees has
+        // NOTHING wrong with it, so each case asserts the gate stays QUIET.
+        let upperHex, _ = freshFixture ()
+
+        for owner in skillManifests do
+            let manifestPath = path [ upperHex; owner; "skills"; "skill-manifest.json" ]
+            let text = File.ReadAllText manifestPath
+            let upper = Regex.Replace(text, "\"sha256\": \"([0-9a-f]{64})\"", fun m -> "\"sha256\": \"" + m.Groups.[1].Value.ToUpperInvariant() + "\"")
+            File.WriteAllText(manifestPath, upper)
+
+        expect "an UPPER-CASE hex pin is not drift" (List.isEmpty (templateDriftViolations upperHex))
+
+        let quotedCondition, _ = freshFixture ()
+
+        for owner in skillManifests do
+            let manifestPath = path [ quotedCondition; owner; "skills"; "skill-manifest.json" ]
+            File.WriteAllText(manifestPath, (File.ReadAllText manifestPath).Replace("\"profile == sample-pack\"", "\"profile == \\\"sample-pack\\\"\""))
+
+        expect "a QUOTED materializes-when value is still understood" (List.isEmpty (templateDriftViolations quotedCondition))
+
+        let quotedGuidance, _ = freshFixture ()
+        let agentsPath = path [ quotedGuidance; ".fsgg"; "agents.yml" ]
+        File.WriteAllText(agentsPath, (File.ReadAllText agentsPath).Replace("guidancePath: CLAUDE.md", "guidancePath: \"CLAUDE.md\""))
+        expect "a QUOTED guidancePath resolves" (List.isEmpty (generatedGuidanceViolations quotedGuidance))
+
+        let commentedGuidance, _ = freshFixture ()
+        let commentedPath = path [ commentedGuidance; ".fsgg"; "agents.yml" ]
+        File.WriteAllText(commentedPath, (File.ReadAllText commentedPath).Replace("guidancePath: AGENTS.md", "guidancePath: AGENTS.md  # the codex target"))
+        expect "an inline YAML comment after guidancePath is ignored" (List.isEmpty (generatedGuidanceViolations commentedGuidance))
+
+        let extraSection, _ = freshFixture ()
+        let extraPath = path [ extraSection; ".fsgg"; "agents.yml" ]
+        File.AppendAllText(extraPath, "commands:\n  - id: specify\n  - id: plan\n")
+        expect "`- id:` outside the agents block is not a phantom agent" (List.isEmpty (generatedGuidanceViolations extraSection))
+
+        // Mutation survivors the reviewer found: these paths had no case at all.
+        let noProfile, _ = freshFixture ()
+        writeFile (path [ noProfile; ".fsgg"; "scaffold-provenance.json" ]) """{ "schemaVersion": 1, "effectiveParameters": [] }"""
+        expect "a provenance with no profile is reported" (templateDriftViolations noProfile |> List.exists (fun v -> v.Contains "profile"))
+
+        let noSha, _ = freshFixture ()
+
+        for owner in skillManifests do
+            let manifestPath = path [ noSha; owner; "skills"; "skill-manifest.json" ]
+            File.WriteAllText(manifestPath, Regex.Replace(File.ReadAllText manifestPath, "\"sha256\": \"[0-9a-f]{64}\",", "", RegexOptions.None))
+
+        expect "a manifest entry pinning no sha256 is reported" (templateDriftViolations noSha |> List.exists (fun v -> v.Contains "pins no"))
+
+        let noSkills, _ = freshFixture ()
+
+        for owner in skillManifests do
+            writeFile (path [ noSkills; owner; "skills"; "skill-manifest.json" ]) """{ "schemaVersion": 1 }"""
+
+        expect "a manifest with no skills array is reported" (templateDriftViolations noSkills |> List.exists (fun v -> v.Contains "no `skills`"))
+
+        let noAgentList, _ = freshFixture ()
+        writeFile (path [ noAgentList; ".fsgg"; "agents.yml" ]) "schemaVersion: 1\nagents:\npolicy:\n  requireEquivalentClaudeAndCodexBehavior: true\n"
+        expect "an agents.yml declaring no agents is reported" (generatedGuidanceViolations noAgentList |> List.exists (fun v -> v.Contains "no agents"))
+
+        let equalDrift, _ = freshFixture ()
+        File.AppendAllText(path [ equalDrift; ".agents/skills/fs-gg-equal/SKILL.md" ], "drifted\n")
+        expect "a drifted skill matched by `profile == <this profile>` is reported" (templateDriftViolations equalDrift |> List.exists (fun v -> v.Contains "fs-gg-equal"))
 
         let noManifest, _ = freshFixture ()
         File.Delete(path [ noManifest; ".agents"; "skills"; "skill-manifest.json" ])

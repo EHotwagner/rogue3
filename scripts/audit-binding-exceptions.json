@@ -303,8 +303,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e01bfecef3158d4ed79dffbd17021d8b7bca68c9162ec2f476e83df26146a303",
-      "observedSha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1",
-      "reason": "Item #34 (board item EHotwagner/rogue3#34, cycle item-34-verify-noop-merge-gate-steps) made Verify's TemplateDrift and GeneratedGuidanceCheck real checks, added a mutation-tested SelfTest target, and removed Dev from the merge-gate step list, so build.fsx changed. Excused rather than rebound, following 7e71d71 and the check-audit-bindings.py remedy order: all four citing audits (2026-08-01-Rogue3-8, 2026-08-02-Rogue3-4, 2026-08-02-Rogue3-7, 2026-08-02-Rogue3) are MERGED audits from earlier cycles, and repointing them would claim their critics examined a build.fsx that did not exist when those reports were written. This cycle's own audit (2026-08-02-Rogue3-10) binds the post-change bytes directly and needs no excuse."
+      "observedSha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4",
+      "reason": "Item #34 (board item EHotwagner/rogue3#34, cycle item-34-verify-noop-merge-gate-steps) made Verify's TemplateDrift and GeneratedGuidanceCheck real checks, added a mutation-tested SelfTest target, and removed Dev from the merge-gate step list, so build.fsx changed. Excused rather than rebound, following 7e71d71 and the check-audit-bindings.py remedy order: all four citing audits (2026-08-01-Rogue3-8, 2026-08-02-Rogue3-4, 2026-08-02-Rogue3-7, 2026-08-02-Rogue3) are MERGED audits from earlier cycles, and repointing them would claim their critics examined a build.fsx that did not exist when those reports were written. This cycle's own audit (2026-08-02-Rogue3-10) was REBOUND instead, which the remedy order permits for an audit you authored and re-verified yourself."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
@@ -415,8 +415,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
-      "observedSha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1",
-      "reason": "Item #34 (board item EHotwagner/rogue3#34, cycle item-34-verify-noop-merge-gate-steps) made Verify's TemplateDrift and GeneratedGuidanceCheck real checks, added a mutation-tested SelfTest target, and removed Dev from the merge-gate step list, so build.fsx changed. Excused rather than rebound, following 7e71d71 and the check-audit-bindings.py remedy order: all four citing audits (2026-08-01-Rogue3-8, 2026-08-02-Rogue3-4, 2026-08-02-Rogue3-7, 2026-08-02-Rogue3) are MERGED audits from earlier cycles, and repointing them would claim their critics examined a build.fsx that did not exist when those reports were written. This cycle's own audit (2026-08-02-Rogue3-10) binds the post-change bytes directly and needs no excuse."
+      "observedSha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4",
+      "reason": "Item #34 (board item EHotwagner/rogue3#34, cycle item-34-verify-noop-merge-gate-steps) made Verify's TemplateDrift and GeneratedGuidanceCheck real checks, added a mutation-tested SelfTest target, and removed Dev from the merge-gate step list, so build.fsx changed. Excused rather than rebound, following 7e71d71 and the check-audit-bindings.py remedy order: all four citing audits (2026-08-01-Rogue3-8, 2026-08-02-Rogue3-4, 2026-08-02-Rogue3-7, 2026-08-02-Rogue3) are MERGED audits from earlier cycles, and repointing them would claim their critics examined a build.fsx that did not exist when those reports were written. This cycle's own audit (2026-08-02-Rogue3-10) was REBOUND instead, which the remedy order permits for an audit you authored and re-verified yourself."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-4.audit.json",
@@ -495,8 +495,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
-      "observedSha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1",
-      "reason": "Item #34 (board item EHotwagner/rogue3#34, cycle item-34-verify-noop-merge-gate-steps) made Verify's TemplateDrift and GeneratedGuidanceCheck real checks, added a mutation-tested SelfTest target, and removed Dev from the merge-gate step list, so build.fsx changed. Excused rather than rebound, following 7e71d71 and the check-audit-bindings.py remedy order: all four citing audits (2026-08-01-Rogue3-8, 2026-08-02-Rogue3-4, 2026-08-02-Rogue3-7, 2026-08-02-Rogue3) are MERGED audits from earlier cycles, and repointing them would claim their critics examined a build.fsx that did not exist when those reports were written. This cycle's own audit (2026-08-02-Rogue3-10) binds the post-change bytes directly and needs no excuse."
+      "observedSha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4",
+      "reason": "Item #34 (board item EHotwagner/rogue3#34, cycle item-34-verify-noop-merge-gate-steps) made Verify's TemplateDrift and GeneratedGuidanceCheck real checks, added a mutation-tested SelfTest target, and removed Dev from the merge-gate step list, so build.fsx changed. Excused rather than rebound, following 7e71d71 and the check-audit-bindings.py remedy order: all four citing audits (2026-08-01-Rogue3-8, 2026-08-02-Rogue3-4, 2026-08-02-Rogue3-7, 2026-08-02-Rogue3) are MERGED audits from earlier cycles, and repointing them would claim their critics examined a build.fsx that did not exist when those reports were written. This cycle's own audit (2026-08-02-Rogue3-10) was REBOUND instead, which the remedy order permits for an audit you authored and re-verified yourself."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
@@ -511,8 +511,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "1acae987b6643464764bdff31134e00c1b992413320deeec726a4b9fdd367ae8",
-      "observedSha256": "0072cf2e2baed56c71db22f7868c8a57b8aa6925cba47cd97de93d0a8b69baf1",
-      "reason": "Item #34 (board item EHotwagner/rogue3#34, cycle item-34-verify-noop-merge-gate-steps) made Verify's TemplateDrift and GeneratedGuidanceCheck real checks, added a mutation-tested SelfTest target, and removed Dev from the merge-gate step list, so build.fsx changed. Excused rather than rebound, following 7e71d71 and the check-audit-bindings.py remedy order: all four citing audits (2026-08-01-Rogue3-8, 2026-08-02-Rogue3-4, 2026-08-02-Rogue3-7, 2026-08-02-Rogue3) are MERGED audits from earlier cycles, and repointing them would claim their critics examined a build.fsx that did not exist when those reports were written. This cycle's own audit (2026-08-02-Rogue3-10) binds the post-change bytes directly and needs no excuse."
+      "observedSha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4",
+      "reason": "Item #34 (board item EHotwagner/rogue3#34, cycle item-34-verify-noop-merge-gate-steps) made Verify's TemplateDrift and GeneratedGuidanceCheck real checks, added a mutation-tested SelfTest target, and removed Dev from the merge-gate step list, so build.fsx changed. Excused rather than rebound, following 7e71d71 and the check-audit-bindings.py remedy order: all four citing audits (2026-08-01-Rogue3-8, 2026-08-02-Rogue3-4, 2026-08-02-Rogue3-7, 2026-08-02-Rogue3) are MERGED audits from earlier cycles, and repointing them would claim their critics examined a build.fsx that did not exist when those reports were written. This cycle's own audit (2026-08-02-Rogue3-10) was REBOUND instead, which the remedy order permits for an audit you authored and re-verified yourself."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
