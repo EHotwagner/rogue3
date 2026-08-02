@@ -24,18 +24,58 @@ and also fail, which stops the ledger from rotting the way the digests did.
 
 Remedies, in preference order:
 
-  1. Rebind the audit, so it pins the bytes that now exist.  NOTE: feedback-tool
-     .fsx has no `rebind` subcommand -- it offers `digest <file>` for one hash at
-     a time, so this means recomputing and pasting each `sha256` by hand.  It is
-     still the right answer whenever the cited evidence still supports the
-     finding.
-  2. Excuse it explicitly:
+  1. Excuse it explicitly:
        python3 scripts/check-audit-bindings.py --grandfather --reason "<why>"
      which rewrites the ledger from the current violations and prunes obsolete
      entries.  The diff is the record of what was excused and why.
+  2. Rebind the audit, so it pins the bytes that now exist -- ONLY when the
+     audit is this cycle's own and you re-verified it yourself.  Rebinding a
+     MERGED audit rewrites what that audit records its critic as having
+     verified, which is the practice commit 7e71d71 established the precedent
+     against and which rogue3#38 exists to eliminate.  NOTE: feedback-tool.fsx
+     has no `rebind` subcommand -- it offers `digest <file>` for one hash at a
+     time, so this means recomputing and pasting each `sha256` by hand.
 
-Because (1) has no tooling, expect (2) to be the common path until a rebind
-command exists.  That is a known weakness, not the intended design.
+Excusing is preferred and is also the only remedy with tooling, so expect (1) to
+be the common path.  The ledger's growth is a known weakness, not the intended
+design.
+
+NOT BOUND: the excuse ledger
+----------------------------
+
+Remedy (1) WRITES the exceptions ledger.  So a binding whose target is the
+ledger itself has no fixed point, and the gate was asking for the impossible
+(rogue3#38): an audit that cites `scripts/audit-binding-exceptions.json` --
+reasonable when the finding is *about* the ledger -- goes stale the moment
+anything is excused.  Excusing that binding writes the ledger, which changes the
+ledger, which invalidates the excuse just written.  Reproduced at d8d0024: four
+consecutive `--grandfather` runs produced four distinct ledger digests and
+`check` still exited 1.
+
+So a citation onto the ledger is NOT checked.  It is not silently dropped:
+`evaluate` returns it under `notBound`, the text report names it, `--json`
+carries it and counts it, and the summary and verdict lines both say how many
+citations were not bound -- so a reader can always tell the difference between
+"this citation is exempt" and "the checker missed it".
+
+Why an audit citing ANOTHER audit is NOT exempt
+-----------------------------------------------
+
+It looks like the same shape and it is not.  The gate's rule is "fresh OR
+excused", and excusing writes only the ledger -- never an audit.  So once the
+ledger is exempt, a stale binding onto another `*.audit.json` settles through
+remedy (1) in a single pass, and stays settled.  Verified over this tree by
+rebinding a merged audit that another audit cites -- the exact case that
+stranded feedback/audits/2026-08-02-Rogue3-6.audit.json in M13 -- then running
+`--grandfather` three times: green after the first pass, one ledger digest
+across all three.  Mutual citation A<->B settles the same way.
+
+Exempting audits as well would therefore buy nothing about convergence, and it
+would cost the only check in the repository that notices an edit to a merged
+audit -- the very event rogue3#38's history is a record of.  It is left checked
+deliberately.  The cost is one ledger entry per audit rebind, which is the point:
+that entry is a diffable, reasoned line saying somebody edited merged evidence
+and why.
 
 Digest rule: sha256 over the file's text with CRLF/CR normalized to LF, encoded
 UTF-8.  This is byte-for-byte the rule the feedback tool applies
@@ -67,8 +107,10 @@ MISSING = "<missing>"
 LEDGER_NOTE = (
     "Explicit exceptions to the audit-binding check "
     "(scripts/check-audit-bindings.py). Each entry excuses ONE stale binding "
-    "at ONE observed digest: change the file again and it fails again. Prefer "
-    "rebinding the audit over adding an entry here."
+    "at ONE observed digest: change the file again and it fails again. Adding "
+    "an entry here is the PREFERRED remedy; rebinding a MERGED audit rewrites "
+    "what that audit records its critic as having verified (see 7e71d71) and "
+    "is right only for an audit you re-verified yourself."
 )
 
 
@@ -162,8 +204,34 @@ def _rel(root: str, path: str) -> str:
     return os.path.relpath(path, root).replace(os.sep, "/")
 
 
-def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]]]:
-    """Every file binding declared by every audit, plus every malformed audit.
+# The ONE path this checker must write in order to clear a violation. Binding it
+# is a fixed-point equation with no fixed point -- see the module docstring and
+# rogue3#38.
+LEDGER_EXEMPTION = (
+    "this is the exceptions ledger itself: the only place an excuse can live, so "
+    "excusing a binding on it rewrites it and invalidates the excuse just written"
+)
+
+
+def exemption(rel: str) -> str | None:
+    """Why `rel` cannot be bound, or None when it is an ordinary file.
+
+    Takes the WORKSPACE-RELATIVE path derived from the RESOLVED location, not
+    the locator text, so `file:feedback/../scripts/audit-binding-exceptions.json`
+    is recognised as the ledger too. A textual match on the locator would let a
+    one-token rewrite reintroduce the unsatisfiable binding this exempts.
+
+    Deliberately ONE path, not a class. In particular a citation onto another
+    `*.audit.json` is NOT exempt: see the module docstring for why the obvious
+    second exemption is wrong.
+    """
+    if rel == LEDGER_RELPATH:
+        return LEDGER_EXEMPTION
+    return None
+
+
+def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Every checkable file binding, every malformed audit, every exempt citation.
 
     Shape is checked strictly. An audit whose `findings` or `checkedEvidence`
     is absent, renamed, or not an array would otherwise contribute ZERO
@@ -171,12 +239,34 @@ def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]]]:
     a single mistyped key can open. Malformed structure is a violation, and one
     the exceptions ledger cannot excuse: it pins no digest, so there is nothing
     to excuse it against. Fix the audit.
+
+    The third list holds citations onto the checker's own remedy surfaces (see
+    `exemption`). They are reported, never checked, and never a violation.
     """
     audit_dir = os.path.join(root, *AUDIT_GLOB_DIR.split("/"))
     bindings: list[Binding] = []
     malformed: list[dict[str, Any]] = []
+    exempt: list[dict[str, Any]] = []
     if not os.path.isdir(audit_dir):
-        return bindings, malformed
+        return bindings, malformed, exempt
+
+    # `resolve_inside` returns a REALPATH. Relativising it against a `root` that
+    # still contains a symlinked component yields `../real/...`, which matches no
+    # exemption -- so the whole exemption silently switches off and rogue3#38
+    # comes back. Both sides must be realpath'd. `_rel(root, audit_abs)` below is
+    # unaffected: its argument is built from `root` and never realpath'd.
+    root_real = os.path.realpath(root)
+
+    def note_exempt(audit_rel: str, kind: str, locator: str, path: str, why: str) -> None:
+        exempt.append(
+            {
+                "audit": audit_rel,
+                "kind": kind,
+                "locator": locator,
+                "path": path,
+                "reason": why,
+            }
+        )
 
     def bad(audit_rel: str, where: str, why: str) -> None:
         malformed.append(
@@ -223,12 +313,16 @@ def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]]]:
                     "report path must be workspace-relative and stay inside the workspace",
                 )
             else:
-                bindings.append(
-                    Binding(
-                        audit_rel, "report", f"file:{rel}", rel, resolved,
-                        _sha(doc.get("reportSha256")),
+                why = exemption(_rel(root_real, resolved))
+                if why is not None:
+                    note_exempt(audit_rel, "report", f"file:{rel}", rel, why)
+                else:
+                    bindings.append(
+                        Binding(
+                            audit_rel, "report", f"file:{rel}", rel, resolved,
+                            _sha(doc.get("reportSha256")),
+                        )
                     )
-                )
 
         findings = doc.get("findings")
         if not isinstance(findings, list):
@@ -280,6 +374,10 @@ def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]]]:
                         "the binding silently",
                     )
                     continue
+                why = exemption(_rel(root_real, resolved))
+                if why is not None:
+                    note_exempt(audit_rel, "evidence", locator, rel, why)
+                    continue
                 bindings.append(
                     Binding(
                         audit_rel, "evidence", f"file:{rel}", rel, resolved,
@@ -295,7 +393,14 @@ def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]]]:
     unique: dict[tuple[str, str, str, str], Binding] = {}
     for binding in bindings:
         unique.setdefault(binding.key, binding)
-    return sorted(unique.values(), key=Binding.sort_key), malformed
+    unique_exempt: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for entry in exempt:
+        unique_exempt.setdefault((entry["audit"], entry["kind"], entry["locator"]), entry)
+    return (
+        sorted(unique.values(), key=Binding.sort_key),
+        malformed,
+        sorted(unique_exempt.values(), key=lambda e: (e["audit"], e["kind"], e["locator"])),
+    )
 
 
 def _typename(value: Any) -> str:
@@ -376,7 +481,7 @@ def write_ledger(root: str, entries: list[dict[str, str]]) -> None:
 
 
 def evaluate(root: str) -> dict[str, Any]:
-    bindings, malformed = collect_bindings(root)
+    bindings, malformed, exempt = collect_bindings(root)
     ledger = load_ledger(root)
 
     fresh: list[Binding] = []
@@ -417,7 +522,11 @@ def evaluate(root: str) -> dict[str, Any]:
 
     return {
         "root": root,
-        "audits": len({b.audit for b in bindings} | {m["audit"] for m in malformed}),
+        "audits": len(
+            {b.audit for b in bindings}
+            | {m["audit"] for m in malformed}
+            | {e["audit"] for e in exempt}
+        ),
         "bindings": len(bindings),
         "malformed": len(malformed),
         "fresh": len(fresh),
@@ -425,6 +534,12 @@ def evaluate(root: str) -> dict[str, Any]:
         "excusedEntries": excused,
         "violations": violations,
         "obsoleteExceptions": obsolete,
+        # Citations onto the excuse ledger: reported, not checked, never a
+        # violation. Present so exemption is auditable rather than an invisible
+        # hole -- see the module docstring and rogue3#38. The scalar sits beside
+        # the other scalars so a dashboard built from them cannot miss it.
+        "notBound": len(exempt),
+        "notBoundCitations": exempt,
         "ok": not violations and not obsolete,
     }
 
@@ -491,11 +606,36 @@ def report_text(result: dict[str, Any], stream) -> None:
     violations = [v for v in result["violations"] if v["kind"] != "structure"]
     obsolete = result["obsoleteExceptions"]
 
+    not_bound = result.get("notBoundCitations", [])
+
+    # The not-bound count belongs on the summary line: without it, four
+    # citations simply vanish between `main` and a branch and a reader diffing
+    # CI logs sees the binding count drop with no accounting.
     print(
         "audit-bindings: {audits} audits, {bindings} bindings, {fresh} fresh, "
-        "{excused} explicitly excused".format(**result),
+        "{excused} explicitly excused, {notBoundCount} not bound".format(
+            notBoundCount=len(not_bound), **result
+        ),
         file=stream,
     )
+
+    if not_bound:
+        print(
+            f"\naudit-bindings: {len(not_bound)} citation(s) NOT BOUND -- a citation onto "
+            "the excuse\nledger can never be satisfied, so it is reported rather than checked:",
+            file=stream,
+        )
+        # Reason as a group HEADER above its entries. Printing it once below the
+        # group, indented deeper than the entries, reads as though it belonged
+        # to the last line only -- and every other block here prints its reason
+        # attached to the entry it explains.
+        by_reason: dict[str, list[dict[str, Any]]] = {}
+        for entry in not_bound:
+            by_reason.setdefault(entry["reason"], []).append(entry)
+        for reason in sorted(by_reason):
+            print(f"\n  {reason}:", file=stream)
+            for entry in by_reason[reason]:
+                print(f"    {entry['audit']}  {entry['locator']}", file=stream)
 
     if malformed:
         print(
@@ -552,7 +692,20 @@ def report_text(result: dict[str, Any], stream) -> None:
             file=stream,
         )
     elif not malformed:
-        print("audit-bindings: OK -- every audit binding is fresh or explicitly excused.", file=stream)
+        # The verdict must carry the exempt count. "every audit binding is fresh
+        # or explicitly excused" is true only because the exempt citations
+        # stopped counting as bindings, and this is the line a skimmer reads.
+        if not_bound:
+            print(
+                "audit-bindings: OK -- every CHECKED binding is fresh or explicitly excused; "
+                f"{len(not_bound)} citation(s) were not checked (listed above).",
+                file=stream,
+            )
+        else:
+            print(
+                "audit-bindings: OK -- every audit binding is fresh or explicitly excused.",
+                file=stream,
+            )
 
 
 # --------------------------------------------------------------------------
@@ -595,6 +748,241 @@ def _make_audit(root: str, name: str, report_rel: str, evidence: list[str]) -> N
         "findings": findings,
     }
     _write(root, f"feedback/audits/{name}.audit.json", json.dumps(doc, indent=2) + "\n")
+
+
+def _empty_ledger(root: str) -> None:
+    _write(
+        root,
+        LEDGER_RELPATH,
+        json.dumps({"grandfatherSchema": LEDGER_SCHEMA, "note": LEDGER_NOTE, "entries": []}, indent=2)
+        + "\n",
+    )
+
+
+def selftest_exemptions(check) -> None:
+    """rogue3#38: a binding onto the checker's own remedy surfaces must not exist.
+
+    Every case here gets its OWN tree. These are claims about what REPEATED
+    --grandfather runs settle to, and sharing a tree with the cases above would
+    let an unrelated leftover violation, rather than the exemption, decide the
+    verdict.
+    """
+    # --- the ledger shape: excusing rewrites the file the audit binds --------
+    root = tempfile.mkdtemp(prefix="audit-bindings-selftest-ledger-")
+    try:
+        _write(root, "src/thing.fs", "let a = 1\n")
+        _make_audit(root, "cycle-1", "feedback/cycle-1.md", ["src/thing.fs"])
+        _empty_ledger(root)
+        # A finding ABOUT the ledger cites the ledger. That is the reasonable
+        # thing to do, and before the fix it was unsatisfiable.
+        _make_audit(root, "cycle-ledger", "feedback/cycle-ledger.md", [LEDGER_RELPATH])
+
+        # Give --grandfather real work, so it must write the ledger.
+        _write(root, "src/thing.fs", "let a = 2\n")
+        grandfather(root, "selftest: ledger convergence, first pass")
+        first = digest_file(ledger_path(root))
+        grandfather(root, "selftest: ledger convergence, second pass")
+        second = digest_file(ledger_path(root))
+        check("an audit citing the ledger converges after two --grandfather runs", evaluate(root)["ok"])
+        check("the second --grandfather run leaves the ledger byte-identical", first == second)
+        check(
+            "the ledger citation is reported as not bound, not silently dropped",
+            any(
+                entry["locator"] == f"file:{LEDGER_RELPATH}" and entry["reason"] == LEDGER_EXEMPTION
+                for entry in evaluate(root).get("notBoundCitations", [])
+            ),
+        )
+
+        # The exemption is decided on the RESOLVED path, so a traversing locator
+        # cannot smuggle the unsatisfiable binding back in.
+        _make_audit(root, "cycle-dots", "feedback/cycle-dots.md", ["feedback/../" + LEDGER_RELPATH])
+        check(
+            "a traversing locator onto the ledger is exempt too",
+            any(
+                entry["reason"] == LEDGER_EXEMPTION and ".." in entry["locator"]
+                for entry in evaluate(root).get("notBoundCitations", [])
+            ),
+        )
+        grandfather(root, "selftest: ledger convergence, after traversal")
+        check("the tree is still green after the traversing citation", evaluate(root)["ok"])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    # --- an audit citing another audit is CHECKED, and settles via the ledger --
+    #
+    # This is the exemption that was NOT made, so these cases guard the decision
+    # rather than a mechanism. If someone later exempts *.audit.json, the first
+    # two go red.
+    root = tempfile.mkdtemp(prefix="audit-bindings-selftest-audit-")
+    try:
+        _write(root, "src/thing.fs", "let a = 1\n")
+        _empty_ledger(root)
+        _make_audit(root, "cycle-a", "feedback/cycle-a.md", ["src/thing.fs"])
+        # A finding ABOUT cycle-a's audit cites that audit.
+        _make_audit(root, "cycle-b", "feedback/cycle-b.md", ["feedback/audits/cycle-a.audit.json"])
+
+        # Rebinding cycle-a rewrites the very bytes cycle-b binds. That MUST be
+        # reported -- it is the only signal in the repository that a merged
+        # audit was edited.
+        _write(root, "src/thing.fs", "let a = 2\n")
+        _make_audit(root, "cycle-a", "feedback/cycle-a.md", ["src/thing.fs"])
+        r = evaluate(root)
+        check(
+            "editing an audit that another audit cites is still DETECTED",
+            not r["ok"]
+            and any(v["locator"] == "file:feedback/audits/cycle-a.audit.json" for v in r["violations"]),
+        )
+        check(
+            "an audit citing another audit is never treated as not bound",
+            not r.get("notBoundCitations", []),
+        )
+
+        # ...and it settles through the ledger in ONE pass and stays settled.
+        # This is why the second exemption is unnecessary: excusing writes only
+        # the ledger, which is exempt, so there is nothing left to chase.
+        grandfather(root, "selftest: audit-to-audit settles via the ledger")
+        first = digest_file(ledger_path(root))
+        check("an audit-to-audit violation settles in one --grandfather pass", evaluate(root)["ok"])
+        grandfather(root, "selftest: audit-to-audit, second pass")
+        check(
+            "and stays settled -- the ledger is byte-identical on the next pass",
+            evaluate(root)["ok"] and digest_file(ledger_path(root)) == first,
+        )
+
+        # Mutual citation A<->B, the shape called unsatisfiable. Rebind A, which
+        # strands B; one pass settles it, and it stays settled.
+        _make_audit(root, "cycle-c", "feedback/cycle-c.md", ["feedback/audits/cycle-b.audit.json"])
+        _make_audit(root, "cycle-b", "feedback/cycle-b.md", ["feedback/audits/cycle-c.audit.json"])
+        _make_audit(root, "cycle-c", "feedback/cycle-c.md", ["feedback/audits/cycle-b.audit.json"])
+        check("mutual citation is red before it is excused", not evaluate(root)["ok"])
+        grandfather(root, "selftest: mutual citation")
+        settled_ledger = digest_file(ledger_path(root))
+        grandfather(root, "selftest: mutual citation, again")
+        check(
+            "two audits citing each other converge in one pass and stay converged",
+            evaluate(root)["ok"] and digest_file(ledger_path(root)) == settled_ledger,
+        )
+
+        # A cited audit that does not EXIST must still fail. The exemption fires
+        # before the existence check, so exempting audits would turn a dangling
+        # or typo'd cross-reference silently green.
+        _make_audit(root, "cycle-missing", "feedback/cycle-missing.md", ["feedback/audits/cycle-a.audit.json"])
+        grandfather(root, "selftest: before the dangling-reference probe")
+        os.remove(os.path.join(root, "feedback", "audits", "cycle-a.audit.json"))
+        r = evaluate(root)
+        check(
+            "a cited audit that does not exist still fails",
+            not r["ok"]
+            and any(
+                v["locator"] == "file:feedback/audits/cycle-a.audit.json"
+                and v["observedSha256"] == MISSING
+                for v in r["violations"]
+            ),
+        )
+
+        # An audit whose REPORT is another audit must not bypass the report
+        # binding -- a one-token `report` rewrite would otherwise skip
+        # reportSha256 entirely.
+        _write(
+            root,
+            "feedback/audits/cycle-report.audit.json",
+            json.dumps(
+                {
+                    "auditSchema": 1,
+                    "report": "feedback/audits/cycle-b.audit.json",
+                    "reportSha256": "0" * 64,
+                    "findings": [],
+                },
+                indent=2,
+            )
+            + "\n",
+        )
+        r = evaluate(root)
+        check(
+            "an audit whose REPORT is another audit does not bypass the report binding",
+            not r["ok"] and any(v["kind"] == "report" for v in r["violations"]),
+        )
+        os.remove(os.path.join(root, "feedback", "audits", "cycle-report.audit.json"))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    # --- the exemption must survive a symlinked root -------------------------
+    #
+    # `resolve_inside` realpaths; `root` may not be realpath'd by the caller. If
+    # the two are relativised against each other the exemption silently switches
+    # off and rogue3#38 returns. mkdtemp() is a real path on Linux, so this case
+    # builds the symlink explicitly rather than trusting $TMPDIR to be one.
+    outer = tempfile.mkdtemp(prefix="audit-bindings-selftest-link-")
+    try:
+        real = os.path.join(outer, "real")
+        link = os.path.join(outer, "link")
+        os.makedirs(real, exist_ok=True)
+        os.symlink(real, link)
+        _write(real, "src/thing.fs", "let a = 1\n")
+        _empty_ledger(real)
+        _make_audit(real, "cycle-1", "feedback/cycle-1.md", ["src/thing.fs"])
+        _make_audit(real, "cycle-ledger", "feedback/cycle-ledger.md", [LEDGER_RELPATH])
+        _write(real, "src/thing.fs", "let a = 2\n")
+
+        grandfather(link, "selftest: symlinked root, first pass")
+        through_link = evaluate(link)
+        check(
+            "the ledger citation is exempt through a symlinked root",
+            any(
+                entry["locator"] == f"file:{LEDGER_RELPATH}"
+                for entry in through_link.get("notBoundCitations", [])
+            ),
+        )
+        before = digest_file(ledger_path(real))
+        grandfather(link, "selftest: symlinked root, second pass")
+        check(
+            "a symlinked root converges exactly as a real one does",
+            evaluate(link)["ok"] and digest_file(ledger_path(real)) == before,
+        )
+    finally:
+        shutil.rmtree(outer, ignore_errors=True)
+
+    # --- ordinary files, and the exit-code invariant -------------------------
+    root = tempfile.mkdtemp(prefix="audit-bindings-selftest-ordinary-")
+    try:
+        _write(root, "src/thing.fs", "let a = 1\n")
+        _empty_ledger(root)
+        _make_audit(root, "cycle-1", "feedback/cycle-1.md", ["src/thing.fs"])
+
+        # The exemption must be NARROW: only the ledger, by exact path. Neither a
+        # sibling directory nor a same-suffix neighbour may inherit it.
+        for rel, label in (
+            ("scripts/audit-binding-exceptions.json.bak", "a neighbour of the ledger is still bound"),
+            ("scripts/audit-binding-exceptionsX.json", "a near-miss ledger name is still bound"),
+            ("feedback/audits/notes.md", "a non-audit file under feedback/audits/ is still bound"),
+        ):
+            _write(root, rel, "one\n")
+            _make_audit(root, "probe", "feedback/probe.md", [rel])
+            grandfather(root, "selftest: before the narrowness probe")
+            _write(root, rel, "two\n")
+            r = evaluate(root)
+            check(label, not r["ok"] and any(v["locator"] == f"file:{rel}" for v in r["violations"]))
+            grandfather(root, "selftest: after the narrowness probe")
+
+        # The invariant that was FALSE before the fix, and the reason the dead
+        # end was so hard to read from the tool: --grandfather kept exiting 0
+        # while `check` stayed red, so the remedy reported success four times
+        # over without ever reaching green (rogue3#38).
+        script = os.path.abspath(__file__)
+
+        def cli(*argv: str) -> int:
+            return subprocess.run(
+                [sys.executable, script, "--root", root, *argv],
+                capture_output=True,
+                text=True,
+            ).returncode
+
+        _make_audit(root, "cycle-ledger", "feedback/cycle-ledger.md", [LEDGER_RELPATH])
+        _write(root, "src/thing.fs", "let a = 4\n")
+        settled = cli("--grandfather", "--reason", "selftest: exit-code invariant")
+        check("--grandfather exiting 0 means check exits 0", settled == 0 and cli() == 0)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
 
 
 def selftest() -> int:
@@ -902,6 +1290,9 @@ def selftest() -> int:
         _write(root, "src/thing.fs", "let a = 99\n")
         check("a stale binding exits 1", cli() == 1)
         check("--json still exits 1 on violations", cli("--json") == 1)
+
+        # 17. the checker's own remedy surfaces cannot be bound (rogue3#38)
+        selftest_exemptions(check)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
