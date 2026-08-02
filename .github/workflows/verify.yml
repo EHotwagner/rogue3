@@ -146,11 +146,15 @@ jobs:
       - name: Self-test the build.fsx merge gate
         run: |
           set -euo pipefail
+          result=readiness/logs/selftest-result.json
+          # Remove any pre-existing artifact FIRST, so this step can never read a
+          # stale result as if this run had produced it. It is gitignored, so a
+          # fresh checkout has none -- but a local run of this step would.
+          rm -f "$result"
           # NOTE the absence of a pipe: `./fake.sh | tee` would hand the step
           # `tee`'s exit status. The true exit code of SelfTest is load-bearing
           # here, so it is taken directly.
           ./fake.sh -t SelfTest
-          result=readiness/logs/selftest-result.json
           if [ ! -f "$result" ]; then
             echo "::error::SelfTest wrote no structured result at $result -- it did not run to completion (rogue3#57)."
             exit 1
