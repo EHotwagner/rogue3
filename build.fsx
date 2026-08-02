@@ -1630,10 +1630,26 @@ let private runSelfTest () =
             (let line = templateDriftCoverage coverageDirty
              line.Contains "1 uncovered" && not (line.Contains "0 uncovered"))
 
+        // The denominator is counted INDEPENDENTLY here — with `Directory.GetFiles` rather than
+        // through `kitTreeFiles`, which the line itself uses — so a mutation that shrinks the
+        // enumeration cannot satisfy both sides. A literal (`of 190 kit files`) would have been a
+        // stronger tripwire and a worse test: re-materializing the kit with one more skill would
+        // red the gate on a correct tree, which is the failure this file exists to avoid, and #52
+        // is about to run these cases on every pull request.
+        let realTotal =
+            [ ".agents"; ".claude" ]
+            |> List.sumBy (fun owner ->
+                let treeRoot = path [ currentRoot (); owner; "skills" ]
+
+                if Directory.Exists treeRoot then
+                    (Directory.GetFiles(treeRoot, "*", SearchOption.AllDirectories)).Length
+                else
+                    0)
+
         expect
-            "the coverage line reports the real repository's kit total, not a fixture's"
+            "the coverage line reports the real repository's kit total, counted independently"
             (let line = templateDriftCoverage (currentRoot ())
-             line.Contains "of 190 kit files" && line.Contains "0 uncovered")
+             realTotal > 0 && line.Contains $"of {realTotal} kit files" && line.Contains "0 uncovered")
 
         let noGuidance, _ = freshFixture ()
         File.Delete(path [ noGuidance; "AGENTS.md" ])
