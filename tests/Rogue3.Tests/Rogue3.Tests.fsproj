@@ -54,6 +54,12 @@
          profile == "game")` and compiles to an empty module on the other profiles (the CoverageGateTests
          pattern), which is why it needs no compile Condition here. -->
     <Compile Include="ShellBehaviorTests.fs" />
+    <!-- Board item #47: the three routes that award an item. `Model.PlayerItems` had no production
+         writer at all — the shop debited and granted nothing, the treasure pedestal was discarded at
+         room load, and the boss reward was drawn but not takeable. Each test is written to fail
+         against the tree it was written on, and the player-facing ones are driven through
+         `KeyChanged` + `Tick` because the ancestor defect was a correct, unreachable reducer. -->
+    <Compile Include="M14ItemGrantTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

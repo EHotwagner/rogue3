@@ -147,7 +147,10 @@ let m7UiMenusStatsTests =
         test "run events and completion populate all requested counters" {
             let stats = {initialModel.RunStats with DepthReached=7;KillsByType=Map.ofList [Entities.EnemyKind.Fly,3]}
             let model = {initialModel with RunStats=stats;RunActive=true}
-            let updated = model |> update RecordItemFound |> fst |> update (RecordCoinsCollected 6) |> fst |> update (CompleteRunStats(false,Some DeathCause.Trap)) |> fst
+            // Board item #47 removed `RecordItemFound`: a message that bumped `ItemsFound` while
+            // granting nothing. The counter is now driven by the real grant, so this setup exercises
+            // the production route rather than a message no product code ever dispatched.
+            let updated = model |> grantItem Entities.baseItems.Head |> update (RecordCoinsCollected 6) |> fst |> update (CompleteRunStats(false,Some DeathCause.Trap)) |> fst
             let completed=updated.LastRunSummary.Value.Stats
             Expect.equal (completed.ItemsFound,completed.CoinsCollected,completed.DeathCause) (1,6,Some DeathCause.Trap) "run counters and cause are snapshotted before permadeath discards active state"
             Expect.equal updated.RunStats emptyRunStats "the terminal transition does not retain active run statistics"

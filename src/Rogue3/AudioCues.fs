@@ -154,6 +154,7 @@ let private forAudioEvent = function
     | AudioEvent.PlayerDied -> sfx AudioCueIds.playerDeath 1.0
     | AudioEvent.DodgeRolled -> sfx AudioCueIds.dodgeRoll 0.6
     | AudioEvent.BombExploded -> sfx AudioCueIds.bombExplosion 0.95
+    | AudioEvent.ItemGranted -> sfx AudioCueIds.itemPickup 0.85
 
 type private MusicContext =
     | Title
@@ -266,7 +267,11 @@ let private directEventCues msg previous next =
               yield sfx AudioCueIds.enemyDeath 0.75
       | DamageM5Boss _ when next.M5Boss <> previous.M5Boss -> yield sfx AudioCueIds.shotHit 0.7
       | RecordCoinsCollected count when count > 0 -> yield sfx AudioCueIds.pickupCoin 0.7
-      | RecordItemFound -> yield sfx AudioCueIds.itemPickup 0.85
+      // Board item #47 removed the `RecordItemFound` cue here. It was keyed to a message with zero
+      // production dispatch sites — the same defect the note below describes for `floor-descend`, so
+      // `item-pickup` was audible only to a test that dispatched it. The pedestal and boss reward
+      // resolve inside a `Tick`, and are now cued STATE-DERIVED through `AudioEvent.ItemGranted`;
+      // the shop keeps its message-keyed cue in `m5ShopPickupCues` because a purchase IS a message.
       // NOTE: `floor-descend` is NOT cued here. It is STATE-DERIVED in `doorAndBossCues`, because
       // M11's production route reaches a descent from inside a `Tick` — the audio seam never sees a
       // `DescendFloor` message on a real descent, so a message-keyed cue would be audible only to a

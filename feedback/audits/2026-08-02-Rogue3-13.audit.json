@@ -1,0 +1,226 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-13.md",
+  "reportSha256": "325013cc0708ed44712c5a6c6dd68dda4aca5bd8935c49e64ca416374a9ffa56",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "7e318a82dcb255d2b685b5463b6791e43c4d64eb47787fd1c6d553b1261ae34a"
+        },
+        {
+          "locator": "file:src/Rogue3/FloorGeneration.fs",
+          "result": "verified",
+          "sha256": "e4382605395e26255919800eb48f7a0e5179c52a93862a8d1aa32be9d1d8edf3"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#47",
+          "result": "verified"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+          "result": "verified",
+          "sha256": "973e92431074cf2e482499d0fdfb8d2658ec4387dc885e9c469a890a92f2611b"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic confirmed `git grep -n \"PlayerItems\" 3913c26 -- src` returns exactly three hits and none is a writer, and that `Reward=(if isBoss then reward else None)` stood at 3913c26:Model.fs:1600.",
+        "The critic noted the diagnosis is not novel: feedback/2026-08-02-Rogue3-8.md 4.3 already recorded that PlayerItems has no production writer. The Recurrence field was corrected to say so."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:feedback/audits/2026-08-02-Rogue3-13.mutations.md",
+          "result": "verified",
+          "sha256": "3543037d3e95f64ce5dd202e1adf51837131ca4f73b3dae3237d20fb948b8679"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+          "result": "verified",
+          "sha256": "973e92431074cf2e482499d0fdfb8d2658ec4387dc885e9c469a890a92f2611b"
+        },
+        {
+          "locator": "command:dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -m:1 --disable-build-servers",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic graded this finding incomplete for lacking a committed mutation artifact and for a 26-versus-16 inconsistency. Both were resolved before this audit: feedback/audits/2026-08-02-Rogue3-13.mutations.md now records every mutation, its target and its verdict across four sweeps, including the 246-test baseline the critic measured against and the one void run.",
+        "The cited dotnet test command reproduces green at 253 tests but is not itself probative of the mutation counts; the mutation rows must be re-run to reproduce them.",
+        "The critic independently spot-checked one named survivor (roomRewardRadius 20.0 -> 400.0) and reproduced two failing tests, corroborating row S11.",
+        "Three of the critic's 22 actionable survivors remain unpinned and are stated as such in both the report and the artifact: loosenings of roomRewardRadius that stay inside the walk helper's 2-unit settling tolerance.",
+        "A fourth critic reviewed the pushed pull request and found two further surviving mutations: reward collection could also strip the Trapdoor fixture (a softlock the suite passed green), and a new AudioEvent case added WITH a cue was not caught by the reflection guard, disproving a claim of protection the author had written into two test comments. Both are now killed and both are recorded as sweep E in the mutations artifact; the comments were corrected to state what the guard actually does."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "7e318a82dcb255d2b685b5463b6791e43c4d64eb47787fd1c6d553b1261ae34a"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+          "result": "verified",
+          "sha256": "973e92431074cf2e482499d0fdfb8d2658ec4387dc885e9c469a890a92f2611b"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic verified runScore weights CoinsCollected*5, that Entities.fs:275 makes the pool-exhausted fallback a Coin3 priced at 3, and that the new test pins both CoinsCollected and runScore unmoved. The pre-fix '+15 observed' figure is arithmetically entailed rather than reproduced from the tree, since the defect no longer exists in it."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+          "result": "verified",
+          "sha256": "973e92431074cf2e482499d0fdfb8d2658ec4387dc885e9c469a890a92f2611b"
+        },
+        {
+          "locator": "file:src/Rogue3/FloorGeneration.fs",
+          "result": "verified",
+          "sha256": "e4382605395e26255919800eb48f7a0e5179c52a93862a8d1aa32be9d1d8edf3"
+        },
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "7e318a82dcb255d2b685b5463b6791e43c4d64eb47787fd1c6d553b1261ae34a"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic independently re-derived the numeric claim against the built assembly: per-floor generate yields 12 item rewards and 0 fallbacks, chained generateWithPool yields 4 and 8 on the boot seed.",
+        "The critic found the draft's 'three seeds' claim false because boot.RunSeed is 0xC0FFEEUL and the list repeated it. The test was corrected to use three genuinely distinct seeds before this audit was written."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#53",
+          "result": "verified"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.github/workflows/audit-bindings.yml",
+          "result": "verified",
+          "sha256": "72bdce1d6872444a49c3d4d84ec06bd669b795b1db7ec9d12977230b97294510"
+        }
+      ],
+      "confidenceLimits": [
+        "Duplicate of open issue EHotwagner/rogue3#53, which states this finding verbatim and already names #26, #47 and #40 as the three colliding workers. The draft cited only closed #41 and claimed the finding was recorded rather than filed; corrected to disposition against #53.",
+        "The draft's counts did not reproduce: the checker reports 20 stale bindings across 10 audits, not 7 across 6, and the total binding population is 216 across 22 audits, not the 204 figure lifted from #41. Both corrected.",
+        "The claim that the tree was green before this change's edits was verified exactly: the digest of git show 3913c26:src/Rogue3/Model.fs equals the ledger's excused digest, and AudioCues.fs equals the digest 2026-08-02-Rogue3-2.audit.json binds.",
+        "scripts/audit-binding-exceptions.json was deliberately NOT cited as evidence: the checker reports citations onto the exceptions ledger as NOT BOUND because excusing a binding on it rewrites it, and this cycle appends to it."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#56",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic found the draft's ownership claim contradictory: EHotwagner/rogue3#26 is CLOSED, and the draft called it open. Corrected to EHotwagner/rogue3#56, which is open and names the same artifacts churning every run.",
+        "The critic was instructed not to run ./fake.sh -t Test because it rewrites tracked files, so the observed git status output is author-reported. The mechanism was corroborated structurally in build.fsx, whose Test target runs runPerformanceIntent and runPerformanceEvidence after the tests, and both artifacts are tracked.",
+        "readiness/m7-ui-performance.json was dropped as a locator: binding a digest over an artifact that churns on every test run is the very defect this finding records.",
+        "Rebased onto 09895b9 after EHotwagner/rogue3#26 merged as PR #54, which edited build.fsx; the binding was re-verified against the new bytes rather than left stale. The mechanism is unchanged and now self-documenting: the Test target still calls runPerformanceEvidence (build.fsx:1529-1532), which writes readiness/performance-evidence.json (build.fsx:625), and a comment at build.fsx:218 records that the churn fix was deliberately NOT extended to that artifact."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "7e318a82dcb255d2b685b5463b6791e43c4d64eb47787fd1c6d553b1261ae34a"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic verified the file is 2,539 lines, that open Rogue3.Geometry stands at line 28, and that the helpers are named addMod/mulMod with a comment recording the shadowing hazard. Zero avoidable cost, correctly dispositioned accepted."
+      ]
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#55",
+          "result": "verified"
+        },
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "7e318a82dcb255d2b685b5463b6791e43c4d64eb47787fd1c6d553b1261ae34a"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+          "result": "verified",
+          "sha256": "973e92431074cf2e482499d0fdfb8d2658ec4387dc885e9c469a890a92f2611b"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic confirmed zero constructions of InteractM5Shop in src, that playerRoomIntentsIn's interact branch raises exactly [DescendFloor; EnterM5Room 0], and that View.fs and M7Ui.fs contain no reference.",
+        "The critic found the draft said the grep returns three hits when it returns five, two of which are prose comments. Corrected in both the report and the source comment in M10AcceptanceDeterminismTests.fs, because counting a comment as a code reference is a documented prior failure in this repository."
+      ]
+    },
+    {
+      "id": "§4.9",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#51",
+          "result": "verified"
+        },
+        {
+          "locator": "file:src/Rogue3/FloorGeneration.fs",
+          "result": "verified",
+          "sha256": "e4382605395e26255919800eb48f7a0e5179c52a93862a8d1aa32be9d1d8edf3"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs",
+          "result": "verified",
+          "sha256": "083fb605aae90c2b86a48285cd3698e70077e276afb43e6ad81db3403f6a3ed0"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic verified the DU case at FloorGeneration.fs:32, its construction at :221, no other src reference, the catch-all at Model.fs:1583, and the existing assertion at M5EntitiesBossRoomsTests.fs:156 that the fallback occurs in generated floors.",
+        "The critic independently quantified the ordinary-case claim: 8 fallback rooms versus 4 item rooms over six chained floors on the boot seed."
+      ]
+    }
+  ]
+}
