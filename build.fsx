@@ -948,6 +948,19 @@ let private renderKitPins (pins: (string * string) list) =
     + entries
     + "\n  ]\n}\n"
 
+/// Rewrites the ledger from the tree and returns what it pinned. THE one write path: the `KitPins`
+/// target and `SelfTest`'s fixture re-pin both go through here, so a mutation to the remedy is a
+/// mutation to the thing the tests exercise. They used to be parallel implementations, and a
+/// reviewer's mutant that made the TARGET write an empty ledger survived every case because only
+/// the fixture's copy was ever run.
+let private writeKitPins (root: string) =
+    let named, _ = agentsManifestNames root
+    let pins = computeKitPins root (Set.ofSeq named)
+    let target = path [ root; kitPinsRelative ]
+    Directory.CreateDirectory(Path.GetDirectoryName target: string) |> ignore
+    File.WriteAllText(target, renderKitPins pins)
+    pins
+
 /// Every materialized kit file matches the digest its manifest pins. Returns one line per
 /// violation; an empty list is a genuine pass.
 let templateDriftViolations (root: string) =
@@ -1117,7 +1130,27 @@ let templateDriftViolations (root: string) =
 /// What `TemplateDrift` covers on this tree, as one line. #46's acceptance is that the uncovered
 /// set is visible in the GATE's output; a green run reports zero uncovered, and this says so with
 /// the denominator rather than leaving a reader to infer full coverage from silence.
+/// The uncovered count is DERIVED from the violation list rather than recomputed, so the counter
+/// and the enumeration cannot disagree — not "are checked to agree", but cannot.
+///
+/// The first version recomputed coverage from its own name-membership test, and a reviewer produced
+/// a tree where it printed `0 uncovered` while the enumeration below it named two files as pinned
+/// by nothing: `readKitPins` had returned an entry whose `sha256` was absent, which
+/// `templateDriftViolations` rejects and the summary's own set-building did not. That is the exact
+/// overstatement #46 was filed about, reproduced inside the fix for it — twice, in opposite
+/// directions. Deriving is the only version that cannot come back.
 let templateDriftCoverage (root: string) =
+    let violations = templateDriftViolations root
+    let uncovered = violations |> List.filter (fun v -> v.StartsWith "coverage: ") |> List.length
+
+    let sources = kitTreeFiles root ".agents"
+    let mirrors = kitTreeFiles root ".claude"
+    let total = List.length sources + List.length mirrors
+    let covered = total - uncovered
+
+    // The breakdown is attribution, not arithmetic: it says WHICH oracle covers what, and it is
+    // reported only for the sources actually present. It cannot contradict `covered`, because
+    // `covered` no longer comes from it.
     let manifestNamed, manifestPins = agentsManifestNames root
 
     let ledgerPinned =
@@ -1125,29 +1158,12 @@ let templateDriftCoverage (root: string) =
         | Ok pins -> pins |> List.map fst |> Set.ofList
         | Error _ -> Set.empty
 
-    let covers relative =
-        manifestNamed.Contains relative || ledgerPinned.Contains relative
+    let byManifest = sources |> List.filter manifestNamed.Contains |> List.length
+    let byLedger = sources |> List.filter (fun s -> not (manifestNamed.Contains s) && ledgerPinned.Contains s) |> List.length
 
-    let sources = kitTreeFiles root ".agents"
-    let mirrors = kitTreeFiles root ".claude"
-    let coveredSources = sources |> List.filter covers
-
-    // A mirror is covered only where its SOURCE is both present and pinned — the mirror pass walks
-    // pinned sources, so an uncovered source leaves its mirror uncovered too. Counting mirrors
-    // as covered on symmetry alone is exactly the overstatement #46 was filed about.
-    let coveredMirrors =
-        mirrors
-        |> List.filter (fun mirrored ->
-            let source = ".agents/" + mirrored.Substring(".claude/".Length)
-            covers source && File.Exists(path [ root; source ]))
-
-    let covered = List.length coveredSources + List.length coveredMirrors
-    let total = List.length sources + List.length mirrors
-    let manifestCovered = sources |> List.filter (fun s -> manifestNamed.Contains s) |> List.length
-
-    $"TemplateDrift: {covered} of {total} kit files pinned — {manifestCovered} source(s) by the generated manifest, "
-    + $"{List.length coveredSources - manifestCovered} by {kitPinsRelative}, plus {List.length coveredMirrors} mirror(s); "
-    + $"{total - covered} uncovered. Manifest entries carrying a digest: {manifestPins.Count}."
+    $"TemplateDrift: {covered} of {total} kit files pinned — {byManifest} source(s) by the generated manifest, "
+    + $"{byLedger} by {kitPinsRelative}, plus {covered - byManifest - byLedger} mirror(s); "
+    + $"{uncovered} uncovered. Manifest entries carrying a digest: {manifestPins.Count}."
 
 /// The agents `.fsgg/agents.yml` declares each have their guidance target present, and where
 /// generated guidance exists for one agent it exists for all of them
@@ -1257,6 +1273,16 @@ let private runViolationCheck target (violations: string list) =
 
 let private currentRoot () = Directory.GetCurrentDirectory()
 
+/// #46: the coverage line is printed on EVERY run, green or red, and before the verdict. A gate
+/// that speaks only when it fails leaves a reader to infer full coverage from silence — which is
+/// precisely the misreading of a green `TemplateDrift` that #46 was filed to stop.
+///
+/// Defined ABOVE `SelfTest` so a case can drive the real target and assert the line actually
+/// reaches stdout. It sat below, untested, and a mutant that simply never printed survived.
+let private runTemplateDrift () =
+    printfn "%s" (templateDriftCoverage (currentRoot ()))
+    runViolationCheck "TemplateDrift" (templateDriftViolations (currentRoot ()))
+
 // ---------------------------------------------------------------------------
 // #34: the checker proves itself before the gate trusts it.
 //
@@ -1279,9 +1305,7 @@ let private writeFile (filePath: string) (contents: string) =
 /// real one: `#46` records appending a line to this exact path as the cheapest surviving evasion.
 let private unnamedRelative = ".agents/skills/work-board/references/deep-detail.md"
 
-let private repinFixture (root: string) =
-    let named, _ = agentsManifestNames root
-    writeFile (path [ root; kitPinsRelative ]) (renderKitPins (computeKitPins root (Set.ofSeq named)))
+let private repinFixture (root: string) = writeKitPins root |> ignore
 
 /// A minimal but structurally faithful tree: one always-materialized skill, one that this
 /// profile does not take, both manifests, the agent inventory and its two guidance targets.
@@ -1625,6 +1649,126 @@ let private runSelfTest () =
              let named = injectedViolations |> List.filter (fun v -> v.StartsWith "coverage: ") |> List.length
              line.Contains $"{named} uncovered")
 
+        // …and the converse. A ledger entry with no `sha256` is REJECTED by the violation pass but
+        // was still counted as a pin by the summary's own set-building, so the counter said
+        // `0 uncovered` while the enumeration named two files. Both directions now, on one tree.
+        let counterVsNames, _ = freshFixture ()
+
+        writeFile
+            (path [ counterVsNames; kitPinsRelative ])
+            """{ "schemaVersion": 1, "pins": [ { "path": ".agents/skills/work-board/references/deep-detail.md" } ] }"""
+
+        expect
+            "a file the coverage ENUMERATION names is never counted as covered"
+            (let named =
+                templateDriftViolations counterVsNames
+                |> List.filter (fun v -> v.StartsWith "coverage: ")
+                |> List.length
+
+             named > 0 && (templateDriftCoverage counterVsNames).Contains $"{named} uncovered")
+
+        // SURVIVOR: every source-coverage case above also has a mirror, so the mirror arm masked
+        // the source arm and a predicate excluding sources by path survived every case.
+        let sourceOnly, _ = freshFixture ()
+        writeFile (path [ sourceOnly; ".agents/skills/fs-gg-kit/references/orphan-source.md" ]) "# added\n"
+
+        expect
+            "an unpinned SOURCE with no mirror is reported on its own"
+            (templateDriftViolations sourceOnly
+             |> List.exists (fun v -> v.StartsWith "coverage: " && v.Contains ".agents/skills/fs-gg-kit/references/orphan-source.md"))
+
+        // SURVIVOR: no fixture had a dot-prefixed kit file, so filtering them out of the
+        // enumeration was invisible. A `.DS_Store` in the kit is drift like any other file.
+        let dotFile, _ = freshFixture ()
+        writeFile (path [ dotFile; ".agents/skills/fs-gg-kit/.DS_Store" ]) "junk\n"
+
+        expect
+            "a DOT-PREFIXED file in the kit tree is enumerated, not skipped"
+            (templateDriftViolations dotFile
+             |> List.exists (fun v -> v.StartsWith "coverage: " && v.Contains ".DS_Store"))
+
+        // SURVIVOR: the only out-of-tree case pinned `build.fsx`, which fails EVERY candidate
+        // prefix, so widening `kitSourcePrefix` to `.agents/` or dropping its trailing slash both
+        // survived. This pins the boundary itself.
+        //
+        // The file is named so that NOTHING in the refusal wording appears in its path. The first
+        // version of this case pinned `.agents/outside-the-kit.md` and asserted `v.Contains
+        // "outside"` — which the DRIFT message satisfies via the filename, so both mutants still
+        // passed. A substring assertion that the fixture's own name can satisfy is not a test.
+        let ledgerBoundary, _ = freshFixture ()
+        writeFile (path [ ledgerBoundary; ".agents/plain.md" ]) "# added\n"
+
+        writeFile
+            (path [ ledgerBoundary; kitPinsRelative ])
+            """{ "schemaVersion": 1, "pins": [ { "path": ".agents/plain.md", "sha256": "0000000000000000000000000000000000000000000000000000000000000000" } ] }"""
+
+        expect
+            "a ledger pin under .agents/ but OUTSIDE .agents/skills/ is refused"
+            (templateDriftViolations ledgerBoundary
+             |> List.exists (fun v -> v.Contains kitPinsRelative && v.Contains "which this ledger does not pin"))
+
+        // The trailing slash specifically: `.agents/skillsX/` must not satisfy `.agents/skills`.
+        let ledgerSiblingDir, _ = freshFixture ()
+        writeFile (path [ ledgerSiblingDir; ".agents/skillsX/plain.md" ]) "# added\n"
+
+        writeFile
+            (path [ ledgerSiblingDir; kitPinsRelative ])
+            """{ "schemaVersion": 1, "pins": [ { "path": ".agents/skillsX/plain.md", "sha256": "0000000000000000000000000000000000000000000000000000000000000000" } ] }"""
+
+        expect
+            "a ledger pin in a SIBLING directory sharing the prefix is refused"
+            (templateDriftViolations ledgerSiblingDir
+             |> List.exists (fun v -> v.Contains kitPinsRelative && v.Contains "which this ledger does not pin"))
+
+        // SURVIVOR: a path pinned by BOTH oracles is checked twice rather than masked. Skipping the
+        // ledger entry for a manifest-named file survived every case, because no fixture had one.
+        let doublePinned, doubleSkill = freshFixture ()
+        let doubleDigest = fileDigest (path [ doublePinned; doubleSkill ])
+
+        writeFile
+            (path [ doublePinned; kitPinsRelative ])
+            $"""{{ "schemaVersion": 1, "pins": [ {{ "path": "{doubleSkill}", "sha256": "{doubleDigest}" }} ] }}"""
+
+        File.AppendAllText(path [ doublePinned; doubleSkill ], "drifted\n")
+
+        expect
+            "a path pinned by BOTH the manifest and the ledger is checked by both, not masked"
+            (let v = templateDriftViolations doublePinned
+             (v |> List.exists (fun l -> l.Contains kitPinsRelative && l.Contains "has drifted"))
+             && (v |> List.exists (fun l -> l.Contains "skill-manifest.json" && l.Contains "has drifted")))
+
+        // SURVIVOR: the breakdown numbers were asserted by nothing, so halving one of them passed.
+        let breakdown, _ = freshFixture ()
+
+        expect
+            "the coverage line attributes each source to the oracle that actually pins it"
+            (let line = templateDriftCoverage breakdown
+             // fixture: fs-gg-kit + fs-gg-equal are manifest-named; the manifest and the unnamed
+             // reference file are the ledger's; every present source has a mirror.
+             line.Contains "2 source(s) by the generated manifest"
+             && line.Contains $"2 by {kitPinsRelative}"
+             && line.Contains "plus 4 mirror(s)")
+
+        // SURVIVOR: `templateDriftCoverage` was tested, but the TARGET that prints it was not — so
+        // a mutant that simply never printed the line passed, while #46's acceptance is that the
+        // uncovered set is visible in the GATE's own output.
+        let printed =
+            let previous = Console.Out
+            use captured = new StringWriter()
+            Console.SetOut captured
+
+            try
+                try
+                    runTemplateDrift ()
+                with _ ->
+                    ()
+            finally
+                Console.SetOut previous
+
+            captured.ToString()
+
+        expect "the TemplateDrift target PRINTS the coverage line, not just computes it" (printed.Contains "kit files pinned" && printed.Contains "uncovered")
+
         // Injected into the MIRROR tree only, where no source exists to walk from.
         let injectedMirror, _ = freshFixture ()
         writeFile (path [ injectedMirror; ".claude/skills/fs-gg-kit/orphan.md" ]) "# added\n"
@@ -1691,7 +1835,7 @@ let private runSelfTest () =
         expect
             "a ledger pin OUTSIDE the kit tree is refused"
             (templateDriftViolations ledgerOutside
-             |> List.exists (fun v -> v.Contains kitPinsRelative && v.Contains "outside"))
+             |> List.exists (fun v -> v.Contains kitPinsRelative && v.Contains "which this ledger does not pin"))
 
         // `.agents/skills/../..` satisfies the prefix test. Counting it would inflate the covered
         // total with a file no coverage pass enumerates — the overstatement this item is about.
@@ -1703,7 +1847,7 @@ let private runSelfTest () =
         expect
             "a ledger pin that ESCAPES the kit tree with .. is refused"
             (templateDriftViolations ledgerEscape
-             |> List.exists (fun v -> v.Contains kitPinsRelative && v.Contains "outside"))
+             |> List.exists (fun v -> v.Contains kitPinsRelative && v.Contains "which this ledger does not pin"))
 
         // The remedy the gate prints has to work, or the gate is red with no way out and gets
         // ignored — the failure mode every check in this file is written to avoid.
@@ -2051,21 +2195,11 @@ let private runSelfTest () =
 
     writeLog "SelfTest"
 
-/// #46: the coverage line is printed on EVERY run, green or red, and before the verdict. A gate
-/// that speaks only when it fails leaves a reader to infer full coverage from silence — which is
-/// precisely the misreading of a green `TemplateDrift` that #46 was filed to stop.
-let private runTemplateDrift () =
-    printfn "%s" (templateDriftCoverage (currentRoot ()))
-    runViolationCheck "TemplateDrift" (templateDriftViolations (currentRoot ()))
-
 /// #46: the remedy the gate names when it reports an unpinned or drifted kit file. Re-pinning is a
 /// deliberate, reviewable act — it rewrites a tracked ledger that the audit-binding gate holds a
 /// digest over — so this prints what it did rather than doing it quietly.
 let private runKitPins () =
-    let root = currentRoot ()
-    let named, _ = agentsManifestNames root
-    let pins = computeKitPins root (Set.ofSeq named)
-    File.WriteAllText(path [ root; kitPinsRelative ], renderKitPins pins)
+    let pins = writeKitPins (currentRoot ())
 
     printfn
         "KitPins: pinned %d kit file(s) under %s that the generated skill manifest does not name, into %s"
