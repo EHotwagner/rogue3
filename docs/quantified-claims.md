@@ -135,8 +135,9 @@ Some figures are counts over the whole tree, and this page's own worked example 
 `check-audit-bindings.py` counts every audit and every bound file, so there is no "file the claim is
 about" to digest. For those, neither row above works on its own. Do this instead:
 
-1. **Pin the merge base**, which is on `main` and therefore reachable:
-   `git merge-base HEAD origin/main`. Quote the figure measured *there*.
+1. **Pin the merge base**, which is on `main` and therefore reachable. Resolve it with
+   `git merge-base HEAD origin/main` and write **the sha it prints**, never the words "the merge
+   base" — see *Never label a pin with a moving description* below. Quote the figure measured there.
 2. **State what your branch does to it** — either "this branch does not change the measured inputs",
    which a reader can check, or the delta and the digests of the files that cause it.
 
@@ -161,8 +162,14 @@ The fix is not to pin harder. It is to **delete the moving words**:
 > "re-checked against `77f567d`"
 
 Now it is permanently true. The sha alone is a fixed pin and needs no relative label; "the current
-head", "the latest commit", "the tip of this branch", "as of now" and "the merge base" all name
+head", "the latest commit", "the tip of this branch", "the merge base" and "as of now" all name
 something that moves, and add nothing a bare sha does not already say.
+
+That includes the merge-base rule above, and the distinction is the whole point: **resolve the
+moving thing, then write what it resolved to.** `git merge-base HEAD origin/main` is how you *find*
+the pin; the pin you *write* is the sha it printed. `Measured-at: 110bde3 — …` is durable.
+`Measured-at: the merge base — …` is not a pin at all, because it resolves to something different
+for every later reader.
 
 This is a different failure from the branch-sha problem above, and it cannot be fixed the same way.
 A branch sha rots because the *commit* stops being reachable, which pinning to `main` solves. A
