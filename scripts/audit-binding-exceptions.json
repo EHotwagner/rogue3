@@ -1,6 +1,6 @@
 {
   "grandfatherSchema": 1,
-  "note": "Explicit exceptions to the audit-binding check (scripts/check-audit-bindings.py). Each entry excuses ONE stale binding at ONE observed digest: change the file again and it fails again. Adding an entry here is the PREFERRED remedy; rebinding a MERGED audit rewrites what that audit records its critic as having verified (see 7e71d71) and is right only for an audit you re-verified yourself.",
+  "note": "FROZEN ARCHIVE. This was the single shared excuse ledger until rogue3#53. Every worker that touched an audit-bound file was funnelled onto this one path by the only non-destructive remedy, and no board item declared it, so concurrent cycles collided on it and sequenced by hand. The ledger is now a DIRECTORY, scripts/audit-binding-exceptions/, holding one <cycle-id>.json per cycle; check-audit-bindings.py evaluates the union of every file plus this one. These entries stay here, still honoured, because they are the record of what earlier cycles excused and why -- and because four merged audits cite this path. --grandfather NEVER writes this file; the only thing that ever will again is a prune of an entry that excuses nothing, which the tool reports explicitly. Do not add entries here.",
   "entries": [
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-10.audit.json",

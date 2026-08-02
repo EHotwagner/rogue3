@@ -350,11 +350,23 @@ let private normalizedJsonString value =
 
 /// The audit-binding gate's excuse ledger (scripts/check-audit-bindings.py).
 ///
-/// This is the ONE path whose digest cannot be pinned, because it is the only
-/// place an excuse can live: excusing any stale binding REWRITES this file, so
-/// a citation onto it is invalidated by the documented remedy for an unrelated
+/// This is the ONE surface whose digest cannot be pinned, because it is the only
+/// place an excuse can live: excusing any stale binding REWRITES it, so a
+/// citation onto it is invalidated by the documented remedy for an unrelated
 /// violation. Binding it is a fixed-point equation with no fixed point.
+///
+/// The frozen archive the ledger was until rogue3#53. Still exempt: merged
+/// audits cite this path, and a prune can still rewrite it.
 let ledgerRelativePath = "scripts/audit-binding-exceptions.json"
+
+/// The ledger as it is written today: one `<cycle-id>.json` per cycle under this
+/// directory, so two concurrent cycles never share the path their excuse lands
+/// in (rogue3#53). Exempting only `ledgerRelativePath` would reproduce the
+/// rogue3#38 dead end at the new path the first time a cycle's finding is about
+/// its own excuse.
+let ledgerDirectoryPrefix = "scripts/audit-binding-exceptions/"
+
+let private ledgerSuffix = ".json"
 
 let private ledgerExemption =
     "this is the audit-binding excuse ledger itself: the only place an excuse can live, so "
@@ -368,10 +380,15 @@ let private ledgerExemption =
 /// is recognised as the ledger too. A textual match on the locator would let a
 /// one-token rewrite reintroduce the unsatisfiable binding this exempts.
 ///
-/// Deliberately ONE path, not a class. In particular a citation onto another
-/// `*.audit.json` is NOT exempt, for one reason only: it would cost the only
-/// check that notices an edit to merged evidence, and an audit's digest CAN be
-/// held stable -- nothing this validator does rewrites an audit.
+/// Deliberately the ledger and NOTHING else. The directory prefix is not a
+/// second exemption: it is the same one, following the ledger from one shared
+/// file to one file per cycle. It is a PATH prefix ending in `/` plus a `.json`
+/// suffix, so `scripts/audit-binding-exceptions-other/x.json` and
+/// `scripts/audit-binding-exceptions/notes.md` stay bound. In particular a
+/// citation onto another `*.audit.json` is NOT exempt, for one reason only: it
+/// would cost the only check that notices an edit to merged evidence, and an
+/// audit's digest CAN be held stable -- nothing this validator does rewrites an
+/// audit.
 ///
 /// Do NOT justify that with the gate's convergence argument. `check-audit-bindings.py`
 /// can say "a stale binding onto another audit settles in a single `--grandfather`
@@ -388,7 +405,12 @@ let private ledgerExemption =
 /// file the checker calls unbindable is a file this validator must not call stale,
 /// and vice versa.
 let digestExemption (rel: string) =
-    if String.Equals(rel, ledgerRelativePath, StringComparison.Ordinal) then
+    let underLedgerDirectory =
+        rel.StartsWith(ledgerDirectoryPrefix, StringComparison.Ordinal)
+        && rel.EndsWith(ledgerSuffix, StringComparison.Ordinal)
+
+    if String.Equals(rel, ledgerRelativePath, StringComparison.Ordinal)
+       || underLedgerDirectory then
         Some ledgerExemption
     else
         None
