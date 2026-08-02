@@ -27,13 +27,17 @@ let audioTests =
                     AudioEvents =
                         [ AudioEvent.ShotFired; AudioEvent.ShotHit; AudioEvent.EnemyDied
                           AudioEvent.PlayerHit; AudioEvent.PlayerDied; AudioEvent.DodgeRolled
-                          AudioEvent.BombExploded ] }
+                          AudioEvent.BombExploded
+                          // Board item #47. A mutation critic found this list is hand-maintained and
+                          // omitting a case is silent, so `M14ItemGrantTests` carries a reflection
+                          // guard that fails when an `AudioEvent` case is missing from here.
+                          AudioEvent.ItemGranted ] }
             let actual = AudioCues.forTransition (Tick fixedDt) Program.initialModel next |> requested
             let expected =
                 [ PlaySfx(SoundId "shot-fire", 0.55); PlaySfx(SoundId "shot-hit", 0.7)
                   PlaySfx(SoundId "enemy-death", 0.75); PlaySfx(SoundId "player-hit", 0.9)
                   PlaySfx(SoundId "player-death", 1.0); PlaySfx(SoundId "dodge-roll", 0.6)
-                  PlaySfx(SoundId "bomb-explosion", 0.95) ]
+                  PlaySfx(SoundId "bomb-explosion", 0.95); PlaySfx(SoundId "item-pickup", 0.85) ]
             Expect.equal actual expected "the ordered transient batch preserves every occurrence without net-diff collapse"
 
             let firing =

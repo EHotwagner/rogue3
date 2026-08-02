@@ -232,7 +232,10 @@ let private idsRequestedByARealRun () =
             AudioEvents =
                 [ AudioEvent.ShotFired; AudioEvent.ShotHit; AudioEvent.EnemyDied
                   AudioEvent.PlayerHit; AudioEvent.PlayerDied; AudioEvent.DodgeRolled
-                  AudioEvent.BombExploded ] }
+                  AudioEvent.BombExploded
+                  // Board item #47 — see the note in M8AudioTests; the reflection guard in
+                  // M14ItemGrantTests fails if an AudioEvent case is missing from these lists.
+                  AudioEvent.ItemGranted ] }
     collected.AddRange(
         AudioCues.forTransition (Tick fixedDt) descended allEvents
         |> Audio.interpret

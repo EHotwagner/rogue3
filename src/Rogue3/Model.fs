@@ -148,6 +148,10 @@ type AudioEvent =
     | PlayerDied
     | DodgeRolled
     | BombExploded
+    /// A run item entered `PlayerItems`. Emitted by `grantItem` on the routes that resolve inside a
+    /// fixed step (the pedestal and the boss reward). The shop's own acquisition sound is keyed off
+    /// `InteractM5Shop` in `AudioCues.m5ShopPickupCues`, because a purchase is a message, not a tick.
+    | ItemGranted
 
 [<RequireQualifiedAccess>]
 type DifficultyMode = Easy | Normal | Hard
@@ -425,7 +429,9 @@ type Msg =
     | SetMuted of bool
     | SetScreenShake of bool
     | SetStatScope of StatScope
-    | RecordItemFound
+    // Board item #47 removed `RecordItemFound` here. It incremented `RunStats.ItemsFound` WITHOUT
+    // granting an item, it had zero production dispatch sites, and it was the last remaining way the
+    // counter and `PlayerItems` could disagree. `Model.grantItem` is now the only writer of either.
     | RecordCoinsCollected of int
     | CompleteRunStats of won:bool * cause:DeathCause option
     | ProfileLoaded of MetaProfile
@@ -1597,7 +1603,13 @@ let loadM5Room roomId model =
               Rogue3.Entities.CombatRoom.Doors=room.Doors|>List.map(fun _->Rogue3.Entities.DoorState.Open)
               Rogue3.Entities.CombatRoom.LiveEnemyIds=allEnemies|>List.map _.Id|>Set.ofList
               Rogue3.Entities.CombatRoom.Drop=None
-              Rogue3.Entities.CombatRoom.Reward=(if isBoss then reward else None)
+              // Board item #47: the reward is durable FLOOR state, exactly like the trapdoor above.
+              // This used to read `if isBoss then reward else None`, which silently DISCARDED every
+              // `ItemPedestal` — the treasure room's whole reason to exist — because a treasure room
+              // is not a boss room. `FloorGeneration` drew the pedestal item from the shared pool and
+              // marked it Placed, so the item was consumed from the run and then thrown away. Both
+              // fixtures now surface; `collectRoomReward` decides WHEN each may be taken.
+              Rogue3.Entities.CombatRoom.Reward=reward
               // M11: the trapdoor is durable FLOOR state, so a room that records the fixture presents
               // it every time it is entered — not only in the session whose boss died.
               Rogue3.Entities.CombatRoom.Trapdoor=(room.Fixtures |> List.contains FloorGeneration.Trapdoor) }
@@ -1659,16 +1671,9 @@ let damageM5Enemy enemyId damage model =
                     DropRng=rng;M5NextEntityId=model.M5NextEntityId+children.Length
                     RunStats={stats with KillsByType=kills}}
 
-let purchaseM5ShopSlot slotId model =
-    match model.M5ShopSlots|>List.tryFind(fun slot->slot.Id=slotId) with
-    | None -> model
-    | Some slot ->
-        let coins,keys,updated,ok=Rogue3.Entities.purchase model.PlayerCurrency.Coins model.PlayerCurrency.Keys slot
-        if not ok then model else
-        let found=match slot.Offer with Rogue3.Entities.ShopOffer.Item _->1|_->0
-        {model with PlayerCurrency={model.PlayerCurrency with Coins=coins;Keys=keys}
-                    RunStats={model.RunStats with ItemsFound=model.RunStats.ItemsFound+found}
-                    M5ShopSlots=model.M5ShopSlots|>List.map(fun item->if item.Id=slotId then updated else item)}
+// Board item #47 moved `purchaseM5ShopSlot` DOWN, next to `applyFloorPickup` and `grantItem`. It
+// stood here, above both, and could therefore hand over neither the item nor the consumable it had
+// just charged for. The move is the fix's precondition, not a tidy-up.
 
 let damageM5Obstacle obstacleId damage model =
     match model.M5Obstacles|>List.tryFind(fun obstacle->obstacle.Id=obstacleId) with
@@ -1819,6 +1824,98 @@ let applyFloorPickup (kind: Rogue3.Entities.PickupKind) model =
         { model with PlayerHealth = addTemporaryHearts 2 0 model.PlayerHealth }
     | Rogue3.Entities.PickupKind.Nothing -> model
 
+// ------------------------------------------------------------------------------------------------
+// Board item #47 — turning a generated item into a player item.
+//
+// `Rogue3.Entities.ItemDefinition` is CONTENT: an id, a quality tier and pool tags. `StatModifier`
+// is PLAYER state. Nothing in the product joined the two, so every route that "awarded an item"
+// awarded a value with no destination: the shop debited coins and dropped the offer on the floor,
+// the treasure pedestal was discarded at room load, and the boss reward was drawn but not takeable.
+//
+// The mapping lives in `Model` rather than on `ItemDefinition` because `Entities` is compiled BEFORE
+// `Model` (see Rogue3.fsproj) and cannot name `Stat`. Moving `Stat`/`StatModifier` down into
+// `Entities` would re-point every stat call site in the product for no gain; a total function from
+// content to modifiers is the same contract with a smaller blast radius.
+// ------------------------------------------------------------------------------------------------
+
+// NOT named `add`/`mul`: `Vec2.add` is in scope for the whole of this file and a plain `add` here
+// would shadow it for every later definition.
+let private addMod stat value = { Stat = stat; Kind = Add; Value = value }
+let private mulMod stat value = { Stat = stat; Kind = Mul; Value = value }
+
+/// What an item DOES. Total by construction: an id with no authored entry still resolves to a
+/// quality-scaled damage bonus, so an item added to the pool later can never be a silent no-op —
+/// which is the exact failure this item exists to close, one level down.
+///
+/// `TearDelayStat` is INVERTED: `recomputePlayerStats` derives `FireRate = 30 / tearDelay`, so a
+/// NEGATIVE tear-delay modifier fires faster and a positive one fires slower.
+let itemModifiers (item: Rogue3.Entities.ItemDefinition) : StatModifier list =
+    match item.Id with
+    | "coal-heart" -> [ addMod DamageStat 1.0; addMod KnockbackStat 10.0 ]
+    | "cracked-lens" -> [ addMod MultishotStat 1.0; mulMod DamageStat -0.25 ]
+    | "iron-teeth" -> [ addMod DamageStat 2.0; addMod TearDelayStat 2.0 ]
+    | "void-map" -> [ addMod RangeStat 0.5; addMod ShotSpeedStat 60.0 ]
+    | "maggot-crown" -> [ addMod PierceStat 1.0; addMod ShotRadiusStat 2.0 ]
+    | "choir-bell" -> [ addMod TearDelayStat -2.0; addMod HomingStat 0.3 ]
+    | _ -> [ addMod DamageStat (0.5 + 0.5 * float (max 0 item.Quality)) ]
+
+/// The item a generated definition becomes once a player owns it.
+let playerItemOf (item: Rogue3.Entities.ItemDefinition) : PlayerItem =
+    { Id = item.Id; Modifiers = itemModifiers item }
+
+/// THE ONLY WRITER OF `Model.PlayerItems`, and the only place `RunStats.ItemsFound` is incremented.
+///
+/// Both fields move together, in one expression, so the invariant the board item asks for —
+/// `RunStats.ItemsFound` can never disagree with `PlayerItems.Length` for items acquired in a run —
+/// holds because every acquisition goes through here, not because the type system forbids the
+/// alternative. Be precise about that: `git grep -n "PlayerItems *=" -- src` and the same for
+/// `ItemsFound *=` each return exactly two hits, this function and the boot model, and the invariant
+/// rests on that staying true. A future `{ model with PlayerItems = … }` elsewhere would break it
+/// silently. Deriving `ItemsFound` from `PlayerItems.Length` at read time would make it structural;
+/// that is not done here only because `RunStats` is snapshotted whole into the run summary.
+///
+/// Stats are recomputed from the WHOLE list, never patched incrementally, so acquisition order
+/// cannot drift the result.
+///
+/// The `ItemGranted` audio event is drained only on `Tick` (`AudioCues.forTransition`), and
+/// `advanceSim` clears `AudioEvents` at the head of each tick — so on the shop's message-driven path
+/// this event is discarded unplayed rather than double-cued against `m5ShopPickupCues`.
+let grantItem (item: Rogue3.Entities.ItemDefinition) model =
+    let items = model.PlayerItems @ [ playerItemOf item ]
+    { model with
+        PlayerItems = items
+        PlayerStats = recomputePlayerStats items
+        RunStats = { model.RunStats with ItemsFound = model.RunStats.ItemsFound + 1 }
+        AudioEvents = model.AudioEvents @ [ AudioEvent.ItemGranted ] }
+
+/// Buy a shop slot: pay for it, AND receive what was paid for.
+///
+/// Board item #47: this used to debit currency, empty the offer and bump `ItemsFound`, and stop
+/// there — for BOTH offer kinds. An `Item` offer granted no item and recomputed no stat; a
+/// `Consumable` offer granted no heart, key or bomb either, and did not even bump a counter. The
+/// consumable half routes through the SAME `applyFloorPickup` a floor drop uses, so a bought heart
+/// obeys the container cap and a bought coin obeys the 99 cap by the one shared rule.
+let purchaseM5ShopSlot slotId model =
+    match model.M5ShopSlots|>List.tryFind(fun slot->slot.Id=slotId) with
+    | None -> model
+    | Some slot ->
+        let coins,keys,updated,ok=Rogue3.Entities.purchase model.PlayerCurrency.Coins model.PlayerCurrency.Keys slot
+        if not ok then model else
+        let paid =
+            {model with PlayerCurrency={model.PlayerCurrency with Coins=coins;Keys=keys}
+                        M5ShopSlots=model.M5ShopSlots|>List.map(fun item->if item.Id=slotId then updated else item)}
+        match slot.Offer with
+        | Rogue3.Entities.ShopOffer.Item item -> grantItem item paid
+        | Rogue3.Entities.ShopOffer.Consumable kind ->
+            // BOUGHT, not FOUND. `applyFloorPickup` credits `RunStats.CoinsCollected` because a coin
+            // lying on the floor is income, and `runScore` pays `CoinsCollected * 5` for it. A coin
+            // the player just PAID for is not income: the shop's pool-exhausted fallback offer is
+            // `Coin3` priced at 3, so crediting it would mint 15 score per slot for a net-zero
+            // transaction. Take the effect, leave the collection accounting where it was.
+            let stocked = applyFloorPickup kind paid
+            { stocked with RunStats = { stocked.RunStats with CoinsCollected = paid.RunStats.CoinsCollected } }
+        | Rogue3.Entities.ShopOffer.Empty -> paid
+
 /// M13: walk onto a pickup and it is yours.
 ///
 /// Before this, `M5ObstacleDrops` was write-only: smashing a pot appended a `PickupKind` that the
@@ -1843,6 +1940,63 @@ let collectFloorPickups (model: Model) =
                 // Only the pickups in THIS room are tested, which is what the driver's ScaleSource says.
                 TotalFloorPickupCandidates = model.TotalFloorPickupCandidates + here.Length }
         (scanned, taken) ||> List.fold (fun current pickup -> applyFloorPickup pickup.Kind current)
+
+// ------------------------------------------------------------------------------------------------
+// Board item #47 — taking the room's reward.
+//
+// The treasure pedestal and the boss reward reach the player by the same route M13 gave the obstacle
+// drop: walk onto it. Before this they had NO route at all — `M5Room.Reward` was rendered and never
+// consumed, the exact "write-only reward a player cannot take" shape `collectFloorPickups` above was
+// written to close for pots.
+// ------------------------------------------------------------------------------------------------
+
+/// How close the player's centre must come to the reward plinth's centre to take it. Wider than
+/// `floorPickupRadius` because the plinth is a drawn 26-unit-tall fixture, not a loose coin.
+let roomRewardRadius = 20.0
+
+/// Where the room's reward stands.
+///
+/// The renderer places the reward at the fixture slot AFTER the shop stock
+/// (`Render.renderedElementsIn`), so collection is tested at the point the player can actually see.
+/// Both sides derive from `placeRoomFixtures`; `M13RoomTransitionWorldStateTests` pins the renderer
+/// to it and `M14ItemGrantTests` pins this function to it, so the two cannot drift apart silently.
+let roomRewardPosition (model: Model) =
+    placeRoomFixtures model.M5Obstacles (model.M5ShopSlots.Length + 1)
+    |> List.tryItem model.M5ShopSlots.Length
+
+/// A pedestal may be taken on sight. A BOSS reward may not be taken until the boss is down —
+/// otherwise a player walks past the sealed-in boss, grabs the prize and leaves.
+let roomRewardCollectable (model: Model) =
+    model.M5Room.Reward.IsSome && (not model.M5Room.IsBoss || model.M5Room.Cleared)
+
+/// Drop the reward fixture from durable floor state, so re-entering the room does not re-grant it.
+/// The same durability rule as `FloorGeneration.recordDestroyedObstacle` (§14.15).
+let private withoutRewardFixture roomId (floor: FloorGeneration.Floor) =
+    match Map.tryFind roomId floor.Rooms with
+    | None -> floor
+    | Some room ->
+        let fixtures =
+            room.Fixtures
+            |> List.filter (function
+                | FloorGeneration.ItemPedestal _
+                | FloorGeneration.BossReward _ -> false
+                | _ -> true)
+        { floor with Rooms = Map.add roomId { room with Fixtures = fixtures } floor.Rooms }
+
+/// Walk onto the pedestal and the item is yours: appended to `PlayerItems`, counted once, stats
+/// recomputed, and removed from BOTH the live room and the floor record in the same step — so a
+/// player standing still on the plinth collects exactly once, and so does one who leaves and returns.
+let collectRoomReward (model: Model) =
+    match model.M5Room.Reward with
+    | Some reward when roomRewardCollectable model ->
+        match roomRewardPosition model with
+        | Some at when circlesOverlap model.PlayerPosition playerRadius at roomRewardRadius ->
+            { model with
+                M5Room = { model.M5Room with Reward = None }
+                Floor = withoutRewardFixture model.Floor.CurrentRoom model.Floor }
+            |> grantItem reward
+        | _ -> model
+    | _ -> model
 
 let private stepInput pressedThisTick (model: Model) =
     let resolved = resolveInput model.PlayerPosition pressedThisTick model.Input.Current
@@ -1942,7 +2096,7 @@ let private stepInput pressedThisTick (model: Model) =
         model.M5Obstacles
         |> List.filter(fun obstacle->Rogue3.Entities.spikeDamage obstacle.Kind>0 && circlesOverlap steppedModel.PlayerPosition playerRadius obstacle.Position 20.0)
         |> List.fold(fun current obstacle->takePlayerHit (Rogue3.Entities.spikeDamage obstacle.Kind) obstacle.Position current) steppedModel
-    collectFloorPickups spiked
+    collectFloorPickups spiked |> collectRoomReward
 
 // Pure fixed step: integrate the ball by one step, bounce off the top/bottom walls and the paddles,
 // score and re-serve on a miss. Positions/velocities are `Vec2`, advanced with `add`/`scale`; the
@@ -2320,6 +2474,13 @@ let rec update msg model : Model * AdapterCommand<Msg> =
             // being left; room ids are REUSED across floors, so keeping either of these would leave a
             // pickup or a departed-room shell resolving to a different room of the same number.
             M5ObstacleDrops = []
+            // Board item #47: the reward is room-local for the same reason, and it is now COLLECTABLE,
+            // so a stale one is worse than a cosmetic leftover — a fixed step between this message and
+            // the `EnterM5Room 0` that production always pairs with it could grant the departed
+            // floor's item at the new floor's plinth position. `playerRoomIntentsIn` raises the pair
+            // with no step in between, but `PerformanceEvidence` dispatches `DescendFloor` alone, so
+            // this does not rest on the pairing holding everywhere.
+            M5Room = { model.M5Room with Reward = None }
             M6CameraTransition = None
             ShotSpawns = []
             HomingTargets = []
@@ -2366,7 +2527,8 @@ let rec update msg model : Model * AdapterCommand<Msg> =
     | SetScreenShake enabled ->
         { model with Profile={ model.Profile with Settings={ model.Profile.Settings with ScreenShake=enabled } } }, Cmd.none
     | SetStatScope scope -> { model with StatScope=scope }, Cmd.none
-    | RecordItemFound -> {model with RunStats={model.RunStats with ItemsFound=model.RunStats.ItemsFound+1}},Cmd.none
+    // Board item #47 removed the `RecordItemFound` handler here. `ItemsFound` is now incremented in
+    // exactly one place, `grantItem`, together with the append to `PlayerItems`.
     | RecordCoinsCollected count ->
         let count=max 0 count
         {model with RunStats={model.RunStats with CoinsCollected=model.RunStats.CoinsCollected+count}},Cmd.none

@@ -109,14 +109,16 @@ let resourceTests =
             Expect.equal bought.PlayerCurrency.Coins 3 "coins are spent"
             Expect.equal bought.M5ShopSlots.Head.Offer Rogue3.Entities.ShopOffer.Empty "slot is emptied"
             Expect.equal bought.RunStats.ItemsFound 1 "the purchase is recorded as an item found"
-            // CHARACTERIZATION, not an endorsement. The reducer that survives does NOT grant the
-            // item: it debits, empties the offer and bumps a counter. The pre-M5 reducer removed by
-            // board item #20 did append to `PlayerItems` and recompute stats, but it had zero
-            // production dispatch sites, so a player could never reach it. These two lines pin the
-            // gap so it is visible instead of merely absent, and so the day EHotwagner/rogue3#47 is
-            // fixed these tests go red and say why rather than passing silently.
-            Expect.isEmpty bought.PlayerItems "EHotwagner/rogue3#47: the one wired shop reducer grants no item"
-            Expect.equal bought.PlayerStats basePlayerStats "EHotwagner/rogue3#47: and so recomputes no stat"
+            // EHotwagner/rogue3#47 FIXED. These two lines were a characterization of the gap —
+            // `PlayerItems` empty and `PlayerStats` untouched after a paid-for purchase. They now
+            // assert the grant, and they assert the RECOMPUTED VALUE, not merely that a list grew:
+            // `cracked-lens` is `Multishot +1` and `Damage x0.75`, so 3.5 damage becomes 2.625 and
+            // one shot becomes two. Deleting the append or the recompute in `grantItem` fails here.
+            Expect.equal (bought.PlayerItems |> List.map _.Id) [ "cracked-lens" ] "the purchased item is granted"
+            Expect.equal bought.PlayerStats.Damage 2.625 "the granted item's multiplicative damage modifier is applied"
+            Expect.equal bought.PlayerStats.Multishot 2 "and its additive multishot modifier is applied"
+            Expect.notEqual bought.PlayerStats basePlayerStats "the purchase moves the player off the base stat line"
+            Expect.equal bought.RunStats.ItemsFound bought.PlayerItems.Length "the counter and the inventory agree"
             let rejected = purchaseM5ShopSlot 4 { initialModel with PlayerCurrency = { initialModel.PlayerCurrency with Coins = 5 }; M5ShopSlots = [ slot ] }
             Expect.equal rejected.PlayerCurrency.Coins 5 "coins unchanged"
             Expect.equal rejected.M5ShopSlots.Head.Offer (Rogue3.Entities.ShopOffer.Item item) "item remains"
