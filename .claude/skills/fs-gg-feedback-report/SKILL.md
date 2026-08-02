@@ -388,11 +388,16 @@ exemption; `selftest` fails on ten cases if you do.
 long-lived repository therefore do not re-validate against a moved tree. That is a known gap, not a
 property of this exemption.
 
-Prove the validator still fails a stale binding before trusting a verdict it gives:
+Prove the validator still fails a stale binding, a missing ordinary file and an escaping locator
+before trusting a verdict it gives:
 
 ```sh
 dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest
 ```
+
+The suite reports an **exact** case count, not a floor: every conditional group announces its own
+skips, so `cases run + cases skipped` is a constant, and deleting a case fails the suite rather than
+shrinking it quietly.
 
 ## Final roll-up
 

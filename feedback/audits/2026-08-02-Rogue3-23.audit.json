@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-23.md",
-  "reportSha256": "df2cd52387f843cd9314a6070c4e51ccaf1be13fff339002ea29116c81bf28e1",
+  "reportSha256": "4512a7893cc903e4cd19ce6bc966f16c45c63ca5fea9054c632eaedfac779e56",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -36,12 +36,12 @@
         {
           "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
           "result": "verified",
-          "sha256": "cfdedd7411b17583e8324d41707c86e8175030aad82e0e1dea8dfb49642f09a7"
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
         },
         {
           "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
           "result": "verified",
-          "sha256": "68dab1bff6f2674886b224fe170e122fc4d3468f6cd4c3b1722657655239fff9"
+          "sha256": "aad7b45af4b364db12f0fffb89e9d7411ab6752875f15b26b0d905673d6f41fd"
         },
         {
           "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports 68/68 on the candidate and \"10 of 68 cases FAILED\" with the existence test restored upstream of the exemption",
@@ -61,12 +61,12 @@
         {
           "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
           "result": "verified",
-          "sha256": "cfdedd7411b17583e8324d41707c86e8175030aad82e0e1dea8dfb49642f09a7"
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
         },
         {
           "locator": "file:scripts/check-audit-bindings.py",
           "result": "verified",
-          "sha256": "a5e40d876b1fc0aa95b1ce9229caab8c42903fb2ed0a2f97f2be1164135fd05e"
+          "sha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3"
         },
         {
           "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate feedback/2026-08-01-Rogue3-8.md --audit feedback/audits/2026-08-01-Rogue3-8.audit.json reports its two readiness roll-up citations under NOT BOUND on the candidate, where ccff119 reported \"evidence file is missing\" for both",
@@ -94,7 +94,7 @@
         {
           "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
           "result": "verified",
-          "sha256": "cfdedd7411b17583e8324d41707c86e8175030aad82e0e1dea8dfb49642f09a7"
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
         }
       ]
     },
@@ -106,12 +106,12 @@
         {
           "locator": "file:.github/workflows/verify.yml",
           "result": "verified",
-          "sha256": "9119b8232f3435e5923afbf24fec0552eb1f52b7bdbf53595d37c83d4c8b5fc3"
+          "sha256": "fea2fd656571aff797932df84eda220c561bb0b32423913dfb62cf864c781ec8"
         },
         {
           "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
           "result": "verified",
-          "sha256": "cfdedd7411b17583e8324d41707c86e8175030aad82e0e1dea8dfb49642f09a7"
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
         },
         {
           "locator": "command:the job's sed/grep extraction over the candidate's FeedbackReportTool.fs prints the three roll-up paths and exits 0, and over the ccff119 copy of the same file prints a three-line diff against the expected list and exits 1",
@@ -125,14 +125,75 @@
       "missingFacts": [],
       "checkedEvidence": [
         {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+          "result": "verified",
+          "sha256": "aad7b45af4b364db12f0fffb89e9d7411ab6752875f15b26b0d905673d6f41fd"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports 88/88 on the candidate",
+          "result": "verified"
+        },
+        {
+          "locator": "command:with the comment filter removed it reports \"gitignoreDeclarations: a COMMENT contributes nothing to the declared set\" FAILED, and with negations left in the positive set it reports two named failures, where before these cases both mutants passed 85/85",
+          "result": "verified"
+        }
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+          "result": "verified",
+          "sha256": "aad7b45af4b364db12f0fffb89e9d7411ab6752875f15b26b0d905673d6f41fd"
+        },
+        {
           "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
           "result": "verified",
-          "sha256": "cfdedd7411b17583e8324d41707c86e8175030aad82e0e1dea8dfb49642f09a7"
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
+        },
+        {
+          "locator": "command:replacing the canonicalized containment test with `if true then` fails \"a symlink INSIDE the workspace pointing OUT is rejected\", and disabling the lexical test fails \"a LEXICALLY escaping locator that symlinks back inside is still rejected\"",
+          "result": "verified"
+        },
+        {
+          "locator": "where before these cases both mutants passed 68/68",
+          "result": "verified"
+        }
+      ]
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+          "result": "verified",
+          "sha256": "aad7b45af4b364db12f0fffb89e9d7411ab6752875f15b26b0d905673d6f41fd"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports \"88/88 cases passed\" and, with expectedCases left at a stale value, \"88 cases ran and 0 were skipped, expected 85 in total\"",
+          "result": "verified"
+        }
+      ]
+    },
+    {
+      "id": "§4.9",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
         },
         {
           "locator": "file:scripts/check-audit-bindings.py",
           "result": "verified",
-          "sha256": "a5e40d876b1fc0aa95b1ce9229caab8c42903fb2ed0a2f97f2be1164135fd05e"
+          "sha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3"
         },
         {
           "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest covers the F# reader with 8 cases, three of them negation forms, and no case in either suite feeds both readers the same input",
@@ -141,7 +202,7 @@
       ]
     },
     {
-      "id": "§4.7",
+      "id": "§4.10",
       "status": "actionable",
       "missingFacts": [],
       "checkedEvidence": [
@@ -156,7 +217,7 @@
         {
           "locator": "file:.agents/skills/skill-manifest.json",
           "result": "verified",
-          "sha256": "6b51adecb3acd9c77a8bb3df3bb8f0b4dddc2763c1d70a0174faee1fb13cba70"
+          "sha256": "97b2714c333dc34fba023b2525bd58951b5fa03876cc6b1e7e7e812787e74b7a"
         },
         {
           "locator": "issue:EHotwagner/rogue3#78",
@@ -165,7 +226,7 @@
       ]
     },
     {
-      "id": "§4.8",
+      "id": "§4.11",
       "status": "actionable",
       "missingFacts": [],
       "checkedEvidence": [

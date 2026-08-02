@@ -1084,8 +1084,16 @@ def grandfather(root: str, cycle: str, reason: str) -> dict[str, Any]:
     touches NOTHING else -- no other cycle's file, not the frozen archive, no
     deletions. That is what stops two concurrent cycles colliding on the excuse
     ledger (rogue3#53), and it is unconditional rather than usual: a remedy with
-    even a rare cross-cycle write is a path no item can declare, and one that
-    could delete a file a merged audit cites would strand that audit for good.
+    even a rare cross-cycle write is a path no item can declare.
+
+    The SECOND reason this rule used to give -- that deleting a cited ledger file
+    would strand that audit for good -- is no longer true, and is recorded here as
+    withdrawn rather than quietly dropped.  rogue3#77 waived the existence check
+    for an exempt citation in both tools, so a merged audit citing a ledger file
+    that later disappears is reported under `notBound` and stays valid.  The
+    remaining reason is about CONCURRENCY, not about stranding evidence, and it is
+    sufficient on its own: the deletion ban can now be argued with or relaxed on
+    that basis alone.
 
     Another cycle's entries are read and honoured but never copied here and never
     re-worded: their reason text is that cycle's record, not this one's to

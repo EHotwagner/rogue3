@@ -27,11 +27,20 @@ jobs:
         with:
           dotnet-version: 10.0.302
       # The feedback-report validator decides whether a merged cycle report is
-      # still evidence. It carries a deliberate one-path exemption (rogue3#40):
-      # the audit-binding excuse ledger, whose digest has no fixed point. This
-      # selftest proves the exemption is still exactly that one path and that an
-      # ordinary stale digest is still an error, so the exemption cannot quietly
-      # widen into "the validator checks nothing".
+      # still evidence. It carries deliberate exemptions -- TWO classes, not the
+      # one path this comment claimed until rogue3#77: the audit-binding excuse
+      # ledger, whose digest has no fixed point (rogue3#40, widened to the whole
+      # ledger DIRECTORY by rogue3#53), and the derived readiness roll-ups, whose
+      # digest has no single value at all (rogue3#56, given to this validator by
+      # rogue3#77). For an exempt citation the digest AND the file's existence are
+      # waived; workspace containment never is.
+      #
+      # This selftest proves the exempt set is still exactly those two classes and
+      # nothing adjacent -- near-miss filenames, case variants, sibling
+      # directories, another audit, an ignored path the constant does not name --
+      # and that an ordinary stale digest, and an ordinary MISSING file, are both
+      # still errors. So neither exemption can quietly widen into "the validator
+      # checks nothing", and the existence waiver cannot become a blanket one.
       #
       # Deliberately NOT in audit-bindings.yml, even though that is where its
       # sibling `check-audit-bindings.py --selftest` runs: that workflow file is

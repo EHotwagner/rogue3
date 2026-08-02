@@ -405,9 +405,22 @@ let private gitignoreRelativePath = ".gitignore"
 /// `!/readiness/x` and a bare `!x` all stop git ignoring `readiness/x`, and every
 /// one of them withdraws the path here.
 ///
-/// Ported line for line from `gitignore_declarations` in
-/// scripts/check-audit-bindings.py. The two must answer the same question the
-/// same way, because they derive the same exempt set from it.
+/// Ported from `gitignore_declarations` in scripts/check-audit-bindings.py. The
+/// two must answer the same question the same way, because they derive the same
+/// exempt set from it.
+///
+/// ONE measured divergence, stated rather than claimed away. A critic fed both
+/// implementations 46 adversarial fixtures -- comments in four positions, all
+/// four negation forms, leading and trailing whitespace, tabs, CRLF, CR-only, a
+/// BOM, no trailing newline, globs, directory rules, `!!`, a bare `!`, and
+/// several exotic space characters -- and they agreed on every one except a line
+/// wrapped in the C0 file/group separators U+001C-U+001F, which Python's
+/// `str.strip()` treats as whitespace and .NET's `String.Trim()` does not. There
+/// the F# side declares LESS, so it BINDS a path the checker exempts: the safe
+/// direction, and git does not treat those bytes as whitespace either. Left
+/// as-is deliberately -- matching .NET's Trim to Python's would mean hand-listing
+/// Python's whitespace set, which is a larger and more fragile thing to keep in
+/// agreement than the divergence it removes.
 let gitignoreDeclarations (workspaceRoot: string) =
     let path = Path.Combine(workspaceRoot, gitignoreRelativePath)
 
