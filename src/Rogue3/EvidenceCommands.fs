@@ -343,9 +343,9 @@ let shellConfig: Rogue3.GameShell.Config =
       // restart — a framework defect in `ViewerWindowStartupState.WindowedFullscreen`, filed as
       // FS-GG/FS.GG.Rendering#1196 and unfixable here. Withdrawing the button is ONE of three
       // guards: `GameShell.windowBehavior` remaps any `Borderless` that still reaches the seam,
-      // and `retireWithdrawnDisplayMode` above normalises one restored from an older settings
-      // file so the menu does not show a selection this list cannot mark. Restore this entry
-      // when #1196 is fixed.
+      // and `retireWithdrawnDisplayMode` (below, on the settings load path) normalises one
+      // restored from an older settings file so the menu does not show a selection this list
+      // cannot mark. Restore this entry when #1196 is fixed.
       DisplayModes = [ Rogue3.GameShell.Windowed; Rogue3.GameShell.Fullscreen ]
       Resolutions = [ { Width = 1280; Height = 720 }; { Width = 1920; Height = 1080 } ]
       InitialDisplay = { Resolution = { Width = 1280; Height = 720 }; Mode = Rogue3.GameShell.Windowed } }

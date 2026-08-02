@@ -248,7 +248,7 @@ let update (msg: Msg) (model: Model) : Model * Effect list =
 /// The `Borderless` CASE ITSELF IS RETAINED: `modeOfToken` still decodes the `"borderless"` token.
 /// Note the path this arm actually closes — it is NOT launch. `Program.fs` builds the launch
 /// request from `shellConfig.InitialDisplay`, and the host's `Init` emits only `ApplyLogicalCanvas`,
-/// so a restored mode never reaches the window at boot at all (a separate defect, filed). The
+/// so a restored mode never reaches the window at boot at all (a separate defect, EHotwagner/rogue3#75). The
 /// reachable brick was mid-session: `SetResolution` emits `DisplayChanged` carrying the UNCHANGED
 /// mode, so a restored-Borderless player merely changing resolution shipped `WindowedFullscreen`.
 /// `EvidenceCommands.retireWithdrawnDisplayMode` now also normalises the restored mode at load, so
