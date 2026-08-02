@@ -905,22 +905,21 @@ let private computeKitPins (root: string) (manifestPinned: Set<string>) =
     |> List.filter (fun relative -> not (manifestPinned.Contains relative))
     |> List.map (fun relative -> relative, fileDigest (path [ root; relative ]))
 
-/// The digest the `.agents` manifest pins for each entry that carries one.
+/// The digest the `.agents` manifest pins for each entry that carries one. PINS ONLY — the set of
+/// paths the manifest merely NAMES is deliberately not returned.
 ///
-/// It returns the NAMED paths too, and every caller discards them — deliberately, and this is the
-/// point of the function. A reviewer showed why a name must never be treated as a pin: an entry
-/// keeping its `resolvablePath` but losing its `sha256` is named and not pinned, and counting the
-/// name as coverage made the gate print `190 of 190 … 0 uncovered` while that file and its mirror
-/// were digest-checked by nothing, with a drifted mirror going unmentioned. The tree is still red
-/// (the manifest pass reports the entry), so nothing hides behind green; the NUMBER was wrong, and
-/// an overstated number is what #46 exists to stop.
+/// That is the whole design of this function, and it is the answer to a fault this file hit twice.
+/// An entry keeping its `resolvablePath` but losing its `sha256` is named and not pinned; counting
+/// the name as coverage made the gate print `190 of 190 … 0 uncovered` while that file and its
+/// mirror were digest-checked by nothing, with a drifted mirror going unmentioned. The tree stays
+/// red either way — the manifest pass reports the entry — so nothing hid behind green; the NUMBER
+/// was wrong, which is what #46 exists to stop.
 ///
-/// `named` is kept, unused, ONLY so that the shape of the fault stays visible at the point where
-/// someone would reintroduce it: the two sets are here, side by side, and the doc says which one
-/// coverage may use. A second reviewer correctly called an earlier version of this comment false
-/// for claiming `named` had a live consumer. It has none.
-let private agentsManifestNames (root: string) =
-    let named = System.Collections.Generic.HashSet<string>()
+/// An earlier fix returned both sets with a comment saying which one coverage may use. A reviewer
+/// argued the comment was the wrong instrument, and was right: a rule a maintainer must READ is how
+/// the fault came back the second time, in the commit that fixed the first. Not returning the names
+/// makes keying coverage on them UNCONSTRUCTIBLE rather than merely discouraged.
+let private agentsManifestPins (root: string) =
     let pins = ResizeArray<string * string>()
     let manifest = path [ root; ".agents"; "skills"; "skill-manifest.json" ]
 
@@ -939,13 +938,10 @@ let private agentsManifestNames (root: string) =
                 let relative = read "resolvablePath"
                 let pinned = read "sha256"
 
-                if not (String.IsNullOrWhiteSpace relative) then
-                    named.Add relative |> ignore
+                if not (String.IsNullOrWhiteSpace relative) && not (String.IsNullOrWhiteSpace pinned) then
+                    pins.Add(relative, pinned)
 
-                    if not (String.IsNullOrWhiteSpace pinned) then
-                        pins.Add(relative, pinned)
-
-    named, pins
+    pins
 
 let private renderKitPins (pins: (string * string) list) =
     let entries =
@@ -966,7 +962,7 @@ let private renderKitPins (pins: (string * string) list) =
 /// reviewer's mutant that made the TARGET write an empty ledger survived every case because only
 /// the fixture's copy was ever run.
 let private writeKitPins (root: string) =
-    let _, manifestPins = agentsManifestNames root
+    let manifestPins = agentsManifestPins root
     let pins = computeKitPins root (manifestPins |> Seq.map fst |> Set.ofSeq)
     let target = path [ root; kitPinsRelative ]
     Directory.CreateDirectory(Path.GetDirectoryName target: string) |> ignore
@@ -1049,7 +1045,7 @@ let templateDriftViolations (root: string) =
                                 if not (digestEquals actual pinned) then
                                     violations.Add $"{manifestName}: {relative} has drifted — pinned {shortDigest pinned}, found {shortDigest actual}"
 
-    let _, manifestPins = agentsManifestNames root
+    let manifestPins = agentsManifestPins root
 
     // #46: the repository-owned complement. Checked exactly like a manifest entry, so a drifted
     // `work-board/references/deep-detail.md` — evasion route 1, and the cheapest one — now reads
@@ -1167,9 +1163,15 @@ let templateDriftCoverage (root: string) =
     // the line could report `63 by scripts/kit-pins.json` four lines above a `coverage:` line
     // naming one of those 63 as pinned by nothing: the manifest half had been fixed and its mirror
     // image left behind.
-    let _, manifestPins = agentsManifestNames root
+    let manifestPins = agentsManifestPins root
     let manifestPinned = manifestPins |> Seq.map fst |> Set.ofSeq
 
+    // This repeats the enumeration's validation MINUS `File.Exists`, and that difference is
+    // deliberate: a pin whose file is absent contributes no enumerated file, so it can neither be
+    // counted nor named, and `templateDriftViolations` reports it separately as `pinned but
+    // missing`. Adding the existence test here would be harmless today and is the kind of drift
+    // that made these two computations disagree twice, so the asymmetry is stated rather than left
+    // for the next reader to re-derive.
     let ledgerPinned =
         match readKitPins root with
         | Ok pins ->

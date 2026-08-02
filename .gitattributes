@@ -15,5 +15,11 @@
 .agents/skills/** text eol=lf
 .claude/skills/** text eol=lf
 
-# The two files the gate reads as its oracles, for the same reason.
+# The ledger, for the same reason. The two skill manifests are the gate's other oracle and are
+# already covered by the globs above, since both live inside the kit trees.
 scripts/kit-pins.json text eol=lf
+
+# If anyone ever widens this to a repo-wide `* text=auto eol=lf`, add `*.cmd *.bat eol=crlf` in the
+# same change: this repository ships `build.cmd` and `fake.cmd`, and batch files checked out with
+# LF have well-known failures around labels and `goto`. Scoped narrowly here for that reason, and
+# because a repo-wide rule would renormalise the whole index in one commit unrelated to #46.
