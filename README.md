@@ -223,3 +223,10 @@ Archived material must not be cited as current package, template, generated-rogu
 The source-shaped `.fsi` package API reference remains authoritative for agent
 authoring. FSharp.Formatting/fsdocs output is secondary or hybrid unless the
 active generator decision record marks it authoritative. Package consumers must not use assembly reflection or repository source inspection as an authoring substitute.
+
+## Quoting a measured figure
+
+A count printed by a repository command is a fact about **one tree**, not about the repository. Any
+item body, PR body, or comment that quotes such a figure names the revision it was measured at and
+the command that printed it — see `docs/quantified-claims.md` for the `Measured-at:` grammar, the
+`git archive` check a reader runs to settle a figure, and why the rule is social rather than a gate.
