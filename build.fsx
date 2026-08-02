@@ -446,6 +446,13 @@ let private fileDigest (filePath: string) =
     |> System.Security.Cryptography.SHA256.HashData
     |> lowerHex
 
+/// Digests are shown truncated. A manifest is an INPUT, so its `sha256` may be malformed;
+/// truncating it blindly would crash the gate on the one tree it most needs to report on.
+let private shortDigest (digest: string) =
+    if String.IsNullOrEmpty digest then "<none>"
+    elif digest.Length <= 12 then digest
+    else digest.Substring(0, 12)
+
 /// The scaffolded profile, read from the one place that records it. `materializes-when`
 /// is evaluated against this, so a kit file that is absent BECAUSE this profile does not
 /// take it is not reported as drift.
@@ -540,7 +547,7 @@ let templateDriftViolations (root: string) =
                                 let actual = fileDigest target
 
                                 if actual <> pinned then
-                                    violations.Add $"{manifestName}: {relative} has drifted — pinned {pinned.Substring(0, 12)}, found {actual.Substring(0, 12)}"
+                                    violations.Add $"{manifestName}: {relative} has drifted — pinned {shortDigest pinned}, found {shortDigest actual}"
 
     // Both manifests pin `.agents/...` paths, but the kit is MIRRORED into `.claude/...` and the
     // copies are byte-identical by construction. Without this pass a drifted mirror is invisible:
@@ -574,7 +581,7 @@ let templateDriftViolations (root: string) =
                         let actual = fileDigest mirroredFull
 
                         if actual <> pinned then
-                            violations.Add $"mirror: {mirrored} differs from the digest pinned for {relative} — pinned {pinned.Substring(0, 12)}, found {actual.Substring(0, 12)}"
+                            violations.Add $"mirror: {mirrored} differs from the digest pinned for {relative} — pinned {shortDigest pinned}, found {shortDigest actual}"
 
     List.ofSeq violations
 
@@ -779,6 +786,18 @@ let private runSelfTest () =
             File.WriteAllText(manifestPath, (File.ReadAllText manifestPath).Replace("\"always\"", "\"whenever the moon is right\""))
 
         expect "an unreadable materializes-when expression is reported, not skipped" (templateDriftViolations unreadable |> List.exists (fun v -> v.Contains "unreadable"))
+
+        // A manifest is an INPUT: a malformed pin must be REPORTED, not crash the gate on the
+        // one tree that most needs a verdict.
+        let malformed, _ = freshFixture ()
+
+        for owner in skillManifests do
+            let manifestPath = path [ malformed; owner; "skills"; "skill-manifest.json" ]
+            let text = File.ReadAllText manifestPath
+            let firstDigest = Regex.Match(text, "\"sha256\": \"([0-9a-f]{64})\"").Groups.[1].Value
+            File.WriteAllText(manifestPath, text.Replace(firstDigest, "abc"))
+
+        expect "a malformed pinned digest is reported rather than crashing" (templateDriftViolations malformed |> List.exists (fun v -> v.Contains "abc"))
 
         let noManifest, _ = freshFixture ()
         File.Delete(path [ noManifest; ".agents"; "skills"; "skill-manifest.json" ])
