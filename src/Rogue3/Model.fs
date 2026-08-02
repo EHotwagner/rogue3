@@ -264,6 +264,11 @@ type M6CameraTransition =
 /// where it stood, so the coin lies where the pot was.
 type FloorPickup =
     { Id: int
+      /// The room this pickup is lying in. Without it a drop was destroyed by the next room change:
+      /// `loadM5Room` cleared the list outright while `recordDestroyedObstacle` is durable floor
+      /// state, so smashing a pot and stepping through a door before collecting lost the reward
+      /// permanently and the pot never came back to re-roll it.
+      Room: int
       Kind: Rogue3.Entities.PickupKind
       Position: Vec2 }
 
@@ -566,11 +571,22 @@ let roomWallSlabsFor (directions: Set<FloorGeneration.DoorDirection>) : Rect lis
           yield { X=playfieldWidth-wallThickness;Y=playfieldHeight/2.0+doorwayHalfSpan;Width=wallThickness;Height=playfieldHeight/2.0-doorwayHalfSpan }
       else yield { X=playfieldWidth-wallThickness;Y=0.0;Width=wallThickness;Height=playfieldHeight } ]
 
-/// The directions in which `roomId` carries a door on the floor graph.
+/// The directions in which `roomId` carries a PASSABLE doorway on the floor graph.
+///
+/// `HiddenWall` is excluded, and that exclusion is the whole point. A hidden wall is DRAWN as
+/// `Scene.filledRectangle ... stone` in the same colour as the band, and its own renderer comment
+/// says "It reads as WALL, not door" -- so opening a collider gap there let the player stand a full
+/// 24 units inside solid-looking stone, which is exactly the defect this milestone's wall row exists
+/// to close. Nothing needs the gap: a secret is revealed by a bomb blast testing `wallMidpoint`
+/// against `bombRadius`, not by the player reaching the wall.
 let roomDoorDirections roomId (floor: FloorGeneration.Floor) =
     match Map.tryFind roomId floor.Rooms with
     | None -> Set.empty
-    | Some room -> room.Doors |> List.map _.Direction |> Set.ofList
+    | Some room ->
+        room.Doors
+        |> List.filter (fun door -> door.State <> FloorGeneration.HiddenWall)
+        |> List.map _.Direction
+        |> Set.ofList
 
 /// The wall slabs of the room the player is standing in — drawn by `Render.roomWallsScene` and swept
 /// by the player in the same fixed step.
@@ -582,6 +598,11 @@ let doorApron = 18.0
 
 /// How close the player's centre must come to a floor pickup's centre to collect it.
 let floorPickupRadius = 12.0
+
+/// The floor pickups lying in the room the player is standing in. Drops persist across a crossing,
+/// so everything that draws or collects them asks this rather than reading the whole list.
+let floorPickupsHere (model: Model) =
+    model.M5ObstacleDrops |> List.filter (fun pickup -> pickup.Room = model.Floor.CurrentRoom)
 
 /// The drawn trapdoor sits at the centre of the room it belongs to, so it reads as a floor feature
 /// a player walks onto rather than a decoration parked near the HUD. Rendering and the `DescendFloor`
@@ -643,20 +664,27 @@ let placementAccepts (obstacles: Rogue3.Entities.Obstacle list) (taken: Vec2 lis
 /// the last accepted position offset along the row, so a pathologically furnished room still places
 /// its stock somewhere inside the shell rather than throwing or vanishing.
 let placeRoomFixtures (obstacles: Rogue3.Entities.Obstacle list) count : Vec2 list =
-    let rec take remaining candidates taken =
+    // The fallback lattice only fires when every authored candidate is rejected -- measured over 121
+    // seeds x six floors x 1,331 fixture-bearing rooms it never fires -- but it must still be honest
+    // when it does. Its first draft stepped 40 units from the previous position and clamped at the
+    // right margin, so past the clamp every further fixture landed on the SAME point, and 40 is
+    // narrower than the `obstacleClearance` the accept predicate enforces everywhere else. A lattice
+    // at `obstacleClearance` spacing inside the shell is distinct by construction.
+    let margin = wallThickness + doorApron
+    let columns = max 1 (int ((playfieldWidth - 2.0 * margin) / obstacleClearance))
+    let fallbackAt index =
+        vec2
+            (margin + obstacleClearance * (0.5 + float (index % columns)))
+            (margin + obstacleClearance * (0.5 + float (index / columns)))
+    let rec take remaining candidates fallbackIndex taken =
         if remaining <= 0 then List.rev taken
         else
             match candidates with
-            | [] ->
-                let fallback =
-                    match taken with
-                    | previous :: _ -> vec2 (min (playfieldWidth - wallThickness - doorApron - 10.0) (previous.Vx + 40.0)) previous.Vy
-                    | [] -> vec2 (playfieldWidth / 2.0) 520.0
-                take (remaining - 1) [] (fallback :: taken)
+            | [] -> take (remaining - 1) [] (fallbackIndex + 1) (fallbackAt fallbackIndex :: taken)
             | candidate :: rest ->
-                if placementAccepts obstacles (List.rev taken) candidate then take (remaining - 1) rest (candidate :: taken)
-                else take remaining rest taken
-    take (max 0 count) roomPlacementCandidates []
+                if placementAccepts obstacles (List.rev taken) candidate then take (remaining - 1) rest fallbackIndex (candidate :: taken)
+                else take remaining rest fallbackIndex taken
+    take (max 0 count) roomPlacementCandidates 0 []
 
 let basePlayerStats =
     { Damage = 3.5
@@ -1428,7 +1456,7 @@ let private resolveBombs model =
                 let typed=result.M5Obstacles|>List.filter(fun value->value.Id<>obstacle.Id)|>fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
                 let blocking=typed|>List.filter(fun value->Rogue3.Entities.blocksMovement Rogue3.Entities.MovementClass.Grounded value.Kind)|>List.map(fun value->toSimRect value.Position 40.0 40.0)
                 let floor=if remaining.IsNone then FloorGeneration.recordDestroyedObstacle result.Floor.CurrentRoom obstacle.Id result.Floor else result.Floor
-                result <- {result with M5Obstacles=typed;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->result.M5ObstacleDrops@[{Id=obstacle.Id;Kind=value;Position=obstacle.Position}])|>Option.defaultValue result.M5ObstacleDrops}
+                result <- {result with M5Obstacles=typed;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->result.M5ObstacleDrops@[{Id=obstacle.Id;Room=result.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue result.M5ObstacleDrops}
     { result with
         Bombs = aged |> List.filter (fun bomb -> not (Set.contains bomb.Id exploded))
         AudioEvents = result.AudioEvents @ List.replicate exploded.Count AudioEvent.BombExploded }
@@ -1589,7 +1617,11 @@ let loadM5Room roomId model =
                 Some{value with HitPoints=value.HitPoints*difficultyHpMultiplier model.FloorIndex scaling}
             else None
         { model with Floor={model.Floor with CurrentRoom=roomId};M5Enemies=allEnemies;M5Boss=boss;M5ChoirMemberIds=choirMembers|>List.map _.Id|>Set.ofList;M5Room=roomState
-                     M5Obstacles=typedObstacles;M5ShopSlots=shop;M5ObstacleDrops=[];Enemies=allEnemies|>List.map legacyEnemy;Obstacles=blocking
+                     // M13: uncollected drops SURVIVE a room change. Clearing them here destroyed the
+                     // reward permanently, because `recordDestroyedObstacle` is durable floor state and
+                     // the smashed pot never returns to re-roll. They are kept keyed by room and
+                     // filtered by `floorPickupsHere`; `DescendFloor` is what discards them.
+                     M5Obstacles=typedObstacles;M5ShopSlots=shop;Enemies=allEnemies|>List.map legacyEnemy;Obstacles=blocking
                      EnemyBullets=[];ShotSpawns=[] }
 
 /// The state a player actually boots into for `seed`: the generated floor with its START room
@@ -1656,7 +1688,7 @@ let damageM5Obstacle obstacleId damage model =
         let obstacles=model.M5Obstacles|>List.filter(fun value->value.Id<>obstacleId) |> fun others->remaining|>Option.map(fun value->value::others)|>Option.defaultValue others
         let blocking=obstacles|>List.filter(fun value->Rogue3.Entities.blocksMovement Rogue3.Entities.MovementClass.Grounded value.Kind)|>List.map(fun value->toSimRect value.Position 40.0 40.0)
         let floor=if remaining.IsNone then FloorGeneration.recordDestroyedObstacle model.Floor.CurrentRoom obstacleId model.Floor else model.Floor
-        {model with M5Obstacles=obstacles;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->model.M5ObstacleDrops@[{Id=obstacle.Id;Kind=value;Position=obstacle.Position}])|>Option.defaultValue model.M5ObstacleDrops}
+        {model with M5Obstacles=obstacles;Obstacles=blocking;DropRng=rng;Floor=floor;M5ObstacleDrops=drop|>Option.map(fun value->model.M5ObstacleDrops@[{Id=obstacle.Id;Room=model.Floor.CurrentRoom;Kind=value;Position=obstacle.Position}])|>Option.defaultValue model.M5ObstacleDrops}
 
 let private stepM5Entities model =
     // §14.21 — "a dead actor emits no later attack". Resolve deaths from the ACTOR list rather than
@@ -1782,12 +1814,15 @@ let private stepM5Entities model =
 /// exceed a container total or the 24-half-heart display cap by a different route.
 let applyFloorPickup (kind: Rogue3.Entities.PickupKind) model =
     match kind with
-    | Rogue3.Entities.PickupKind.Coin1 ->
-        { model with PlayerCurrency = { model.PlayerCurrency with Coins = addCurrency 1 model.PlayerCurrency.Coins }
-                     RunStats = { model.RunStats with CoinsCollected = model.RunStats.CoinsCollected + 1 } }
+    // The run stat records what was actually BANKED, not the face value. Crediting the face value at
+    // the 99 cap inflated `RunStats.CoinsCollected`, which feeds `runScore` -- a coin that overflowed
+    // the cap is waste, and the product treats cap overflow as waste everywhere else.
+    | Rogue3.Entities.PickupKind.Coin1
     | Rogue3.Entities.PickupKind.Coin3 ->
-        { model with PlayerCurrency = { model.PlayerCurrency with Coins = addCurrency 3 model.PlayerCurrency.Coins }
-                     RunStats = { model.RunStats with CoinsCollected = model.RunStats.CoinsCollected + 3 } }
+        let face = if kind = Rogue3.Entities.PickupKind.Coin3 then 3 else 1
+        let banked = addCurrency face model.PlayerCurrency.Coins
+        { model with PlayerCurrency = { model.PlayerCurrency with Coins = banked }
+                     RunStats = { model.RunStats with CoinsCollected = model.RunStats.CoinsCollected + (banked - model.PlayerCurrency.Coins) } }
     | Rogue3.Entities.PickupKind.Key ->
         { model with PlayerCurrency = { model.PlayerCurrency with Keys = addCurrency 1 model.PlayerCurrency.Keys } }
     | Rogue3.Entities.PickupKind.Bomb ->
@@ -1807,15 +1842,20 @@ let applyFloorPickup (kind: Rogue3.Entities.PickupKind) model =
 /// argued, and a collected pickup is removed in the same step it is applied — so a player standing
 /// still on the spot collects exactly once.
 let collectFloorPickups (model: Model) =
-    if List.isEmpty model.M5ObstacleDrops then model
+    let here = floorPickupsHere model
+    if List.isEmpty here then model
     else
-        let taken, left =
-            model.M5ObstacleDrops
-            |> List.partition (fun pickup -> circlesOverlap model.PlayerPosition playerRadius pickup.Position floorPickupRadius)
+        let taken =
+            here
+            |> List.filter (fun pickup -> circlesOverlap model.PlayerPosition playerRadius pickup.Position floorPickupRadius)
+        let takenIds = taken |> List.map _.Id |> Set.ofList
         let scanned =
             { model with
-                M5ObstacleDrops = left
-                TotalFloorPickupCandidates = model.TotalFloorPickupCandidates + model.M5ObstacleDrops.Length }
+                M5ObstacleDrops =
+                    model.M5ObstacleDrops
+                    |> List.filter (fun pickup -> not (pickup.Room = model.Floor.CurrentRoom && Set.contains pickup.Id takenIds))
+                // Only the pickups in THIS room are tested, which is what the driver's ScaleSource says.
+                TotalFloorPickupCandidates = model.TotalFloorPickupCandidates + here.Length }
         (scanned, taken) ||> List.fold (fun current pickup -> applyFloorPickup pickup.Kind current)
 
 let private stepInput pressedThisTick (model: Model) =
@@ -2288,6 +2328,11 @@ let rec update msg model : Model * AdapterCommand<Msg> =
             M5ChoirMemberIds = Set.empty
             M5Obstacles = []
             M5ShopSlots = []
+            // M13: a descent discards every room-local carry-over. Drops belong to rooms on the floor
+            // being left; room ids are REUSED across floors, so keeping either of these would leave a
+            // pickup or a departed-room shell resolving to a different room of the same number.
+            M5ObstacleDrops = []
+            M6CameraTransition = None
             ShotSpawns = []
             Obstacles = []
             HomingTargets = []

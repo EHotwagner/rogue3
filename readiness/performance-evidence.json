@@ -20,15 +20,15 @@
       "secret-reveal"
     ],
     "workloadDefinitionDigests": [
-      "idle=sha256:8405af129fc18ce37c53e0af6229e2e68daaef655a4b4ff64058ccbccaa7fa57",
-      "movement-aiming=sha256:e18ded39ee79c7e02e8229b0d30b73074a6d70968a7c070c469ee0a635a27746",
-      "firing=sha256:29d51bc43cc5bf8a921076275e4971cd65102ab2c4c1ed46377287fc767e410f",
-      "effects-fog=sha256:1d000c93b641e1e87919c819f5d3ae175bd51bf72220aa785bb51224d551298c",
-      "floor-generation=sha256:cc1efc9d0e17fce964922de047e8a244b0d6e0ddc787e22c9f32d0dfff0d2a54",
-      "maximum-content=sha256:aee77724076d282859c44ffb5707be5fa2c77a7ece7f23b60b3e8bcd5532ccad",
-      "secret-reveal=sha256:6ce84db32a0abac07d5e6bebfd631356e65a4ffab45abeb0153124311a3698e2"
+      "idle=sha256:26d191e813857d587638bd1acfb71ee26a7c5899aeabf0b030855f94eaa15219",
+      "movement-aiming=sha256:0ec57072d9fc208dfd952e3d4c64c215ae83c622ef58a9c868658d1e4b44093d",
+      "firing=sha256:64df35977fec09861b32a24bb5d3430151c8c5661c97de8efbe1480f80de2611",
+      "effects-fog=sha256:94f5fd39ee1ed3279d651685d72dc713bb156a63ea48531858056ab1c61f1bde",
+      "floor-generation=sha256:cbf8fefc5c63b09de9a02ea2db630fd5de0b4039f8513f9478bc78f2749e8b07",
+      "maximum-content=sha256:77c9c0030c0542a979598957740a5977663dddc58ae585b79dd6b80589894e77",
+      "secret-reveal=sha256:c3bf021ad4430207580a648a4046a53c114037dfbeee90587584cb08c7293975"
     ],
-    "maximumExpectedScale": "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 832 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition carrying a departed-room shell, four directional doorways per room with one room-wall shell of eight solid slabs the player also sweeps and eight doorway-sensor examinations per frame, six positioned floor pickups scanned twice per frame, and all five pre-M6 visuals",
+    "maximumExpectedScale": "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 820 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition carrying a departed-room shell, four directional doorways per room with one room-wall shell of up to eight solid slabs the player also sweeps, a hidden wall staying unbroken and eight doorway-sensor examinations per frame, six positioned floor pickups scanned twice per frame, and all five pre-M6 visuals",
     "maxP95Ms": 16.67,
     "maxP99Ms": 25.0,
     "maxCatchUpFrames": 0,
@@ -48,7 +48,7 @@
   "notAuthoritativeFor": "live-compositor,swapchain,vblank,vsync",
   "uiRouteEvidence": {
     "artifact": "readiness/m7-ui-performance.json",
-    "artifactDigest": "sha256:47a0eab8d171923a16f02e6abd5f8474ef82d7f4b875822a0378633052329150"
+    "artifactDigest": "sha256:63586d9be9b7098b1381bd1461467c05534f0e2ee83c8b38c64652190c232ab2"
   },
   "hostProfile": "Unix;X64;10.0.10",
   "packageVersions": {
@@ -144,8 +144,8 @@
     {
       "id": "collision.shot-wall-queries",
       "category": "Simulation",
-      "scaleSource": "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once and perform two player-axis casts plus four slide contact folds against 8 stable AABBs and, from M13, the 8 solid wall slabs of the room shell",
-      "maximumExpected": 832,
+      "scaleSource": "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once and perform two player-axis casts plus four slide contact folds against 8 stable AABBs and, from M13, the 7 solid wall slabs of the room shell (four walls, three of them split by a passable doorway; the fourth carries a hidden wall, which stays solid)",
+      "maximumExpected": 820,
       "visualElement": null,
       "disposition": "required-in-workloads",
       "requiredWorkloadIds": [
@@ -976,13 +976,13 @@
       "id": "idle",
       "definition": "M2 idle: production Tick(1/60) drains two 120 Hz movement/projectile steps with no actors, then builds the complete logical view",
       "class": "normal",
-      "definitionDigest": "8405af129fc18ce37c53e0af6229e2e68daaef655a4b4ff64058ccbccaa7fa57",
+      "definitionDigest": "26d191e813857d587638bd1acfb71ee26a7c5899aeabf0b030855f94eaa15219",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/18429be3420f4c5a3be5e50506a9c1dc",
+        "compositionAuthority": "Rogue3/0b599e884dc937009d6f01780894282c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "idle",
@@ -999,7 +999,7 @@
         "result": "Passed",
         "steps": 1,
         "maxSteps": 4,
-        "receiptDigest": "sha256:95a76b6103836c716a601d7a18bcb7b544686ba427c2a2ebfe4149e762cf5856"
+        "receiptDigest": "sha256:c4c71967158d20651966de9ed1b80c27bed383e5fe41a7612a311d0149dafd78"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -1009,13 +1009,13 @@
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "8405af129fc18ce37c53e0af6229e2e68daaef655a4b4ff64058ccbccaa7fa57",
+      "declaredDefinitionDigest": "26d191e813857d587638bd1acfb71ee26a7c5899aeabf0b030855f94eaa15219",
       "blockingDebt": null,
       "warmupFrames": 20,
       "sampleFrames": 120,
-      "p50Ms": 0.0376,
-      "p95Ms": 0.0613,
-      "p99Ms": 0.0844,
+      "p50Ms": 0.0362,
+      "p95Ms": 0.042,
+      "p99Ms": 0.1927,
       "updateCount": 120,
       "presentCount": {
         "status": "unsupported",
@@ -1032,7 +1032,7 @@
       "observedPointerEventCount": 0,
       "rawInputSampleCount": 0,
       "shotSpawnHistoryCount": 0,
-      "allocatedBytes": 13635656,
+      "allocatedBytes": 13677896,
       "observedScale": {
         "scene.floor-background": 1,
         "scene.player": 1,
@@ -1048,13 +1048,13 @@
       "id": "movement-aiming",
       "definition": "M2 movement\u002Baiming: sampled production A-key and pointer messages drive acceleration and independent aim across two 120 Hz steps, then build the complete logical view",
       "class": "normal",
-      "definitionDigest": "e18ded39ee79c7e02e8229b0d30b73074a6d70968a7c070c469ee0a635a27746",
+      "definitionDigest": "0ec57072d9fc208dfd952e3d4c64c215ae83c622ef58a9c868658d1e4b44093d",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/18429be3420f4c5a3be5e50506a9c1dc",
+        "compositionAuthority": "Rogue3/0b599e884dc937009d6f01780894282c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "movement-aiming",
@@ -1071,7 +1071,7 @@
         "result": "Passed",
         "steps": 3,
         "maxSteps": 4,
-        "receiptDigest": "sha256:b2402a0746ed30c9946cf229d18e0b0b749a3fe19f3a96e62bbf684e7b954370"
+        "receiptDigest": "sha256:fae245bd7a63d963eb414e41b195c4014ee46a2936733c338a12bc28077ef0ba"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -1082,13 +1082,13 @@
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "e18ded39ee79c7e02e8229b0d30b73074a6d70968a7c070c469ee0a635a27746",
+      "declaredDefinitionDigest": "0ec57072d9fc208dfd952e3d4c64c215ae83c622ef58a9c868658d1e4b44093d",
       "blockingDebt": null,
       "warmupFrames": 20,
       "sampleFrames": 120,
-      "p50Ms": 0.0403,
-      "p95Ms": 0.0608,
-      "p99Ms": 0.0685,
+      "p50Ms": 0.0374,
+      "p95Ms": 0.0482,
+      "p99Ms": 0.0936,
       "updateCount": 120,
       "presentCount": {
         "status": "unsupported",
@@ -1105,7 +1105,7 @@
       "observedPointerEventCount": 120,
       "rawInputSampleCount": 240,
       "shotSpawnHistoryCount": 0,
-      "allocatedBytes": 14103816,
+      "allocatedBytes": 14146056,
       "observedScale": {
         "input.snapshot-resolution": 2,
         "scene.floor-background": 1,
@@ -1122,13 +1122,13 @@
       "id": "firing",
       "definition": "M2 firing: sampled production A-key and primary-pointer messages drive acceleration, centered three-shot multishot, velocity inheritance, and two 120 Hz projectile steps before the complete logical view",
       "class": "normal",
-      "definitionDigest": "29d51bc43cc5bf8a921076275e4971cd65102ab2c4c1ed46377287fc767e410f",
+      "definitionDigest": "64df35977fec09861b32a24bb5d3430151c8c5661c97de8efbe1480f80de2611",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/18429be3420f4c5a3be5e50506a9c1dc",
+        "compositionAuthority": "Rogue3/0b599e884dc937009d6f01780894282c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "firing",
@@ -1145,7 +1145,7 @@
         "result": "Passed",
         "steps": 3,
         "maxSteps": 4,
-        "receiptDigest": "sha256:d885dc95e60d20eb7198388278cf311f7212b7f4326646eb70f780ad0a979938"
+        "receiptDigest": "sha256:61a968acc36941084102f89b8e892a4ea5561e154bea084589d454b8604a4ed1"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -1162,13 +1162,13 @@
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "29d51bc43cc5bf8a921076275e4971cd65102ab2c4c1ed46377287fc767e410f",
+      "declaredDefinitionDigest": "64df35977fec09861b32a24bb5d3430151c8c5661c97de8efbe1480f80de2611",
       "blockingDebt": null,
       "warmupFrames": 20,
       "sampleFrames": 120,
-      "p50Ms": 0.0589,
-      "p95Ms": 0.0684,
-      "p99Ms": 0.0789,
+      "p50Ms": 0.0576,
+      "p95Ms": 0.0637,
+      "p99Ms": 0.1164,
       "updateCount": 120,
       "presentCount": {
         "status": "unsupported",
@@ -1185,7 +1185,7 @@
       "observedPointerEventCount": 120,
       "rawInputSampleCount": 240,
       "shotSpawnHistoryCount": 12,
-      "allocatedBytes": 18761848,
+      "allocatedBytes": 18804088,
       "observedScale": {
         "input.snapshot-resolution": 2,
         "scene.floor-background": 1,
@@ -1208,13 +1208,13 @@
       "id": "effects-fog",
       "definition": "M2 dodge commitment: a boot-latched Space edge starts one roll, then two production Tick(1/120) messages advance i-frame, roll, and cooldown timers before one complete logical view",
       "class": "normal",
-      "definitionDigest": "1d000c93b641e1e87919c819f5d3ae175bd51bf72220aa785bb51224d551298c",
+      "definitionDigest": "94f5fd39ee1ed3279d651685d72dc713bb156a63ea48531858056ab1c61f1bde",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/18429be3420f4c5a3be5e50506a9c1dc",
+        "compositionAuthority": "Rogue3/0b599e884dc937009d6f01780894282c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "effects-fog",
@@ -1231,7 +1231,7 @@
         "result": "Passed",
         "steps": 2,
         "maxSteps": 4,
-        "receiptDigest": "sha256:50a112580351692a9c63297c9b65e95d0ec045bdb35407163cc3b4691a646155"
+        "receiptDigest": "sha256:0b2cae9d572f7ea373f235c814afc1cadbad90716251a331a5a629836b23f108"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -1243,13 +1243,13 @@
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "1d000c93b641e1e87919c819f5d3ae175bd51bf72220aa785bb51224d551298c",
+      "declaredDefinitionDigest": "94f5fd39ee1ed3279d651685d72dc713bb156a63ea48531858056ab1c61f1bde",
       "blockingDebt": null,
       "warmupFrames": 20,
       "sampleFrames": 120,
-      "p50Ms": 0.0368,
-      "p95Ms": 0.044,
-      "p99Ms": 0.0768,
+      "p50Ms": 0.0372,
+      "p95Ms": 0.0414,
+      "p99Ms": 0.0448,
       "updateCount": 120,
       "presentCount": {
         "status": "unsupported",
@@ -1266,7 +1266,7 @@
       "observedPointerEventCount": 0,
       "rawInputSampleCount": 0,
       "shotSpawnHistoryCount": 0,
-      "allocatedBytes": 13982072,
+      "allocatedBytes": 14024312,
       "observedScale": {
         "scene.floor-background": 1,
         "scene.player": 1,
@@ -1284,13 +1284,13 @@
       "id": "floor-generation",
       "definition": "M4 maximum bounded floor generation through the guarded trapdoor route: production DescendFloor derives MapGen.floorSeed, executes bounded room placement with 20-room cap, assigns templates/threat/specials/fixtures and replaces room-local state, then the next floor\u0027s boss room is cleared and entered so the player again stands on a real trapdoor",
       "class": "normal",
-      "definitionDigest": "cc1efc9d0e17fce964922de047e8a244b0d6e0ddc787e22c9f32d0dfff0d2a54",
+      "definitionDigest": "cbf8fefc5c63b09de9a02ea2db630fd5de0b4039f8513f9478bc78f2749e8b07",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/18429be3420f4c5a3be5e50506a9c1dc",
+        "compositionAuthority": "Rogue3/0b599e884dc937009d6f01780894282c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "floor-generation",
@@ -1299,15 +1299,15 @@
         "inputIdentity": "floor-generation-one-fixed-step",
         "inputDigest": "dc53ee58279c810dc2842ee4ef90fbfe43dd8c57fed6a520d382c253e6f95fe8",
         "scriptDigest": "dc53ee58279c810dc2842ee4ef90fbfe43dd8c57fed6a520d382c253e6f95fe8",
-        "traceDigest": "92b781f9c59c19742b0ac3f9672e5ca6e2d60e62e38c5e1aa09e3a9d3ead7112",
+        "traceDigest": "bc52f1653f6508fc409774d551c962788c84fcb46cc471c648bc431d0a41b7be",
         "initialFingerprintDigest": "a60ba75deab8451a6c592d72032519575a9be655b4bd046f5b4efc644270b480",
-        "terminalFingerprintDigest": "063f0933f2bafa713d7bf7619b15591790e848c68781d32b4161abb580cd2da6",
+        "terminalFingerprintDigest": "2fab48d88fb60ec7b39ff481cbbb08f4bded0cf3dfe9b445633c1a93aea84b59",
         "terminalPredicateIdentity": "model.FloorIndex\u003E=9",
         "terminalPredicateReached": true,
         "result": "Passed",
         "steps": 2,
         "maxSteps": 4,
-        "receiptDigest": "sha256:8a8a13de6c615bb98384f4621321d11f5547ed217c45bf7fecba039443ce940a"
+        "receiptDigest": "sha256:ba808499b33ec515825a55834dee0cb78fd453b672a403092bf42cfbd6bc383b"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -1317,13 +1317,13 @@
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "cc1efc9d0e17fce964922de047e8a244b0d6e0ddc787e22c9f32d0dfff0d2a54",
+      "declaredDefinitionDigest": "cbf8fefc5c63b09de9a02ea2db630fd5de0b4039f8513f9478bc78f2749e8b07",
       "blockingDebt": null,
       "warmupFrames": 0,
       "sampleFrames": 40,
-      "p50Ms": 0.4334,
-      "p95Ms": 0.4854,
-      "p99Ms": 7.1441,
+      "p50Ms": 0.4186,
+      "p95Ms": 0.8009,
+      "p99Ms": 7.1843,
       "updateCount": 40,
       "presentCount": {
         "status": "unsupported",
@@ -1340,7 +1340,7 @@
       "observedPointerEventCount": 0,
       "rawInputSampleCount": 0,
       "shotSpawnHistoryCount": 0,
-      "allocatedBytes": 23604384,
+      "allocatedBytes": 23606304,
       "observedScale": {
         "generation.floor-room-budget": 20,
         "scene.floor-background": 1,
@@ -1356,13 +1356,13 @@
       "id": "maximum-content",
       "definition": "M6 canonical maximum fixture through production journey/update/view: inherited M5 maximum combat plus eight live enemy symbols, exactly 600 long-lived retained particles, eleven ordered render layers, and one active 0.35-second room camera transition",
       "class": "normal",
-      "definitionDigest": "aee77724076d282859c44ffb5707be5fa2c77a7ece7f23b60b3e8bcd5532ccad",
+      "definitionDigest": "77c9c0030c0542a979598957740a5977663dddc58ae585b79dd6b80589894e77",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/18429be3420f4c5a3be5e50506a9c1dc",
+        "compositionAuthority": "Rogue3/0b599e884dc937009d6f01780894282c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "maximum-content",
@@ -1371,15 +1371,15 @@
         "inputIdentity": "maximum-content-one-fixed-step",
         "inputDigest": "9c5ae62e2521b82dc2ea10bc79cac798170a8102f8dec3f25b5b231e09d7d37c",
         "scriptDigest": "9c5ae62e2521b82dc2ea10bc79cac798170a8102f8dec3f25b5b231e09d7d37c",
-        "traceDigest": "cec198b56e3c7a94f8ad0a472ad8ebac638712cf7064416ab5ab046db5e4c379",
-        "initialFingerprintDigest": "6d90e73d28a0c60738fa7db22deeab29cbf3adde1b336ad5231024949c09d912",
-        "terminalFingerprintDigest": "ff7b3f0a0386110d21b02c3315a8f9fa6ad9984dc5cc03364f18b6bfe173c5d6",
+        "traceDigest": "e920106cbf26e9c3c0f7d618390ce21ccbbb3014c38db5ed7137a2c25aee1939",
+        "initialFingerprintDigest": "3c0e0eabfa6b1260012cf92e468044ed0b20b9f247ed7949a2012a28ffcc9d12",
+        "terminalFingerprintDigest": "bcc5d2220bb979663795b643f6f48bae160194c9df3f19ac0592ddf6a505c82b",
         "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
         "terminalPredicateReached": true,
         "result": "Passed",
         "steps": 4,
         "maxSteps": 4,
-        "receiptDigest": "sha256:5ba92059d19ab2f99da9fae0821ea947eab71c287f6f7c3e27d331e0559763f1"
+        "receiptDigest": "sha256:b286cf716ba1a6b4e1080540bb1ab2b7846a37641d7916fdb9bce4ca5032d037"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -1450,13 +1450,13 @@
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "aee77724076d282859c44ffb5707be5fa2c77a7ece7f23b60b3e8bcd5532ccad",
+      "declaredDefinitionDigest": "77c9c0030c0542a979598957740a5977663dddc58ae585b79dd6b80589894e77",
       "blockingDebt": null,
       "warmupFrames": 20,
       "sampleFrames": 720,
-      "p50Ms": 1.8756,
-      "p95Ms": 7.7424,
-      "p99Ms": 8.9914,
+      "p50Ms": 1.8763,
+      "p95Ms": 8.0522,
+      "p99Ms": 10.4184,
       "updateCount": 720,
       "presentCount": {
         "status": "unsupported",
@@ -1473,12 +1473,12 @@
       "observedPointerEventCount": 0,
       "rawInputSampleCount": 720,
       "shotSpawnHistoryCount": 40,
-      "allocatedBytes": 5071335736,
+      "allocatedBytes": 5074608768,
       "observedScale": {
         "ai.m5-decisions": 60,
         "boss.m5-pattern-emissions": 1,
         "collision.combat-candidates": 2520,
-        "collision.shot-wall-queries": 832,
+        "collision.shot-wall-queries": 820,
         "effects.pooled-particles": 600,
         "input.snapshot-resolution": 2,
         "projectiles.m5-boss-emitted": 8,
@@ -1541,7 +1541,7 @@
         "ui.hud-minimap": 1
       },
       "sceneNodesByLayer": {
-        "rogue3-scene": 704
+        "rogue3-scene": 705
       },
       "passed": true,
       "reasons": []
@@ -1550,13 +1550,13 @@
       "id": "secret-reveal",
       "definition": "M10 same-step secret reveal: inherited maximum content plus staggered fuses so production Tick(1/120) detonates exactly one bomb per sampled fixed step, scanning the live pending-secret set and carving the reciprocal doors and graph adjacency inside that same step before the complete logical view",
       "class": "normal",
-      "definitionDigest": "6ce84db32a0abac07d5e6bebfd631356e65a4ffab45abeb0153124311a3698e2",
+      "definitionDigest": "c3bf021ad4430207580a648a4046a53c114037dfbeee90587584cb08c7293975",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/18429be3420f4c5a3be5e50506a9c1dc",
+        "compositionAuthority": "Rogue3/0b599e884dc937009d6f01780894282c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "secret-reveal",
@@ -1565,15 +1565,15 @@
         "inputIdentity": "secret-reveal-one-fixed-step",
         "inputDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
         "scriptDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
-        "traceDigest": "3aafbe227528ed6ca1670b6d0fe05f42a47891ef1ce649a737c3f535de50ae62",
-        "initialFingerprintDigest": "905716ce5eff57099da25e5a5e3f0da105c8cd520375528ced38e79e655ddfd1",
-        "terminalFingerprintDigest": "3aafbe227528ed6ca1670b6d0fe05f42a47891ef1ce649a737c3f535de50ae62",
+        "traceDigest": "e5611e8c98f08e194e7699060cad6ac6f3fd54a23533de950750be9815df949d",
+        "initialFingerprintDigest": "00d629fc7577b69a135d4ef6155f285b15e012ed6c5590a71028f1c23ddebecc",
+        "terminalFingerprintDigest": "e5611e8c98f08e194e7699060cad6ac6f3fd54a23533de950750be9815df949d",
         "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
         "terminalPredicateReached": true,
         "result": "Passed",
         "steps": 1,
         "maxSteps": 4,
-        "receiptDigest": "sha256:960d3b8998c6be1d9839767357fa91e27abb6840de2997fb313a8512ca8a3d5d"
+        "receiptDigest": "sha256:a901802f4e76f01e8800567e2904b698e6b693b3838bc5f0c0e2d2126af74870"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -1586,13 +1586,13 @@
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "6ce84db32a0abac07d5e6bebfd631356e65a4ffab45abeb0153124311a3698e2",
+      "declaredDefinitionDigest": "c3bf021ad4430207580a648a4046a53c114037dfbeee90587584cb08c7293975",
       "blockingDebt": null,
       "warmupFrames": 0,
       "sampleFrames": 48,
-      "p50Ms": 1.9864,
-      "p95Ms": 3.0903,
-      "p99Ms": 3.3697,
+      "p50Ms": 2.0189,
+      "p95Ms": 5.0776,
+      "p99Ms": 6.9712,
       "updateCount": 48,
       "presentCount": {
         "status": "unsupported",
@@ -1609,7 +1609,7 @@
       "observedPointerEventCount": 0,
       "rawInputSampleCount": 0,
       "shotSpawnHistoryCount": 40,
-      "allocatedBytes": 265125672,
+      "allocatedBytes": 264688640,
       "observedScale": {
         "scene.floor-background": 1,
         "scene.player": 1,
@@ -1619,7 +1619,7 @@
         "state.placed-bombs": 48
       },
       "sceneNodesByLayer": {
-        "rogue3-scene": 780
+        "rogue3-scene": 763
       },
       "passed": true,
       "reasons": []
@@ -1627,7 +1627,7 @@
   ],
   "critic": {
     "rubricVersion": "performance-representativeness-v1",
-    "inputDigest": "c3774ac1d07c20f7d44fb24f728c8c58a317119a2ae51857a0b05dd11cd52d88",
+    "inputDigest": "ad37ccbf992463d181e0a28cad812beb9b8e1af9e29a9ececc707440128eae21",
     "status": "external-review-required",
     "reviewBoundary": "attributable review system at the exact landing commit",
     "preferredMode": "fresh-context-subagent",

@@ -1288,7 +1288,7 @@ evidence:
     checklistResultRefs: []
     planDecisionRefs: [PD-015]
     obligationRefs: [EV053]
-    artifacts: [readiness/014-m13-room-transition-pickups-world-state/analysis.json, readiness/performance-evidence.json, readiness/performance-intent.yml, src/Rogue3/PerformanceEvidence.fs]
+    artifacts: [readiness/014-m13-room-transition-pickups-world-state/ship-verdict.json, readiness/performance-evidence.json, readiness/performance-intent.yml, src/Rogue3/PerformanceEvidence.fs]
     sourceRefs: []
     result: pass
     synthetic: false

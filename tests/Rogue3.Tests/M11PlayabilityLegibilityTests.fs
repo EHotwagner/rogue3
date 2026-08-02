@@ -599,9 +599,9 @@ let m11PlayabilityLegibilityTests =
               let dropped =
                   { boot with
                       M5ObstacleDrops =
-                          [ { Id = 1; Kind = Entities.PickupKind.Coin1; Position = vec2 300.0 240.0 }
-                            { Id = 2; Kind = Entities.PickupKind.Key; Position = vec2 520.0 240.0 }
-                            { Id = 3; Kind = Entities.PickupKind.Bomb; Position = vec2 740.0 240.0 } ] }
+                          [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin1; Position = vec2 300.0 240.0 }
+                            { Id = 2; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Key; Position = vec2 520.0 240.0 }
+                            { Id = 3; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Bomb; Position = vec2 740.0 240.0 } ] }
               let pickups =
                   Render.renderedElements dropped
                   |> List.filter (fun element -> element.ElementId.StartsWith "Pickup")

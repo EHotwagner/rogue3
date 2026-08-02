@@ -1208,12 +1208,12 @@ let m6VisualEvidence (outputDirectory: string) =
             // M13: a drop carries a world position, so the visual-evidence fixture places each one
             // where a player would find it rather than in an indexed strip.
             M5ObstacleDrops =
-                [ { Id=8101;Kind=Rogue3.Entities.PickupKind.Coin1;Position=vec2 200.0 620.0 }
-                  { Id=8102;Kind=Rogue3.Entities.PickupKind.Coin3;Position=vec2 280.0 620.0 }
-                  { Id=8103;Kind=Rogue3.Entities.PickupKind.HalfRedHeart;Position=vec2 360.0 620.0 }
-                  { Id=8104;Kind=Rogue3.Entities.PickupKind.Key;Position=vec2 440.0 620.0 }
-                  { Id=8105;Kind=Rogue3.Entities.PickupKind.Bomb;Position=vec2 520.0 620.0 }
-                  { Id=8106;Kind=Rogue3.Entities.PickupKind.SoulHeart;Position=vec2 600.0 620.0 } ]
+                [ { Id=8101;Room=0;Kind=Rogue3.Entities.PickupKind.Coin1;Position=vec2 200.0 620.0 }
+                  { Id=8102;Room=0;Kind=Rogue3.Entities.PickupKind.Coin3;Position=vec2 280.0 620.0 }
+                  { Id=8103;Room=0;Kind=Rogue3.Entities.PickupKind.HalfRedHeart;Position=vec2 360.0 620.0 }
+                  { Id=8104;Room=0;Kind=Rogue3.Entities.PickupKind.Key;Position=vec2 440.0 620.0 }
+                  { Id=8105;Room=0;Kind=Rogue3.Entities.PickupKind.Bomb;Position=vec2 520.0 620.0 }
+                  { Id=8106;Room=0;Kind=Rogue3.Entities.PickupKind.SoulHeart;Position=vec2 600.0 620.0 } ]
             M5Boss=Some(Rogue3.Entities.spawnBoss 7000 Rogue3.Entities.BossKind.Maw (vec2 1120.0 560.0))
             M5ShopSlots=shop
             M5Room=
@@ -1399,9 +1399,9 @@ let m7UiPerformanceEvidence (path:string) =
               // did not, and again every scale verdict is unchanged — hud-playing still reports 12
               // scene elements at both outputs, which is the check that splitting the HUD inventory
               // did not change one node of what the viewer receives.
-              "hud-playing", "fddf978347c485cb4da3cea34768b5d30e211bb569b3bc84e9aeec57622733db"
-              "run-result", "2a0f0eeec19d7e139e91b4ac8e496370825affb664cf379e6cdb52f270106025"
-              "stats-charts", "8cf13b8adff5f8a0cdf096506166a1e3deb89e60e8a0fd6c1e2aca55e54b3a18" ]
+              "hud-playing", "36af91c03313e53b62424d9be38104e251f9fe54ac482fa4372300b4dadb3b3c"
+              "run-result", "6a71c69d76e28c22b98300de2956643985a9d186480fe6884b8ec87251265449"
+              "stats-charts", "49d8521a9d045b7fe6dbcfad52639df7aefc4497334dcd032c945ff06764409e" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]

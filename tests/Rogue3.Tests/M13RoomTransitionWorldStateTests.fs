@@ -178,7 +178,7 @@ let m13RoomTransitionWorldStateTests =
           test "FR-005 walking onto a pickup collects it exactly once, through movement keys alone" {
               let spot = vec2 640.0 500.0
               let seeded =
-                  { boot with M5ObstacleDrops = [ { Id = 4001; Kind = Entities.PickupKind.Coin3; Position = spot } ] }
+                  { boot with M5ObstacleDrops = [ { Id = 4001; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin3; Position = spot } ] }
               let before = seeded.PlayerCurrency.Coins
 
               let collected = walk spot 200 seeded
@@ -193,7 +193,7 @@ let m13RoomTransitionWorldStateTests =
           }
 
           test "FR-005 every pickup kind applies its own effect, and currency honours the 99 cap" {
-              let at kind = { boot with M5ObstacleDrops = [ { Id = 1; Kind = kind; Position = boot.PlayerPosition } ] } |> collectFloorPickups
+              let at kind = { boot with M5ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = kind; Position = boot.PlayerPosition } ] } |> collectFloorPickups
 
               Expect.equal (at Entities.PickupKind.Coin1).PlayerCurrency.Coins (boot.PlayerCurrency.Coins + 1) "one coin"
               Expect.equal (at Entities.PickupKind.Coin3).PlayerCurrency.Coins (boot.PlayerCurrency.Coins + 3) "three coins"
@@ -202,15 +202,77 @@ let m13RoomTransitionWorldStateTests =
               Expect.equal (at Entities.PickupKind.SoulHeart).PlayerHealth.SoulHalfHearts 2 "a soul heart is two soul half-hearts"
 
               let hurt = { boot with PlayerHealth = { boot.PlayerHealth with RedHalfHearts = 2 } }
-              let healed = { hurt with M5ObstacleDrops = [ { Id = 1; Kind = Entities.PickupKind.HalfRedHeart; Position = hurt.PlayerPosition } ] } |> collectFloorPickups
+              let healed = { hurt with M5ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.HalfRedHeart; Position = hurt.PlayerPosition } ] } |> collectFloorPickups
               Expect.equal healed.PlayerHealth.RedHalfHearts 3 "a half red heart heals exactly one half"
 
               let capped =
                   { boot with
                       PlayerCurrency = { boot.PlayerCurrency with Coins = 98 }
-                      M5ObstacleDrops = [ { Id = 1; Kind = Entities.PickupKind.Coin3; Position = boot.PlayerPosition } ] }
+                      M5ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin3; Position = boot.PlayerPosition } ] }
                   |> collectFloorPickups
               Expect.equal capped.PlayerCurrency.Coins 99 "and the shared 99 cap still holds"
+          }
+
+          test "FR-005 an uncollected pickup survives a crossing, and the scan counts what it says" {
+              // A fresh-context critic found that `loadM5Room` cleared the drop list outright while
+              // `recordDestroyedObstacle` is durable: smash a pot, step through a door before picking
+              // the coin up, and the coin was gone forever because the pot never returns to re-roll.
+              let departed = boot.Floor.CurrentRoom
+              let door = boot.Floor.Rooms.[departed].Doors |> List.find (fun d -> d.State = Open)
+              let corner = vec2 260.0 260.0
+              let seeded =
+                  { boot with M5ObstacleDrops = [ { Id = 7001; Room = departed; Kind = Entities.PickupKind.Key; Position = corner } ] }
+
+              let target =
+                  let wall = wallMidpoint door.Direction
+                  match door.Direction with
+                  | North -> vec2 wall.Vx (wall.Vy + 4.0)
+                  | South -> vec2 wall.Vx (wall.Vy - 4.0)
+                  | West -> vec2 (wall.Vx + 4.0) wall.Vy
+                  | East -> vec2 (wall.Vx - 4.0) wall.Vy
+              let away = walkUntil target (fun m -> m.Floor.CurrentRoom <> departed) 900 seeded
+
+              Expect.notEqual away.Floor.CurrentRoom departed "the player left the room"
+              Expect.equal away.PlayerCurrency.Keys boot.PlayerCurrency.Keys "leaving the room does not collect the key"
+              Expect.hasLength away.M5ObstacleDrops 1 "the uncollected pickup is still on the floor of the room it fell in"
+              Expect.isEmpty
+                  (Render.renderedElements away |> List.filter (fun element -> element.ElementId = "PickupKey"))
+                  "and it is not drawn in the room the player is now standing in"
+
+              let back = update (EnterM5Room departed) away |> fst
+              Expect.hasLength (floorPickupsHere back) 1 "returning to the room finds the pickup where it fell"
+              let collected = walkUntil corner (fun m -> m.PlayerCurrency.Keys > boot.PlayerCurrency.Keys) 900 back
+              Expect.equal collected.PlayerCurrency.Keys (boot.PlayerCurrency.Keys + 1) "and it can still be walked onto"
+
+              // The cost counter is bound to an exact-equality performance driver, so a frozen counter
+              // would only be caught by the evidence command. Assert it here too.
+              let scanned = collectFloorPickups seeded
+              Expect.equal
+                  (scanned.TotalFloorPickupCandidates - seeded.TotalFloorPickupCandidates)
+                  1
+                  "one overlap test per pickup lying in the current room"
+              let elsewhere =
+                  { seeded with M5ObstacleDrops = seeded.M5ObstacleDrops @ [ { Id = 7002; Room = departed + 500; Kind = Entities.PickupKind.Coin1; Position = corner } ] }
+              Expect.equal
+                  ((collectFloorPickups elsewhere).TotalFloorPickupCandidates - elsewhere.TotalFloorPickupCandidates)
+                  1
+                  "and a pickup lying in another room is not scanned"
+          }
+
+          test "FR-005 a coin that overflows the 99 cap is not banked in the run score either" {
+              // The currency clamped but RunStats.CoinsCollected took the full face value, and that
+              // stat feeds runScore — so cap overflow inflated the score. Cap overflow is waste
+              // everywhere else in this product.
+              let capped =
+                  { boot with
+                      PlayerCurrency = { boot.PlayerCurrency with Coins = 98 }
+                      M5ObstacleDrops = [ { Id = 1; Room = boot.Floor.CurrentRoom; Kind = Entities.PickupKind.Coin3; Position = boot.PlayerPosition } ] }
+                  |> collectFloorPickups
+              Expect.equal capped.PlayerCurrency.Coins 99 "the purse clamps at the shared cap"
+              Expect.equal
+                  (capped.RunStats.CoinsCollected - boot.RunStats.CoinsCollected)
+                  1
+                  "and the run stat records the one coin actually banked, not the three on the floor"
           }
 
           test "FR-006 pickups are drawn where they lie, one place each, inside the room" {
@@ -221,6 +283,7 @@ let m13RoomTransitionWorldStateTests =
                           positions
                           |> List.mapi (fun index position ->
                               { Id = 5000 + index
+                                Room = boot.Floor.CurrentRoom
                                 Kind = [ Entities.PickupKind.Coin1; Entities.PickupKind.Key; Entities.PickupKind.Bomb ].[index]
                                 Position = position }) }
 
@@ -270,6 +333,39 @@ let m13RoomTransitionWorldStateTests =
                                   obstacleClearance
                                   $"room {roomId}: a fixture does not overlap the {obstacle.Kind} at ({obstacle.Position.Vx}, {obstacle.Position.Vy})"
               Expect.isGreaterThan rooms 60 "the sweep covered every room of all six floors"
+          }
+
+          test "FR-007 the RENDERER puts the shop and the reward where placeRoomFixtures says" {
+              // A fresh-context critic proved this guard was missing: restoring the exact pre-M13
+              // literals (`X = 520 + index*90, Y = 160` and `X = 620, Y = 450`) left the whole suite
+              // green, so the row had no regression guard at all. Testing `placeRoomFixtures` in
+              // isolation says nothing about whether the renderer consumes it.
+              let slots, _, _ = Entities.generateShop (FS.GG.Game.Core.Rng.ofSeed 0xA55AUL) (Entities.itemPool [])
+              let model = { boot with M5ShopSlots = slots; M5Room = { boot.M5Room with Reward = Some Entities.baseItems.Head } }
+              let expected = placeRoomFixtures model.M5Obstacles (slots.Length + 1)
+
+              let drawnAt id =
+                  Render.renderedElements model
+                  |> List.filter (fun element -> element.ElementId = id)
+                  |> List.map (fun element ->
+                      let bounds = boundsOf element.Scene
+                      let left = bounds |> List.map _.X |> List.min
+                      let right = bounds |> List.map (fun b -> b.X + b.Width) |> List.max
+                      (left + right) / 2.0)
+
+              let shopCentres = drawnAt "ShopItem"
+              Expect.hasLength shopCentres slots.Length "every shop slot is drawn"
+              for index, centre in List.indexed shopCentres do
+                  Expect.isTrue
+                      (abs (centre - expected.[index].Vx) < 6.0)
+                      $"shop slot {index} is drawn at the placed x {expected.[index].Vx}, not at a fixed screen coordinate (drawn at {centre})"
+
+              match drawnAt "RoomReward" with
+              | [ centre ] ->
+                  Expect.isTrue
+                      (abs (centre - expected.[slots.Length].Vx) < 6.0)
+                      $"the reward is drawn at the placed x {expected.[slots.Length].Vx}, not at a fixed screen coordinate (drawn at {centre})"
+              | other -> failtest $"expected exactly one reward element, got {other.Length}"
           }
 
           test "FR-008 a shop slot states its price, and a key-locked slot says so instead" {
@@ -333,6 +429,51 @@ let m13RoomTransitionWorldStateTests =
                       Expect.isFalse
                           (rectContains slab mouth playerRadius)
                           $"the {door.Direction} doorway stays passable, so the sensor stays reachable"
+          }
+
+          test "FR-009 a hidden wall is solid: the gap is only opened for a doorway that reads as one" {
+              // A fresh-context critic found the hole: the slabs opened a gap for every door of ANY
+              // graph state, including HiddenWall — which `Render.doorScene` draws as a full-depth
+              // rectangle in the SAME `stone` colour as the band, with its own comment saying "It
+              // reads as WALL, not door". The player could stand a full 24 units inside solid-looking
+              // stone. Nothing needs that gap: a secret is revealed by a bomb blast testing
+              // `wallMidpoint` against `bombRadius`, never by the player reaching the wall.
+              let hidden =
+                  boot.Floor.Rooms
+                  |> Map.toList
+                  |> List.tryPick (fun (id, room) ->
+                      room.Doors |> List.tryPick (fun door -> if door.State = HiddenWall then Some(id, door) else None))
+
+              match hidden with
+              | None -> failtest "the representative floor is expected to place at least one hidden wall"
+              | Some(roomId, door) ->
+                  let model = update (EnterM5Room roomId) boot |> fst
+                  let slabs = roomWallSlabs model
+
+                  // The band is continuous across a hidden wall: that direction contributes ONE slab.
+                  Expect.isFalse
+                      (Set.contains door.Direction (roomDoorDirections roomId model.Floor))
+                      $"the {door.Direction} hidden wall does not open a collider gap"
+
+                  let outside =
+                      let wall = wallMidpoint door.Direction
+                      add wall (scale 400.0 (sub wall (vec2 (playfieldWidth/2.0) (playfieldHeight/2.0)) |> normalizeOrZero))
+                  let pressed = walk outside 500 model
+
+                  Expect.equal pressed.Floor.CurrentRoom roomId "walking at a hidden wall does not cross it"
+                  for slab in slabs do
+                      Expect.isFalse
+                          (rectContains slab pressed.PlayerPosition playerRadius)
+                          $"the player stops at the drawn stone of the {door.Direction} hidden wall, not inside it (stopped at {pressed.PlayerPosition.Vx}, {pressed.PlayerPosition.Vy})"
+
+                  // And the depth check the slab list cannot make on its own: the player's disc must
+                  // not reach past the inner face of the drawn band.
+                  let depth, lateral = doorwayOffsets door.Direction pressed.PlayerPosition
+                  if abs lateral <= doorwayHalfSpan then
+                      Expect.isGreaterThanOrEqual
+                          depth
+                          (Render.wallThickness + playerRadius - 0.001)
+                          "the player's disc never penetrates the drawn 24-unit stone band at a hidden wall"
           }
 
           test "FR-011 the drawn wall shell and the player's collider are one value" {
@@ -410,15 +551,25 @@ let m13RoomTransitionWorldStateTests =
               Expect.isFalse (GameplayVisualInventory.all |> List.map GameplayVisualInventory.elementId |> List.contains "HudScore")
                   "and the single catch-all HudScore row is gone"
 
-              // The split must not change one node of what the viewer receives: `hudSceneForSize` is
-              // exactly the concatenation, in order.
-              let composed = Render.hudSceneForSize size model
-              let concatenated =
-                  Render.hudRegionScenes size model |> List.collect (fun (_, _, nodes) -> nodes) |> Scene.group
-              Expect.equal
-                  ((SceneCodec.export composed).CanonicalBytes)
-                  ((SceneCodec.export concatenated).CanonicalBytes)
-                  "the composed HUD is byte-identical to the ordered concatenation of its regions"
+              // The split must not change what the viewer receives. A critic pointed out that
+              // comparing `hudSceneForSize` against the concatenation of its own regions is the
+              // DEFINITION of `hudSceneForSize` and cannot fail for any implementation, so it proved
+              // nothing. These are the properties that were true before M13 and must still be true:
+              // the same node count the pre-split HUD produced, at both required output sizes, with
+              // the same labels and the same distinguishing colours.
+              for output in [ { Width = 1280; Height = 720 }; { Width = 1920; Height = 1080 } ] do
+                  let describe = Scene.describe (Render.hudSceneForSize output model) |> List.length
+                  Expect.equal describe 25 $"the composed HUD draws the same 25 nodes at {output.Width}x{output.Height} that it drew before the inventory split"
+
+              let labels = sceneTexts (Render.hudSceneForSize size model)
+              Expect.contains labels "COIN 42   KEY 03   BOMB 07" "currency keeps its fixed two-digit formatting"
+              Expect.contains labels "ACTIVE 2/6" "the active charge keeps its readout"
+              Expect.contains labels "1 — THE BURROWS" "and the floor banner keeps its text"
+
+              // Each region must contribute: an empty region is a region that has silently stopped
+              // drawing, which is exactly what one catch-all HudScore row could hide.
+              for id, _, nodes in Render.hudRegionScenes size model do
+                  Expect.isNonEmpty nodes $"the {id} region draws something for a model that has {id} content"
 
               // The banner is the one region that is absent when its state is absent.
               let quiet = { model with FloorNameTicks = 0 }

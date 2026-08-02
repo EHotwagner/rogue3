@@ -170,7 +170,7 @@ let private evidenceModel element =
     // M13: a drop is a POSITIONED pickup, so the fixture must carry a position too — and a distinct
     // one per kind, so no two pickup elements can render byte-identical scenes.
     | _, _, _, Some kind ->
-        { initialModel with M5ObstacleDrops=[ { Id=901; Kind=kind; Position=vec2 360.0 430.0 } ] }
+        { initialModel with M5ObstacleDrops=[ { Id=901; Room=initialModel.Floor.CurrentRoom; Kind=kind; Position=vec2 360.0 430.0 } ] }
     | _ ->
         match element with
         | ShopItem -> { initialModel with M5ShopSlots=sampleShopSlots }
@@ -218,7 +218,13 @@ let private evidenceModel element =
         | PlayerInvulnerable -> { initialModel with PostHitInvulnTicks = postHitInvulnTicks }
         | PlayerDodgeRoll ->
             { initialModel with DodgeRollTicks = rollDurationTicks; PlayerVelocity = vec2 rollSpeed 0.0 }
-        | PlayerDown -> { initialModel with PlayerLifeState = Dead }
+        // Dead AND at zero health. `{ initialModel with PlayerLifeState = Dead }` alone published a
+        // frame showing a downed avatar under three full red hearts — a state play cannot reach, and
+        // the two indicators contradicting each other is the opposite of what this element claims.
+        | PlayerDown ->
+            { initialModel with
+                PlayerLifeState = Dead
+                PlayerHealth = { initialModel.PlayerHealth with RedHalfHearts = 0 } }
         | EnemyTelegraph ->
             { initialModel with
                 M5Enemies =

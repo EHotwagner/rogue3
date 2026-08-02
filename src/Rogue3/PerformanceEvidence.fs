@@ -62,7 +62,7 @@ let private performanceIntentSeed: PerformanceIntentDeclaration =
       TargetFps = 60
       WorkloadIds = []
       WorkloadDefinitionDigests = []
-      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 832 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition carrying a departed-room shell, four directional doorways per room with one room-wall shell of eight solid slabs the player also sweeps and eight doorway-sensor examinations per frame, six positioned floor pickups scanned twice per frame, and all five pre-M6 visuals"
+      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 820 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition carrying a departed-room shell, four directional doorways per room with one room-wall shell of up to eight solid slabs the player also sweeps, a hidden wall staying unbroken and eight doorway-sensor examinations per frame, six positioned floor pickups scanned twice per frame, and all five pre-M6 visuals"
       MaxP95Ms = 16.67m
       MaxP99Ms = 25.0m
       MaxCatchUpFrames = 0
@@ -228,8 +228,8 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "floor-generation" ] }
       { Id = "collision.shot-wall-queries"
         Category = Simulation
-        ScaleSource = "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once and perform two player-axis casts plus four slide contact folds against 8 stable AABBs and, from M13, the 8 solid wall slabs of the room shell"
-        MaximumExpected = 832
+        ScaleSource = "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once and perform two player-axis casts plus four slide contact folds against 8 stable AABBs and, from M13, the 7 solid wall slabs of the room shell (four walls, three of them split by a passable doorway; the fourth carries a hidden wall, which stays solid)"
+        MaximumExpected = 820
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "simulation.homing-target-considerations"
@@ -1331,12 +1331,12 @@ let private maximumContentModel () =
             // the player at the room centre — the workload measures the collection SCAN, not a
             // collection, so every pickup must survive the sampled frames it is counted in.
             M5ObstacleDrops =
-                [ { Id=9101;Kind=Rogue3.Entities.PickupKind.Coin1;Position=vec2 200.0 620.0 }
-                  { Id=9102;Kind=Rogue3.Entities.PickupKind.Coin3;Position=vec2 280.0 620.0 }
-                  { Id=9103;Kind=Rogue3.Entities.PickupKind.HalfRedHeart;Position=vec2 360.0 620.0 }
-                  { Id=9104;Kind=Rogue3.Entities.PickupKind.Key;Position=vec2 440.0 620.0 }
-                  { Id=9105;Kind=Rogue3.Entities.PickupKind.Bomb;Position=vec2 520.0 620.0 }
-                  { Id=9106;Kind=Rogue3.Entities.PickupKind.SoulHeart;Position=vec2 600.0 620.0 } ]
+                [ { Id=9101;Room=0;Kind=Rogue3.Entities.PickupKind.Coin1;Position=vec2 200.0 620.0 }
+                  { Id=9102;Room=0;Kind=Rogue3.Entities.PickupKind.Coin3;Position=vec2 280.0 620.0 }
+                  { Id=9103;Room=0;Kind=Rogue3.Entities.PickupKind.HalfRedHeart;Position=vec2 360.0 620.0 }
+                  { Id=9104;Room=0;Kind=Rogue3.Entities.PickupKind.Key;Position=vec2 440.0 620.0 }
+                  { Id=9105;Room=0;Kind=Rogue3.Entities.PickupKind.Bomb;Position=vec2 520.0 620.0 }
+                  { Id=9106;Room=0;Kind=Rogue3.Entities.PickupKind.SoulHeart;Position=vec2 600.0 620.0 } ]
             M5Boss = Some {maw with HitPoints=100.0;Phase=3;PatternTicksLeft=1}
             // M13: the transition names the room it departed, which is what lets the renderer draw a
             // second room shell behind the slide. Room 0 is the start room of the generated floor.
@@ -1479,7 +1479,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "8405af129fc18ce37c53e0af6229e2e68daaef655a4b4ff64058ccbccaa7fa57" }
+        Authorship = Authored "26d191e813857d587638bd1acfb71ee26a7c5899aeabf0b030855f94eaa15219" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -1512,7 +1512,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "e18ded39ee79c7e02e8229b0d30b73074a6d70968a7c070c469ee0a635a27746" }
+        Authorship = Authored "0ec57072d9fc208dfd952e3d4c64c215ae83c622ef58a9c868658d1e4b44093d" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -1551,7 +1551,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "29d51bc43cc5bf8a921076275e4971cd65102ab2c4c1ed46377287fc767e410f" }
+        Authorship = Authored "64df35977fec09861b32a24bb5d3430151c8c5661c97de8efbe1480f80de2611" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -1578,7 +1578,7 @@ let expectedWorkloads =
               "scene.player-invulnerable"; "scene.player-dodge-roll" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "1d000c93b641e1e87919c819f5d3ae175bd51bf72220aa785bb51224d551298c" }
+        Authorship = Authored "94f5fd39ee1ed3279d651685d72dc713bb156a63ea48531858056ab1c61f1bde" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN floor-generation
       { Id = "floor-generation"
@@ -1608,7 +1608,7 @@ let expectedWorkloads =
         CostDriverIds = [ "generation.floor-room-budget"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "cc1efc9d0e17fce964922de047e8a244b0d6e0ddc787e22c9f32d0dfff0d2a54" }
+        Authorship = Authored "cbf8fefc5c63b09de9a02ea2db630fd5de0b4039f8513f9478bc78f2749e8b07" }
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
@@ -1702,7 +1702,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "aee77724076d282859c44ffb5707be5fa2c77a7ece7f23b60b3e8bcd5532ccad" }
+        Authorship = Authored "77c9c0030c0542a979598957740a5977663dddc58ae585b79dd6b80589894e77" }
       // WORKLOAD-SOURCE-END maximum-content
       // WORKLOAD-SOURCE-BEGIN secret-reveal
       { Id = "secret-reveal"
@@ -1725,7 +1725,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "6ce84db32a0abac07d5e6bebfd631356e65a4ffab45abeb0153124311a3698e2" }
+        Authorship = Authored "c3bf021ad4430207580a648a4046a53c114037dfbeee90587584cb08c7293975" }
       // WORKLOAD-SOURCE-END secret-reveal
       ]
 

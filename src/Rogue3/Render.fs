@@ -35,7 +35,12 @@ let hudLayoutForSize (size: Size) =
     let width, height = float size.Width, float size.Height
     let hearts = { X=24.0; Y=20.0; Width=min 384.0 (max 96.0 (width*0.34)); Height=32.0 }
     let currency = { X=24.0; Y=60.0; Width=230.0; Height=28.0 }
-    let charge = { X=max 24.0 (width-100.0); Y=20.0; Width=72.0; Height=40.0 }
+    // The charge region is wide enough to hold its LABEL as well as its dial. It used to be 72 wide
+    // with the dial in it and the "ACTIVE n/m" text drawn from 35 units to its LEFT — straight through
+    // the dial it names, so the arc that says whether your ability is ready read as a stray blue
+    // squiggle behind the caption. The label now sits beside the dial, and the region bounds what is
+    // actually drawn, which is what `hudRegionsForSize` promises its consumers.
+    let charge = { X=max 24.0 (width-210.0); Y=20.0; Width=186.0; Height=40.0 }
     let minimap = { X=max 24.0 (width-140.0); Y=70.0; Width=120.0; Height=120.0 }
     // The floor banner must clear the SOUTH DOORWAY. It used to sit at `height-52`, which put its
     // glyphs directly on top of the south door panel — on the one wall segment a player is looking at
@@ -90,9 +95,10 @@ let private hudChargeNodes (size: Size) (model: Model) =
     let layout = hudLayoutForSize size
     let chargeRatio = if model.ActiveChargeMaximum<=0 then 0.0 else float model.ActiveCharge/float model.ActiveChargeMaximum
     let chargeText = sprintf "ACTIVE %d/%d" model.ActiveCharge model.ActiveChargeMaximum
-    [ Scene.circle { X=layout.ChargeBounds.X+20.0;Y=layout.ChargeBounds.Y+20.0 } 15.0 (color 35uy 42uy 56uy 255uy)
-      Scene.arc {X=layout.ChargeBounds.X+3.0;Y=layout.ChargeBounds.Y+3.0;Width=34.0;Height=34.0} -90.0 (360.0*chargeRatio) (Paint.stroke (color 42uy 120uy 214uy 255uy) 5.0)
-      Scene.textAt { X=layout.ChargeBounds.X-35.0;Y=layout.ChargeBounds.Y+38.0 } chargeText (color 255uy 255uy 255uy 255uy) ]
+    let dialX = layout.ChargeBounds.X + layout.ChargeBounds.Width - 37.0
+    [ Scene.circle { X=dialX+17.0;Y=layout.ChargeBounds.Y+20.0 } 15.0 (color 35uy 42uy 56uy 255uy)
+      Scene.arc {X=dialX;Y=layout.ChargeBounds.Y+3.0;Width=34.0;Height=34.0} -90.0 (360.0*chargeRatio) (Paint.stroke (color 42uy 120uy 214uy 255uy) 5.0)
+      Scene.textAt { X=layout.ChargeBounds.X;Y=layout.ChargeBounds.Y+28.0 } chargeText (color 255uy 255uy 255uy 255uy) ]
 
 let private hudMinimapNodes (size: Size) (model: Model) =
     let layout = hudLayoutForSize size
@@ -272,11 +278,17 @@ let private obstacleScene obstacle =
                   { X=obstacle.Position.Vx-24.0;Y=obstacle.Position.Vy-14.0;Width=48.0;Height=28.0 }
                   (Paint.stroke (color 132uy 116uy 148uy 255uy) 3.0) ]
 
+// LOOKED AT AND RECOLOURED. Measured against the 27,19,32 floor on the M13 pickup frame: the bomb was
+// 43,43,43 — effectively invisible, so a player walks past it — and coin, coin-3 and key were three
+// near-identical yellows (245,197,66 / 255,225,92 / 217,177,74), so a key that gates a door and a
+// locked shop slot read as loose change. Hue was the only channel carrying meaning and two of the six
+// hues failed. The key moves to a cold grey-green that shares no hue with the coins, and the bomb to
+// a lit charcoal with a visible body.
 let private pickupIdentity = function
     | PickupKind.Coin1 -> Some("PickupCoin1", "scene/pickup/coin-1", 5.0, color 245uy 197uy 66uy 255uy)
     | PickupKind.Coin3 -> Some("PickupCoin3", "scene/pickup/coin-3", 8.0, color 255uy 225uy 92uy 255uy)
-    | PickupKind.Key -> Some("PickupKey", "scene/pickup/key", 7.0, color 217uy 177uy 74uy 255uy)
-    | PickupKind.Bomb -> Some("PickupBomb", "scene/pickup/bomb", 9.0, color 43uy 43uy 43uy 255uy)
+    | PickupKind.Key -> Some("PickupKey", "scene/pickup/key", 7.0, color 150uy 226uy 176uy 255uy)
+    | PickupKind.Bomb -> Some("PickupBomb", "scene/pickup/bomb", 9.0, color 132uy 132uy 146uy 255uy)
     | PickupKind.HalfRedHeart -> Some("PickupHalfRedHeart", "scene/pickup/half-red-heart", 8.0, color 232uy 66uy 79uy 255uy)
     | PickupKind.SoulHeart -> Some("PickupSoulHeart", "scene/pickup/soul-heart", 9.0, color 74uy 120uy 232uy 255uy)
     | PickupKind.Nothing -> None
@@ -533,8 +545,16 @@ let shopSlotScene (at: Vec2) (slot: Rogue3.Entities.ShopSlot) =
             let width = 20.0 + float item.Quality*4.0
             [ Scene.filledRectangle { X=at.Vx-width/2.0;Y=at.Vy-22.0;Width=width;Height=22.0 } (color 166uy 116uy 232uy 255uy)
               Scene.rectangleWithPaint { X=at.Vx-width/2.0;Y=at.Vy-22.0;Width=width;Height=22.0 } (Paint.stroke (color 226uy 200uy 255uy 255uy) 2.0) ]
-        | ShopOffer.Consumable _ ->
-            [ Scene.circle { X=at.Vx;Y=at.Vy-12.0 } 11.0 (color 132uy 208uy 236uy 255uy) ]
+        | ShopOffer.Consumable kind ->
+            // LOOKED AT AND RETYPED. Every consumable used to draw as one light-cyan disc — the
+            // PLAYER'S own colour, floating in the same frame — so a slot asking for your only key
+            // said nothing about what it was selling. It now draws the pickup's own mark, so a heart,
+            // a key, a bomb and a coin are as distinguishable on a plinth as they are on the floor.
+            match pickupIdentity kind with
+            | Some(_, _, radius, fill) ->
+                [ Scene.circle { X=at.Vx;Y=at.Vy-14.0 } (radius+3.0) (color 18uy 13uy 22uy 255uy)
+                  Scene.circle { X=at.Vx;Y=at.Vy-14.0 } radius fill ]
+            | None -> [ Scene.circle { X=at.Vx;Y=at.Vy-12.0 } 11.0 (color 132uy 208uy 236uy 255uy) ]
         | ShopOffer.Empty ->
             // An emptied slot is a bare plinth with a dashed outline: distinct from stocked, and it
             // carries no price, because there is nothing left to charge for.
@@ -709,7 +729,7 @@ let renderedElementsIn grammar model : RenderedElement list =
       // M13: a drop lies where the obstacle stood, and `Model.collectFloorPickups` lets a player walk
       // onto it. It used to be drawn at X=300+index*52, Y=520 — an indexed strip that was neither the
       // pot's position nor collectable, because `M5ObstacleDrops` carried no position at all.
-      for pickup in model.M5ObstacleDrops do
+      for pickup in Rogue3.Model.floorPickupsHere model do
           match pickupIdentity pickup.Kind with
           | Some(elementId, handle, radius, fill) ->
               yield rendered elementId handle RenderLayer.Pickups
@@ -788,15 +808,20 @@ let renderedElementsIn grammar model : RenderedElement list =
       if model.PlayerLifeState = Alive && (model.PostHitInvulnTicks > 0 || model.DodgeIFrameTicks > 0) then
           yield rendered "PlayerInvulnerable" "scene/player-invulnerable" RenderLayer.Player (playerInvulnerableScene model)
 
-      if model.DodgeRollTicks > 0 then
+      // Gated on Alive like the ring above it: dying mid-roll used to draw the speed trail and the
+      // grey "down" cross on the same frame, which says the player is both moving fast and dead.
+      if model.PlayerLifeState = Alive && model.DodgeRollTicks > 0 then
           yield rendered "PlayerDodgeRoll" "scene/player-dodge-roll" RenderLayer.Player (playerDodgeRollScene model)
 
       if model.PlayerLifeState = Dead then
           yield rendered "PlayerDown" "scene/player-down" RenderLayer.Player (playerDownScene model)
 
+      // On Shadows rather than FloorDecals: a telegraph is ground marking that must stay readable
+      // where it matters, and FloorDecals sits BELOW Obstacles and Pickups, so a charge lane crossing
+      // a rock was visually cut in half exactly where a player needs to read it.
       for actor in model.M5Enemies do
           match telegraphOf actor with
-          | Some scene -> yield rendered "EnemyTelegraph" "scene/enemy-telegraph" RenderLayer.FloorDecals scene
+          | Some scene -> yield rendered "EnemyTelegraph" "scene/enemy-telegraph" RenderLayer.Shadows scene
           | None -> ()
 
       for shot in model.ShotSpawns do

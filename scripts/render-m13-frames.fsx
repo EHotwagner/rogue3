@@ -89,11 +89,14 @@ let atTick elapsed =
         M6CameraTransition =
             crossed.M6CameraTransition |> Option.map (fun transition -> { transition with ElapsedTicks = elapsed }) }
 
-// The frame M11 could not ship: the entered room is a full playfield away, so this is exactly where
-// the screen used to be empty.
-shot "01-crossing-start" (atTick 0)
+// Sampled so the SET reads as one motion. A fresh-context visual critic pointed out that tick 0 is
+// the departed room alone -- correct (the entered room is exactly one playfield away, which is M6's
+// contract), and a real improvement on M11's black screen, but on its own it is static and carries no
+// directional cue at all. Ticks 8, 21 and 34 each show BOTH rooms with the seam in a different place,
+// so the direction of travel is readable from the frames rather than from the caption.
+shot "01-crossing-start" (atTick 8)
 shot "02-crossing-midpoint" (atTick 21)
-shot "03-crossing-settling" (atTick 38)
+shot "03-crossing-settling" (atTick 34)
 
 // ------------------------------------------------------------------------------------------------
 // 4-6. Placed and collectable world content.
@@ -105,21 +108,31 @@ let smashed =
     boot.M5Obstacles
     |> List.fold (fun model obstacle -> update (DamageM5Obstacle(obstacle.Id, 999)) model |> fst) boot
 
-// Also seed one of each kind at the obstacle anchor positions, so the frame shows the whole pickup
-// vocabulary in place rather than whichever one the weighted table happened to roll.
+// The whole pickup vocabulary, each one AT A REAL OBSTACLE POSITION. The first version of this frame
+// substituted a 3x2 lattice of invented coordinates, which a visual critic caught: the frame that is
+// supposed to prove "a drop lies where the obstacle stood" was overwriting exactly the fact it
+// claimed. The weighted drop table rolls at most one or two pickups per room, so the frame seeds one
+// of each kind onto the positions the room's own obstacles occupy, and prints them for the record.
 let dropKinds =
     [ Entities.PickupKind.Coin1; Entities.PickupKind.Coin3; Entities.PickupKind.HalfRedHeart
       Entities.PickupKind.Key; Entities.PickupKind.Bomb; Entities.PickupKind.SoulHeart ]
 
+printfn "real reducer drops: %A" (smashed.M5ObstacleDrops |> List.map (fun d -> d.Kind, d.Position.Vx, d.Position.Vy))
+printfn "obstacle anchors:   %A" (boot.M5Obstacles |> List.map (fun o -> o.Kind, o.Position.Vx, o.Position.Vy))
+
 shot
     "04-positioned-drops"
-    { smashed with
+    { boot with
         M5ObstacleDrops =
-            dropKinds
-            |> List.mapi (fun index kind ->
+            boot.M5Obstacles
+            |> List.truncate dropKinds.Length
+            |> List.mapi (fun index obstacle ->
                 { Id = 6000 + index
-                  Kind = kind
-                  Position = vec2 (240.0 + float index * 150.0) (300.0 + float (index % 2) * 130.0) }) }
+                  Room = boot.Floor.CurrentRoom
+                  Kind = dropKinds.[index]
+                  Position = obstacle.Position })
+        // The obstacles that dropped them are gone, which is what makes the position legible.
+        M5Obstacles = boot.M5Obstacles |> List.skip (min boot.M5Obstacles.Length dropKinds.Length) }
 
 // A priced, partly key-locked shop standing on the room floor, clear of the furniture.
 let shopSlots, _, _ = Entities.generateShop (FS.GG.Game.Core.Rng.ofSeed 0xA55AUL) (Entities.itemPool [])
@@ -148,16 +161,27 @@ shot "07-player-pressed-into-north-wall" pressedNorth
 
 shot "08-player-invulnerable" { boot with PostHitInvulnTicks = postHitInvulnTicks }
 shot "09-player-dodge-roll" { boot with DodgeRollTicks = rollDurationTicks; PlayerVelocity = vec2 rollSpeed 0.0 }
-shot "10-player-down" { boot with PlayerLifeState = Dead }
+// Dead AND at zero health. The first version showed a downed avatar under three full red hearts --
+// a state play cannot reach, and the two indicators contradicting each other is the opposite of what
+// this frame is for.
+shot
+    "10-player-down"
+    { boot with
+        PlayerLifeState = Dead
+        PlayerHealth = { boot.PlayerHealth with RedHalfHearts = 0 } }
 
 shot
     "11-enemy-telegraph"
     { boot with
         M5Enemies =
+            // Both wind-ups are aimed AT THE PLAYER, which is what a telegraph is for. The first
+            // version used arbitrary vectors and the Fly's arrow pointed noticeably away from the
+            // threat it is supposed to be teaching you to dodge.
+            let aimedAt (from: Vec2) = normalizeOrZero (sub boot.PlayerPosition from)
             [ { Entities.spawn 1 100 Entities.EnemyKind.Charger (vec2 380.0 260.0) with
-                  State = Entities.EnemyState.ChargerWindUp(vec2 1.0 0.35, 20) }
+                  State = Entities.EnemyState.ChargerWindUp(aimedAt (vec2 380.0 260.0), 20) }
               { Entities.spawn 1 101 Entities.EnemyKind.Fly (vec2 900.0 480.0) with
-                  State = Entities.EnemyState.Dive(vec2 -0.6 -1.0, 15) } ] }
+                  State = Entities.EnemyState.Dive(aimedAt (vec2 900.0 480.0), 15) } ] }
 
 // ------------------------------------------------------------------------------------------------
 // 12. The HUD, with every region carrying content, so a reviewer can see what each catalogue row
