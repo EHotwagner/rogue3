@@ -85,9 +85,17 @@ nobody else. Measured here on `rogue3#77`'s cited `b689137`:
 A rebase orphaned it. The first line is why the author did not notice.
 
 **Your own branch's sha is not a pin either — it is an expiry date.** This repository squash- or
-rebase-merges: since the last true merge commit on `main` (`4fc6993`), all 10 commits on `main` are
-single-parent, and `main`'s 13 merge commits all predate it. So a feature-branch commit no longer
-lands on `main` at all. `rogue3#77`'s replacement citation, `be74e52`, is reachable from its own
+rebase-merges, so a feature-branch commit no longer lands on `main` at all. Measured at `d2c4e2f`,
+which is a fixed endpoint rather than a moving ref — `git rev-list --merges --count d2c4e2f` → **13**
+merge commits on `main`; `4fc6993` is itself the thirteenth and last of them, so **12** precede it;
+and `git rev-list --merges --count 4fc6993..d2c4e2f` → **0** over the `git rev-list --count
+4fc6993..d2c4e2f` → **10** commits added since. Every commit in that span is single-parent.
+
+(Those counts are written against `d2c4e2f` rather than `origin/main` deliberately. Against
+`origin/main` the same commands answer differently as soon as anything merges — including the change
+that added this page — which would make this paragraph break its own rule in the act of stating it.)
+
+`rogue3#77`'s replacement citation, `be74e52`, is reachable from its own
 feature branch and from nothing else (`git ls-remote origin | grep -c be74e52` → 0), which makes it
 the same defect with the timer reset: it will become unresolvable *the moment its own work merges*.
 That is not a risk, it is a certainty with a delay.
@@ -120,6 +128,22 @@ settle it with one command against whatever tree they have.
 Pin the digest of **the file the claim is about**, not of the whole tree. A claim about a mutant
 surviving in one source file is pinned by that file's digest; a tree-wide sha would go stale on any
 unrelated edit and tell the reader nothing about whether the claim still holds.
+
+### When the figure has no single file — pin the merge base and state the delta
+
+Some figures are counts over the whole tree, and this page's own worked example is one:
+`check-audit-bindings.py` counts every audit and every bound file, so there is no "file the claim is
+about" to digest. For those, neither row above works on its own. Do this instead:
+
+1. **Pin the merge base**, which is on `main` and therefore reachable:
+   `git merge-base HEAD origin/main`. Quote the figure measured *there*.
+2. **State what your branch does to it** — either "this branch does not change the measured inputs",
+   which a reader can check, or the delta and the digests of the files that cause it.
+
+So an item measuring 34 audits on an unmerged branch writes `Measured-at: <merge-base> — python3
+scripts/check-audit-bindings.py --json`, plus one sentence on what the branch adds. That keeps the
+pin resolvable forever and still tells the reader what the branch's own tree would say. Quoting only
+the branch figure is the case this whole page exists to stop, and it is not rescued by a digest.
 
 ## The check a reader runs
 
@@ -170,9 +194,10 @@ pin **216** bindings"* and *"The ledger is now 72 entries"*. The same command, r
 | `d2c4e2f` | 34 | 298 |
 
 All rows but the first from `python3 scripts/check-audit-bindings.py --json`. Four trees, four
-answers, and nothing in the body to tell them apart. The last two are three commits apart and were
-measured hours apart while *this page* was being written — which is the honest scale of the problem:
-the figure moves faster than the item that quotes it.
+answers, and nothing in the body to tell them apart. The last two are **adjacent commits** —
+`git rev-list --count 14fd9eb..d2c4e2f` → 1, and `d2c4e2f`'s sole parent is `14fd9eb` — measured
+hours apart while *this page* was being written. That is the honest scale of the problem: one merge
+moved the figure, so it moves faster than the item that quotes it.
 
 The direction of `#53`'s argument survived — the ledger was *larger* than claimed, not smaller — so
 the fix did not depend on the difference. The cost was that every figure had to be re-derived before
