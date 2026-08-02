@@ -17,6 +17,12 @@ type GameplayVisualElement =
     | EnemyCharger | EnemyTurret | EnemyCaster | EnemyBrute
     | BossGnawer | BossHollowChoir | BossMaw
     | ShopItem
+    // Board item #55: the shop's affordance. `ShopItem` says what is for sale; this says that the
+    // player is standing where they can buy it, and — when they cannot afford it — why not. Its own
+    // element rather than a variation inside `ShopItem`, for the same reason `TrapdoorReady` is its
+    // own element and not a variation inside `Trapdoor`: the coverage audit can only require a frame
+    // for a state it can NAME.
+    | ShopSlotReady
     // M11: one element per door PRESENTATION. The first three come from the floor graph's own
     // `DoorState`; the last two are the room's combat lock, which hides whatever the graph says.
     | DoorOpen | DoorLockedKey | DoorBossDoor | DoorHiddenWall | DoorLockedClear | DoorBossSealed
@@ -63,6 +69,7 @@ let handle = function
     | BossHollowChoir -> "token/boss/hollowchoir"
     | BossMaw -> "token/boss/maw"
     | ShopItem -> "scene/shop-item"
+    | ShopSlotReady -> "scene/shop-slot-ready"
     | DoorOpen -> "scene/door/open"
     | DoorLockedKey -> "scene/door/locked-key"
     | DoorBossDoor -> "scene/door/boss-door"
@@ -174,6 +181,15 @@ let private evidenceModel element =
     | _ ->
         match element with
         | ShopItem -> { initialModel with M5ShopSlots=sampleShopSlots }
+        // Like `TrapdoorReady`, the fixture must be a model the PURCHASE ROUTE accepts, not merely
+        // one that carries stock: the player has to be standing at the slot, and hold enough coin
+        // that the frame shows the affordable state rather than the refusal. A representative state
+        // that only placed the stock would publish a frame the product never draws.
+        | ShopSlotReady ->
+            let stocked = { initialModel with M5ShopSlots=sampleShopSlots; PlayerCurrency={ initialModel.PlayerCurrency with Coins=99 } }
+            match shopSlotPositions stocked with
+            | at :: _ -> { stocked with PlayerPosition=at }
+            | [] -> stocked
         | DoorOpen -> roomShowing [ FloorGeneration.North, FloorGeneration.Open ] [ DoorState.Open ] false None None
         | DoorLockedKey -> roomShowing [ FloorGeneration.East, FloorGeneration.LockedKey ] [ DoorState.Open ] false None None
         | DoorBossDoor -> roomShowing [ FloorGeneration.South, FloorGeneration.BossDoor ] [ DoorState.Open ] false None None

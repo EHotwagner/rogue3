@@ -322,15 +322,17 @@ let private scenarios: (int * string * (unit -> unit)) list =
           // acceptance scenario, so it buys via `InteractM5Shop` and proves the whole update path
           // grants the item and the recomputed stats.
           //
-          // It does NOT prove player reachability, and must not be read as doing so. `InteractM5Shop`
-          // has zero production dispatch sites — `git grep -n "InteractM5Shop" -- src` returns five
-          // hits, of which two are prose comments and the other three are the DU case, the `update`
-          // handler and an `AudioCues` match; NONE constructs the message. (Spelling that out because
-          // counting a comment as a code reference is a mistake this repo has made before.)
-          // `playerRoomIntentsIn`'s interact branch raises only `[DescendFloor; EnterM5Room 0]`.
-          // Wiring it to input is
-          // EHotwagner/rogue3#55. The pedestal and boss-reward routes ARE driven from `KeyChanged` +
-          // `Tick` in `M14ItemGrantTests`; the shop is the one that is not.
+          // It does NOT prove player reachability, and must not be read as doing so — this scenario
+          // dispatches the message. EHotwagner/rogue3#55 gave `InteractM5Shop` its production
+          // dispatch site (`Model.playerRoomIntentsIn` raises it from an interact edge at a placed
+          // shop slot), and the claim that a PLAYER can reach it is driven from `KeyChanged` + `Tick`
+          // in `M14ItemGrantTests`, "Route 1b", alongside the pedestal and boss-reward routes.
+          //
+          // WHY THIS PARAGRAPH IS SHORTER THAN THE ONE IT REPLACES. The previous text counted the
+          // `git grep` hits and concluded, correctly at the time, that none constructed the message.
+          // It was prose, so when #55 wired the message nothing went red and the paragraph simply
+          // became false. Reachability claims belong in assertions; this note now only says what this
+          // scenario does and points at the file that owns the claim.
           Expect.equal (bought.PlayerItems |> List.map _.Id) [ "cracked-lens" ] "the purchased item is granted"
           Expect.equal bought.PlayerStats.Damage 2.625 "cracked-lens applies its x0.75 damage modifier"
           Expect.equal bought.PlayerStats.Multishot 2 "cracked-lens applies its +1 multishot modifier"

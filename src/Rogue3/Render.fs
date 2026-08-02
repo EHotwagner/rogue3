@@ -572,6 +572,38 @@ let shopSlotScene (at: Vec2) (slot: Rogue3.Entities.ShopSlot) =
             [ Scene.textAt { X=at.Vx-14.0;Y=at.Vy+34.0 } (sprintf "%dc" slot.Price) (color 255uy 225uy 92uy 255uy) ]
     Scene.group ((plinth at :: stock) @ priceLabel)
 
+/// Board item #55: the shop's answer to `trapdoorReadyScene`.
+///
+/// `shopSlotScene` already says what a slot SELLS and what it costs. Nothing said that the player is
+/// standing where the purchase can be made, or which button makes it — and #55 is the item that gives
+/// a button that meaning at all. Deliberately the same idiom as the trapdoor's `E  DESCEND` halo — a
+/// ring around the fixture plus a verb keyed to the same interact button — because the two are the
+/// same gesture, and teaching them as two would be a worse product than teaching them as one.
+///
+/// It also carries the REFUSAL. `Entities.purchase` returns `ok=false` for an unaffordable or
+/// key-locked slot and `purchaseM5ShopSlot` then returns the model UNCHANGED, so a refused purchase
+/// moves no currency, no offer, no counter and no audio event. The player could always compare the
+/// price under the plinth against the HUD's coin count and work it out; what they could not do is
+/// tell a refused press apart from a press at empty floor, because both change nothing. The
+/// affordable and refused frames differ in colour, in ring stroke and in words, so the answer is
+/// legible BEFORE the press as well as after it.
+let shopSlotReadyScene (at: Vec2) (refusal: string option) (_slot: Rogue3.Entities.ShopSlot) =
+    let affordable = Option.isNone refusal
+    let halo = if affordable then color 255uy 226uy 150uy 255uy else color 226uy 96uy 96uy 255uy
+    let ring = { X=at.Vx-30.0; Y=at.Vy-46.0; Width=60.0; Height=58.0 }
+    // The WORDS come from `Model.shopSlotRefusal`, beside the reducer that decides. This scene used
+    // to derive them here from `slot.KeyLocked` and `slot.Price`, which could only ever name the two
+    // reasons it knew about — so a slot refused because the player was already at the cap was
+    // labelled `NEED 6c` while they held ninety-nine coins.
+    let label = refusal |> Option.defaultValue "E  BUY"
+    Scene.group
+        [ Scene.rectangleWithPaint ring (Paint.stroke halo (if affordable then 3.0 else 2.0))
+          Scene.circle { X=ring.X;Y=ring.Y } 4.0 halo
+          Scene.circle { X=ring.X+ring.Width;Y=ring.Y } 4.0 halo
+          Scene.circle { X=ring.X;Y=ring.Y+ring.Height } 4.0 halo
+          Scene.circle { X=ring.X+ring.Width;Y=ring.Y+ring.Height } 4.0 halo
+          Scene.textAt { X=at.Vx-34.0;Y=ring.Y-10.0 } label halo ]
+
 let roomRewardScene (at: Vec2) (reward: Rogue3.Entities.ItemDefinition) =
     let width = 26.0 + float reward.Quality*5.0
     Scene.group
@@ -744,6 +776,16 @@ let renderedElementsIn grammar model : RenderedElement list =
       for index, (slot: Rogue3.Entities.ShopSlot) in model.M5ShopSlots |> List.indexed do
           let at = placements |> List.tryItem index |> Option.defaultValue (vec2 (playfieldWidth/2.0) 520.0)
           yield rendered "ShopItem" "scene/shop-item" RenderLayer.Pickups (shopSlotScene at slot)
+
+      // Board item #55: drawn from the SAME predicate the purchase route senses with, exactly as the
+      // trapdoor's ready halo is drawn from `canDescend`. Reading `Model.shopSlotUnderPlayer` here
+      // rather than re-testing the distance is what stops the prompt from promising a purchase the
+      // interact route would not raise, or hiding one it would.
+      match Rogue3.Model.shopSlotUnderPlayer model with
+      | Some(slot, at) ->
+          yield rendered "ShopSlotReady" "scene/shop-slot-ready" RenderLayer.Pickups
+                    (shopSlotReadyScene at (Rogue3.Model.shopSlotRefusal model slot) slot)
+      | None -> ()
 
       match model.M5Room.Reward with
       | Some reward ->

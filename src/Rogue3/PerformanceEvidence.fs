@@ -190,6 +190,18 @@ let private m6AdditionalVisualCostDrivers =
       required "scene.room-reward" "RoomReward"
       required "scene.trapdoor" "Trapdoor"
       required "scene.trapdoor-ready" "TrapdoorReady"
+      // Board item #55. The shop's interact affordance cannot share a frame with `TrapdoorReady`,
+      // and not by convention: both are drawn from where the ONE player is standing, and the two
+      // sensors are disjoint by construction. `Model.placementAccepts` rejects any fixture position
+      // inside `trapdoorContains`, and the nearest authored candidate row is 56 units from the
+      // hatch's edge against an interact reach of `shopSlotRadius + playerRadius` = 33 —
+      // `M14ItemGrantTests` asserts that gap over the whole candidate list rather than leaving it as
+      // a claim. The maximum-content fixture spends the player's position on the trapdoor, so this
+      // element can never be raised in it. Its structural cost is the same shape as the element it
+      // cannot co-exist with: one stroked rectangle, four corner circles and one text run. Same
+      // treatment, and for the same reason, as the two combat-lock door presentations above.
+      { required "scene.shop-slot-ready" "ShopSlotReady" with
+          Disposition=NonPerformance "drawn from the single player position, which the maximum-content fixture spends on the trapdoor; the shop and trapdoor sensors are disjoint by placement so the two can never share a frame; identical structural cost to the measured TrapdoorReady, and appearance covered by production raster/catalog evidence" }
       required "scene.placed-bomb" "PlacedBomb"
       required "scene.shadow" "Shadow" ]
 

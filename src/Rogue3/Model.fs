@@ -148,9 +148,12 @@ type AudioEvent =
     | PlayerDied
     | DodgeRolled
     | BombExploded
-    /// A run item entered `PlayerItems`. Emitted by `grantItem` on the routes that resolve inside a
-    /// fixed step (the pedestal and the boss reward). The shop's own acquisition sound is keyed off
-    /// `InteractM5Shop` in `AudioCues.m5ShopPickupCues`, because a purchase is a message, not a tick.
+    /// A run item entered `PlayerItems`. Emitted by `grantItem` on every route that grants one.
+    ///
+    /// Board item #55 made a purchase resolve inside a fixed step too, so all three routes — the
+    /// pedestal, the boss reward and the shop — now raise this from inside a `Tick`. That is why
+    /// `AudioCues.m5ShopPickupCues` suppresses its own item cue on `Tick`: this event already covers
+    /// it, and cueing both would play the acquisition sound twice for one purchase.
     | ItemGranted
 
 [<RequireQualifiedAccess>]
@@ -1878,8 +1881,10 @@ let playerItemOf (item: Rogue3.Entities.ItemDefinition) : PlayerItem =
 /// cannot drift the result.
 ///
 /// The `ItemGranted` audio event is drained only on `Tick` (`AudioCues.forTransition`), and
-/// `advanceSim` clears `AudioEvents` at the head of each tick — so on the shop's message-driven path
-/// this event is discarded unplayed rather than double-cued against `m5ShopPickupCues`.
+/// `advanceSim` clears `AudioEvents` at the head of each tick — so on a DIRECT dispatch of
+/// `InteractM5Shop` this event is discarded unplayed, which is why `m5ShopPickupCues` still cues the
+/// item there. On the production route (#55) the purchase happens inside the tick and the event
+/// survives to its end, so that cue steps aside instead.
 let grantItem (item: Rogue3.Entities.ItemDefinition) model =
     let items = model.PlayerItems @ [ playerItemOf item ]
     { model with
@@ -1888,6 +1893,30 @@ let grantItem (item: Rogue3.Entities.ItemDefinition) model =
         RunStats = { model.RunStats with ItemsFound = model.RunStats.ItemsFound + 1 }
         AudioEvents = model.AudioEvents @ [ AudioEvent.ItemGranted ] }
 
+/// Write the shop's remaining stock back into durable FLOOR state.
+///
+/// Board item #55, and not optional once a player can actually buy. `loadM5Room` reads a room's
+/// stock out of `FloorGeneration.ShopStock` every time the room is entered, and nothing used to
+/// write the emptied offers back — so leaving a shop and returning restored every slot it had sold.
+/// While `InteractM5Shop` had no production dispatch site that was unreachable; wiring the interact
+/// route makes it an unbounded item engine, so the two land together. The rule is exactly
+/// `withoutRewardFixture`'s and `FloorGeneration.recordDestroyedObstacle`'s (§14.15): what the player
+/// took comes off the floor record in the same step it comes off the plinth.
+let private withShopStock roomId (slots: Rogue3.Entities.ShopSlot list) (floor: FloorGeneration.Floor) =
+    match Map.tryFind roomId floor.Rooms with
+    | None -> floor
+    | Some room ->
+        // REWRITE ONLY, never insert. A room with no `ShopStock` fixture keeps none, because
+        // `loadM5Room` reads stock straight out of this list and a room the generator never furnished
+        // must not start presenting one. `List.map` gives that for free — an added `List.exists`
+        // guard in front of it changed nothing observable, which is how it was found and removed.
+        let fixtures =
+            room.Fixtures
+            |> List.map (function
+                | FloorGeneration.ShopStock _ -> FloorGeneration.ShopStock slots
+                | other -> other)
+        { floor with Rooms = Map.add roomId { room with Fixtures = fixtures } floor.Rooms }
+
 /// Buy a shop slot: pay for it, AND receive what was paid for.
 ///
 /// Board item #47: this used to debit currency, empty the offer and bump `ItemsFound`, and stop
@@ -1895,17 +1924,41 @@ let grantItem (item: Rogue3.Entities.ItemDefinition) model =
 /// `Consumable` offer granted no heart, key or bomb either, and did not even bump a counter. The
 /// consumable half routes through the SAME `applyFloorPickup` a floor drop uses, so a bought heart
 /// obeys the container cap and a bought coin obeys the 99 cap by the one shared rule.
-let purchaseM5ShopSlot slotId model =
+/// The model a purchase of `slotId` WOULD produce, or `None` when the shop refuses the sale.
+///
+/// ONE function decides, and both the reducer and the affordance prompt read it. That is not tidiness:
+/// `shopSlotAffordable` is what `Render.shopSlotReadyScene` colours the halo from, so a second copy of
+/// the rule is a promise the reducer can break. #55 already delegates the three `Entities.purchase`
+/// clauses rather than restating them, for exactly this reason; the refusal below is the fourth clause
+/// and lives in the same place.
+///
+/// THE FOURTH CLAUSE. `Entities.purchase` asks whether the player can PAY. It does not ask whether
+/// what they are paying for can LAND, and `applyFloorPickup` silently no-ops at a cap — `addCurrency`
+/// stops at 99 and `healRed` stops at the container count. So a heart bought at full health, or a key
+/// bought at ninety-nine keys, took the coins, emptied the offer and returned a player identical to
+/// the one that pressed the button, while `AudioCues` played the acquisition sound and the prompt had
+/// said `E  BUY` in the affordable colour. The board item requires that a refused purchase be
+/// distinguishable from a completed one; a sale that changes nothing and sounds like a success is the
+/// same defect wearing the opposite mask. `#55` is also what makes it permanent: before `withShopStock`
+/// the slot came back on re-entry, so the coins were wasted but the goods were recoverable.
+///
+/// The landing test is made AFTER payment, against `paid`, and that is load-bearing for the shop's
+/// pool-exhausted `Coin3` fallback: at 99 coins, paying 3 and receiving 3 lands, while asking the
+/// question before payment would refuse a sale the reducer would have completed — and the prompt would
+/// then disagree with the button.
+let private purchaseOutcome slotId model =
     match model.M5ShopSlots|>List.tryFind(fun slot->slot.Id=slotId) with
-    | None -> model
+    | None -> None
     | Some slot ->
         let coins,keys,updated,ok=Rogue3.Entities.purchase model.PlayerCurrency.Coins model.PlayerCurrency.Keys slot
-        if not ok then model else
+        if not ok then None else
+        let remaining = model.M5ShopSlots|>List.map(fun item->if item.Id=slotId then updated else item)
         let paid =
             {model with PlayerCurrency={model.PlayerCurrency with Coins=coins;Keys=keys}
-                        M5ShopSlots=model.M5ShopSlots|>List.map(fun item->if item.Id=slotId then updated else item)}
+                        M5ShopSlots=remaining
+                        Floor=withShopStock model.Floor.CurrentRoom remaining model.Floor}
         match slot.Offer with
-        | Rogue3.Entities.ShopOffer.Item item -> grantItem item paid
+        | Rogue3.Entities.ShopOffer.Item item -> Some(grantItem item paid)
         | Rogue3.Entities.ShopOffer.Consumable kind ->
             // BOUGHT, not FOUND. `applyFloorPickup` credits `RunStats.CoinsCollected` because a coin
             // lying on the floor is income, and `runScore` pays `CoinsCollected * 5` for it. A coin
@@ -1913,8 +1966,16 @@ let purchaseM5ShopSlot slotId model =
             // `Coin3` priced at 3, so crediting it would mint 15 score per slot for a net-zero
             // transaction. Take the effect, leave the collection accounting where it was.
             let stocked = applyFloorPickup kind paid
-            { stocked with RunStats = { stocked.RunStats with CoinsCollected = paid.RunStats.CoinsCollected } }
-        | Rogue3.Entities.ShopOffer.Empty -> paid
+            // `PlayerCurrency` and `PlayerHealth` are the whole of what `applyFloorPickup` writes
+            // besides the collection counter, so comparing them against `paid` asks precisely "did
+            // this consumable do anything", by consulting the shared rule rather than re-deriving
+            // which kinds have caps and where those caps are.
+            if stocked.PlayerCurrency = paid.PlayerCurrency && stocked.PlayerHealth = paid.PlayerHealth then None
+            else Some { stocked with RunStats = { stocked.RunStats with CoinsCollected = paid.RunStats.CoinsCollected } }
+        | Rogue3.Entities.ShopOffer.Empty -> Some paid
+
+let purchaseM5ShopSlot slotId model =
+    purchaseOutcome slotId model |> Option.defaultValue model
 
 /// M13: walk onto a pickup and it is yours.
 ///
@@ -1997,6 +2058,80 @@ let collectRoomReward (model: Model) =
             |> grantItem reward
         | _ -> model
     | _ -> model
+
+// ------------------------------------------------------------------------------------------------
+// Board item #55 — standing at the stock and pressing interact.
+//
+// `#47` made `purchaseM5ShopSlot` hand over what it charges for. It did not give a player any way to
+// ASK for it: `InteractM5Shop` had a declaration, a handler and an audio cue, and zero production
+// constructions. This is the same class of defect as M11's doorway (`TraverseDoor` reachable only
+// from a test), M12's cue ids, and the trapdoor descent — a correct reducer behind a door nobody can
+// open — so the fix is deliberately the SAME SHAPE as the descent below it in `playerRoomIntentsIn`:
+// a proximity predicate over the placed fixture, an interact edge, and a raised production `Msg`.
+// It RAISES `InteractM5Shop`; it does not re-implement the purchase.
+// ------------------------------------------------------------------------------------------------
+
+/// How close the player's centre must come to a shop plinth's centre to be AT that slot.
+///
+/// The same distance as `roomRewardRadius`, and by construction rather than by coincidence: shop
+/// stock and the reward pedestal are the same drawn plinth, placed by the same `placeRoomFixtures`
+/// call, so two different reach distances would mean two fixtures that look identical behave
+/// differently under the player's feet.
+let shopSlotRadius = roomRewardRadius
+
+/// Where this room's shop stock stands, in slot order.
+///
+/// `Render.renderedElementsIn` places slot `index` at `placeRoomFixtures model.M5Obstacles n |> item
+/// index` for an `n` that also counts the reward plinth. `placeRoomFixtures` is a PREFIX function —
+/// it accepts candidates in order and takes the first `count` — so the first `M5ShopSlots.Length`
+/// positions are the same list whether or not a reward is also being placed. Asking for exactly the
+/// slot count here therefore yields the renderer's own positions, and `M14ItemGrantTests` pins that
+/// against `Render.renderedElements` rather than against a restatement of this formula.
+let shopSlotPositions (model: Model) =
+    placeRoomFixtures model.M5Obstacles model.M5ShopSlots.Length
+
+/// True when `slot` would actually be sold to this player right now.
+///
+/// Delegated to `purchaseOutcome` — the reducer itself — rather than restated. The rule is four
+/// clauses (empty offer, key-locked without a key, priced above the purse, and an effect that cannot
+/// land) and a second copy of it is a second thing to keep in step: the renderer would promise a
+/// purchase the reducer then refuses, or hide one it would have made. This is a decision the product
+/// draws a halo from, so it asks the question by running it.
+let shopSlotAffordable (model: Model) (slot: Rogue3.Entities.ShopSlot) =
+    (purchaseOutcome slot.Id model).IsSome
+
+/// What the prompt should SAY when the shop will not sell `slot`, or `None` when it will.
+///
+/// Split from the decision above rather than folded into it: `shopSlotAffordable` answers whether,
+/// this answers why, and only the first one may gate a reducer. The final arm is the one the cap
+/// defect needed — a player refused for `NEED 6c` while holding ninety-nine coins is being told
+/// something false, and "the refusal is legible" is half of this board item's acceptance.
+let shopSlotRefusal (model: Model) (slot: Rogue3.Entities.ShopSlot) : string option =
+    if shopSlotAffordable model slot then None
+    elif slot.Offer = Rogue3.Entities.ShopOffer.Empty then Some "SOLD"
+    elif slot.KeyLocked && model.PlayerCurrency.Keys <= 0 then Some "NEED KEY"
+    elif not slot.KeyLocked && model.PlayerCurrency.Coins < slot.Price then Some(sprintf "NEED %dc" slot.Price)
+    else Some "FULL"
+
+/// The stocked shop slot the player is standing at, with the position it is drawn at.
+///
+/// An EMPTIED slot is skipped: a bare plinth is not something to press interact at, and letting it
+/// answer here would shadow a stocked neighbour placed close by. Nearest-first, so two slots whose
+/// reach circles overlap resolve to the one the player is actually closest to rather than to
+/// whichever happens to come first in `M5ShopSlots`.
+let shopSlotUnderPlayer (model: Model) : (Rogue3.Entities.ShopSlot * Vec2) option =
+    if List.isEmpty model.M5ShopSlots then None
+    else
+        let positions = shopSlotPositions model
+        // `List.tryItem`, not `List.zip`: the renderer indexes the placement list the same way, and a
+        // total lookup here cannot turn a placement shortfall into an exception inside a fixed step.
+        model.M5ShopSlots
+        |> List.indexed
+        |> List.choose (fun (index, slot) -> positions |> List.tryItem index |> Option.map (fun at -> slot, at))
+        |> List.filter (fun (slot, _) -> slot.Offer <> Rogue3.Entities.ShopOffer.Empty)
+        |> List.filter (fun (_, at) -> circlesOverlap model.PlayerPosition playerRadius at shopSlotRadius)
+        |> List.sortBy (fun (_, at) -> magnitude (sub model.PlayerPosition at))
+        |> List.tryHead
 
 let private stepInput pressedThisTick (model: Model) =
     let resolved = resolveInput model.PlayerPosition pressedThisTick model.Input.Current
@@ -2252,13 +2387,63 @@ let playerRoomIntentsIn isFirstStep pressedThisTick (model: Model) : Model * Msg
                 | FloorGeneration.HiddenWall -> [])
         |> Option.defaultValue []
 
+    // ONE interact edge per step, read once and shared. Reading it twice would be the same answer
+    // today and a trap tomorrow: the two branches below must be mutually exclusive, and they can only
+    // be reasoned about as exclusive if they are looking at the same event.
+    let interacting = interactPressed isFirstStep pressedThisTick model
+
+    // Board item #55. A shop slot is bought on INTERACT, not on walk-on. Walk-on is right for a coin
+    // (`collectFloorPickups`) and for the reward plinth (`collectRoomReward`) because neither costs
+    // anything; a slot debits the purse, so pathing across a shop must not bankrupt a player who
+    // never asked to buy. The scan runs only on the interact edge, which is also why it needs no
+    // `Total…Queries` counter of its own: it is not a per-tick cost the way the door sensor is.
+    let shopAtPlayer = if interacting then shopSlotUnderPlayer model else None
+
+    let shopIntents =
+        shopAtPlayer |> Option.map (fun (slot, _) -> [ InteractM5Shop slot.Id ]) |> Option.defaultValue []
+
+    /// True when the press the player just made will actually TRANSACT, rather than being refused.
+    ///
+    /// `shopSlotUnderPlayer` deliberately answers for a slot the player cannot afford — the prompt
+    /// has to be able to say `NEED 13c`, which is half of this item's acceptance — so "a slot is
+    /// under the player" and "this press buys something" are different questions, and only the
+    /// second one may take the press away from another consumer of the same button.
+    let purchaseTransacts =
+        shopAtPlayer |> Option.map (fun (slot, _) -> shopSlotAffordable model slot) |> Option.defaultValue false
+
     let descentIntents =
         // `DescendFloor` replaces every room-local collection but does not load a room, so the route
         // follows it with the production room-entry message. Both are guarded reducers.
-        if interactPressed isFirstStep pressedThisTick model && canDescend model then [ DescendFloor; EnterM5Room 0 ]
+        //
+        // A TRANSACTING SHOP PRESS WINS A TIE; A REFUSED ONE DOES NOT.
+        //
+        // Be honest about how the tie arises, because the first draft of this comment was not. It
+        // said the two predicates can meet "at the margin" of an authored placement, and that is
+        // FALSE and asserted false: `placementAccepts` rejects any candidate inside
+        // `trapdoorContains`, and "no AUTHORED slot placement can contest the trapdoor" measures the
+        // whole authored candidate list at 56.3 units from the hatch against an interact reach of
+        // 33.0. Generated content cannot produce the tie at all — `FloorGeneration` adds `Trapdoor`
+        // only on a boss clear, and a boss room carries `BossReward`, never `ShopStock`. The tie is
+        // reachable only through the fallback lattice of EHotwagner/rogue3#69, which never runs
+        // `placementAccepts`. So this arm is defence in depth against a hole in another function, and
+        // it is written to hold rather than to be relied upon.
+        //
+        // Given the tie: descending is a one-way trip that abandons the room's remaining stock;
+        // buying is local and repeatable. Resolving it the other way would make a shop built beside a
+        // trapdoor unbuyable, which is the defect this item exists to close.
+        //
+        // The gate is `purchaseTransacts` and NOT `List.isEmpty shopIntents`, which is what it said
+        // first. A slot the player cannot afford is still sensed — it must be, or the refusal prompt
+        // could not be drawn — so gating on the mere presence of a shop intent handed the press to a
+        // purchase that then refused it and returned the model unchanged. Standing on a hatch beside
+        // stock too expensive to buy, the player pressed interact forever and neither bought nor
+        // descended: a SOFT-LOCK, and the comment above used to justify the gate with "the player can
+        // press again to descend", which was false in exactly that case. A refused press now falls
+        // through to the descent, so the button always does something.
+        if interacting && not purchaseTransacts && canDescend model then [ DescendFloor; EnterM5Room 0 ]
         else []
 
-    scanned, doorIntents @ descentIntents
+    scanned, doorIntents @ shopIntents @ descentIntents
 
 let playerRoomIntents pressedThisTick model = playerRoomIntentsIn true pressedThisTick model
 
