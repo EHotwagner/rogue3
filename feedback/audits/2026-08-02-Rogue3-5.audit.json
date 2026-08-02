@@ -1,0 +1,165 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-5.md",
+  "reportSha256": "03526c3e1f7d0b9a682799612b00d82decc344c3d2f52558f73b2811804ea38c",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Rogue3.fsproj",
+          "result": "verified",
+          "sha256": "975e92b37e4f80e4e207b38a339b349acc5de6f4c23dd52a2b0fc7addc1c310a"
+        },
+        {
+          "locator": "file:src/Rogue3/Visibility.fs",
+          "result": "verified",
+          "sha256": "eb70a22de05a5163b6813767fe97b36838ca93a5753f0340491a0f69ae60efd7"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#19",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#28",
+          "result": "verified"
+        },
+        {
+          "locator": "command:dotnet test Rogue3.slnx",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic's first pass returned this finding as incomplete against the draft, which claimed two of four helpers were adopted and quoted 282 dead lines across two modules. Re-verified independently: only Collision.fs is adopted (2 call sites, Model.fs:1081 and Model.fs:1650), and the dead surface at 1f19809 was 531 lines across three modules. The finding as published carries the corrected figures.",
+        "The cited dotnet test run proves the post-removal state (199/199) only. The identical pre-removal count was observed during this cycle but no artifact of that run was retained in the tree; readiness/logs/Test.txt is untracked. The unchanged-count argument therefore rests on the author's contemporaneous record plus the fact that the commit touches no test file.",
+        "GameShell.fs, the sixth Exists-guarded compile item, was not audited for references; the 531-line figure is a floor, not a total.",
+        "No git archaeology was performed, so a brief intermediate reference to either deleted module in some earlier commit is not excluded."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:docs/scaffold-map.md",
+          "result": "verified",
+          "sha256": "0fbe934e9125a60664e2b69f6537cdbacde0713031e1f2a7262e67a4d536ab98"
+        },
+        {
+          "locator": "file:src/Rogue3/Rogue3.fsproj",
+          "result": "verified",
+          "sha256": "975e92b37e4f80e4e207b38a339b349acc5de6f4c23dd52a2b0fc7addc1c310a"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-model-swap/SKILL.md",
+          "result": "verified",
+          "sha256": "720a21596be6d24b05191c91da82e228ff9c8f63837a82ad60d3c089fdbb5a26"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic verified the quoted delete sentence verbatim at 1f19809 for all four helpers, and confirmed .fsgg/scaffold-provenance.json marks docs/scaffold-map.md as owner generatedProduct. It corrected the draft's 'four-line comment block': the Grids.fs comment is three lines, LineDrawing.fs's is four. The published finding states both.",
+        "The claim that the upstream template carries the same prose is inference. No upstream template exists in this workspace; only the generated product copy and the fs-gg-model-swap skill copy were inspected.",
+        "The cited docs/scaffold-map.md digest binds the file as corrected by this cycle. The quoted defective sentence is the pre-change text at 1f19809, still present in the file for Collision.fs and Visibility.fs, which is what makes it inspectable in the bound version."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.gitignore",
+          "result": "verified",
+          "sha256": "62a471dc3da66ba16fbfb1c7d6ae44efb017540624eff49b38eb9f8553b56775"
+        },
+        {
+          "locator": "file:readiness/evidence-graph.md",
+          "result": "verified",
+          "sha256": "26540ab90363478a2cdf9df5e81625beb619550557cf371d0fb64c47c8b910a9"
+        },
+        {
+          "locator": "command:git check-ignore -v readiness/012-m11-playability-visual-legibility/verify.json",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#26",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "No retained artifact of the degraded state. The rewritten files were reverted before the diff was captured to disk, so the '58' figure and the identity of the nine dropped entries rest on the author's reading of git diff at the time. The finding is nonetheless actionable: its acceptance condition is testable against the mechanism alone, which is verified by the bound .gitignore and git check-ignore locators.",
+        "The critic returned this finding as incomplete against the draft and its arithmetic did not survive. The draft attributed all nine dropped entries to worktree invisibility; only five are gitignored SDD outputs under readiness/012-m11-playability-visual-legibility/, and the other four are readiness/logs/*.txt written by the run itself, an emit-ordering effect that reproduces in any checkout. The published finding states both causes and the 55 + 3 = 58 reconciliation. Issue #26 was edited to match.",
+        "The draft called the dropped entries 'evidence nodes'. In the artifact's own vocabulary they are sensed readiness files; recognized evidence nodes stayed at 2, both present-valid. The published finding uses the correct term and states that the severity is lower than first filed.",
+        "The gate command was deliberately not re-run, since running it reproduces the mutation. The mechanism was verified instead via .gitignore, git ls-files, and git check-ignore. Generality across worktrees is therefore inferred from the ignore pattern rather than observed twice.",
+        "The draft paraphrased the precedent in feedback/2026-08-02-Rogue3.md §4.1 as trusting a gate's 'success line'; that report's mechanism was reading $? through a | tail -1 pipeline. The published finding names the exit-code mechanism."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#19",
+          "result": "verified"
+        },
+        {
+          "locator": "file:src/Rogue3/Render.fs",
+          "result": "verified",
+          "sha256": "988fa1d955b8beb8f9bec70e616caf2f29a83b668ebba8c610e36977b3e40921"
+        },
+        {
+          "locator": "file:src/Rogue3/Model.fs",
+          "result": "verified",
+          "sha256": "7602e4619ccfb05edf9e2d980317cfbaca93a887744989b99822752987d51381"
+        },
+        {
+          "locator": "file:src/Rogue3/FloorGeneration.fs",
+          "result": "verified",
+          "sha256": "e4382605395e26255919800eb48f7a0e5179c52a93862a8d1aa32be9d1d8edf3"
+        }
+      ],
+      "confidenceLimits": [
+        "The sub-claim that sibling workers were concurrently editing Model.fs and FloorGeneration.fs has no locator. It was observed in the parent checkout's git status at claim time and not preserved. The published finding marks it explicitly as narration; the paths-versus-acceptance argument that carries the recommendation does not depend on it, which is why the finding remains actionable.",
+        "The critic verified the issue's acceptance sentence and Paths line verbatim, and confirmed Render.fs:93, Model.fs:1369, Model.fs:1650 and FloorGeneration.fs:64,121 say what the finding claims.",
+        "'Every honest production call site lives outside the declared paths' is a judgement about what would constitute honest wiring, not a fact. Three plausible sites are shown, which supports the judgement without closing it."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#28",
+          "result": "verified"
+        },
+        {
+          "locator": "file:src/Rogue3/Vec2.fs",
+          "result": "verified",
+          "sha256": "4dd1f0e73f5517bf4c3557d61a0434852e147085866e302271fb0db7e6927656"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-grids/SKILL.md",
+          "result": "verified",
+          "sha256": "9b1b2bd0cdd4732ffaa0efb9434fae12b8e04e6a5c747239fee357faa0c118a0"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-line-drawing/SKILL.md",
+          "result": "verified",
+          "sha256": "b9b19b8d491f21972714ef0cb11b84dd078fb80cef6cc820dfb2945d1913dc22"
+        }
+      ],
+      "confidenceLimits": [
+        "This finding originates with the critic, not the author. The critic established that neither skill carries the deleted module source and that Visibility.fs has zero code references; the author re-verified both independently with git grep against 1f19809 before publishing, rather than accepting the critic's word.",
+        "The false recovery instruction had already been committed to Rogue3.fsproj and docs/scaffold-map.md at the time it was caught. It was corrected by amending commit 0aab1ff before any push, so the error never reached origin; the pre-amend state is not recoverable from the remote.",
+        "The line counts for the skill code blocks (~25 and ~14 lines) are the critic's measurement, spot-checked by the author against the two SKILL.md files but not recounted line by line."
+      ]
+    }
+  ]
+}
