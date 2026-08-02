@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="366bcc21-1948-4460-9623-0b6a28c53cfa" name="@0bc8bbef51b6 2026-08-02 06:04:43" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-08-02T06:04:43.7434058+02:00" queuing="2026-08-02T06:04:43.7434058+02:00" start="2026-08-02T06:04:40.5136229+02:00" finish="2026-08-02T06:04:43.7469667+02:00" />
+  <TestSettings name="default" id="5c57ab30-272d-47e5-bb4a-4f2c75c163b3">
+    <Deployment runDeploymentRoot="_0bc8bbef51b6_2026-08-02_06_04_43" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="45f2d553-ce71-40e9-93fb-c35edf2b9f40" testId="8f2ef872-91e0-6148-38c4-bf4995f2b2db" testName="M12 audio assets.assets/audio holds exactly the declared set and nothing else" computerName="0bc8bbef51b6" duration="00:00:00.0040000" startTime="2026-08-02T06:04:43.6089566+02:00" endTime="2026-08-02T06:04:43.6296192+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="45f2d553-ce71-40e9-93fb-c35edf2b9f40" />
+    <UnitTestResult executionId="dfaf9539-d07c-4d8b-b9ff-095f6b86626f" testId="f032b761-b0d1-9ebf-6861-9f1cb4db2a9d" testName="M12 audio assets.the shipped cue map itself, not just the declaration, keeps every floor index in range" computerName="0bc8bbef51b6" duration="00:00:00.0150000" startTime="2026-08-02T06:04:43.6088201+02:00" endTime="2026-08-02T06:04:43.6322849+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dfaf9539-d07c-4d8b-b9ff-095f6b86626f" />
+    <UnitTestResult executionId="f3433d13-b84b-4995-b272-7f33a07c03e0" testId="279ecd16-fbeb-6784-cff3-5c5eed0f0b4e" testName="M12 audio assets.every declared cue id resolves through the production resolver to playable mono 16-bit PCM" computerName="0bc8bbef51b6" duration="00:00:00.0120000" startTime="2026-08-02T06:04:43.6087490+02:00" endTime="2026-08-02T06:04:43.6297537+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f3433d13-b84b-4995-b272-7f33a07c03e0" />
+    <UnitTestResult executionId="6058009f-a828-43f1-ae17-85769cb29ac6" testId="1cae4fe1-a95a-9f12-89f2-8bb197a48806" testName="M12 audio assets.the declaration is well formed" computerName="0bc8bbef51b6" duration="00:00:00.0060000" startTime="2026-08-02T06:04:43.6091893+02:00" endTime="2026-08-02T06:04:43.6296255+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6058009f-a828-43f1-ae17-85769cb29ac6" />
+    <UnitTestResult executionId="7ff6c2f7-dfc8-4feb-a923-e23a8ed90b72" testId="5111515b-1865-26da-95bf-cbf4e6b969b7" testName="M12 audio assets.the floor-theme family is total over every integer a floor index can take" computerName="0bc8bbef51b6" duration="00:00:00.0150000" startTime="2026-08-02T06:04:43.6093047+02:00" endTime="2026-08-02T06:04:43.6326002+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7ff6c2f7-dfc8-4feb-a923-e23a8ed90b72" />
+    <UnitTestResult executionId="c6e4b415-5dbd-44f3-9388-683966a9385d" testId="b9bd1b7c-8617-9d71-661b-06abd8aa8eb7" testName="M12 audio assets.the gate discriminates: an id with no asset fails the same predicate the declared ids pass" computerName="0bc8bbef51b6" duration="00:00:00.0040000" startTime="2026-08-02T06:04:43.6087494+02:00" endTime="2026-08-02T06:04:43.6296297+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c6e4b415-5dbd-44f3-9388-683966a9385d" />
+    <UnitTestResult executionId="973d1eb8-70e3-4736-b4a0-cd34663c33c6" testId="1377a245-c9fe-92db-483d-9eaefed52a12" testName="M12 audio assets.no cue id is written into product source outside the declaration" computerName="0bc8bbef51b6" duration="00:00:00.0370000" startTime="2026-08-02T06:04:43.6087512+02:00" endTime="2026-08-02T06:04:43.6542798+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="973d1eb8-70e3-4736-b4a0-cd34663c33c6" />
+    <UnitTestResult executionId="a6d05356-ab99-4b9d-997f-7299c6a5726e" testId="7a4f69e4-6c2e-b99f-67fa-a6ed611a1310" testName="M12 audio assets.the committed assets are exactly what the compiled synthesis produces" computerName="0bc8bbef51b6" duration="00:00:00.0710000" startTime="2026-08-02T06:04:43.6090766+02:00" endTime="2026-08-02T06:04:43.6889522+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a6d05356-ab99-4b9d-997f-7299c6a5726e" />
+    <UnitTestResult executionId="ee528629-faac-4d96-b5f9-e018cf87d1ce" testId="a3585d8f-a932-6fc1-bdf7-9624e83f4cc7" testName="M12 audio assets.every cue id the production host requests during a real run is declared and resolves" computerName="0bc8bbef51b6" duration="00:00:00.0630000" startTime="2026-08-02T06:04:43.6087494+02:00" endTime="2026-08-02T06:04:43.6803392+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ee528629-faac-4d96-b5f9-e018cf87d1ce" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="M12 audio assets.every declared cue id resolves through the production resolver to playable mono 16-bit PCM" storage="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/rogue3.tests/bin/release/net10.0/rogue3.tests.dll" id="279ecd16-fbeb-6784-cff3-5c5eed0f0b4e">
+      <Execution id="f3433d13-b84b-4995-b272-7f33a07c03e0" />
+      <TestMethod codeBase="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/Rogue3.Tests/bin/Release/net10.0/Rogue3.Tests.dll" adapterTypeName="executor://yolodev/expecto" className="M12 audio assets" name="every declared cue id resolves through the production resolver to playable mono 16-bit PCM" />
+    </UnitTest>
+    <UnitTest name="M12 audio assets.no cue id is written into product source outside the declaration" storage="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/rogue3.tests/bin/release/net10.0/rogue3.tests.dll" id="1377a245-c9fe-92db-483d-9eaefed52a12">
+      <Execution id="973d1eb8-70e3-4736-b4a0-cd34663c33c6" />
+      <TestMethod codeBase="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/Rogue3.Tests/bin/Release/net10.0/Rogue3.Tests.dll" adapterTypeName="executor://yolodev/expecto" className="M12 audio assets" name="no cue id is written into product source outside the declaration" />
+    </UnitTest>
+    <UnitTest name="M12 audio assets.the committed assets are exactly what the compiled synthesis produces" storage="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/rogue3.tests/bin/release/net10.0/rogue3.tests.dll" id="7a4f69e4-6c2e-b99f-67fa-a6ed611a1310">
+      <Execution id="a6d05356-ab99-4b9d-997f-7299c6a5726e" />
+      <TestMethod codeBase="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/Rogue3.Tests/bin/Release/net10.0/Rogue3.Tests.dll" adapterTypeName="executor://yolodev/expecto" className="M12 audio assets" name="the committed assets are exactly what the compiled synthesis produces" />
+    </UnitTest>
+    <UnitTest name="M12 audio assets.the floor-theme family is total over every integer a floor index can take" storage="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/rogue3.tests/bin/release/net10.0/rogue3.tests.dll" id="5111515b-1865-26da-95bf-cbf4e6b969b7">
+      <Execution id="7ff6c2f7-dfc8-4feb-a923-e23a8ed90b72" />
+      <TestMethod codeBase="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/Rogue3.Tests/bin/Release/net10.0/Rogue3.Tests.dll" adapterTypeName="executor://yolodev/expecto" className="M12 audio assets" name="the floor-theme family is total over every integer a floor index can take" />
+    </UnitTest>
+    <UnitTest name="M12 audio assets.every cue id the production host requests during a real run is declared and resolves" storage="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/rogue3.tests/bin/release/net10.0/rogue3.tests.dll" id="a3585d8f-a932-6fc1-bdf7-9624e83f4cc7">
+      <Execution id="ee528629-faac-4d96-b5f9-e018cf87d1ce" />
+      <TestMethod codeBase="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/Rogue3.Tests/bin/Release/net10.0/Rogue3.Tests.dll" adapterTypeName="executor://yolodev/expecto" className="M12 audio assets" name="every cue id the production host requests during a real run is declared and resolves" />
+    </UnitTest>
+    <UnitTest name="M12 audio assets.assets/audio holds exactly the declared set and nothing else" storage="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/rogue3.tests/bin/release/net10.0/rogue3.tests.dll" id="8f2ef872-91e0-6148-38c4-bf4995f2b2db">
+      <Execution id="45f2d553-ce71-40e9-93fb-c35edf2b9f40" />
+      <TestMethod codeBase="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/Rogue3.Tests/bin/Release/net10.0/Rogue3.Tests.dll" adapterTypeName="executor://yolodev/expecto" className="M12 audio assets" name="assets/audio holds exactly the declared set and nothing else" />
+    </UnitTest>
+    <UnitTest name="M12 audio assets.the declaration is well formed" storage="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/rogue3.tests/bin/release/net10.0/rogue3.tests.dll" id="1cae4fe1-a95a-9f12-89f2-8bb197a48806">
+      <Execution id="6058009f-a828-43f1-ae17-85769cb29ac6" />
+      <TestMethod codeBase="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/Rogue3.Tests/bin/Release/net10.0/Rogue3.Tests.dll" adapterTypeName="executor://yolodev/expecto" className="M12 audio assets" name="the declaration is well formed" />
+    </UnitTest>
+    <UnitTest name="M12 audio assets.the shipped cue map itself, not just the declaration, keeps every floor index in range" storage="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/rogue3.tests/bin/release/net10.0/rogue3.tests.dll" id="f032b761-b0d1-9ebf-6861-9f1cb4db2a9d">
+      <Execution id="dfaf9539-d07c-4d8b-b9ff-095f6b86626f" />
+      <TestMethod codeBase="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/Rogue3.Tests/bin/Release/net10.0/Rogue3.Tests.dll" adapterTypeName="executor://yolodev/expecto" className="M12 audio assets" name="the shipped cue map itself, not just the declaration, keeps every floor index in range" />
+    </UnitTest>
+    <UnitTest name="M12 audio assets.the gate discriminates: an id with no asset fails the same predicate the declared ids pass" storage="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/rogue3.tests/bin/release/net10.0/rogue3.tests.dll" id="b9bd1b7c-8617-9d71-661b-06abd8aa8eb7">
+      <Execution id="c6e4b415-5dbd-44f3-9388-683966a9385d" />
+      <TestMethod codeBase="/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/tests/Rogue3.Tests/bin/Release/net10.0/Rogue3.Tests.dll" adapterTypeName="executor://yolodev/expecto" className="M12 audio assets" name="the gate discriminates: an id with no asset fails the same predicate the declared ids pass" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="8f2ef872-91e0-6148-38c4-bf4995f2b2db" executionId="45f2d553-ce71-40e9-93fb-c35edf2b9f40" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f032b761-b0d1-9ebf-6861-9f1cb4db2a9d" executionId="dfaf9539-d07c-4d8b-b9ff-095f6b86626f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="279ecd16-fbeb-6784-cff3-5c5eed0f0b4e" executionId="f3433d13-b84b-4995-b272-7f33a07c03e0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1cae4fe1-a95a-9f12-89f2-8bb197a48806" executionId="6058009f-a828-43f1-ae17-85769cb29ac6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5111515b-1865-26da-95bf-cbf4e6b969b7" executionId="7ff6c2f7-dfc8-4feb-a923-e23a8ed90b72" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b9bd1b7c-8617-9d71-661b-06abd8aa8eb7" executionId="c6e4b415-5dbd-44f3-9388-683966a9385d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1377a245-c9fe-92db-483d-9eaefed52a12" executionId="973d1eb8-70e3-4736-b4a0-cd34663c33c6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7a4f69e4-6c2e-b99f-67fa-a6ed611a1310" executionId="a6d05356-ab99-4b9d-997f-7299c6a5726e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a3585d8f-a932-6fc1-bdf7-9624e83f4cc7" executionId="ee528629-faac-4d96-b5f9-e018cf87d1ce" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="9" executed="9" passed="9" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>

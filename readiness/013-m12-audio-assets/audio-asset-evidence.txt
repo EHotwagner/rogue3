@@ -1,0 +1,31 @@
+status=ok audio-asset-evidence asset-root=assets/audio working-directory=/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3 base-directory=/home/developer/projects/rogue3/.claude/worktrees/agent-a30e06466070084d3/src/Rogue3/bin/Release/net10.0/ backend-kind=DeviceBacked
+declared sounds=18 tracks=11 total=29 resolved=29 unresolved=0
+sound id=shot-fire resolved=true bytes=5336 format=pcm channels=1 bits=16 rate=22050 samples=2646
+sound id=shot-hit resolved=true bytes=4014 format=pcm channels=1 bits=16 rate=22050 samples=1985
+sound id=enemy-death resolved=true bytes=15038 format=pcm channels=1 bits=16 rate=22050 samples=7497
+sound id=player-hit resolved=true bytes=9746 format=pcm channels=1 bits=16 rate=22050 samples=4851
+sound id=player-death resolved=true bytes=39734 format=pcm channels=1 bits=16 rate=22050 samples=19845
+sound id=dodge-roll resolved=true bytes=7982 format=pcm channels=1 bits=16 rate=22050 samples=3969
+sound id=bomb-explosion resolved=true bytes=30914 format=pcm channels=1 bits=16 rate=22050 samples=15435
+sound id=pickup-coin resolved=true bytes=8864 format=pcm channels=1 bits=16 rate=22050 samples=4410
+sound id=pickup-key resolved=true bytes=10628 format=pcm channels=1 bits=16 rate=22050 samples=5292
+sound id=pickup-bomb resolved=true bytes=9306 format=pcm channels=1 bits=16 rate=22050 samples=4631
+sound id=pickup-heart resolved=true bytes=13274 format=pcm channels=1 bits=16 rate=22050 samples=6615
+sound id=item-pickup resolved=true bytes=21654 format=pcm channels=1 bits=16 rate=22050 samples=10805
+sound id=door-lock resolved=true bytes=11510 format=pcm channels=1 bits=16 rate=22050 samples=5733
+sound id=door-unlock resolved=true bytes=13274 format=pcm channels=1 bits=16 rate=22050 samples=6615
+sound id=floor-descend resolved=true bytes=30914 format=pcm channels=1 bits=16 rate=22050 samples=15435
+sound id=boss-intro resolved=true bytes=52964 format=pcm channels=1 bits=16 rate=22050 samples=26460
+sound id=boss-phase resolved=true bytes=23858 format=pcm channels=1 bits=16 rate=22050 samples=11907
+sound id=boss-death resolved=true bytes=61784 format=pcm channels=1 bits=16 rate=22050 samples=30870
+track id=title-theme resolved=true bytes=176444 format=pcm channels=1 bits=16 rate=22050 samples=88200
+track id=floor-1-theme resolved=true bytes=176444 format=pcm channels=1 bits=16 rate=22050 samples=88200
+track id=floor-2-theme resolved=true bytes=176444 format=pcm channels=1 bits=16 rate=22050 samples=88200
+track id=floor-3-theme resolved=true bytes=176444 format=pcm channels=1 bits=16 rate=22050 samples=88200
+track id=floor-4-theme resolved=true bytes=176444 format=pcm channels=1 bits=16 rate=22050 samples=88200
+track id=floor-5-theme resolved=true bytes=176444 format=pcm channels=1 bits=16 rate=22050 samples=88200
+track id=floor-6-theme resolved=true bytes=176444 format=pcm channels=1 bits=16 rate=22050 samples=88200
+track id=shop-theme resolved=true bytes=176444 format=pcm channels=1 bits=16 rate=22050 samples=88200
+track id=boss-theme resolved=true bytes=176444 format=pcm channels=1 bits=16 rate=22050 samples=88200
+track id=game-over resolved=true bytes=176444 format=pcm channels=1 bits=16 rate=22050 samples=88200
+track id=victory resolved=true bytes=176444 format=pcm channels=1 bits=16 rate=22050 samples=88200

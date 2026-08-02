@@ -34,6 +34,12 @@
          the production input route — `KeyChanged` and `Tick` — because M10 proved the door reducers
          correct while nothing dispatched them. -->
     <Compile Include="M11PlayabilityLegibilityTests.fs" />
+    <!-- M12: the gate that makes a silent cue impossible to ship green. It enumerates its obligation
+         from `Rogue3.AudioCueIds` — the declaration `AudioCues.fs` itself builds every SoundId/TrackId
+         from — and resolves through `Rogue3.AudioCues.resolver`, the exact value `Program.fs` hands to
+         `OpenAlBackend.create`. A hardcoded id list checked against the filesystem would have passed
+         while the product stayed silent, which is what M8 shipped. -->
+    <Compile Include="M12AudioAssetTests.fs" />
     <!-- Issue #1002 (child of #991): release-lane BEHAVIOUR coverage for the generic game shell.
          Drives GameShell.fs's pure `update` + host-free seams (router, Esc routing, rebind capture,
          display->window-behaviour mapping, keymap persistence). Additive — it adds shell tests beside
@@ -43,6 +49,15 @@
          pattern), which is why it needs no compile Condition here. -->
     <Compile Include="ShellBehaviorTests.fs" />
     <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <!-- M12: the same committed assets beside the test assembly. The guard resolves through the
+       production resolver, which probes the working directory and then AppContext.BaseDirectory —
+       so without this the guard would be asserting against whatever directory the test runner
+       happened to start in rather than against what a built product can reach. Declared explicitly
+       rather than relying on transitive content flow from the project reference. -->
+  <ItemGroup>
+    <Content Include="../../assets/audio/*.wav" Link="assets/audio/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

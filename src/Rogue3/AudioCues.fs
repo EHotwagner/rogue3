@@ -1,5 +1,6 @@
 module Rogue3.AudioCues
 
+open System
 open System.IO
 open FS.GG.Audio.Core
 open FS.GG.Audio.Host
@@ -45,13 +46,56 @@ open Rogue3.Model
 [<Literal>]
 let assetRoot = "assets/audio"
 
+/// M12 (DEC-009): the roots `assetRoot` is resolved against, in order.
+///
+/// The working directory alone is not enough, and that is not a theoretical complaint. A relative
+/// path is resolved against whatever directory the *shell* was in, so the same built binary was
+/// audible from one directory and silent from every other — including the directory the binary
+/// itself lives in. `AppContext.BaseDirectory` is where the assets are copied by the build
+/// (`Rogue3.fsproj` copies `assets/audio/*.wav` beside the assembly), so probing it second makes the
+/// product audible wherever it is launched from, while leaving a working-directory override — a
+/// mod folder, a test fixture — winning when one is present. A launch directory that happens to
+/// contain `assets/audio/<id>.wav` therefore shadows the shipped asset; that is the point of the
+/// ordering, and it is written down here because nothing else marks it.
+///
+/// Evaluated per call rather than captured in a module-level binding: a module `let` would freeze
+/// the working directory at whatever it was when this module was first touched, an initialization
+/// order a caller cannot see and a test cannot control. Resolution happens once per id per process
+/// anyway — the OpenAL backend memoizes uploaded buffers behind `BufferCache` — so there is no cost
+/// to reading it honestly.
+let private assetSearchRoots () =
+    [ Directory.GetCurrentDirectory(); System.AppContext.BaseDirectory ]
+
+/// `resolver` is public and takes an id from its caller, so the id reaches `Path.Combine`. A rooted
+/// or `..`-bearing id would then escape `assetRoot` entirely and read an arbitrary file. Nothing in
+/// this product can produce such an id — every one comes from `AudioCueIds` and the M12 guard pins
+/// them to a lowercase slug — but "no current caller does that" is not a property of a public
+/// function, so the containment is checked here rather than assumed.
+let private isContainedId (name: string) =
+    not (String.IsNullOrWhiteSpace name)
+    && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0
+    && name <> "."
+    && name <> ".."
+
 let private tryReadAsset (name: string) =
-    let path = Path.Combine(assetRoot, name + ".wav")
-    if File.Exists path then Some(File.ReadAllBytes path) else None
+    if not (isContainedId name) then
+        None
+    else
+        let fileName = name + ".wav"
+        assetSearchRoots ()
+        |> List.tryPick (fun root ->
+            let path = Path.Combine(root, assetRoot, fileName)
+            if File.Exists path then Some(File.ReadAllBytes path) else None)
 
 /// The rogue3 owns the id -> asset mapping; the framework never does (FS.GG.Audio FR-005).
 /// An id with no file on disk resolves to `None`, which the backend treats as a recorded no-op —
 /// so a rogue3 with no assets yet still runs, and still requests the right sounds.
+///
+/// M12: "still runs" is the *degradation*, not the target. Every id `AudioCueIds` declares has a
+/// committed asset under `assets/audio/`, and `M12AudioAssetTests` reds if any one of them stops
+/// resolving through THIS value — the same resolver `Program.fs` hands to `OpenAlBackend.create`.
+/// Before M12 the directory did not exist at all and the whole cue set was silent, while the suite
+/// stayed green because every audio obligation asked what the product *requested*.
 ///
 /// Model-agnostic on purpose: this half survives a model swap even though `forTransition` does not,
 /// which is why it sits above the per-starter split below.
@@ -93,16 +137,23 @@ let resolver: AssetResolver =
 // Controls starter a cue seam; a seam without `Started` would have reproduced #458 one profile over.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
+// M12 (DEC-001): every id below is a value from `Rogue3.AudioCueIds`, never a literal. That is what
+// lets the generator and the M12 guard enumerate exactly the set this file requests instead of
+// re-typing it — and `M12AudioAssetTests` scans this file (comments stripped) for stray
+// `SoundId "…"`, `TrackId "…"` and `sfx "…"` literals, so an inline id added here reds the suite
+// rather than shipping as a silent cue. It rejects the INTERPOLATED form too — `TrackId $"floor-…"`
+// — because a value that is not known until it runs cannot be checked against the declaration at
+// all, and that is exactly the shape the floor themes used to have.
 let private sfx id volume = Audio.playSfx (SoundId id) volume
 
 let private forAudioEvent = function
-    | AudioEvent.ShotFired -> sfx "shot-fire" 0.55
-    | AudioEvent.ShotHit -> sfx "shot-hit" 0.7
-    | AudioEvent.EnemyDied -> sfx "enemy-death" 0.75
-    | AudioEvent.PlayerHit -> sfx "player-hit" 0.9
-    | AudioEvent.PlayerDied -> sfx "player-death" 1.0
-    | AudioEvent.DodgeRolled -> sfx "dodge-roll" 0.6
-    | AudioEvent.BombExploded -> sfx "bomb-explosion" 0.95
+    | AudioEvent.ShotFired -> sfx AudioCueIds.shotFire 0.55
+    | AudioEvent.ShotHit -> sfx AudioCueIds.shotHit 0.7
+    | AudioEvent.EnemyDied -> sfx AudioCueIds.enemyDeath 0.75
+    | AudioEvent.PlayerHit -> sfx AudioCueIds.playerHit 0.9
+    | AudioEvent.PlayerDied -> sfx AudioCueIds.playerDeath 1.0
+    | AudioEvent.DodgeRolled -> sfx AudioCueIds.dodgeRoll 0.6
+    | AudioEvent.BombExploded -> sfx AudioCueIds.bombExplosion 0.95
 
 type private MusicContext =
     | Title
@@ -128,13 +179,18 @@ let private musicContext model =
         | Some FloorGeneration.Boss -> Boss
         | _ -> Floor model.FloorIndex
 
+// M12 (DEC-002): the floor family goes through `AudioCueIds.floorTheme`, which CLAMPS into the
+// declared range, rather than interpolating an unbounded index. This line used to read
+// `$"floor-{max 1 index}-theme"`, which meant "six floors" was a fact about `Model.fs` that this
+// file merely believed — a seventh floor would have requested a track nothing declares and played
+// as silence. Clamping makes the family total, so no floor index can name an undeclared track.
 let private track = function
-    | Title -> TrackId "title-theme"
-    | Floor index -> TrackId $"floor-{max 1 index}-theme"
-    | Shop -> TrackId "shop-theme"
-    | Boss -> TrackId "boss-theme"
-    | GameOver -> TrackId "game-over"
-    | Victory -> TrackId "victory"
+    | Title -> TrackId AudioCueIds.titleTheme
+    | Floor index -> TrackId(AudioCueIds.floorTheme index)
+    | Shop -> TrackId AudioCueIds.shopTheme
+    | Boss -> TrackId AudioCueIds.bossTheme
+    | GameOver -> TrackId AudioCueIds.gameOverTheme
+    | Victory -> TrackId AudioCueIds.victoryTheme
 
 let private replaceMusic context =
     [ Audio.stopMusic; Audio.playMusic (track context) true ]
@@ -160,11 +216,11 @@ let private musicForTransition msg previous next =
 
 let private cueForPickup = function
     | Rogue3.Entities.PickupKind.Coin1
-    | Rogue3.Entities.PickupKind.Coin3 -> Some(sfx "pickup-coin" 0.7)
-    | Rogue3.Entities.PickupKind.Key -> Some(sfx "pickup-key" 0.7)
-    | Rogue3.Entities.PickupKind.Bomb -> Some(sfx "pickup-bomb" 0.7)
+    | Rogue3.Entities.PickupKind.Coin3 -> Some(sfx AudioCueIds.pickupCoin 0.7)
+    | Rogue3.Entities.PickupKind.Key -> Some(sfx AudioCueIds.pickupKey 0.7)
+    | Rogue3.Entities.PickupKind.Bomb -> Some(sfx AudioCueIds.pickupBomb 0.7)
     | Rogue3.Entities.PickupKind.HalfRedHeart
-    | Rogue3.Entities.PickupKind.SoulHeart -> Some(sfx "pickup-heart" 0.7)
+    | Rogue3.Entities.PickupKind.SoulHeart -> Some(sfx AudioCueIds.pickupHeart 0.7)
     | Rogue3.Entities.PickupKind.Nothing -> None
 
 // A shop interaction is an explicit acquisition event. Do not infer pickups from arbitrary model
@@ -176,7 +232,7 @@ let private m5ShopPickupCues msg previous next =
               next.M5ShopSlots |> List.tryFind (fun slot -> slot.Id = slotId) with
         | Some before, Some after when before.Offer <> after.Offer ->
             match before.Offer with
-            | Rogue3.Entities.ShopOffer.Item _ -> [ sfx "item-pickup" 0.85 ]
+            | Rogue3.Entities.ShopOffer.Item _ -> [ sfx AudioCueIds.itemPickup 0.85 ]
             | Rogue3.Entities.ShopOffer.Consumable kind -> cueForPickup kind |> Option.toList
             | Rogue3.Entities.ShopOffer.Empty -> []
         | _ -> []
@@ -189,28 +245,28 @@ let private doorAndBossCues previous next =
         | Rogue3.Entities.DoorState.Open -> false
     let beforeLocked = previous.M5Room.Doors |> List.exists locked
     let afterLocked = next.M5Room.Doors |> List.exists locked
-    [ if not beforeLocked && afterLocked then yield sfx "door-lock" 0.7
-      if beforeLocked && not afterLocked then yield sfx "door-unlock" 0.7
+    [ if not beforeLocked && afterLocked then yield sfx AudioCueIds.doorLock 0.7
+      if beforeLocked && not afterLocked then yield sfx AudioCueIds.doorUnlock 0.7
       // M11: derived from the TRANSITION, not from a message. A player descends by pressing interact
       // on a trapdoor, which resolves inside a fixed step, so `msg` is `Tick` and never `DescendFloor`.
       // A refused descent moves no floor index and is therefore silent for free.
-      if next.FloorIndex > previous.FloorIndex then yield sfx "floor-descend" 0.8
-      if previous.M5Boss.IsNone && next.M5Boss.IsSome then yield sfx "boss-intro" 1.0
+      if next.FloorIndex > previous.FloorIndex then yield sfx AudioCueIds.floorDescend 0.8
+      if previous.M5Boss.IsNone && next.M5Boss.IsSome then yield sfx AudioCueIds.bossIntro 1.0
       match previous.M5Boss, next.M5Boss with
-      | Some before, Some after when after.Phase > before.Phase -> yield sfx "boss-phase" 0.9
-      | Some _, None -> yield sfx "boss-death" 1.0
+      | Some before, Some after when after.Phase > before.Phase -> yield sfx AudioCueIds.bossPhase 0.9
+      | Some _, None -> yield sfx AudioCueIds.bossDeath 1.0
       | _ -> () ]
 
 let private directEventCues msg previous next =
     [ match msg with
       | DamageM5Enemy(enemyId, _) when next.M5Enemies <> previous.M5Enemies ->
-          yield sfx "shot-hit" 0.7
+          yield sfx AudioCueIds.shotHit 0.7
           if previous.M5Enemies |> List.exists (fun enemy -> enemy.Id = enemyId)
              && next.M5Enemies |> List.forall (fun enemy -> enemy.Id <> enemyId) then
-              yield sfx "enemy-death" 0.75
-      | DamageM5Boss _ when next.M5Boss <> previous.M5Boss -> yield sfx "shot-hit" 0.7
-      | RecordCoinsCollected count when count > 0 -> yield sfx "pickup-coin" 0.7
-      | RecordItemFound -> yield sfx "item-pickup" 0.85
+              yield sfx AudioCueIds.enemyDeath 0.75
+      | DamageM5Boss _ when next.M5Boss <> previous.M5Boss -> yield sfx AudioCueIds.shotHit 0.7
+      | RecordCoinsCollected count when count > 0 -> yield sfx AudioCueIds.pickupCoin 0.7
+      | RecordItemFound -> yield sfx AudioCueIds.itemPickup 0.85
       // NOTE: `floor-descend` is NOT cued here. It is STATE-DERIVED in `doorAndBossCues`, because
       // M11's production route reaches a descent from inside a `Tick` — the audio seam never sees a
       // `DescendFloor` message on a real descent, so a message-keyed cue would be audible only to a

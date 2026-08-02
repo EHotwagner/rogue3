@@ -6,6 +6,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- M12 (013-m12-audio-assets): the SINGLE declaration of the product's audio cue ids, and the
+         deterministic synthesis that produces the committed assets under assets/audio/. Both depend
+         on nothing at all — not the model, not Vec2, not a package — which is why they compile
+         first: `scripts/generate-audio-assets.fsx` #loads these two files directly with `dotnet fsi`,
+         and a declaration a generator cannot read is a declaration the generator will re-type by
+         hand. That hand-typed second list is the drift M12 exists to close. -->
+    <Compile Include="AudioCueIds.fs" />
+    <Compile Include="AudioSynthesis.fs" />
     <!-- Feature 250: the collision-safe Vec2 helper (fs-gg-model-swap / fs-gg-game-core skills).
          Consumer-owned, adaptable source — compiled before Model.fs so the starter (and your own model)
          can express entity positions/velocities as Geometry.Vec2 without reusing Scene.Point/Rect field
@@ -69,6 +77,18 @@
     <Compile Include="WindowOptions.fs" />
     <Compile Include="EvidenceCommands.fs" />
     <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <!-- M12: the audio assets ship WITH the binary. `AudioCues.resolver` probes the working directory
+       first and then AppContext.BaseDirectory, and this is what puts them at the second root — so
+       the built product is audible wherever it is launched from rather than only from the one
+       directory the repository tree happens to sit in. Committed rather than generated at build
+       time on purpose: the defect M12 closes is "the assets were never there", and making audibility
+       depend on a generation step would reproduce it in a new form. Regenerate with
+       `dotnet fsi scripts/generate-audio-assets.fsx`; the M12 guard proves the committed bytes are
+       exactly what `Rogue3.AudioSynthesis` produces. -->
+  <ItemGroup>
+    <Content Include="../../assets/audio/*.wav" Link="assets/audio/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

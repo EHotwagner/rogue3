@@ -1,0 +1,10 @@
+status=ok
+mode=persistent-evidence
+command=--launch-evidence
+self-closed-for-evidence=true
+first-frame-presented=True
+input-dispatch=not-required
+window-opened=true
+renderer-mode=OpenGL
+user-close-observed=false
+exit-path=true
