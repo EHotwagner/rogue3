@@ -21,6 +21,17 @@ open System.Text.RegularExpressions
 
 let path parts = Path.Combine(Array.ofList parts)
 
+/// The text of a file, or the reason there isn't any. #62 (4): a gate that reads a file it cannot
+/// open must SAY SO — an unhandled `IOException` aborts the run with no line about the tree it was
+/// asked to describe. Declared here, far above its callers, because the first of them is the
+/// evidence-graph publication rule three hundred lines below and the last is the kit walk three
+/// thousand lines below, and they must not each grow their own.
+let private tryReadText (filePath: string) : Result<string, string> =
+    try
+        Ok(File.ReadAllText filePath)
+    with ex ->
+        Error $"cannot be read ({ex.GetType().Name})"
+
 let targetFromArgs args =
     let rec loop values =
         match values with
@@ -368,15 +379,24 @@ let private applyEvidenceGraphPublicationRule (graphPath: string) (previouslyPub
     // An emission that exited 0 but left no graph — or left one with no sensed
     // section — has sensed NOTHING, which is the rule's own worst case rather than
     // an IO error to rethrow at the caller. Restoring then also puts the file back.
+    //
+    // #62 (4): both reads are total. A graph the process cannot OPEN is the same thing to this rule
+    // as one that is absent or has no sensed section — it has sensed nothing — and the paragraph
+    // above already says so; it just did not say it to `File.ReadAllText`. Before this, an
+    // unreadable graph threw out of `runEvidenceGraphEmission`'s `with`, was re-raised, and aborted
+    // `Verify` with no line, which is exactly the shape #62 item 4 records one target over.
     let emitted =
         if File.Exists graphPath then
-            sensedReadinessFiles (File.ReadAllText graphPath) |> Option.defaultValue Set.empty
+            match tryReadText graphPath with
+            | Ok text -> sensedReadinessFiles text |> Option.defaultValue Set.empty
+            | Error _ -> Set.empty
         else
             Set.empty
 
-    match sensedReadinessFiles (File.ReadAllText previouslyPublished) with
-    | None -> Unevaluatable $"the published graph has no `{sensedSectionHeading}` section to compare against"
-    | Some published ->
+    match tryReadText previouslyPublished |> Result.map sensedReadinessFiles with
+    | Error reason -> Unevaluatable $"the published graph {reason}, so there is nothing to compare against"
+    | Ok None -> Unevaluatable $"the published graph has no `{sensedSectionHeading}` section to compare against"
+    | Ok (Some published) ->
         let dropped = Set.difference published emitted |> Set.toList
 
         if List.isEmpty dropped then
@@ -434,11 +454,17 @@ let private emittedGraphSectionWarning (graphPath: string) : string list =
     if not (File.Exists graphPath) then
         [ $"EvidenceGraph: {graphPath} does not exist after an emission that exited 0, so there is no graph for the publication rule — or for EvidenceAudit — to read." ]
     else
-        match sensedReadinessFiles (File.ReadAllText graphPath) with
-        | Some sensed when Set.isEmpty sensed ->
+        // #62 (4). ONE read, not a probe followed by a raw one: check-then-act is not totality, and
+        // a file that becomes unreadable between the two still throws. This function WARNS by
+        // contract, so an unreadable graph warns too rather than throwing past the caller that is
+        // about to restore the published bytes.
+        match tryReadText graphPath |> Result.map sensedReadinessFiles with
+        | Error _ ->
+            [ $"EvidenceGraph: the freshly emitted {graphPath} exists but could not be read, so neither the publication rule nor EvidenceAudit can see what this run sensed." ]
+        | Ok (Some sensed) when Set.isEmpty sensed ->
             [ $"EvidenceGraph: the freshly emitted {graphPath} has a `{sensedSectionHeading}` section listing NOTHING, so the publication rule can never refuse anything on this tree." ]
-        | Some _ -> []
-        | None ->
+        | Ok (Some _) -> []
+        | Ok None ->
             [ $"EvidenceGraph: the freshly emitted {graphPath} carries no `{sensedSectionHeading}` section, so the publication rule has nothing to compare and will ABSTAIN on every future run. An engine-side rename of that heading looks exactly like this — re-pin the literal in build.fsx." ]
 
 /// Runs one emission under the rule. `emit` is a parameter, not a hard-wired call,
@@ -811,10 +837,83 @@ let runPerformanceIntent () =
 
 let private lowerHex (bytes: byte array) = (Convert.ToHexString bytes).ToLowerInvariant()
 
-let private fileDigest (filePath: string) =
-    File.ReadAllBytes filePath
-    |> System.Security.Cryptography.SHA256.HashData
-    |> lowerHex
+// ---------------------------------------------------------------------------
+// #62 (4): a digest that cannot throw.
+//
+// `fileDigest` was `File.ReadAllBytes |> SHA256`, and a kit file the gate can SEE
+// but cannot OPEN — mode bits set to 000, a lock, a symlink whose target moved between the
+// `File.Exists` test and the read — threw an unhandled exception out of the
+// target: "Stopped due to error", NO violation line, and no report on the one
+// tree the gate most needs to report on. That directly contradicts the doctrine
+// this file states three times about its other input, the manifest `sha256`:
+// truncating it blindly would crash the gate on the tree it exists to describe.
+//
+// So every read that feeds a verdict is TOTAL: it returns either a value or a
+// violation line. The seams, enumerated by grepping this file for `File.ReadAll`
+// and `Directory.Get*` rather than by reading it (#62's own lesson — a worker
+// guarded the seam an issue named and none of the ones it did not):
+//   * `tryDigest`           — all five digest sites (manifest agreement, manifest
+//                             entry, ledger entry, mirror, `computeKitPins`);
+//   * `tryReadJson`         — both skill manifests, the ledger, and
+//                             `.fsgg/scaffold-provenance.json`, which
+//                             `templateDriftViolations` reads FIRST and which was
+//                             equally able to abort the run;
+//   * `kitTreeScan`         — the two tree walks;
+//   * `generatedGuidanceViolations` — `.fsgg/agents.yml`.
+// A malformed or unreadable input is a VIOLATION here, never an absence: an
+// oracle that vanishes silently is the no-op defect #34 was filed for.
+// ---------------------------------------------------------------------------
+
+/// A digest, or the reason there isn't one. The `Error` is a fragment, not a whole line: each
+/// call site prefixes the name it knows the file by, so the violation reads in that pass's terms.
+let private tryDigest (filePath: string) : Result<string, string> =
+    try
+        File.ReadAllBytes filePath
+        |> System.Security.Cryptography.SHA256.HashData
+        |> lowerHex
+        |> Ok
+    with ex ->
+        Error $"cannot be read ({ex.GetType().Name}), so nothing is checking its bytes"
+
+/// The text of a JSON input, parsed, or the reason it could not be. Both failure modes — a file
+/// that will not open and a file that will not parse — are the same thing to a gate: an oracle it
+/// cannot consult, which must be reported rather than treated as an empty one.
+let private tryReadJson (filePath: string) : Result<System.Text.Json.JsonDocument, string> =
+    // Deliberately NOT routed through `tryReadText`: the exception TYPE is the diagnostic here —
+    // `UnauthorizedAccessException` and `JsonException` send a reader to different repairs — and
+    // folding the read into a `Result` first would flatten both into one name.
+    try
+        Ok(System.Text.Json.JsonDocument.Parse(File.ReadAllText filePath))
+    with ex ->
+        Error $"cannot be read as JSON ({ex.GetType().Name}), so nothing it declares is being checked"
+
+/// #62 (1) and (2): `Ok None` for a real file or directory, `Ok (Some target)` for a symbolic link,
+/// `Error` when the probe itself failed. `LinkTarget` is non-null for exactly the reparse points
+/// that make a path stand in for bytes the repository does not store; it is what distinguishes
+/// "this tree has 190 files" from "this tree has 95 files and a link that makes them look like 190".
+///
+/// It is TOTAL for the reason everything else in this block is, and the reason is worth stating
+/// because a critic had to find it: the first version of this function was the one new filesystem
+/// call in #62's own fix that could still throw. On Unix `LinkTarget` returns null when `readlink`
+/// fails, so it was benign here; on Windows the reparse-point read can throw, and it runs once per
+/// entry, 190+ times, inside the walk. That is item 4's exact symptom — an unhandled exception out
+/// of the target with no violation line — reintroduced by item 1's fix, in the commit whose own
+/// comment three screens up says every read that feeds a verdict is total. A path this cannot
+/// classify is reported and NOT counted: "might be a link" has to fall the same way as "is a link",
+/// or the denominator starts describing files again on the one tree that cannot be examined.
+let private tryLinkTarget (fullPath: string) : Result<string option, string> =
+    try
+        let info: FileSystemInfo =
+            if Directory.Exists fullPath then
+                DirectoryInfo(fullPath) :> FileSystemInfo
+            else
+                FileInfo(fullPath) :> FileSystemInfo
+
+        match info.LinkTarget with
+        | null -> Ok None
+        | target -> Ok(Some target)
+    with ex ->
+        Error $"cannot be examined ({ex.GetType().Name}), so whether it stands in for bytes outside this repository is unknown and it is reported rather than counted"
 
 /// Digests are shown truncated. A manifest is an INPUT, so its `sha256` may be malformed;
 /// truncating it blindly would crash the gate on the one tree it most needs to report on.
@@ -846,25 +945,53 @@ let private yamlScalar (raw: string) =
     else
         trimmed
 
-/// The scaffolded profile, read from the one place that records it. `materializes-when`
-/// is evaluated against this, so a kit file that is absent BECAUSE this profile does not
-/// take it is not reported as drift.
-let private scaffoldProfile (root: string) =
+/// The scaffolded profile, read from the one place that records it, plus the reason it could not be
+/// read where that applies. `materializes-when` is evaluated against this, so a kit file that is
+/// absent BECAUSE this profile does not take it is not reported as drift.
+///
+/// #62 (4): this is the FIRST thing `templateDriftViolations` reads, and it used to parse the file
+/// unguarded — an unreadable or malformed `scaffold-provenance.json` aborted the whole target
+/// before any check ran, which is the same defect the item records for `fileDigest` reached one
+/// input earlier. It now reports, and the caller falls through to the `declares no profile`
+/// violation it already had.
+let private scaffoldProfile (root: string) : string option * string option =
     let provenance = path [ root; ".fsgg"; "scaffold-provenance.json" ]
 
     if not (File.Exists provenance) then
-        None
+        None, None
     else
-        use doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText provenance)
+        match tryReadJson provenance with
+        | Error reason -> None, Some $".fsgg/scaffold-provenance.json: {reason}"
+        | Ok doc ->
+            use doc = doc
 
-        match doc.RootElement.TryGetProperty "effectiveParameters" with
-        | true, parameters ->
-            parameters.EnumerateArray()
-            |> Seq.tryPick (fun p ->
-                match p.TryGetProperty "key", p.TryGetProperty "value" with
-                | (true, key), (true, value) when key.GetString() = "profile" -> Some(value.GetString())
-                | _ -> None)
-        | _ -> None
+            // Every shape test is a ValueKind test rather than a `GetString()` that trusts the file:
+            // provenance is an INPUT like the manifest, and `"effectiveParameters": {}` threw the
+            // same unhandled exception the malformed-JSON case did.
+            let asString (element: System.Text.Json.JsonElement) =
+                if element.ValueKind = System.Text.Json.JsonValueKind.String then element.GetString() else null
+
+            let profile =
+                match doc.RootElement.TryGetProperty "effectiveParameters" with
+                | true, parameters when parameters.ValueKind = System.Text.Json.JsonValueKind.Array ->
+                    parameters.EnumerateArray()
+                    |> Seq.tryPick (fun p ->
+                        if p.ValueKind <> System.Text.Json.JsonValueKind.Object then
+                            None
+                        else
+                            match p.TryGetProperty "key", p.TryGetProperty "value" with
+                            | (true, key), (true, value) when asString key = "profile" ->
+                                // A non-string `value` is NOT a profile. Returning `Some null` here
+                                // would satisfy the caller's `profile.IsNone` test and then match
+                                // nothing, which is a declared profile that silently excludes every
+                                // skill — worse than the violation the `None` path already reports.
+                                match asString value with
+                                | null -> None
+                                | declared -> Some declared
+                            | _ -> None)
+                | _ -> None
+
+            profile, None
 
 /// `always` | `profile == x` | `profile in [a, b, c]`. An expression this cannot read is
 /// reported rather than skipped: silently ignoring a condition is how the no-op arose.
@@ -984,24 +1111,148 @@ let private skillManifests = [ ".agents"; ".claude" ]
 
 let private kitPinsRelative = "scripts/kit-pins.json"
 
-/// The one tree the ledger may pin. A pin outside it would be neither checked for
-/// coverage nor mirrored, so accepting one would let the ledger quietly become a
+/// The one tree EITHER oracle may pin. A pin outside it would be neither checked for
+/// coverage nor mirrored, so accepting one would let a digest list quietly become a
 /// general-purpose digest file whose entries nothing enumerates.
 let private kitSourcePrefix = ".agents/skills/"
 
-/// Every file under `<owner>/skills`, workspace-relative with forward slashes.
-/// Enumerated from DISK, not from git: a file injected into the kit is exactly the
-/// case this must see, and `SelfTest` fixtures are not repositories.
-let private kitTreeFiles (root: string) (owner: string) =
+/// #62 (3): the boundary, as ONE predicate.
+///
+/// The ledger refused a pin outside `.agents/skills/` and the generated manifest did not, though
+/// both feed the same `pinnedSources` set and the same mirror pass. Adding
+/// `"resolvablePath": "README.md"` to both manifests was green: the digest matched, so the entry
+/// looked like coverage while naming a file no coverage pass enumerates and no mirror pass mirrors
+/// — the same overstatement the ledger's boundary exists to prevent, one oracle over.
+///
+/// It is a predicate rather than two copies of a condition because that asymmetry is the whole
+/// defect: the rule the file STATED ("the one tree the ledger may pin", and the mirror pass's
+/// assumption that every pin is a `.agents/` source) was enforced in one place out of two. A shared
+/// predicate makes the two oracles disagree UNCONSTRUCTIBLE rather than merely unlikely.
+///
+/// `..` is refused for the same reason and not as a security boundary: `.agents/skills/../../x`
+/// satisfies the prefix while naming a file outside the enumerated tree.
+let private withinKitSources (relative: string) =
+    relative.StartsWith(kitSourcePrefix, StringComparison.Ordinal)
+    && not (relative.Split([| '/'; '\\' |]) |> Array.contains "..")
+
+/// Every file under `<owner>/skills`, workspace-relative with forward slashes, PLUS one line per
+/// entry this walk refuses to count. Enumerated from DISK, not from git: a file injected into the
+/// kit is exactly the case this must see, and `SelfTest` fixtures are not repositories.
+///
+/// #62 (1) and (2), and why this is a hand-written walk rather than `Directory.GetFiles(…,
+/// AllDirectories)`:
+///
+///   * `.NET`'s recursive enumeration FOLLOWS directory symlinks and reports nothing about them.
+///     With `.claude/skills` a link to `.agents/skills` the gate printed `190 of 190 … plus 95
+///     mirror(s)` for 95 distinct files; the mirror pass degenerated into comparing every file with
+///     itself, and `the two skill manifests disagree` became structurally incapable of firing. No
+///     drift hides — an edit still shows up, twice — but 190 is precisely the number #46 exists to
+///     make trustworthy.
+///   * A single kit FILE replaced by a link to identical bytes outside the repository was counted
+///     as covered by digest alone. Its provenance has left the tree and a fresh clone dangles.
+///
+/// A link is therefore REPORTED and NOT COUNTED, at any depth, in either tree. Not counting it is
+/// half the fix: leaving it in the total would keep the denominator describing a file this
+/// repository does not store.
+///
+/// The walk is also total (#62 item 4): a directory that will not list is a violation line, not an
+/// unhandled `UnauthorizedAccessException` out of the target.
+let private kitTreeScan (root: string) (owner: string) : string list * string list =
+    let files = ResizeArray<string>()
+    let problems = ResizeArray<string>()
+    let relativeTo (full: string) = (Path.GetRelativePath(root, full)).Replace('\\', '/')
+
+    let reportLink (full: string) (target: string) =
+        problems.Add
+            $"{relativeTo full} is a symbolic link (-> {target}), not something this repository stores: its bytes live outside the tree these digests pin, so it is reported rather than counted as covered"
+
+    /// `true` when the entry was reported and must not be counted — a link, or a path whose type
+    /// could not be established at all.
+    let reportedAsLink (full: string) =
+        match tryLinkTarget full with
+        | Ok None -> false
+        | Ok (Some target) ->
+            reportLink full target
+            true
+        | Error reason ->
+            problems.Add $"{relativeTo full} {reason}"
+            true
+
+    let rec walk (dir: string) =
+        let entries =
+            try
+                Ok(Directory.GetFileSystemEntries(dir, "*", SearchOption.TopDirectoryOnly) |> Array.sort)
+            with ex ->
+                Error ex
+
+        match entries with
+        | Error ex ->
+            problems.Add $"{relativeTo dir}: cannot be listed ({ex.GetType().Name}), so nothing under it is being checked"
+        | Ok entries ->
+            for entry in entries do
+                if not (reportedAsLink entry) then
+                    // #62 (1), found by a hostile critic: `not (Directory.Exists entry)` is NOT proof
+                    // that `entry` is a file. Clearing the execute bit on a kit directory (mode 400,
+                    // readable but not traversable) leaves `readdir`
+                    // working and `stat` on its children failing, so three SUBDIRECTORIES were
+                    // counted in the total as kit files, seven present files were reported missing,
+                    // and the walk emitted no `cannot be listed` line about a subtree it plainly
+                    // could not read. The tree was red, so nothing hid — but "the printed total is
+                    // the number of distinct real files" is the whole of item 1, and it was not.
+                    if Directory.Exists entry then walk entry
+                    elif File.Exists entry then files.Add(relativeTo entry)
+                    else
+                        problems.Add
+                            $"{relativeTo entry}: is neither a readable file nor a listable directory, so it is reported rather than counted — a parent directory that cannot be traversed looks exactly like this"
+
+    /// The walk yields depth-first, and the caller this most matters to is `computeKitPins`, which
+    /// WRITES `scripts/kit-pins.json` in the order it receives. `Directory.GetFiles(…,
+    /// AllDirectories)` returned a flat array that was then sorted on the RELATIVE path, and the two
+    /// orders are not the same wherever one entry's name is a prefix of another's: `.agents/skills/x/a`
+    /// sorts before `.agents/skills/x.md` (`/` > `.`), but a depth-first walk emits the directory's
+    /// contents first.
+    ///
+    /// Measured, not reasoned, and the figures are the CORRECTED ones — a critic re-derived both of
+    /// the first version's and both were wrong. This kit has **two** directory/file pairs
+    /// (`fs-gg-symbology/reference` + `reference.fsx`, `fs-gg-symbol-design/reference` +
+    /// `reference.fsx`) and **one** directory/directory family (`work-board` against
+    /// `work-board-best` and `work-board-normal`), which the "a directory and a file share a prefix"
+    /// sentence does not describe and which reorders for the same reason. Over the ledger's 63 pins
+    /// that is **4 pins moved, 8 changed diff lines** — not the six the first commit message claimed.
+    /// A gratuitous diff, for no change at all, on a file one merged audit binds twice
+    /// (`feedback/audits/2026-08-02-Rogue3-15.audit.json` — checked, not assumed: the first version of
+    /// this comment said FOUR, which is the count for `scripts/audit-binding-exceptions.json` and not
+    /// for this ledger).
+    let sorted (values: ResizeArray<string>) = values |> List.ofSeq |> List.sort
+
+    // The two roots the item names, checked BEFORE the walk: `.claude` itself may be the link, in
+    // which case `.claude/skills` is a perfectly ordinary directory reached through it.
+    let ownerRoot = path [ root; owner ]
     let treeRoot = path [ root; owner; "skills" ]
 
-    if not (Directory.Exists treeRoot) then
-        []
-    else
-        Directory.GetFiles(treeRoot, "*", SearchOption.AllDirectories)
-        |> Array.map (fun file -> (Path.GetRelativePath(root, file)).Replace('\\', '/'))
-        |> Array.sort
-        |> List.ofArray
+    // `reportedAsLink` has an EFFECT — it appends the problem line — so the short-circuit order here
+    // is load-bearing and is stated rather than left to be re-derived: `.claude` is examined first,
+    // and if it is a link its child is never examined, because a link one level up is the whole
+    // finding and reporting `.claude/skills` underneath it would name a path that is not this
+    // repository's to describe.
+    if not (Directory.Exists ownerRoot && reportedAsLink ownerRoot) then
+        if Directory.Exists treeRoot && not (reportedAsLink treeRoot) then
+            walk treeRoot
+
+    sorted files, sorted problems
+
+/// The files only. TODAY'S CALLERS, named rather than governed by a rule, on a reviewer's argument:
+/// an abstract rule ("only drop the problems where something else reports them") goes stale
+/// silently, and a list of callers goes stale LOUDLY the moment a third one appears and this comment
+/// does not mention it.
+///
+///   * `computeKitPins` — writes the ledger; `TemplateDrift` is what reports on the tree.
+///   * `templateDriftCoverage` — calls `templateDriftViolations` first, which reports them all.
+///
+/// Both are independently pinned by cases. The discard is visible at each call site because
+/// `kitTreeScan` returns a tuple, which is why this is a convenience rather than the invisible
+/// second return value `agentsManifestPins`'s doc comment argues against.
+let private kitTreeFiles (root: string) (owner: string) = fst (kitTreeScan root owner)
 
 /// The ledger as `(path, sha256)` pairs, or a violation line explaining why it could
 /// not be read. A missing or malformed ledger is REPORTED, never treated as "no pins
@@ -1015,34 +1266,54 @@ let private readKitPins (root: string) : Result<(string * string) list, string> 
         // way out is how a gate becomes something people switch off.
         Error $"{kitPinsRelative}: the kit pin ledger is missing, so nothing pins the kit files the generated manifest does not name — run `./fake.sh build -t KitPins` to create it, then review the pins it writes"
     else
-        try
-            use doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText file)
+        match tryReadJson file with
+        | Error reason -> Error $"{kitPinsRelative}: {reason}"
+        | Ok doc ->
+            use doc = doc
 
             match doc.RootElement.TryGetProperty "pins" with
-            | false, _ -> Error $"{kitPinsRelative}: no `pins` array to check"
-            | true, pins ->
+            // The ValueKind test is not decoration: `"pins": {}` used to reach `EnumerateArray`
+            // and throw, which the old blanket `with` then reported as unparseable JSON — a true
+            // verdict for the wrong reason, on a file that parses perfectly.
+            | true, pins when pins.ValueKind = System.Text.Json.JsonValueKind.Array ->
                 pins.EnumerateArray()
                 |> Seq.map (fun pin ->
                     let read (name: string) =
-                        match pin.TryGetProperty name with
-                        | true, v when v.ValueKind = System.Text.Json.JsonValueKind.String -> v.GetString()
-                        | _ -> null
+                        // `TryGetProperty` throws on a non-object, so `"pins": [ "x" ]` was another
+                        // parseable file the old blanket `with` reported as unparseable. A
+                        // shapeless entry reads as pinning nothing, which is exactly what it does.
+                        if pin.ValueKind <> System.Text.Json.JsonValueKind.Object then
+                            null
+                        else
+                            match pin.TryGetProperty name with
+                            | true, v when v.ValueKind = System.Text.Json.JsonValueKind.String -> v.GetString()
+                            | _ -> null
 
                     (read "path", read "sha256"))
                 |> List.ofSeq
                 |> Ok
-        with ex ->
-            Error $"{kitPinsRelative}: cannot be read as JSON ({ex.GetType().Name}), so nothing it pins is being checked"
+            | _ -> Error $"{kitPinsRelative}: no `pins` array to check"
 
 /// The ledger content this tree implies: every file under `.agents/skills` that the manifest does
 /// not PIN, at its current digest — not merely every file it does not NAME, which is a different
 /// and smaller set whenever an entry has lost its `sha256`. Shared by the `KitPins` target and by
 /// `SelfTest`, so the remedy the gate prints is the one the tests exercise, and so `KitPins` can
 /// actually clear a coverage violation caused by a digestless manifest entry.
-let private computeKitPins (root: string) (manifestPinned: Set<string>) =
-    kitTreeFiles root ".agents"
-    |> List.filter (fun relative -> not (manifestPinned.Contains relative))
-    |> List.map (fun relative -> relative, fileDigest (path [ root; relative ]))
+///
+/// #62 (4): returns the pins AND the files it could not digest, rather than throwing out of the
+/// remedy the gate tells people to run. A file omitted here is not silently dropped — `KitPins`
+/// prints it and exits non-zero, and the next `TemplateDrift` reports it as covered by nothing.
+let private computeKitPins (root: string) (manifestPinned: Set<string>) : (string * string) list * string list =
+    let pins = ResizeArray<string * string>()
+    let unpinnable = ResizeArray<string>()
+
+    for relative in kitTreeFiles root ".agents" do
+        if not (manifestPinned.Contains relative) then
+            match tryDigest (path [ root; relative ]) with
+            | Ok digest -> pins.Add(relative, digest)
+            | Error reason -> unpinnable.Add $"{relative}: {reason}"
+
+    List.ofSeq pins, List.ofSeq unpinnable
 
 /// The digest the `.agents` manifest pins for each entry that carries one. PINS ONLY — the set of
 /// paths the manifest merely NAMES is deliberately not returned.
@@ -1058,34 +1329,59 @@ let private computeKitPins (root: string) (manifestPinned: Set<string>) =
 /// argued the comment was the wrong instrument, and was right: a rule a maintainer must READ is how
 /// the fault came back the second time, in the commit that fixed the first. Not returning the names
 /// makes keying coverage on them UNCONSTRUCTIBLE rather than merely discouraged.
+///
+/// #62 (3): an entry outside `.agents/skills/` is not returned either, for the same reason and by
+/// the same predicate the ledger uses. `pinnedSources` and the mirror pass are both built from what
+/// this returns, so admitting `README.md` here would have credited a file that no coverage pass
+/// enumerates and no mirror exists for.
+///
+/// #62 (4): an unreadable or malformed manifest yields NO pins here and is reported by
+/// `templateDriftViolations`, which reads the same file through the same total reader. It used to
+/// throw out of this function — before the violation pass had emitted a single line.
 let private agentsManifestPins (root: string) =
     let pins = ResizeArray<string * string>()
     let manifest = path [ root; ".agents"; "skills"; "skill-manifest.json" ]
 
     if File.Exists manifest then
-        use doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText manifest)
+        match tryReadJson manifest with
+        | Error _ -> ()
+        | Ok doc ->
+            use doc = doc
 
-        match doc.RootElement.TryGetProperty "skills" with
-        | false, _ -> ()
-        | true, skills ->
-            for skill in skills.EnumerateArray() do
-                let read (name: string) =
-                    match skill.TryGetProperty name with
-                    | true, v when v.ValueKind = System.Text.Json.JsonValueKind.String -> v.GetString()
-                    | _ -> null
+            match doc.RootElement.TryGetProperty "skills" with
+            | true, skills when skills.ValueKind = System.Text.Json.JsonValueKind.Array ->
+                for skill in skills.EnumerateArray() do
+                    let read (name: string) =
+                        if skill.ValueKind <> System.Text.Json.JsonValueKind.Object then
+                            null
+                        else
+                            match skill.TryGetProperty name with
+                            | true, v when v.ValueKind = System.Text.Json.JsonValueKind.String -> v.GetString()
+                            | _ -> null
 
-                let relative = read "resolvablePath"
-                let pinned = read "sha256"
+                    let relative = read "resolvablePath"
+                    let pinned = read "sha256"
 
-                if not (String.IsNullOrWhiteSpace relative) && not (String.IsNullOrWhiteSpace pinned) then
-                    pins.Add(relative, pinned)
+                    if not (String.IsNullOrWhiteSpace relative)
+                       && not (String.IsNullOrWhiteSpace pinned)
+                       && withinKitSources relative then
+                        pins.Add(relative, pinned)
+            | _ -> ()
 
     pins
 
 let private renderKitPins (pins: (string * string) list) =
+    // #62: the path is JSON-ENCODED rather than interpolated. A hostile critic put a kit file called
+    // `q".md` in the tree; `KitPins` cheerfully wrote it raw, produced a ledger that does not parse,
+    // and exited **0** — after which `TemplateDrift` reported `64 of 192 … 128 uncovered` and
+    // re-running the remedy it names reproduced the same broken file. The `unpinnable` guard added
+    // for item 4 covers bytes this cannot READ; it said nothing about names this cannot RENDER, and
+    // "the remedy the gate prints has to work" is the property both exist to hold.
+    let encode (value: string) = System.Text.Json.JsonSerializer.Serialize value
+
     let entries =
         pins
-        |> List.map (fun (relative, digest) -> $"    {{ \"path\": \"{relative}\", \"sha256\": \"{digest}\" }}")
+        |> List.map (fun (relative, digest) -> $"    {{ \"path\": {encode relative}, \"sha256\": {encode digest} }}")
         |> String.concat ",\n"
 
     "{\n"
@@ -1095,27 +1391,106 @@ let private renderKitPins (pins: (string * string) list) =
     + entries
     + "\n  ]\n}\n"
 
-/// Rewrites the ledger from the tree and returns what it pinned. THE one write path: the `KitPins`
+/// What one `KitPins` run did. Two cases, because "wrote a ledger that is missing some files" and
+/// "wrote nothing at all" are different facts and a reviewer acts differently on each — and because
+/// collapsing them into `(pins, problems)` is exactly how the target came to print that an untouched
+/// ledger was INCOMPLETE.
+type private KitPinsOutcome =
+    /// The ledger was rewritten. `unpinnable` names files it could not digest, which are absent
+    /// from what it wrote.
+    | Wrote of pins: (string * string) list * unpinnable: string list
+    /// Nothing was written and the ledger on disk is untouched.
+    | Refused of reason: string
+
+/// Rewrites the ledger from the tree and returns what it did. THE one write path: the `KitPins`
 /// target and `SelfTest`'s fixture re-pin both go through here, so a mutation to the remedy is a
 /// mutation to the thing the tests exercise. They used to be parallel implementations, and a
 /// reviewer's mutant that made the TARGET write an empty ledger survived every case because only
 /// the fixture's copy was ever run.
-let private writeKitPins (root: string) =
-    let manifestPins = agentsManifestPins root
-    let pins = computeKitPins root (manifestPins |> Seq.map fst |> Set.ofSeq)
-    let target = path [ root; kitPinsRelative ]
-    Directory.CreateDirectory(Path.GetDirectoryName target: string) |> ignore
-    File.WriteAllText(target, renderKitPins pins)
-    pins
+let private writeKitPins (root: string) : KitPinsOutcome =
+    // #62 (4), the last instance of "writes a ledger it knows is wrong and exits 0", found by a
+    // critic one input over from the one this cycle fixed first. `agentsManifestPins` reports a
+    // manifest it cannot read as NO PINS — correct for a check that reports the manifest separately,
+    // and catastrophic for the WRITER: with no manifest pins, `computeKitPins` pins all 95 sources,
+    // the tracked ledger is silently rewritten 32 entries larger, and the target exits 0. So this
+    // path establishes the manifest is readable BEFORE it writes anything, and writes nothing when
+    // it is not. A remedy that cannot see its own input must not overwrite the file it maintains.
+    let manifestFile = path [ root; ".agents"; "skills"; "skill-manifest.json" ]
+
+    let manifestProblem =
+        if not (File.Exists manifestFile) then
+            Some ".agents/skills/skill-manifest.json is missing, so the complement this ledger pins cannot be computed — every kit file would be pinned here instead of only the files the manifest does not name"
+        else
+            match tryReadJson manifestFile with
+            | Error reason ->
+                Some $".agents/skills/skill-manifest.json: {reason}, so the complement this ledger pins cannot be computed"
+            | Ok doc ->
+                doc.Dispose()
+                None
+
+    match manifestProblem with
+    | Some reason -> Refused reason
+    | None ->
+        let manifestPins = agentsManifestPins root
+        let pins, unpinnable = computeKitPins root (manifestPins |> Seq.map fst |> Set.ofSeq)
+        let target = path [ root; kitPinsRelative ]
+        Directory.CreateDirectory(Path.GetDirectoryName target: string) |> ignore
+        File.WriteAllText(target, renderKitPins pins)
+        Wrote(pins, unpinnable)
+
+/// The operator-facing account of a `KitPins` run, as lines, and whether the run failed. Returned
+/// rather than printed for the reason `evidenceGraphPublicationReport` is: the WORDING is the thing
+/// a person acts on, so it has to be assertable.
+///
+/// A critic found the first version of this printing three false things on the refusal path — that
+/// it had pinned 0 files *into* the ledger, that there was a diff to review, and that the ledger was
+/// INCOMPLETE — while the STATE was entirely correct and the `SelfTest` case asserted only the
+/// state. An untouched file is not an incomplete one, and that clause said the opposite of the
+/// truth, which is the single thing this cycle exists to stop. #46's own lesson, one target over:
+/// the line the gate prints is part of the acceptance, so assert the wording and not just the
+/// effect.
+let private kitPinsReport (outcome: KitPinsOutcome) : string list * bool =
+    match outcome with
+    | Refused reason ->
+        [ $"KitPins: {reason}"
+          // The word the WROTE path uses for a partial ledger deliberately does not appear here, and
+          // the case asserts its absence: an untouched file and a partial one are the two states
+          // this report exists to keep apart, so the two accounts share no vocabulary.
+          $"KitPins: {kitPinsRelative} was NOT rewritten — it is exactly as it was on disk, untouched. Fix the manifest and run this again." ],
+        true
+    | Wrote (pins, unpinnable) ->
+        let written =
+            [ $"KitPins: pinned {List.length pins} kit file(s) under {kitSourcePrefix} that the generated skill manifest does not name, into {kitPinsRelative}"
+              "KitPins: review the diff — a changed pin is the record that a kit file changed on purpose, and it is what a reviewer reads instead of a silent edit." ]
+
+        if List.isEmpty unpinnable then
+            written, false
+        else
+            written
+            @ [ for line in unpinnable -> $"KitPins:   {line}" ]
+            @ [ $"KitPins: {List.length unpinnable} kit file(s) above could not be digested, so {kitPinsRelative} WAS rewritten and is missing them — the next TemplateDrift will report each as covered by nothing." ],
+            true
 
 /// Every materialized kit file matches the digest its manifest pins. Returns one line per
 /// violation; an empty list is a genuine pass.
 let templateDriftViolations (root: string) =
     let violations = ResizeArray<string>()
-    let profile = scaffoldProfile root
+    let profile, provenanceProblem = scaffoldProfile root
+
+    match provenanceProblem with
+    | Some problem -> violations.Add problem
+    | None -> ()
 
     if profile.IsNone then
         violations.Add ".fsgg/scaffold-provenance.json declares no `profile`, so `materializes-when` cannot be evaluated"
+
+    // #62 (1) and (2): the two kit trees, walked once each, with every symlink and every directory
+    // that will not list reported instead of followed. Done FIRST so a reader sees why a total
+    // moved before reading the total.
+    let sourceFiles, sourceProblems = kitTreeScan root ".agents"
+    let mirrorFiles, mirrorProblems = kitTreeScan root ".claude"
+    violations.AddRange sourceProblems
+    violations.AddRange mirrorProblems
 
     // The manifests are byte-identical by construction, so requiring them to agree means tampering
     // has to be done twice, identically, to go unnoticed.
@@ -1135,8 +1510,21 @@ let templateDriftViolations (root: string) =
     let manifestPaths = skillManifests |> List.map (fun owner -> owner, path [ root; owner; "skills"; "skill-manifest.json" ])
 
     match manifestPaths |> List.filter (snd >> File.Exists) with
-    | [ (ownerA, a); (ownerB, b) ] when not (digestEquals (fileDigest a) (fileDigest b)) ->
-        violations.Add $"the two skill manifests disagree: {ownerA}/skills/skill-manifest.json is {shortDigest (fileDigest a)}, {ownerB}/skills/skill-manifest.json is {shortDigest (fileDigest b)} — one of them has been edited alone"
+    | [ (ownerA, a); (ownerB, b) ] ->
+        // #62 (4): BOTH digests are attempted and BOTH failures reported. Reading one and letting it
+        // throw took the agreement check, the two manifest passes below it and every other check in
+        // this function down with it.
+        let digestOrReport (owner: string) (file: string) =
+            match tryDigest file with
+            | Ok digest -> Some digest
+            | Error reason ->
+                violations.Add $"{owner}/skills/skill-manifest.json: {reason}"
+                None
+
+        match digestOrReport ownerA a, digestOrReport ownerB b with
+        | Some da, Some db when not (digestEquals da db) ->
+            violations.Add $"the two skill manifests disagree: {ownerA}/skills/skill-manifest.json is {shortDigest da}, {ownerB}/skills/skill-manifest.json is {shortDigest db} — one of them has been edited alone"
+        | _ -> ()
     | _ -> ()
 
     for owner in skillManifests do
@@ -1146,43 +1534,67 @@ let templateDriftViolations (root: string) =
         if not (File.Exists manifest) then
             violations.Add $"{manifestName}: pinned skill manifest is missing"
         else
-            use doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText manifest)
+            // #62 (4): the gate's PRIMARY oracle was parsed unguarded, so a manifest that would not
+            // open or would not parse crashed the target with no violation line — while the LEDGER,
+            // the secondary oracle, had been reporting both since #46. The asymmetry was the same
+            // shape as item 3's: a rule enforced on one of two inputs.
+            match tryReadJson manifest with
+            | Error reason -> violations.Add $"{manifestName}: {reason}"
+            | Ok parsed ->
+                use doc = parsed
 
-            match doc.RootElement.TryGetProperty "skills" with
-            | false, _ -> violations.Add $"{manifestName}: no `skills` array to check"
-            | true, skills ->
-                for skill in skills.EnumerateArray() do
-                    let read (name: string) =
-                        match skill.TryGetProperty name with
-                        | true, v -> v.GetString()
-                        | _ -> null
-
-                    let id = read "id"
-                    let relative = read "resolvablePath"
-                    let pinned = read "sha256"
-                    let condition = match read "materializes-when" with | null -> "always" | c -> c
-
-                    if String.IsNullOrWhiteSpace relative || String.IsNullOrWhiteSpace pinned then
-                        violations.Add $"{manifestName}: skill `{id}` pins no resolvablePath/sha256"
-                    else
-                        match materializesHere profile condition with
-                        | Error expr -> violations.Add $"{manifestName}: skill `{id}` has an unreadable `materializes-when` expression: {expr}"
-                        | Ok false ->
-                            // NOT a silent skip. If the condition says this profile does not take the
-                            // skill, the file must be ABSENT — otherwise flipping a condition is a
-                            // one-line way to park arbitrary drift outside the digest check.
-                            if File.Exists(path [ root; relative ]) then
-                                violations.Add $"{manifestName}: skill `{id}` is present at {relative} but `materializes-when` ({condition}) excludes this profile, so nothing pins it"
-                        | Ok true ->
-                            let target = path [ root; relative ]
-
-                            if not (File.Exists target) then
-                                violations.Add $"{manifestName}: skill `{id}` should be materialized here but {relative} is missing"
+                match doc.RootElement.TryGetProperty "skills" with
+                | true, skills when skills.ValueKind = System.Text.Json.JsonValueKind.Array ->
+                    for skill in skills.EnumerateArray() do
+                        let read (name: string) =
+                            if skill.ValueKind <> System.Text.Json.JsonValueKind.Object then
+                                null
                             else
-                                let actual = fileDigest target
+                                match skill.TryGetProperty name with
+                                | true, v when v.ValueKind = System.Text.Json.JsonValueKind.String -> v.GetString()
+                                | _ -> null
 
-                                if not (digestEquals actual pinned) then
-                                    violations.Add $"{manifestName}: {relative} has drifted — pinned {shortDigest pinned}, found {shortDigest actual}"
+                        let id = read "id"
+                        let relative = read "resolvablePath"
+                        let pinned = read "sha256"
+                        let condition = match read "materializes-when" with | null -> "always" | c -> c
+
+                        if String.IsNullOrWhiteSpace relative || String.IsNullOrWhiteSpace pinned then
+                            violations.Add $"{manifestName}: skill `{id}` pins no resolvablePath/sha256"
+                        elif not (withinKitSources relative) then
+                            // #62 (3). The ledger has refused this since #46; the manifest did not,
+                            // so `"resolvablePath": "README.md"` in both manifests was GREEN — a
+                            // digest that matches, over a file no coverage pass enumerates and no
+                            // mirror pass mirrors. The manifest is generated, so reaching this line
+                            // means either the generator changed its contract or someone edited both
+                            // copies by hand; either way the gate must say so rather than count it.
+                            // The message carries the DIAGNOSIS and not a remedy, on a reviewer's
+                            // argument: this manifest is generated, so there is no local command
+                            // that fixes it, and naming a remedy that does not exist is worse than
+                            // naming none. What an operator cannot derive is which of the two
+                            // causes they are looking at.
+                            violations.Add $"{manifestName}: skill `{id}` pins `{relative}`, which is outside {kitSourcePrefix} — the only tree this gate enumerates, so a pin there is checked by nothing that counts coverage. This manifest is GENERATED, so reaching this line means either the generator changed its contract or someone edited both copies by hand"
+                        else
+                            match materializesHere profile condition with
+                            | Error expr -> violations.Add $"{manifestName}: skill `{id}` has an unreadable `materializes-when` expression: {expr}"
+                            | Ok false ->
+                                // NOT a silent skip. If the condition says this profile does not take
+                                // the skill, the file must be ABSENT — otherwise flipping a condition
+                                // is a one-line way to park arbitrary drift outside the digest check.
+                                if File.Exists(path [ root; relative ]) then
+                                    violations.Add $"{manifestName}: skill `{id}` is present at {relative} but `materializes-when` ({condition}) excludes this profile, so nothing pins it"
+                            | Ok true ->
+                                let target = path [ root; relative ]
+
+                                if not (File.Exists target) then
+                                    violations.Add $"{manifestName}: skill `{id}` should be materialized here but {relative} is missing"
+                                else
+                                    match tryDigest target with
+                                    | Error reason -> violations.Add $"{manifestName}: {relative} {reason}"
+                                    | Ok actual ->
+                                        if not (digestEquals actual pinned) then
+                                            violations.Add $"{manifestName}: {relative} has drifted — pinned {shortDigest pinned}, found {shortDigest actual}"
+                | _ -> violations.Add $"{manifestName}: no `skills` array to check"
 
     let manifestPins = agentsManifestPins root
 
@@ -1198,14 +1610,12 @@ let templateDriftViolations (root: string) =
             [ for (relative, pinned) in pins do
                 if String.IsNullOrWhiteSpace relative || String.IsNullOrWhiteSpace pinned then
                     violations.Add $"{kitPinsRelative}: an entry pins no path/sha256"
-                elif not (relative.StartsWith(kitSourcePrefix, StringComparison.Ordinal))
-                     || relative.Split([| '/'; '\\' |]) |> Array.contains ".." then
+                elif not (withinKitSources relative) then
                     // Out-of-tree pins are refused rather than checked: nothing enumerates them for
                     // coverage, so accepting one would let the ledger grow entries that look like
-                    // guarantees and are not. `..` is refused for the same reason and not as a
-                    // security boundary — `.agents/skills/../../elsewhere` satisfies the prefix, so
-                    // without this it would be counted as a pinned KIT source while pinning a file
-                    // no coverage pass enumerates, which is precisely the overstatement #46 is about.
+                    // guarantees and are not. The condition itself now lives in `withinKitSources`,
+                    // shared with the manifest pass — #62 (3) was this boundary existing here and
+                    // nowhere else.
                     violations.Add $"{kitPinsRelative}: `{relative}` is outside {kitSourcePrefix}, which this ledger does not pin"
                 else
                     let target = path [ root; relative ]
@@ -1215,11 +1625,16 @@ let templateDriftViolations (root: string) =
                         // only sees files that EXIST, so removing a kit file would otherwise be silent.
                         violations.Add $"{kitPinsRelative}: {relative} is pinned but missing from this tree"
                     else
-                        let actual = fileDigest target
+                        match tryDigest target with
+                        | Error reason -> violations.Add $"{kitPinsRelative}: {relative} {reason}"
+                        | Ok actual ->
+                            if not (digestEquals actual pinned) then
+                                violations.Add $"{kitPinsRelative}: {relative} has drifted — pinned {shortDigest pinned}, found {shortDigest actual}"
 
-                        if not (digestEquals actual pinned) then
-                            violations.Add $"{kitPinsRelative}: {relative} has drifted — pinned {shortDigest pinned}, found {shortDigest actual}"
-
+                        // Yielded whether or not the bytes could be read. A file the ledger pins IS
+                        // pinned; if it cannot be read, the line above says so. Dropping it here
+                        // would make the coverage pass report it as "pinned by nothing", which is
+                        // false, and would silently drop its mirror from the mirror pass.
                         yield relative, pinned ]
 
     // #46 COVERAGE, the check the item asks for by name: every file the kit materializes is pinned
@@ -1229,7 +1644,7 @@ let templateDriftViolations (root: string) =
     let pinnedSources =
         Seq.append (manifestPins |> Seq.map fst) (kitPins |> Seq.map fst) |> Set.ofSeq
 
-    for relative in kitTreeFiles root ".agents" do
+    for relative in sourceFiles do
         if not (pinnedSources.Contains relative) then
             violations.Add
                 $"coverage: {relative} is materialized in the kit but neither skill manifest nor {kitPinsRelative} pins it, so nothing would report it drifting — run `./fake.sh build -t KitPins` to pin it"
@@ -1251,10 +1666,11 @@ let templateDriftViolations (root: string) =
                 if not (File.Exists mirroredFull) then
                     violations.Add $"mirror: {relative} is materialized but its mirrored copy {mirrored} is missing"
                 else
-                    let actual = fileDigest mirroredFull
-
-                    if not (digestEquals actual pinned) then
-                        violations.Add $"mirror: {mirrored} differs from the digest pinned for {relative} — pinned {shortDigest pinned}, found {shortDigest actual}"
+                    match tryDigest mirroredFull with
+                    | Error reason -> violations.Add $"mirror: {mirrored} {reason}"
+                    | Ok actual ->
+                        if not (digestEquals actual pinned) then
+                            violations.Add $"mirror: {mirrored} differs from the digest pinned for {relative} — pinned {shortDigest pinned}, found {shortDigest actual}"
 
     // The mirror pass walks SOURCES, so a file added only to `.claude/skills` is named by nothing it
     // iterates. Enumerating the mirror tree too is what makes the 190 a real total rather than
@@ -1264,7 +1680,7 @@ let templateDriftViolations (root: string) =
     // without NAMING it: the summary said "2 uncovered" while only one `coverage:` line was
     // emitted. #46's acceptance is that the uncovered set is visible in the gate's output, so a
     // file that the denominator counts as uncovered has to appear by name, not by arithmetic.
-    for mirrored in kitTreeFiles root ".claude" do
+    for mirrored in mirrorFiles do
         let source = ".agents/" + mirrored.Substring(".claude/".Length)
 
         if not (File.Exists(path [ root; source ])) then
@@ -1290,6 +1706,10 @@ let templateDriftCoverage (root: string) =
     let violations = templateDriftViolations root
     let uncovered = violations |> List.filter (fun v -> v.StartsWith "coverage: ") |> List.length
 
+    // #62 (1) and (2): the denominator counts what this repository STORES. A symlinked kit root or
+    // kit file is excluded by `kitTreeScan` and reported by `templateDriftViolations`, so
+    // `.claude/skills -> .agents/skills` now prints `95 of 95 … plus 0 mirror(s)` beside a line
+    // naming the link, instead of `190 of 190 … plus 95 mirror(s)` for 95 distinct files.
     let sources = kitTreeFiles root ".agents"
     let mirrors = kitTreeFiles root ".claude"
     let total = List.length sources + List.length mirrors
@@ -1305,6 +1725,16 @@ let templateDriftCoverage (root: string) =
     let manifestPins = agentsManifestPins root
     let manifestPinned = manifestPins |> Seq.map fst |> Set.ofSeq
 
+    // A hostile critic's mutation matrix reports that dropping `withinKitSources` from THIS filter
+    // survives every case, and that is correct and cannot be fixed by adding one: `sources` only
+    // ever holds paths under `.agents/skills/`, so a ledger entry outside the prefix can never match
+    // one and the clause is redundant by construction here. It is kept because the alternative — two
+    // validations that are deliberately different — is what made these two computations disagree
+    // twice, and an untestable clause that cannot diverge is a smaller hazard than a divergence that
+    // can. The real repair is structural and is filed rather than smuggled in: derive the
+    // denominator from the value `templateDriftViolations` already produced, so there is only one
+    // validation to keep honest.
+    //
     // This repeats the enumeration's validation MINUS `File.Exists`, and that difference is
     // deliberate: a pin whose file is absent contributes no enumerated file, so it can neither be
     // counted nor named, and `templateDriftViolations` reports it separately as `pinned but
@@ -1318,8 +1748,7 @@ let templateDriftCoverage (root: string) =
             |> List.filter (fun (relative, pinned) ->
                 not (String.IsNullOrWhiteSpace relative)
                 && not (String.IsNullOrWhiteSpace pinned)
-                && relative.StartsWith(kitSourcePrefix, StringComparison.Ordinal)
-                && not (relative.Split([| '/'; '\\' |]) |> Array.contains ".."))
+                && withinKitSources relative)
             |> List.map fst
             |> Set.ofList
         | Error _ -> Set.empty
@@ -1338,11 +1767,26 @@ let generatedGuidanceViolations (root: string) =
     let violations = ResizeArray<string>()
     let agentsFile = path [ root; ".fsgg"; "agents.yml" ]
 
-    if not (File.Exists agentsFile) then
-        violations.Add ".fsgg/agents.yml is missing, so the declared agent inventory cannot be checked"
+    // #62 (4), the neighbouring seam. The item names `fileDigest`, but the same defect class — an
+    // unhandled filesystem exception aborting a gate with no violation line — was one unguarded
+    // `File.ReadAllLines` away in the target that runs beside it. Clearing the mode bits on
+    // `.fsgg/agents.yml`
+    // stopped `GeneratedGuidanceCheck` dead. Enumerating the producers of a defect class rather
+    // than the ones an issue happens to name is the whole point of fixing it here.
+    let read =
+        if not (File.Exists agentsFile) then
+            Error ".fsgg/agents.yml is missing, so the declared agent inventory cannot be checked"
+        else
+            try
+                Ok(File.ReadAllLines agentsFile)
+            with ex ->
+                Error $".fsgg/agents.yml cannot be read ({ex.GetType().Name}), so the declared agent inventory cannot be checked"
+
+    match read with
+    | Error reason ->
+        violations.Add reason
         List.ofSeq violations
-    else
-        let lines = File.ReadAllLines agentsFile
+    | Ok lines ->
         let agents = ResizeArray<string * string option * string option>()
         let mutable current = None
 
@@ -1410,20 +1854,33 @@ let generatedGuidanceViolations (root: string) =
 
             let readinessRoot = path [ root; "readiness" ]
 
+            // #62 (4), same class again and the last instance of it in this file: a directory that
+            // will not list threw straight out of the target. Enumerated by the same grep that found
+            // the reads — `Directory.Get*` is as able to throw as `File.ReadAll*`, and this pair is
+            // the only remaining one on a verdict path.
+            let subdirectories (dir: string) =
+                try
+                    Ok(Directory.GetDirectories dir)
+                with ex ->
+                    Error $"{(Path.GetRelativePath(root, dir)).Replace('\\', '/')}: cannot be listed ({ex.GetType().Name}), so the guidance under it is not being checked"
+
             if Directory.Exists readinessRoot then
-                for workDir in Directory.GetDirectories readinessRoot do
-                    let commands = path [ workDir; "agent-commands" ]
+                match subdirectories readinessRoot with
+                | Error reason -> violations.Add reason
+                | Ok workDirs ->
+                    for workDir in workDirs do
+                        let commands = path [ workDir; "agent-commands" ]
 
-                    if Directory.Exists commands then
-                        let present =
-                            Directory.GetDirectories commands
-                            |> Array.map Path.GetFileName
-                            |> Set.ofArray
+                        if Directory.Exists commands then
+                            match subdirectories commands with
+                            | Error reason -> violations.Add reason
+                            | Ok present ->
+                                let present = present |> Array.map Path.GetFileName |> Set.ofArray
 
-                        for leaf in leaves do
-                            if not (present.Contains leaf) then
-                                let work = Path.GetFileName workDir
-                                violations.Add $"readiness/{work}/agent-commands has generated guidance but none for `{leaf}`"
+                                for leaf in leaves do
+                                    if not (present.Contains leaf) then
+                                        let work = Path.GetFileName workDir
+                                        violations.Add $"readiness/{work}/agent-commands has generated guidance but none for `{leaf}`"
 
         List.ofSeq violations
 
@@ -1517,7 +1974,7 @@ let private jsonString (value: string) =
 /// this file over the transcript, so it must not be able to say `failures: 0` about a run that
 /// failed for a reason the tally never sees (a repository-clean raise), nor about a run that never
 /// checked itself at all.
-let private writeSelfTestResult (recorded: (string * bool) list) (verdict: string) (detail: string) (probed: bool) =
+let private writeSelfTestResult (recorded: (string * bool) list) (skipped: string list) (verdict: string) (detail: string) (probed: bool) =
     let failed = recorded |> List.filter (snd >> not) |> List.map fst
     let target = selfTestResultPath ()
     let full = Path.GetFullPath target
@@ -1527,13 +1984,23 @@ let private writeSelfTestResult (recorded: (string * bool) list) (verdict: strin
         String.concat
             "\n"
             [ "{"
-              "  \"schemaVersion\": 2,"
+              "  \"schemaVersion\": 3,"
               sprintf "  \"verdict\": %s," (jsonString verdict)
               sprintf "  \"detail\": %s," (jsonString detail)
               sprintf "  \"probed\": %b," probed
               sprintf "  \"cases\": %d," (List.length recorded)
               sprintf "  \"failures\": %d," (List.length failed)
               sprintf "  \"injected\": %b," (selfTestInjecting ())
+              // #62. A case that could not establish its precondition RECORDS NOTHING, so a host
+              // that refuses symbolic links or runs as root simply reports a smaller, entirely
+              // healthy-looking total and exits 0 — a critic measured 164 -> 156 and 164 -> 161 for
+              // those two hosts. The only signal was a `note` line among 160 `ok` lines, and #57
+              // established that the transcript is exactly what must not be trusted. So the skips
+              // travel in the STRUCTURED result, where a gate can read them.
+              sprintf "  \"skipped\": %d," (List.length skipped)
+              "  \"skippedCases\": ["
+              (skipped |> List.map (fun d -> "    " + jsonString d) |> String.concat ",\n")
+              "  ],"
               "  \"failed\": ["
               (failed |> List.map (fun d -> "    " + jsonString d) |> String.concat ",\n")
               "  ]"
@@ -1673,6 +2140,15 @@ let private writeFile (filePath: string) (contents: string) =
     Directory.CreateDirectory(Path.GetDirectoryName filePath: string) |> ignore
     File.WriteAllText(filePath, contents)
 
+/// A digest of a file a fixture has just written. #62 removed the throwing `fileDigest` so no
+/// verdict path can reach one; a fixture that cannot read what it wrote a line earlier is a broken
+/// test rather than a finding, so this one fails LOUDLY instead of returning a violation nobody
+/// would be asserting on.
+let private fixtureDigest (filePath: string) =
+    match tryDigest filePath with
+    | Ok digest -> digest
+    | Error reason -> failwithf "SelfTest fixture: %s %s" filePath reason
+
 /// The fixture's stand-in for the 63 kit files the generated manifest does not name. Named after a
 /// real one: `#46` records appending a line to this exact path as the cheapest surviving evasion.
 let private unnamedRelative = ".agents/skills/work-board/references/deep-detail.md"
@@ -1690,7 +2166,7 @@ let private plantFixture (root: string) =
     writeFile (path [ root; skillRelative ]) skillBody
     // the mirrored twin the kit materializes alongside it, byte-identical by construction
     writeFile (path [ root; ".claude/skills/fs-gg-kit/SKILL.md" ]) skillBody
-    let digest = fileDigest (path [ root; skillRelative ])
+    let digest = fixtureDigest (path [ root; skillRelative ])
     // A skill whose condition MATCHES this profile by equality. Without it, a mutation that
     // makes the `profile == x` branch always answer "no" is invisible: the only equality entry
     // in the fixture would be one that is absent anyway.
@@ -1747,6 +2223,21 @@ let private runSelfTest () =
     // counter whose deletion silences a failure, and the printing below is a REPORT of the record
     // rather than the thing the verdict is computed from.
     let recorded = ResizeArray<string * bool>()
+
+    // #62: what this run could NOT prove. A case guarded by a platform precondition — a symbolic
+    // link this host refuses to create, mode bits a root process ignores — records nothing at all
+    // when the precondition fails, so the run reports a smaller total and exits 0 and a reader
+    // concludes the guards passed. A critic measured that: forcing the mode-bit probe to fail
+    // (i.e. running as root, the default in many container images) drops 3 cases; forcing the link
+    // probe to fail drops 8, including every case for items 1 and 2. Both still print
+    // `0 failure(s)` and exit 0. This list is what makes the absence legible, and it travels in the
+    // structured result rather than in the transcript, because #57's whole subject is that the
+    // transcript is what must not be trusted.
+    let skipped = ResizeArray<string>()
+
+    let skip (group: string) (reason: string) =
+        skipped.Add $"{group}: {reason}"
+        printfn "  SKIP %s — %s" group reason
 
     let expect description condition =
         recorded.Add(description, condition)
@@ -2313,6 +2804,687 @@ let private runSelfTest () =
             (templateDriftViolations ledgerSiblingDir
              |> List.exists (fun v -> v.Contains kitPinsRelative && v.Contains "which this ledger does not pin"))
 
+        // -------------------------------------------------------------------
+        // #62. Four residuals an independent hostile-code critic found against
+        // #46's candidate AFTER SelfTest, TemplateDrift and the suite were green.
+        // None of them hides content drift — the critic appended a line to each of
+        // the 190 kit files, one at a time, in 190 separate runs, and every one was
+        // caught. They are COVERAGE OVERSTATEMENTS and ROBUSTNESS gaps: a tree
+        // where the gate's own number is wrong, or where it says nothing at all.
+        //
+        // The cases below are ordered as the item numbers them. Each is written so
+        // that DELETING the guard leaves the fixture GREEN or CRASHING, never
+        // merely differently worded — the only shape of case that could have caught
+        // these in the first place.
+        // -------------------------------------------------------------------
+
+        /// A `templateDriftViolations` run that reports a CRASH as a value. #62 (4)'s defect was an
+        /// unhandled exception out of the target — "Stopped due to error" and NO violation line —
+        /// so "did not abort" is the thing being asserted and must be assertable, not merely the
+        /// absence of a dead `SelfTest` run.
+        let violationsOrCrash (root: string) =
+            try
+                Ok(templateDriftViolations root)
+            with ex ->
+                Error(ex.GetType().Name)
+
+        /// Creates a symbolic link, or announces that this platform refused. Windows without
+        /// developer mode cannot make one; a case that cannot run must SAY SO rather than record a
+        /// pass, which is the vacuous-green shape this whole target exists to prevent.
+        let trySymlink (group: string) (linkPath: string) (target: string) (directory: bool) =
+            try
+                if directory then
+                    Directory.CreateSymbolicLink(linkPath, target) |> ignore
+                else
+                    File.CreateSymbolicLink(linkPath, target) |> ignore
+
+                true
+            with ex ->
+                skip group $"this platform refused to create a symbolic link ({ex.GetType().Name})"
+                false
+
+        // #62 (1): `.claude/skills` a link to `.agents/skills`. The gate printed
+        // `190 of 190 … plus 95 mirror(s)` for 95 distinct files, the mirror pass compared every
+        // file with itself, and `the two skill manifests disagree` could not fire. Every digest
+        // still matched, so this tree was GREEN before the walk learned what a link is.
+        let linkedTreeRoot, _ = freshFixture ()
+        Directory.Delete(path [ linkedTreeRoot; ".claude"; "skills" ], true)
+
+        if trySymlink "#62 (1) symlinked kit tree ROOT (3 cases)" (path [ linkedTreeRoot; ".claude"; "skills" ]) (path [ linkedTreeRoot; ".agents"; "skills" ]) true then
+            let linkedTreeViolations = templateDriftViolations linkedTreeRoot
+
+            expect
+                "a kit tree ROOT replaced by a symbolic link is reported"
+                (linkedTreeViolations
+                 |> List.exists (fun v -> v.Contains ".claude/skills" && v.Contains "symbolic link"))
+
+            // The number, which is what the item is actually about. 4 real files, not 8.
+            expect
+                "…and the coverage total stops counting the same files twice through the link"
+                (let line = templateDriftCoverage linkedTreeRoot
+                 line.Contains "of 4 kit files" && line.Contains "plus 0 mirror(s)")
+
+            // Without the link check this tree is CLEAN. Asserting the count pins that: the link
+            // line is the only thing standing between this fixture and a green run.
+            expect
+                "…and the link is the ONLY finding, so nothing else was ever going to report it"
+                (List.length linkedTreeViolations = 1)
+
+        // The other half of (1): `.claude` itself is the link, so `.claude/skills` is a perfectly
+        // ordinary directory reached through it and a check on `<owner>/skills` alone sees nothing.
+        let linkedOwnerRoot, _ = freshFixture ()
+        Directory.Delete(path [ linkedOwnerRoot; ".claude" ], true)
+
+        if trySymlink "#62 (1) symlinked kit OWNER directory (1 case)" (path [ linkedOwnerRoot; ".claude" ]) (path [ linkedOwnerRoot; ".agents" ]) true then
+            expect
+                "a kit OWNER directory replaced by a symbolic link is reported too, not just its skills/ child"
+                (templateDriftViolations linkedOwnerRoot
+                 |> List.exists (fun v -> v.StartsWith ".claude is a symbolic link"))
+
+        // A link NESTED inside the tree, which `Directory.GetFiles(…, AllDirectories)` followed
+        // silently. A check on the two roots alone would leave this route open — and a root check is
+        // exactly what the item proposed.
+        let linkedSubdirRoot, _ = freshFixture ()
+        Directory.Delete(path [ linkedSubdirRoot; ".claude"; "skills"; "fs-gg-kit" ], true)
+
+        if trySymlink
+            "#62 (1) symbolic link NESTED inside a kit tree (1 case)"
+            (path [ linkedSubdirRoot; ".claude"; "skills"; "fs-gg-kit" ])
+            (path [ linkedSubdirRoot; ".agents"; "skills"; "fs-gg-kit" ])
+            true then
+            expect
+                "a symbolic link NESTED inside a kit tree is reported, not followed"
+                (templateDriftViolations linkedSubdirRoot
+                 |> List.exists (fun v -> v.Contains ".claude/skills/fs-gg-kit" && v.Contains "symbolic link"))
+
+        // The tree walk feeds `computeKitPins`, which WRITES the ledger in the order it receives, so
+        // the enumeration's ORDER is part of the contract and not an implementation detail. The
+        // hand-written walk is depth-first and the array it replaced was sorted flat; the two differ
+        // wherever a directory and a file share a prefix. This was not caught by reading — the first
+        // version of the walk moved 4 pins — 8 changed diff lines — of the real
+        // `scripts/kit-pins.json` (the figure `sorted`'s own comment carries; "six" was the first
+        // commit message's and was wrong), a gratuitous
+        // diff on a file a merged audit binds, discovered only by running `KitPins` and looking at
+        // `git diff`. The fixture plants exactly that pair so a dropped sort cannot pass.
+        let walkOrder, _ = freshFixture ()
+        writeFile (path [ walkOrder; ".agents/skills/fs-gg-kit/section/nested.md" ]) "# nested\n"
+        writeFile (path [ walkOrder; ".agents/skills/fs-gg-kit/section.md" ]) "# sibling\n"
+        let walkOrderFiles = kitTreeFiles walkOrder ".agents"
+
+        expect
+            "the kit enumeration is SORTED, so the ledger it writes has a stable order"
+            (walkOrderFiles
+             |> List.contains ".agents/skills/fs-gg-kit/section.md"
+             && walkOrderFiles |> List.contains ".agents/skills/fs-gg-kit/section/nested.md"
+             && walkOrderFiles = List.sort walkOrderFiles)
+
+        // …and the property that actually matters, asserted on THIS repository rather than on a
+        // fixture: the committed ledger is byte-for-byte what the remedy would write today. A
+        // fixture can only prove the walk agrees with itself; only the real tree can prove it still
+        // agrees with the file 63 pins and four merged audit bindings already depend on. This is
+        // read-only — it renders the content and compares, and writes nothing, so `Verify` still
+        // leaves `git status --porcelain` empty (rogue3#56).
+        //
+        // Does this red a CORRECT tree — the failure this file is written throughout to avoid? No,
+        // and the reasoning is written out because it is the first question a reviewer should ask.
+        // The ledger's content is a function of exactly three things: the set of files under
+        // `.agents/skills`, their digests, and which of them the generated manifest pins. Change the
+        // first and the coverage pass or the `pinned but missing` line is already red; change the
+        // second and the ledger's own drift line is already red; change the third and you have
+        // edited `skill-manifest.json`, which the ledger itself pins, so that is red too. Every tree
+        // this case can fail on is a tree `TemplateDrift` already fails on, and the remedy is the
+        // one command both of them name. The one genuinely NEW red is a hand-edit to the ledger's
+        // formatting — on a file whose own `note` says to regenerate it — which is a tree nobody
+        // should be able to reach quietly.
+        expect
+            "scripts/kit-pins.json is byte-for-byte what KitPins would write for this tree right now"
+            (let root = currentRoot ()
+             let manifestPinned = agentsManifestPins root |> Seq.map fst |> Set.ofSeq
+             let pins, unpinnable = computeKitPins root manifestPinned
+
+             List.isEmpty unpinnable
+             && File.Exists(path [ root; kitPinsRelative ])
+             && File.ReadAllText(path [ root; kitPinsRelative ]) = renderKitPins pins)
+
+        // #62 (2): a kit SOURCE replaced by a link to identical bytes outside the repository. Every
+        // digest matches — that is the point — so nothing but file TYPE can report it. The file's
+        // provenance has left the tree and a fresh clone dangles.
+        let linkedFileRoot, _ = freshFixture ()
+        let outsideTheRepository = path [ sandbox; "carried-out-of-tree-" + Guid.NewGuid().ToString("N") + ".md" ]
+        let carriedOut = path [ linkedFileRoot; unnamedRelative ]
+        File.Copy(carriedOut, outsideTheRepository)
+        File.Delete carriedOut
+
+        if trySymlink "#62 (2) kit FILE symlinked out of the repository (3 cases)" carriedOut outsideTheRepository false then
+            let linkedFileViolations = templateDriftViolations linkedFileRoot
+
+            expect
+                "a kit FILE replaced by a symbolic link out of the repository is reported"
+                (linkedFileViolations
+                 |> List.exists (fun v -> v.Contains "deep-detail.md" && v.Contains "symbolic link"))
+
+            // Proves WHICH check fired. If this passed by digest the case would be asserting the
+            // pre-existing drift check and would survive deleting everything #62 added.
+            expect
+                "…by TYPE and not by digest: the bytes behind the link are identical"
+                (not (linkedFileViolations |> List.exists (fun v -> v.Contains "has drifted")))
+
+            expect
+                "…and a linked file is no longer counted toward the coverage total"
+                ((templateDriftCoverage linkedFileRoot).Contains "of 7 kit files")
+
+        /// Inserts one raw entry into BOTH skill manifests, keeping them byte-identical so the
+        /// agreement check stays quiet and the case tests only what it means to.
+        let plantManifestEntry (root: string) (entryJson: string) =
+            for owner in skillManifests do
+                let manifestPath = path [ root; owner; "skills"; "skill-manifest.json" ]
+                let text = File.ReadAllText manifestPath
+                File.WriteAllText(manifestPath, text.Replace("\"skills\": [", "\"skills\": [\n    " + entryJson + ","))
+
+            // The manifests are themselves pinned by the ledger, so an edit to them is drift until
+            // the ledger is rewritten. Re-pinning isolates the case to the entry it plants.
+            repinFixture root
+
+        // #62 (3): the ledger has refused a pin outside `.agents/skills/` since #46 and the
+        // generated manifest did not, though both feed the same coverage set and the same mirror
+        // pass. The digest below is CORRECT, so before this guard the tree was green.
+        //
+        // Nothing in the fixture's path or id can satisfy the assertion by accident: #46's own
+        // ledger case was first written against a file called `outside-the-kit.md` and asserted
+        // `Contains "outside"`, which the DRIFT message satisfied through the filename, so both
+        // mutants passed. The phrase asserted here appears in one message in this file.
+        let manifestBoundary, _ = freshFixture ()
+        writeFile (path [ manifestBoundary; "README.md" ]) "# readme\n"
+        let readmeDigest = fixtureDigest (path [ manifestBoundary; "README.md" ])
+
+        plantManifestEntry
+            manifestBoundary
+            $"""{{ "id": "fs-gg-readme", "scope": "product", "sha256": "{readmeDigest}", "resolvablePath": "README.md", "materializes-when": "always" }}"""
+
+        let manifestBoundaryViolations = templateDriftViolations manifestBoundary
+
+        expect
+            "a MANIFEST entry pinning a path outside the kit tree is refused, exactly as the ledger's is"
+            (manifestBoundaryViolations
+             |> List.exists (fun v -> v.Contains "skill-manifest.json" && v.Contains "the only tree this gate enumerates"))
+
+        // SURVIVING MUTANT: this assertion does NOT cover `agentsManifestPins`' copy of the
+        // boundary, because `byManifest` intersects with the ENUMERATED sources and an out-of-kit
+        // path is never enumerated — so it reads the same either way. A critic's matrix found that
+        // deleting `&& withinKitSources relative` from `agentsManifestPins` survived every case.
+        // The digest COUNT is what actually distinguishes them: it is `manifestPins.Count`, straight
+        // from the filtered set.
+        expect
+            "…and the coverage line does not credit the generated manifest for it"
+            (let line = templateDriftCoverage manifestBoundary
+             line.Contains "2 source(s) by the generated manifest"
+             && line.Contains "Manifest entries carrying a digest: 3")
+
+        // The trailing slash, on the manifest side this time: `.agents/skillsX/` must not satisfy
+        // `.agents/skills`. Given a real file at a matching digest, so removing the boundary makes
+        // this fixture green rather than differently red.
+        let manifestSiblingDir, _ = freshFixture ()
+        writeFile (path [ manifestSiblingDir; ".agents/skillsX/plain.md" ]) "# added\n"
+        let siblingDigest = fixtureDigest (path [ manifestSiblingDir; ".agents/skillsX/plain.md" ])
+
+        plantManifestEntry
+            manifestSiblingDir
+            $"""{{ "id": "fs-gg-sibling", "scope": "product", "sha256": "{siblingDigest}", "resolvablePath": ".agents/skillsX/plain.md", "materializes-when": "always" }}"""
+
+        expect
+            "a MANIFEST entry in a sibling directory sharing the prefix is refused"
+            (templateDriftViolations manifestSiblingDir
+             |> List.exists (fun v -> v.Contains "skill-manifest.json" && v.Contains "the only tree this gate enumerates"))
+
+        // `.agents/skills/../../x` satisfies the prefix. The refusal must come from the boundary and
+        // not from the file being absent, which is why the assertion names the boundary's wording.
+        let manifestEscape, _ = freshFixture ()
+
+        plantManifestEntry
+            manifestEscape
+            """{ "id": "fs-gg-escape", "scope": "product", "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "resolvablePath": ".agents/skills/../../escaped.md", "materializes-when": "always" }"""
+
+        expect
+            "a MANIFEST entry that escapes the kit tree with .. is refused"
+            (templateDriftViolations manifestEscape
+             |> List.exists (fun v -> v.Contains "skill-manifest.json" && v.Contains "the only tree this gate enumerates"))
+
+        // #62 (4): every read that feeds a verdict returns a line instead of throwing.
+        //
+        // This first case needs no permissions and no platform: `File.ReadAllBytes` on a DIRECTORY
+        // throws exactly as it did on a mode-000 file, so the total reader is pinned everywhere the
+        // suite runs, including the platforms where the mode-bit cases below announce a skip.
+        expect
+            "a digest of something that cannot be read is a REASON, not an exception"
+            (match tryDigest sandbox with
+             | Error reason -> reason.Contains "cannot be read"
+             | Ok _ -> false)
+
+        // The link PROBE is a filesystem call too, and it was the one new call in #62's own fix that
+        // could still throw — item 4 reintroduced by item 1, found by a critic. On Unix `LinkTarget`
+        // returns null when `readlink` fails, so this case reaches the `with` through a path the
+        // constructor rejects rather than through a permission; the point is that the function has
+        // one, and that an unclassifiable path is refused rather than counted.
+        expect
+            "a path the link probe cannot classify is a REASON, not an exception"
+            (match tryLinkTarget "\000not-a-path" with
+             | Error reason -> reason.Contains "cannot be examined"
+             | Ok _ -> false)
+
+        expect
+            "…and a path that simply does not exist is not a link, and does not throw either"
+            (match tryLinkTarget (path [ sandbox; "no-such-entry-" + Guid.NewGuid().ToString("N") ]) with
+             | Ok None -> true
+             | _ -> false)
+
+        /// Makes a path unreadable and answers whether it really became unreadable. A run as root
+        /// ignores the mode entirely, and a case that quietly proves nothing is the defect this
+        /// target exists to stop — so the probe READS BACK rather than trusting the mode it just set.
+        let tryMakeUnreadable (group: string) (target: string) =
+            if OperatingSystem.IsWindows() then
+                skip group "this platform has no POSIX mode bits"
+                false
+            else
+                try
+                    File.SetUnixFileMode(target, UnixFileMode.None)
+
+                    try
+                        File.ReadAllBytes target |> ignore
+                        skip group "clearing the mode bits left the file readable (running as root?)"
+                        false
+                    with _ ->
+                        true
+                with ex ->
+                    skip group $"the mode bits could not be cleared ({ex.GetType().Name})"
+                    false
+
+        let restoreReadable (target: string) =
+            if not (OperatingSystem.IsWindows()) then
+                try
+                    File.SetUnixFileMode(target, UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute)
+                with _ ->
+                    ()
+
+        // A kit file the gate can SEE but not OPEN. Before #62 this was an unhandled
+        // `UnauthorizedAccessException`, "Stopped due to error", and no violation line at all.
+        let unreadableSource, unreadableSkill = freshFixture ()
+        let unreadableTarget = path [ unreadableSource; unreadableSkill ]
+
+        if tryMakeUnreadable "#62 (4) unreadable kit file (1 case)" unreadableTarget then
+            let outcome = violationsOrCrash unreadableSource
+            restoreReadable unreadableTarget
+
+            expect
+                "an UNREADABLE kit file is reported rather than aborting the run"
+                (match outcome with
+                 | Error _ -> false
+                 | Ok violations -> violations |> List.exists (fun v -> v.Contains unreadableSkill && v.Contains "cannot be read"))
+
+        // SURVIVING MUTANT, found by a hostile matrix: moving the ledger pass's `yield relative,
+        // pinned` inside its `Ok` arm left all 149 cases green. It is not cosmetic. On a tree with an
+        // unreadable SOURCE and a DRIFTED MIRROR, the mutant loses the `mirror: … differs` line
+        // entirely and replaces it with two false `coverage: … pinned by nothing` lines — a file that
+        // IS pinned, reported as pinned by nothing, which is the overstatement this item is about
+        // pointing the other way. The comment above the yield states exactly this consequence and
+        // nothing asserted it.
+        let unreadableSourceDriftedMirror, _ = freshFixture ()
+        let unreadablePinned = path [ unreadableSourceDriftedMirror; unnamedRelative ]
+        File.AppendAllText(path [ unreadableSourceDriftedMirror; ".claude/skills/work-board/references/deep-detail.md" ], "drifted\n")
+
+        if tryMakeUnreadable "#62 (4) unreadable source with a drifted mirror (1 case)" unreadablePinned then
+            let outcome = violationsOrCrash unreadableSourceDriftedMirror
+            restoreReadable unreadablePinned
+
+            expect
+                "an unreadable SOURCE still has its mirror checked against the digest the ledger pins for it"
+                (match outcome with
+                 | Error _ -> false
+                 | Ok violations ->
+                     (violations |> List.exists (fun v -> v.StartsWith "mirror: " && v.Contains "deep-detail.md" && v.Contains "differs"))
+                     && not (violations |> List.exists (fun v -> v.StartsWith "coverage: " && v.Contains "deep-detail.md")))
+
+        // The gate's PRIMARY oracle. The ledger has reported its own read failures since #46; the
+        // manifest was parsed unguarded, so the tree the gate most needs to describe was the one it
+        // could say nothing about.
+        let unreadableManifest, _ = freshFixture ()
+        let unreadableManifestPath = path [ unreadableManifest; ".agents"; "skills"; "skill-manifest.json" ]
+
+        if tryMakeUnreadable "#62 (4) unreadable skill manifest (1 case)" unreadableManifestPath then
+            let outcome = violationsOrCrash unreadableManifest
+            restoreReadable unreadableManifestPath
+
+            expect
+                "an UNREADABLE skill manifest is reported rather than aborting the run"
+                (match outcome with
+                 | Error _ -> false
+                 | Ok violations ->
+                     violations
+                     |> List.exists (fun v -> v.Contains ".agents/skills/skill-manifest.json" && v.Contains "cannot be read"))
+
+        // A DIRECTORY that will not list. The tree walk is a filesystem call like any other, and
+        // `Directory.GetFiles` threw the same exception from the same cause.
+        let unlistableDir, _ = freshFixture ()
+        let unlistableTarget = path [ unlistableDir; ".agents"; "skills"; "work-board"; "references" ]
+
+        if OperatingSystem.IsWindows() then
+            skip "#62 (4) unlistable KIT directory (1 case)" "this platform has no POSIX mode bits"
+        else
+            let becameUnlistable =
+                try
+                    DirectoryInfo(unlistableTarget).UnixFileMode <- UnixFileMode.None
+
+                    try
+                        Directory.GetFileSystemEntries unlistableTarget |> ignore
+                        false
+                    with _ ->
+                        true
+                with _ ->
+                    false
+
+            if not becameUnlistable then
+                skip "#62 (4) unlistable kit directory (1 case)" "the directory stayed listable with its mode bits cleared (running as root?)"
+            else
+                let outcome = violationsOrCrash unlistableDir
+
+                try
+                    DirectoryInfo(unlistableTarget).UnixFileMode <-
+                        UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
+                with _ ->
+                    ()
+
+                expect
+                    "a kit DIRECTORY that cannot be listed is reported rather than aborting the run"
+                    (match outcome with
+                     | Error _ -> false
+                     | Ok violations -> violations |> List.exists (fun v -> v.Contains "references" && v.Contains "cannot be listed"))
+
+        // The same class in the OTHER target's directory walk, which the grep found and reading did
+        // not: `Directory.GetDirectories` over `readiness/<work>/agent-commands` threw straight out
+        // of `GeneratedGuidanceCheck`.
+        let unlistableCommands, _ = freshFixture ()
+        let commandsDir = path [ unlistableCommands; "readiness"; "015-work"; "agent-commands" ]
+
+        for agent in [ "claude"; "codex" ] do
+            Directory.CreateDirectory(path [ commandsDir; agent ]) |> ignore
+
+        if OperatingSystem.IsWindows() then
+            skip "#62 (4) unlistable generated-guidance directory (1 case)" "this platform has no POSIX mode bits"
+        else
+            let becameUnlistable =
+                try
+                    DirectoryInfo(commandsDir).UnixFileMode <- UnixFileMode.None
+
+                    try
+                        Directory.GetDirectories commandsDir |> ignore
+                        false
+                    with _ ->
+                        true
+                with _ ->
+                    false
+
+            if not becameUnlistable then
+                skip "#62 (4) unlistable generated-guidance directory (1 case)" "the directory stayed listable with its mode bits cleared (running as root?)"
+            else
+                let outcome =
+                    try
+                        Ok(generatedGuidanceViolations unlistableCommands)
+                    with ex ->
+                        Error(ex.GetType().Name)
+
+                try
+                    DirectoryInfo(commandsDir).UnixFileMode <-
+                        UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
+                with _ ->
+                    ()
+
+                expect
+                    "a generated-guidance DIRECTORY that cannot be listed is reported rather than aborting GeneratedGuidanceCheck"
+                    (match outcome with
+                     | Error _ -> false
+                     | Ok violations -> violations |> List.exists (fun v -> v.Contains "agent-commands" && v.Contains "cannot be listed"))
+
+        // The neighbouring target, guarded in the same change for the same reason: #62 names
+        // `fileDigest`, and a worker who guards only the seam an issue names has not fixed the
+        // defect class. `.fsgg/agents.yml` was one unguarded `File.ReadAllLines` away.
+        let unreadableAgents, _ = freshFixture ()
+        let unreadableAgentsPath = path [ unreadableAgents; ".fsgg"; "agents.yml" ]
+
+        if tryMakeUnreadable "#62 (4) unreadable .fsgg/agents.yml (1 case)" unreadableAgentsPath then
+            let outcome =
+                try
+                    Ok(generatedGuidanceViolations unreadableAgents)
+                with ex ->
+                    Error(ex.GetType().Name)
+
+            restoreReadable unreadableAgentsPath
+
+            expect
+                "an UNREADABLE .fsgg/agents.yml is reported rather than aborting GeneratedGuidanceCheck"
+                (match outcome with
+                 | Error _ -> false
+                 | Ok violations -> violations |> List.exists (fun v -> v.Contains "agents.yml" && v.Contains "cannot be read"))
+
+        // A critic reading the candidate ran the SAME grep the commit message claims to have run and
+        // found it incomplete: `sensedReadinessFiles (File.ReadAllText …)` appears three times on the
+        // `Verify` path, and `runEvidenceGraphEmission` re-raises, so an unreadable
+        // `readiness/evidence-graph.md` still aborted with no line — item 4's shape, one target over,
+        // inside the commit that claimed the class was closed. Both readers are now total, and both
+        // fall the way this rule's own doc comment already said they should.
+        let graphUnreadable = path [ sandbox; "graph-unreadable-" + Guid.NewGuid().ToString("N") ]
+        Directory.CreateDirectory graphUnreadable |> ignore
+        let emittedGraphPath = path [ graphUnreadable; "graph.md" ]
+        let publishedGraphPath = path [ graphUnreadable; "graph.published.md" ]
+        let graphBody = "# Evidence graph\n\n## Sensed readiness files\n\n- `readiness/a.txt`\n"
+        writeFile emittedGraphPath graphBody
+        writeFile publishedGraphPath graphBody
+
+        if tryMakeUnreadable "#62 (4) unreadable PUBLISHED evidence graph (1 case)" publishedGraphPath then
+            let outcome =
+                try
+                    Ok(applyEvidenceGraphPublicationRule emittedGraphPath publishedGraphPath false)
+                with ex ->
+                    Error(ex.GetType().Name)
+
+            restoreReadable publishedGraphPath
+
+            expect
+                "an UNREADABLE published evidence graph makes the publication rule ABSTAIN rather than abort Verify"
+                (match outcome with
+                 | Ok (Unevaluatable reason) -> reason.Contains "cannot be read"
+                 | _ -> false)
+
+        if tryMakeUnreadable "#62 (4) unreadable EMITTED evidence graph (1 case)" emittedGraphPath then
+            let outcome =
+                try
+                    Ok(emittedGraphSectionWarning emittedGraphPath)
+                with ex ->
+                    Error(ex.GetType().Name)
+
+            restoreReadable emittedGraphPath
+
+            expect
+                "an UNREADABLE freshly emitted evidence graph WARNS rather than aborting Verify"
+                (match outcome with
+                 | Ok lines -> lines |> List.exists (fun l -> l.Contains "could not be read")
+                 | Error _ -> false)
+
+        // The last "writes a ledger it knows is wrong and exits 0": `KitPins` reads the generated
+        // manifest to compute the COMPLEMENT it pins, and a manifest it cannot read looks exactly
+        // like a manifest that pins nothing — which would silently rewrite the tracked ledger 32
+        // entries larger, at exit 0.
+        let kitPinsBlindManifest, _ = freshFixture ()
+        let blindManifestPath = path [ kitPinsBlindManifest; ".agents"; "skills"; "skill-manifest.json" ]
+        let ledgerBefore = File.ReadAllText(path [ kitPinsBlindManifest; kitPinsRelative ])
+
+        if tryMakeUnreadable "#62 (4) KitPins refuses on an unreadable manifest (3 cases)" blindManifestPath then
+            let outcome =
+                try
+                    writeKitPins kitPinsBlindManifest
+                with ex ->
+                    Wrote([], [ ex.GetType().Name ])
+
+            restoreReadable blindManifestPath
+
+            expect
+                "KitPins REFUSES to rewrite the ledger when it cannot read the manifest, instead of pinning everything"
+                (match outcome with
+                 | Refused reason -> reason.Contains "skill-manifest.json"
+                 | Wrote _ -> false)
+
+            expect
+                "…and the ledger on disk is untouched, byte for byte"
+                (File.ReadAllText(path [ kitPinsBlindManifest; kitPinsRelative ]) = ledgerBefore)
+
+            // A critic reproduced the FIRST version of this on a bare tree: the STATE was right and
+            // the three lines it PRINTED were all false — that it had pinned 0 files *into* the
+            // ledger, that there was a diff to review, and that the ledger was INCOMPLETE, which is
+            // the opposite of untouched. The case above asserted only the state, so it passed. #46's
+            // own lesson, one target over: the line the gate prints is part of the acceptance.
+            let refusalLines, refusalFailed = kitPinsReport outcome
+
+            expect
+                "…and the account it PRINTS says the ledger was not rewritten, not that it is incomplete"
+                (refusalFailed
+                 && refusalLines |> List.exists (fun l -> l.Contains "was NOT rewritten")
+                 && not (refusalLines |> List.exists (fun l -> l.Contains "review the diff"))
+                 && not (refusalLines |> List.exists (fun l -> l.Contains "pinned 0 kit file(s)"))
+                 && not (refusalLines |> List.exists (fun l -> l.ToLowerInvariant().Contains "incomplete")))
+
+        // The other half of that account, and the guard a mutation matrix found had NO coverage at
+        // all: `computeKitPins` naming a file it could not digest, and `KitPins` failing rather than
+        // exiting 0 over a ledger it wrote WITHOUT that file.
+        let kitPinsUnreadableSource, unreadableSourceRelative = freshFixture ()
+        let unpinnableFile = path [ kitPinsUnreadableSource; unnamedRelative ]
+
+        if tryMakeUnreadable "#62 (4) KitPins names a kit file it cannot digest (2 cases)" unpinnableFile then
+            let outcome =
+                try
+                    writeKitPins kitPinsUnreadableSource
+                with ex ->
+                    Refused(ex.GetType().Name)
+
+            restoreReadable unpinnableFile
+            ignore unreadableSourceRelative
+
+            expect
+                "KitPins NAMES a kit file it could not digest rather than dropping it silently"
+                (match outcome with
+                 | Wrote (pins, unpinnable) ->
+                     (unpinnable |> List.exists (fun u -> u.Contains "deep-detail.md"))
+                     && not (pins |> List.exists (fun (p, _) -> p.Contains "deep-detail.md"))
+                 | Refused _ -> false)
+
+            let wroteLines, wroteFailed = kitPinsReport outcome
+
+            expect
+                "…and the run FAILS, saying the ledger WAS rewritten and is missing it — the opposite claim to the refusal path"
+                (wroteFailed
+                 && wroteLines |> List.exists (fun l -> l.Contains "WAS rewritten and is missing them")
+                 && not (wroteLines |> List.exists (fun l -> l.Contains "was NOT rewritten")))
+
+        // A ledger a JSON parser refuses is a ledger that pins nothing, and `KitPins` used to write
+        // one and exit 0: the path was interpolated raw, so a kit file named with a quote produced
+        // `64 of 192 … 128 uncovered` on the next run and re-running the remedy reproduced it.
+        let quotedName, _ = freshFixture ()
+        let awkwardRelative = ".agents/skills/fs-gg-kit/q\".md"
+        writeFile (path [ quotedName; awkwardRelative ]) "# awkward\n"
+        writeFile (path [ quotedName; ".claude/skills/fs-gg-kit/q\".md" ]) "# awkward\n"
+        repinFixture quotedName
+
+        expect
+            "a kit file whose NAME needs escaping still yields a ledger that parses, and pins it"
+            (match readKitPins quotedName with
+             | Error _ -> false
+             | Ok pins -> pins |> List.exists (fun (p, _) -> p = awkwardRelative))
+
+        expect
+            "…and the tree is clean afterwards, so the remedy the gate names really works on it"
+            (List.isEmpty (templateDriftViolations quotedName))
+
+        // Malformed, not unreadable — the same class, reachable on every platform and with no
+        // permissions involved, so these run where the mode-bit cases above cannot.
+        let malformedManifest, _ = freshFixture ()
+
+        for owner in skillManifests do
+            writeFile (path [ malformedManifest; owner; "skills"; "skill-manifest.json" ]) "{ not json at all"
+
+        expect
+            "a MALFORMED skill manifest is reported rather than crashing the gate"
+            (match violationsOrCrash malformedManifest with
+             | Error _ -> false
+             | Ok violations -> violations |> List.exists (fun v -> v.Contains "skill-manifest.json" && v.Contains "JSON"))
+
+        let malformedProvenance, _ = freshFixture ()
+        writeFile (path [ malformedProvenance; ".fsgg"; "scaffold-provenance.json" ]) "{ not json at all"
+
+        expect
+            "a MALFORMED scaffold-provenance.json is reported rather than aborting before any check runs"
+            (match violationsOrCrash malformedProvenance with
+             | Error _ -> false
+             | Ok violations -> violations |> List.exists (fun v -> v.Contains "scaffold-provenance.json" && v.Contains "JSON"))
+
+        // SURVIVING MUTANT: returning the non-string `value` as the profile anyway survived every
+        // case. It is not harmless — `Some null` satisfies the caller's `profile.IsNone` test and
+        // then matches no `profile == x` condition, so the tree reads as DECLARING a profile that
+        // excludes every skill, which is silently weaker than the violation the `None` path reports.
+        let nonStringProfile, _ = freshFixture ()
+
+        writeFile
+            (path [ nonStringProfile; ".fsgg"; "scaffold-provenance.json" ])
+            """{ "schemaVersion": 1, "effectiveParameters": [ { "key": "profile", "value": 7 } ] }"""
+
+        expect
+            "a `profile` whose value is not a STRING is no profile at all, and is reported as none"
+            (match violationsOrCrash nonStringProfile with
+             | Error _ -> false
+             | Ok violations -> violations |> List.exists (fun v -> v.Contains "declares no `profile`"))
+
+        // The same class one door over: `effectiveParameters` that is not an array reached
+        // `EnumerateArray` and threw, before any check had run.
+        let provenanceShape, _ = freshFixture ()
+
+        writeFile
+            (path [ provenanceShape; ".fsgg"; "scaffold-provenance.json" ])
+            """{ "schemaVersion": 1, "effectiveParameters": { } }"""
+
+        expect
+            "a scaffold-provenance whose `effectiveParameters` is not an ARRAY is reported, not enumerated"
+            (match violationsOrCrash provenanceShape with
+             | Error _ -> false
+             | Ok violations -> violations |> List.exists (fun v -> v.Contains "declares no `profile`"))
+
+        // Parseable JSON of the WRONG SHAPE. `EnumerateArray` on an object throws, so before the
+        // ValueKind tests these files were reported as unparseable — a true verdict for a false
+        // reason, which is how a reader chases the wrong repair.
+        let manifestSkillsShape, _ = freshFixture ()
+
+        for owner in skillManifests do
+            writeFile (path [ manifestSkillsShape; owner; "skills"; "skill-manifest.json" ]) """{ "schemaVersion": 1, "skills": { } }"""
+
+        expect
+            "a skill manifest whose `skills` is not an ARRAY is reported as having none, not as unparseable"
+            (match violationsOrCrash manifestSkillsShape with
+             | Error _ -> false
+             | Ok violations -> violations |> List.exists (fun v -> v.Contains "no `skills` array"))
+
+        let ledgerPinsShape, _ = freshFixture ()
+        writeFile (path [ ledgerPinsShape; kitPinsRelative ]) """{ "schemaVersion": 1, "pins": { } }"""
+
+        expect
+            "a kit pin ledger whose `pins` is not an ARRAY is reported as having none, not as unparseable"
+            (match violationsOrCrash ledgerPinsShape with
+             | Error _ -> false
+             | Ok violations -> violations |> List.exists (fun v -> v.Contains kitPinsRelative && v.Contains "no `pins`"))
+
+        let ledgerScalarEntry, _ = freshFixture ()
+        writeFile (path [ ledgerScalarEntry; kitPinsRelative ]) """{ "schemaVersion": 1, "pins": [ "not-an-object" ] }"""
+
+        expect
+            "a kit pin ledger entry that is not an OBJECT pins nothing, and says so"
+            (match violationsOrCrash ledgerScalarEntry with
+             | Error _ -> false
+             | Ok violations -> violations |> List.exists (fun v -> v.Contains kitPinsRelative && v.Contains "pins no path/sha256"))
+
         // REVIEWER (PR #64): a manifest entry that keeps its `resolvablePath` but loses its
         // `sha256` is NAMED and not PINNED. Treating the name as coverage printed
         // `190 of 190 … 0 uncovered` while that source and its mirror were digest-checked by
@@ -2348,7 +3520,7 @@ let private runSelfTest () =
         // SURVIVOR: a path pinned by BOTH oracles is checked twice rather than masked. Skipping the
         // ledger entry for a manifest-named file survived every case, because no fixture had one.
         let doublePinned, doubleSkill = freshFixture ()
-        let doubleDigest = fileDigest (path [ doublePinned; doubleSkill ])
+        let doubleDigest = fixtureDigest (path [ doublePinned; doubleSkill ])
 
         writeFile
             (path [ doublePinned; kitPinsRelative ])
@@ -2842,11 +4014,18 @@ let private runSelfTest () =
 
     // #57: DERIVED from the case record, at the moment of the verdict.
     let recorded = List.ofSeq recorded
+    let skipped = List.ofSeq skipped
     let cases = List.length recorded
     let failures = recorded |> List.filter (snd >> not) |> List.length
     let mutable probed = false
 
-    printfn "SelfTest: %d case(s), %d failure(s)" cases failures
+    // #62: the skip count rides ALONGSIDE the case count on the summary line, because a reader who
+    // sees only `156 case(s), 0 failure(s)` on a host that refused symbolic links concludes the link
+    // guards passed. It is repeated after the per-case lines rather than only among them.
+    printfn "SelfTest: %d case(s), %d failure(s), %d group(s) SKIPPED" cases failures (List.length skipped)
+
+    for line in skipped do
+        printfn "SelfTest:   skipped %s" line
 
     // #57: the result file is written LAST, from a `finally`-equivalent on both paths, because it
     // reports the WHOLE target's verdict. Written before the assertions below, it would say
@@ -2854,7 +4033,7 @@ let private runSelfTest () =
     // the CI guard both tell their reader to trust this file over the transcript, so it must never
     // be able to describe a failed run as a passing one.
     let publish verdict detail =
-        let resultPath = writeSelfTestResult recorded verdict detail probed
+        let resultPath = writeSelfTestResult recorded skipped verdict detail probed
         printfn "SelfTest: structured result written to %s — read THAT, not this transcript (#57)." resultPath
 
     try
@@ -2950,16 +4129,17 @@ let private runSelfTest () =
 /// #46: the remedy the gate names when it reports an unpinned or drifted kit file. Re-pinning is a
 /// deliberate, reviewable act — it rewrites a tracked ledger that the audit-binding gate holds a
 /// digest over — so this prints what it did rather than doing it quietly.
+/// #62 (4): the remedy the gate names must not exit 0 after writing a ledger it knows is incomplete,
+/// and must not describe a file it never touched. Both the wording and the exit code come from
+/// `kitPinsReport`, so `SelfTest` asserts the thing an operator actually reads.
 let private runKitPins () =
-    let pins = writeKitPins (currentRoot ())
+    let lines, failed = kitPinsReport (writeKitPins (currentRoot ()))
 
-    printfn
-        "KitPins: pinned %d kit file(s) under %s that the generated skill manifest does not name, into %s"
-        (List.length pins)
-        kitSourcePrefix
-        kitPinsRelative
+    for line in lines do
+        printfn "%s" line
 
-    printfn "KitPins: review the diff — a changed pin is the record that a kit file changed on purpose, and it is what a reviewer reads instead of a silent edit."
+    if failed then
+        failwith (List.last lines)
 
 let run target =
     match target with
@@ -3029,6 +4209,10 @@ let helpBanner =
     + "           reported by name (#46). The coverage line prints on every run, green or red.\n"
     + "  KitPins  Rewrites scripts/kit-pins.json from the current tree. Run it only after a DELIBERATE kit\n"
     + "           edit: the changed pin is the reviewable record that a kit file was meant to change.\n"
+    + "           The file is fully DERIVED — SelfTest asserts it is byte-for-byte what this target would\n"
+    + "           write for the current tree — so hand-editing it, including its note, reds SelfTest while\n"
+    + "           TemplateDrift stays green. This target can also FAIL: it refuses to write a ledger it\n"
+    + "           knows is incomplete rather than exiting 0 over one (#62).\n"
     + "  GeneratedGuidanceCheck  Every agent .fsgg/agents.yml declares has its guidancePath present and\n"
     + "           non-empty, and generated guidance never exists for one agent only.\n"
     + "  SelfTest Plants a violation for each check above and requires it to be reported, so a check that\n"
@@ -3053,7 +4237,15 @@ let helpBanner =
     + "               so that no SINGLE one leaves the gate green, not so that three cannot be made together.\n"
     + "           rogue3#52's acceptance criterion — 'a PR that makes any build.fsx check unconditionally pass\n"
     + "           is red in CI' — is therefore still NOT fully met, by the first residual above.\n"
-    + "           See #62 for the checker's own known blind spots (symlinked kit roots, unreadable files).\n"
+    + "           #62's blind spots — symlinked kit roots and kit files, a manifest pin outside the kit tree,\n"
+    + "           and an unreadable input aborting the run with no violation line — are CLOSED. What is not:\n"
+    + "             * a kit file replaced by a HARD link, or a bind mount over a kit tree, still reads as a\n"
+    + "               real file. Symbolic links are what this detects; the bytes of a hard link are in the\n"
+    + "               tree and a clone does not dangle, so it overstates far less, but it is not nothing.\n"
+    + "             * an UNREADABLE kit file is still COUNTED as pinned by the coverage line, beside the\n"
+    + "               violation naming it. The gate is red, so nothing is hidden — but the number is the one\n"
+    + "               thing #62 is about, and this is the one case where it still describes a file the run\n"
+    + "               could not read.\n"
     + "           Two environment variables belong to the probe and are otherwise unset: FSGG_SELFTEST_INJECT_FAILURE\n"
     + "           (inject one failing case and do not recurse) and FSGG_SELFTEST_RESULT_PATH (where to write the\n"
     + "           structured result). Both are FAIL-CLOSED if set by accident — they red the run, never green it.\n"
