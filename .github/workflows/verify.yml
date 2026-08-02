@@ -145,22 +145,37 @@ jobs:
       #     their drift-carrying counterparts are killed.
       #   * A further 28 mutants were written against the new design, 20 of them by
       #     two independent reviewing critics; 52 rows in all, 5 survivors. Exactly
-      #     ONE is a single-edit GATE DEFEAT, and it is the residual named in
-      #     build.fsx's own help banner: an edit that exempts any root it recognises
-      #     AS this repository by a MARKER FILE it contains, rather than by the
-      #     current directory. SelfTest cannot certify it is still bound to the real
-      #     tree. Running both checks from a different working directory closes
-      #     every cwd-keyed form -- plain, path-normalising, and one keyed on "the
-      #     root is not under the temp dir", which is the property every fixture
-      #     relies on and so reads as an optimisation rather than a backdoor -- but
-      #     it does NOT close the class.
-      #     Of the other four survivors: two are the transcript-only non-defeats
-      #     above, one disables ONE of the probe's two channels and is killed
-      #     independently by the other, and one is a deliberate TWO-edit
-      #     combination. A reviewer also demonstrated that replacing the whole
-      #     ~50-line verdict block in one contiguous edit defeats the gate; that is
-      #     not a single-LINE edit and a reviewer would see it, but it is real and
-      #     is recorded here rather than left out because it is inconvenient.
+      #     ONE was a single-edit GATE DEFEAT -- an edit exempting any root it
+      #     recognises AS this repository by a MARKER FILE it contains, rather than
+      #     by the current directory. rogue3#74 CLOSED it, and re-measured this
+      #     paragraph in the process: the sentence that used to stand here said the
+      #     cwd relocation also closed a form keyed on "the root is not under the
+      #     temp dir", and that was WRONG. Measured at d2c4e2f, inserting
+      #     `if not (root.StartsWith(Path.GetTempPath(), StringComparison.Ordinal))
+      #     then [] else` at the head of templateDriftViolations, with real drift on
+      #     disk, gave 164 case(s)/0 failure(s), verdict pass, exit 0. That form
+      #     never mentions the current directory, so relocating the process never
+      #     reached it. It is dead now for the same reason the marker form is.
+      #     What kills them: SelfTest plants a REAL violation in THIS repository on
+      #     every run and requires the real check to report it, so the tree under
+      #     test IS the repository and no predicate over the root can tell the two
+      #     apart. Re-measured at the #74 branch head over 16 mutant trees exported
+      #     OUTSIDE /tmp (that matters -- Path.GetTempPath() is /tmp here, so an
+      #     export placed under it makes the temp-path mutant read as killed when it
+      #     is live): 5 repository-fingerprint mutants, each on a drifted AND on a
+      #     clean tree; 4 that fingerprint the PROBE rather than the repository;
+      #     5 that disarm one channel of the defence while exempting the tree; and
+      #     2 controls. Every mutant exits 1; both controls behave (clean 0, drifted
+      #     1). The fingerprint mutants now red a CLEAN tree too: the exemption
+      #     itself is the failure, not merely the drift it would have hidden.
+      #     Of the other four survivors of the earlier sweep: two are the
+      #     transcript-only non-defeats above, one disables ONE of the probe's two
+      #     channels and is killed independently by the other, and one is a
+      #     deliberate TWO-edit combination. A reviewer also demonstrated that
+      #     replacing the whole ~50-line verdict block in one contiguous edit
+      #     defeats the gate; that is not a single-LINE edit and a reviewer would
+      #     see it, but it is real and is recorded here rather than left out because
+      #     it is inconvenient. rogue3#74 leaves those four exactly where they were.
       #   * main is not branch-protected, so no check here is a REQUIRED status
       #     check -- these gates block by turning a job red, not by blocking merge.
       #
