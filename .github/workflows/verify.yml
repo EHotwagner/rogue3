@@ -52,6 +52,9 @@ jobs:
       # [] unconditionally leaves `dotnet test -c Release` completely green
       # (Failed: 0, Passed: 235) while `./fake.sh -t SelfTest` exits 1 with
       # "SelfTest: 77 case(s), 15 failure(s)". This step is what kills that mutant.
+      # (That case count is anchored at 09895b9 and is deliberately not updated;
+      # the same tree is 111 cases today. Re-measured at 48b3a6a for rogue3#57:
+      # the same mutant gives 111 case(s), 42 failure(s), still exit 1.)
       #
       # SelfTest plants a violation for each check and requires it to be reported,
       # and additionally asserts TemplateDrift and GeneratedGuidanceCheck are clean
@@ -67,8 +70,16 @@ jobs:
       # to the system temp dir, build.fsx carries no `#r` (BCL only), and the
       # engine assembly is `lazy` and only forced by EvidenceGraph/EvidenceAudit,
       # so SelfTest needs neither `dotnet restore` nor an engine feed. Hence it
-      # runs BEFORE Restore, where it fails fastest. Its only write is
-      # readiness/logs/SelfTest.txt, which .gitignore already excludes.
+      # runs BEFORE Restore, where it fails fastest. That still holds after
+      # rogue3#57, whose self-probe re-runs THIS script as a child and so inherits
+      # the same BCL-only hermeticity -- but two facts about the step changed and
+      # are worth stating rather than leaving a reader to discover:
+      #   * It now SPAWNS A PROCESS, and its runtime roughly doubled -- measured
+      #     1.8s before, 3.5s after, of which ~1.8s is the child.
+      #   * Its writes are readiness/logs/{SelfTest,TemplateDrift,
+      #     GeneratedGuidanceCheck}.txt plus readiness/logs/selftest-result.json,
+      #     and one temp probe JSON under the system temp dir that it deletes.
+      #     .gitignore's `readiness/*/*` already excludes all four.
       #
       # THREE gates this repository mandates are DELIBERATELY still not wired
       # here. This job does NOT enforce every mandated gate and does not claim to;
@@ -151,17 +162,32 @@ jobs:
           # stale result as if this run had produced it. It is gitignored, so a
           # fresh checkout has none -- but a local run of this step would.
           rm -f "$result"
-          # NOTE the absence of a pipe: `./fake.sh | tee` would hand the step
-          # `tee`'s exit status. The true exit code of SelfTest is load-bearing
-          # here, so it is taken directly.
+          # The `tee` the previous guard used is simply not needed now that no file
+          # is parsed out of the log -- the output still reaches the step log
+          # either way. (It was never an exit-code hazard: `set -o pipefail` on the
+          # line above already returns the rightmost non-zero status.)
           ./fake.sh -t SelfTest
           if [ ! -f "$result" ]; then
             echo "::error::SelfTest wrote no structured result at $result -- it did not run to completion (rogue3#57)."
             exit 1
           fi
           cat "$result"
-          cases="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["cases"])' "$result")"
-          failures="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["failures"])' "$result")"
+          field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$result" "$1"; }
+          verdict="$(field verdict)"
+          probed="$(field probed)"
+          cases="$(field cases)"
+          failures="$(field failures)"
+          # `verdict` covers the WHOLE target, including the repository-clean raises
+          # that the case tally never sees; `probed` proves the run actually checked
+          # its own failure path rather than merely reporting a zero.
+          if [ "$verdict" != "pass" ]; then
+            echo "::error::SelfTest recorded verdict=$verdict."
+            exit 1
+          fi
+          if [ "$probed" != "True" ]; then
+            echo "::error::SelfTest did not probe its own failure path (probed=$probed) -- its verdict is not evidence."
+            exit 1
+          fi
           if [ "$cases" -lt 1 ]; then
             echo "::error::SelfTest recorded $cases cases -- a gate that asserts nothing is not a pass."
             exit 1
@@ -170,7 +196,7 @@ jobs:
             echo "::error::SelfTest recorded $failures failing case(s) of $cases."
             exit 1
           fi
-          echo "SelfTest: $cases case(s) recorded, $failures failure(s)."
+          echo "SelfTest: verdict=$verdict probed=$probed, $cases case(s), $failures failure(s)."
       # Every cycle's checkpoint JSONL must still parse and satisfy the schema the
       # fs-gg-feedback-report skill mandates. Unlike the report/audit CORPUS below,
       # this one is SAFE to require and is wired: checkpoints pin no digests over
