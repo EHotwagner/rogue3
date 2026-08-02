@@ -215,62 +215,70 @@ let private runGeneratedEvidence (target: string) : int =
     runMethod.Invoke(null, [| box target; box (Directory.GetCurrentDirectory()) |]) :?> int
 
 // ---------------------------------------------------------------------------
-// #26: an evidence roll-up may only be PUBLISHED by a run that sensed at least
-// everything the published one already records.
+// #26, then #56: an evidence roll-up may only be PUBLISHED by a run that sensed at
+// least everything the previously published one already records.
 //
 // The EvidenceGraph emitter enumerates whatever is on disk under `readiness/`, and
-// part of that tree is regenerable output no clean checkout carries. TRACKED files
-// there are in every checkout and are not the problem (a `.gitignore` rule does not
-// apply to a tracked file, and `.gitignore:9` re-includes `ship-verdict.json`
-// anyway). The UNTRACKED ones are: the fsgg-sdd products excluded by
-// `.gitignore:8`, which only the checkout that ran the lifecycle holds, and
-// `readiness/logs/*.txt`, which this very run writes. So the list the emitter
-// publishes is a property of the CHECKOUT, not of the repository.
+// part of that tree is regenerable output no clean checkout carries: the fsgg-sdd
+// products excluded by `.gitignore:8`, which only the checkout that ran the lifecycle
+// holds, and `readiness/logs/*.txt`, which this very run writes. So the list the
+// emitter publishes is a property of the CHECKOUT, not of the repository. The emitter
+// ships in the FS.GG.UI.Build engine package, so this repository cannot change its
+// enumeration logic — it can only change the input tree, the emission order, or what
+// it does with the result.
 //
-// Measured on a clean worktree at `7d9d442`: a full Verify dropped TEN of the 102
-// entries the committed graph records — five fsgg-sdd outputs under
-// `readiness/014-m13-room-transition-pickups-world-state/`, and five of the seven
-// `readiness/logs/*.txt` (`TemplateDrift.txt` and `GeneratedGuidanceCheck.txt` are
-// written before the graph, so they survive; `Dev.txt` is never written by Verify
-// at all since #34; the remaining four are written after it). It added one, giving
-// 93 — then rewrote the TRACKED `readiness/evidence-graph.md` with the smaller
-// number and exited 0. A worker following the documented instructions — run the
-// full gate, then stage — commits an artifact asserting that evidence disappeared,
-// and a reviewer reading a green Verify has no reason to open it.
+// #26 measured the damage while `readiness/evidence-graph.md` was TRACKED: a full
+// Verify on a clean worktree sensed less than the committed graph recorded, rewrote
+// it with the smaller number, and exited 0 — so a worker following the documented
+// instructions committed an artifact asserting that evidence had disappeared. #26's
+// fix, this rule, stopped that: a run that sensed a SUPERSET publishes normally, a run
+// that sensed LESS restores the previous bytes exactly and names every input it could
+// not see.
 //
-// The emitter ships in the FS.GG.UI.Build engine package, so this repository cannot
-// change its enumeration logic (it can only change the input tree or the emission
-// order, which are #26's other candidate root causes). It CAN refuse to publish the
-// result. A run that sensed a SUPERSET publishes normally; a run that sensed LESS
-// restores the previous bytes exactly and names every input it could not see. Set
-// FSGG_EVIDENCE_GRAPH_PUBLISH=1 in the checkout that legitimately holds the whole
-// tree to publish a smaller graph deliberately — which is how the committed graph
-// gets corrected, and it currently needs it: at `3913c26` it omits FOUR tracked
-// files, and a Verify there senses 96.
+// #56 took the root cause the same rule left standing. Refusing to publish left the
+// graph FROZEN — at `715bef9` it recorded 102 sensed files, 12 of which exist in no
+// clean checkout, so every ordinary run refused forever, while the same frozen graph
+// OMITTED four tracked files that do exist. A tracked roll-up that no checkout can
+// reproduce is the defect; a rule that keeps it byte-stable only made the failure
+// quieter. `readiness/evidence-graph.md` is therefore NO LONGER TRACKED (see
+// `.gitignore` and rogue3#56), along with the two performance artifacts this rule was
+// deliberately never extended to (`readiness/performance-evidence.json` and
+// `readiness/m7-ui-performance.json`, which move because they record MEASUREMENTS —
+// p50/p95/p99, `allocatedBytes`, and a composition-authority MVID that changes
+// whenever the assembly is rebuilt; see `src/Rogue3/PerformanceEvidence.fs`,
+// `provenanceDefinitionToken`) and `readiness/performance-critic-request.json`, which
+// digests one of them.
 //
-// This is deliberately NOT extended to `readiness/performance-evidence.json` and
-// `readiness/m7-ui-performance.json`, which the same run also leaves dirty. Those
-// move because they record MEASUREMENTS, not because an input was missing:
-// `performance-evidence.json` carries p50/p95/p99 latencies, `allocatedBytes`, and
-// a composition-authority MVID that changes whenever this assembly is rebuilt (see
-// `src/Rogue3/PerformanceEvidence.fs`, `provenanceDefinitionToken`);
-// `m7-ui-performance.json` carries measured p95/p99 only. Re-running cannot
-// reproduce them, so the superset rule has nothing to compare and would assert
-// something false about them. Making those two reproducible is a different fix
-// (#26's third candidate root cause — stop tracking the roll-ups) on a different
-// artifact, and is out of scope here.
+// The rule is KEPT, with a narrower and honestly smaller job. It can no longer falsify
+// a committed artifact, because there is none. What it still does:
 //
-// `readiness/evidence-audit.md` is tracked and rewritten by the same run, and IS
-// left unguarded — deliberately. It records a verdict and a node count, with no
-// per-file enumeration, so nothing in it varies with which readiness outputs the
-// checkout happens to hold; it came back byte-identical from every run measured
-// here. Note that on a refusal `EvidenceAudit` then reads the RESTORED graph, which
-// is the previous complete emission rather than this run's partial one.
+//   * On a checkout that already has a graph ON DISK from an earlier run, it refuses
+//     to let a later, narrower run silently shrink it. Nothing in git protects that
+//     file any more — `git checkout` cannot bring it back — so the in-checkout copy is
+//     now the ONLY copy, and losing entries from it is unrecoverable rather than merely
+//     wrong.
+//   * It names every input the run could not sense, which is the diagnostic #26 was
+//     really about and is the only place that list is printed.
+//   * On a genuinely fresh checkout there is no previous graph, so the first emission
+//     publishes unconditionally and the graph is exactly what THIS tree can sense —
+//     which is what "reproducible from that checkout" means and what #56 asked for.
 //
-// A refusal does not fail the gate. The harm #26 describes is a falsified artifact
-// reaching a reviewer through a green gate; once the tree is left byte-identical
-// there is nothing to be fooled by, and failing instead would make Verify
-// permanently red in every worktree — which is how a gate gets ignored.
+// The bounded route out of a refusal is therefore no longer `FSGG_EVIDENCE_GRAPH_PUBLISH=1`
+// alone: deleting `readiness/evidence-graph.md` and re-running gives a graph derived
+// wholly from this checkout. The override is kept for the case where a lifecycle
+// checkout wants to publish a smaller graph deliberately without deleting first.
+//
+// `readiness/evidence-audit.md` is still TRACKED and still unguarded — deliberately,
+// and it is the control case that makes the diagnosis above falsifiable. It records a
+// verdict and a node count with no per-file enumeration, so nothing in it varies with
+// which readiness outputs the checkout happens to hold; it comes back byte-identical
+// from every run. Tracked roll-ups are not the problem — roll-ups that enumerate
+// irreproducible things are. Note that on a refusal `EvidenceAudit` then reads the
+// RESTORED graph, which is the previous complete emission rather than this run's
+// partial one.
+//
+// A refusal does not fail the gate. Failing instead would make Verify permanently red
+// in every worktree — which is how a gate gets ignored.
 // ---------------------------------------------------------------------------
 
 let private evidenceGraphPath = Path.Combine("readiness", "evidence-graph.md")
@@ -382,7 +390,33 @@ let private evidenceGraphPublicationReport (graphPath: string) publication =
         // dropped entries are untracked — it says what is USUALLY true and points at
         // the per-entry note, which is the only part actually observed.
         @ [ $"EvidenceGraph: a dropped input is usually a regenerable readiness output this checkout does not carry — an fsgg-sdd product only the lifecycle checkout holds, or a log this run writes after emitting the graph. An entry marked PRESENT above is neither, and is a different fault. Publish deliberately from a tree that does hold them with {evidenceGraphPublishVariable}=1."
-            $"EvidenceGraph: {graphPath} now holds the PREVIOUSLY published bytes, not this run's, so it is exactly as stale as it already was — which is the trade: a stale record beats a freshly falsified one." ]
+            $"EvidenceGraph: {graphPath} now holds the PREVIOUSLY published bytes, not this run's, so it is exactly as stale as it already was — which is the trade: a stale record beats a freshly falsified one."
+            // #56 untracked this artifact, so `git checkout` no longer resets it and a
+            // refusal could otherwise pin a checkout to an emission it can never re-derive.
+            // Naming the escape here keeps the route to green bounded and local.
+            $"EvidenceGraph: since rogue3#56 this file is NOT tracked, so git cannot reset it — the bytes above are this checkout's own earlier emission and are now its only copy. To re-derive the graph from THIS tree alone, delete {graphPath} and re-run; the next emission has nothing to be smaller than and publishes." ]
+
+/// #56: the publication rule matches `## Sensed readiness files`, a heading written by
+/// the ENGINE package rather than by this repository, so an engine rename would leave the
+/// rule abstaining forever behind a green gate. #26 pinned that literal in `SelfTest`
+/// against the COMMITTED graph — which #56 untracked, so on a fresh checkout that pin has
+/// nothing to read and announces a vacuous pass. This reads what the emitter JUST wrote
+/// instead: it fires in every checkout, on every gate run, and it cannot go vacuous,
+/// because a successful emission that produced no readable graph is itself the fault.
+///
+/// It WARNS rather than failing. The rule's response to an unreadable graph is to abstain
+/// or to restore, neither of which loses anything now that the artifact is a run output;
+/// failing here would red the gate over an engine upgrade with no local remedy.
+let private emittedGraphSectionWarning (graphPath: string) : string list =
+    if not (File.Exists graphPath) then
+        [ $"EvidenceGraph: {graphPath} does not exist after an emission that exited 0, so there is no graph for the publication rule — or for EvidenceAudit — to read." ]
+    else
+        match sensedReadinessFiles (File.ReadAllText graphPath) with
+        | Some sensed when Set.isEmpty sensed ->
+            [ $"EvidenceGraph: the freshly emitted {graphPath} has a `{sensedSectionHeading}` section listing NOTHING, so the publication rule can never refuse anything on this tree." ]
+        | Some _ -> []
+        | None ->
+            [ $"EvidenceGraph: the freshly emitted {graphPath} carries no `{sensedSectionHeading}` section, so the publication rule has nothing to compare and will ABSTAIN on every future run. An engine-side rename of that heading looks exactly like this — re-pin the literal in build.fsx." ]
 
 /// Runs one emission under the rule. `emit` is a parameter, not a hard-wired call,
 /// so `SelfTest` can drive this whole path: the rule being INSTALLED is exactly as
@@ -433,7 +467,20 @@ let private runEvidenceGraphEmission (graphPath: string) (publishSmaller: bool) 
         | None -> ()
 
 let private runEvidenceGraph () =
-    runEvidenceGraphEmission evidenceGraphPath (evidenceGraphPublishRequested ()) (fun () -> runGeneratedEvidence "EvidenceGraph")
+    // The heading check must read what the EMITTER wrote, so it runs inside the emit
+    // callback — after the emitter returns and before the rule, which may restore the
+    // previous bytes over them. Reading the graph after the rule has run would report on
+    // the restored copy while claiming to describe this run's output, which is the shape
+    // of the defect #26 exists to stop.
+    let emitAndCheckHeading () =
+        let exitCode = runGeneratedEvidence "EvidenceGraph"
+
+        if exitCode = 0 then
+            emittedGraphSectionWarning evidenceGraphPath |> List.iter (eprintfn "%s")
+
+        exitCode
+
+    runEvidenceGraphEmission evidenceGraphPath (evidenceGraphPublishRequested ()) emitAndCheckHeading
     |> evidenceGraphPublicationReport evidenceGraphPath
     |> List.iter (eprintfn "%s")
 
@@ -1666,37 +1713,87 @@ let private runSelfTest () =
         expect "TemplateDrift is clean on this repository" (List.isEmpty (templateDriftViolations (currentRoot ())))
         expect "GeneratedGuidanceCheck is clean on this repository" (List.isEmpty (generatedGuidanceViolations (currentRoot ())))
 
-        // #26: the publication rule matches a heading written by the ENGINE package,
-        // not by this repository, so an engine upgrade that renames it would leave the
-        // rule abstaining forever behind a green gate. Assert the literal against the
-        // real committed artifact, so the drift fails HERE rather than silently.
-        // Both cases are UNCONDITIONAL: guarding them behind `File.Exists` would let
-        // the check DISAPPEAR on a tree with no graph yet, and a vanishing case is
-        // the same failure mode one level up. A scaffold that has never emitted a
-        // graph is a legitimate state, so absence passes — but it says so out loud
-        // instead of silently shrinking the suite.
-        let committedGraph = path [ currentRoot (); "readiness"; "evidence-graph.md" ]
-        let committedGraphExists = File.Exists committedGraph
+        // #26 pinned the ENGINE-written `## Sensed readiness files` heading against the
+        // COMMITTED graph, so an engine rename would fail here rather than leave the rule
+        // abstaining forever behind a green gate. #56 untracked that graph, so on a fresh
+        // checkout the pin has nothing to read: the two cases below still run
+        // unconditionally, but where the file is absent they can only announce that they
+        // proved nothing. A case that can go vacuous is not a pin, so the real drift check
+        // moved to `emittedGraphSectionWarning`, which reads what the emitter just wrote
+        // and is exercised by planted fixtures further down. These two are kept as a free
+        // extra assertion over whatever graph THIS checkout last emitted.
+        let lastEmittedGraph = path [ currentRoot (); "readiness"; "evidence-graph.md" ]
+        let lastEmittedGraphExists = File.Exists lastEmittedGraph
 
-        if not committedGraphExists then
-            printfn "  note %s does not exist yet; the two heading-drift cases pass vacuously" committedGraph
+        if not lastEmittedGraphExists then
+            printfn
+                "  note %s does not exist (rogue3#56 untracked it; it appears once this checkout runs EvidenceGraph or Verify) — the two heading-drift cases prove nothing here, and emittedGraphSectionWarning is what pins the heading"
+                lastEmittedGraph
 
-        let committedSensed =
-            if committedGraphExists then
-                sensedReadinessFiles (File.ReadAllText committedGraph)
+        let lastEmittedSensed =
+            if lastEmittedGraphExists then
+                sensedReadinessFiles (File.ReadAllText lastEmittedGraph)
             else
                 None
 
         expect
-            $"the committed evidence graph still has the `{sensedSectionHeading}` section the rule matches"
-            (not committedGraphExists || committedSensed.IsSome)
+            $"the evidence graph this checkout last emitted still has the `{sensedSectionHeading}` section the rule matches"
+            (not lastEmittedGraphExists || lastEmittedSensed.IsSome)
 
         expect
-            "the rule reads a non-empty sensed-file list from the committed evidence graph"
-            (not committedGraphExists
-             || (match committedSensed with
+            "the rule reads a non-empty sensed-file list from the evidence graph this checkout last emitted"
+            (not lastEmittedGraphExists
+             || (match lastEmittedSensed with
                  | Some entries -> not (Set.isEmpty entries)
                  | None -> false))
+
+        // #56: the heading pin that CANNOT go vacuous. `emittedGraphSectionWarning` reads
+        // the graph the emitter just wrote, so it runs in every checkout on every gate run.
+        // Each case below plants a graph and asserts the warning fires or stays silent —
+        // a mutant that returns `[]` unconditionally, or that drops the empty-section case,
+        // is killed here.
+        let headingRoot = path [ sandbox; "emitted-graph-heading" ]
+        Directory.CreateDirectory headingRoot |> ignore
+        let mutable headingCase = 0
+
+        let plantEmitted (body: string) =
+            headingCase <- headingCase + 1
+            let file = path [ headingRoot; $"emitted-{headingCase}.md" ]
+            File.WriteAllText(file, body)
+            file
+
+        expect
+            "a graph carrying the sensed section warns about nothing"
+            (List.isEmpty (
+                emittedGraphSectionWarning (
+                    plantEmitted $"# Evidence graph\n\n{sensedSectionHeading}\n\n- `readiness/layout-evidence.txt`\n"
+                )
+            ))
+
+        let renamedHeadingWarning =
+            emittedGraphSectionWarning (
+                plantEmitted "# Evidence graph\n\n## Readiness files this run could see\n\n- `readiness/layout-evidence.txt`\n"
+            )
+            |> String.concat "\n"
+
+        expect
+            "an engine rename of the sensed-file heading is reported, not passed over"
+            (renamedHeadingWarning.Contains sensedSectionHeading
+             && renamedHeadingWarning.Contains "ABSTAIN")
+
+        let emptySectionWarning =
+            emittedGraphSectionWarning (plantEmitted $"# Evidence graph\n\n{sensedSectionHeading}\n\n## Something else\n")
+            |> String.concat "\n"
+
+        expect
+            "a sensed section listing nothing is reported separately from a renamed one"
+            (emptySectionWarning.Contains "listing NOTHING"
+             && not (emptySectionWarning.Contains "ABSTAIN"))
+
+        expect
+            "an emission that exited 0 and wrote no graph at all is reported"
+            ((emittedGraphSectionWarning (path [ headingRoot; "never-written.md" ]) |> String.concat "\n")
+                .Contains "does not exist after an emission that exited 0")
 
         let clean, _ = freshFixture ()
         expect "a faithful fixture is clean" (List.isEmpty (templateDriftViolations clean) && List.isEmpty (generatedGuidanceViolations clean))
@@ -2418,6 +2515,13 @@ let private runSelfTest () =
         expect "the refusal report states that nothing was published" (reportText.Contains "NOT published")
         expect "a dropped input absent from disk is reported as absent" (reportText.Contains "absent from this checkout")
 
+        // #56: git can no longer reset this artifact, so a refusal that named no local
+        // remedy would pin a checkout to an emission it cannot re-derive — a gate with no
+        // bounded route to green, which is the failure rogue3#38 is a record of.
+        expect
+            "the refusal report names the local route back to a graph derived from this checkout"
+            (reportText.Contains "NOT tracked" && reportText.Contains "delete" && reportText.Contains "re-run")
+
         graphCase <- graphCase + 1
         let presentEntry = path [ graphRoot; $"present-{graphCase}.txt" ]
         File.WriteAllText(presentEntry, "here\n")
@@ -2748,8 +2852,13 @@ let helpBanner =
     + "           (readiness/layout-evidence.txt + headless-scene-evidence.txt) and author performance workloads.\n"
     + "           A linked performance-debt issue permits baseline capture but never satisfies acceptance.\n"
     + "           The evidence graph is only PUBLISHED by a run that sensed at least everything the\n"
-    + "           committed one records (#26); a run that sensed less names what it missed and restores\n"
-    + "           the previous bytes. Set FSGG_EVIDENCE_GRAPH_PUBLISH=1 to publish a smaller graph.\n\n"
+    + "           graph already on disk records (#26); a run that sensed less names what it missed and\n"
+    + "           restores the previous bytes. Set FSGG_EVIDENCE_GRAPH_PUBLISH=1 to publish a smaller\n"
+    + "           graph, or delete readiness/evidence-graph.md to re-derive it from this checkout alone.\n"
+    + "           Since #56 that graph, readiness/performance-evidence.json, m7-ui-performance.json and\n"
+    + "           performance-critic-request.json are NOT tracked: they are run outputs no checkout can\n"
+    + "           reproduce, so a green Verify now leaves git status clean. The tracked, reproducible\n"
+    + "           evidence a reviewer reads is readiness/performance-intent.yml and evidence-audit.md.\n\n"
     + "  Restore | Build | Run | Pack   Pass-through to stock `dotnet` over the single root .slnx.\n"
     + "           Run inherits this console, so the product's output is live and it stays up until the\n"
     + "           product exits; set FSGG_RUN_TIMEOUT_SECONDS to bound an unattended launch.\n\n"

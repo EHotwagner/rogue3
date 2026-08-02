@@ -8,6 +8,42 @@
 readiness/*/*
 !readiness/*/ship-verdict.json
 
+# rogue3#56 — the top-level readiness ROLL-UPS that no checkout can reproduce.
+#
+# Everything below is written by `./fake.sh build -t Verify` (or by a target Verify
+# calls) over inputs that are NOT reproducible from a checkout, so tracking them made
+# every gate run produce a committable diff nobody wanted:
+#
+#   evidence-graph.md            enumerates whatever is on disk under `readiness/`, and
+#                                part of that tree is `readiness/*/*` output above plus
+#                                `readiness/logs/*.txt` this very run writes. The list is
+#                                a property of the CHECKOUT, not of the repository — at
+#                                715bef9 the committed graph recorded 102 sensed files of
+#                                which 12 exist in no clean checkout, so every ordinary
+#                                run refused to publish (#26) and the committed graph was
+#                                frozen: it also OMITTED four tracked files that do exist.
+#   performance-evidence.json    measured p50/p95/p99, allocatedBytes, receipt digests and
+#   m7-ui-performance.json       a composition-authority MVID that moves whenever the
+#                                assembly is rebuilt. Re-running cannot reproduce them.
+#   performance-critic-request.json  a digest OVER performance-evidence.json, so it is
+#                                irreproducible for exactly the reason its input is.
+#
+# What stays TRACKED is the reproducible half, and it is what a reviewer reads:
+# `readiness/performance-intent.yml` (every workload id, definition digest and budget),
+# `readiness/evidence-audit.md` (the verdict and node count — checkout-stable, the control
+# case that proves the problem is irreproducible CONTENT and not tracked roll-ups as such),
+# and the `layout-evidence.txt` / `headless-scene-evidence.txt` baseline the gate requires.
+#
+# Consequence for the audit-binding gate: a merged audit that cited one of these pinned a
+# sha256 over a run output. Those citations cannot be checked from a repository that does
+# not carry the bytes, and `scripts/check-audit-bindings.py` reports them under `notBound`
+# rather than checking them. That exemption is keyed on THIS list — re-tracking a path here
+# without removing it there fails the checker loudly instead of exempting it silently.
+readiness/evidence-graph.md
+readiness/performance-evidence.json
+readiness/m7-ui-performance.json
+readiness/performance-critic-request.json
+
 # Generic build & tooling output.
 bin/
 obj/
