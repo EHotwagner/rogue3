@@ -631,7 +631,28 @@ def _entry_sort_key(entry: dict[str, str]) -> tuple[str, str, str, str, str]:
     return entry_key(entry) + (entry.get("observedSha256", ""),)
 
 
-def write_ledger(root: str, relpath: str, entries: list[dict[str, str]], cycle: str | None) -> None:
+def read_ledger_note(root: str, relpath: str) -> str | None:
+    """The `note` a ledger file already carries, or None when it has none."""
+    path = ledger_path(root, relpath)
+    if not os.path.isfile(path):
+        return None
+    with open(path, "rb") as handle:
+        try:
+            doc = json.loads(handle.read().decode("utf-8-sig"))
+        except (ValueError, UnicodeDecodeError):
+            return None
+    if isinstance(doc, dict) and isinstance(doc.get("note"), str):
+        return doc["note"]
+    return None
+
+
+def write_ledger(
+    root: str,
+    relpath: str,
+    entries: list[dict[str, str]],
+    cycle: str | None,
+    note: str | None = None,
+) -> None:
     ordered = [
         {field: entry[field] for field in ENTRY_FIELDS}
         for entry in sorted(entries, key=_entry_sort_key)
@@ -639,7 +660,10 @@ def write_ledger(root: str, relpath: str, entries: list[dict[str, str]], cycle: 
     doc: dict[str, Any] = {"grandfatherSchema": LEDGER_SCHEMA}
     if cycle is not None:
         doc["cycle"] = cycle
-    doc["note"] = LEDGER_NOTE
+    # A file this run did not author keeps the note it already carried. Pruning
+    # a dead entry out of the frozen archive must not also replace the paragraph
+    # explaining that it IS the frozen archive.
+    doc["note"] = LEDGER_NOTE if note is None else note
     doc["entries"] = ordered
     path = ledger_path(root, relpath)
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -879,6 +903,7 @@ def _prune_obsolete_elsewhere(
                 relpath,
                 remaining,
                 declared if relpath != LEGACY_LEDGER_RELPATH else None,
+                note=read_ledger_note(root, relpath),
             )
         else:
             os.remove(ledger_path(root, relpath))
@@ -1453,6 +1478,41 @@ def selftest_per_cycle(check) -> None:
         check(
             "a cycle file emptied by pruning is removed, not left as a husk",
             not os.path.exists(ledger_path(root, alpha)),
+        )
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    # --- pruning a file this cycle does not own keeps that file's own note ----
+    #
+    # The frozen archive's note is the paragraph saying it IS the frozen archive.
+    # A prune that replaced it with the generic per-cycle note would delete the
+    # only instruction telling the next worker not to append there.
+    root = _stale_binding_tree("audit-bindings-selftest-foreign-note-")
+    try:
+        grandfather(root, "item-alpha", "selftest: alpha excused it")
+        alpha = cycle_ledger_relpath("item-alpha")
+        kept = [dict(entry) for entry in _load_ledger_file(root, alpha)]
+        # A second, independent binding so the file is not emptied by the prune.
+        _write(root, "src/other.fs", "let o = 1\n")
+        _make_audit(root, "cycle-2", "feedback/cycle-2.md", ["src/other.fs"])
+        _write(root, "src/other.fs", "let o = 2\n")
+        grandfather(root, "item-alpha", "selftest: alpha excused both")
+        write_ledger(
+            root,
+            alpha,
+            _load_ledger_file(root, alpha),
+            "item-alpha",
+            note="ALPHA'S OWN NOTE, which a foreign prune must not replace.",
+        )
+        # Retire exactly one of alpha's two entries, so item-beta must rewrite
+        # alpha's file rather than delete it.
+        _write(root, "src/thing.fs", "let a = 1\n")
+        grandfather(root, "item-beta", "selftest: beta prunes one of alpha's entries")
+        check(
+            "a foreign prune keeps the pruned file's own note",
+            evaluate(root)["ok"]
+            and read_ledger_note(root, alpha) == "ALPHA'S OWN NOTE, which a foreign prune must not replace."
+            and len(_load_ledger_file(root, alpha)) == len(kept),
         )
     finally:
         shutil.rmtree(root, ignore_errors=True)
