@@ -453,16 +453,18 @@ let private evidenceGraphPublicationReport (graphPath: string) publication =
 let private emittedGraphSectionWarning (graphPath: string) : string list =
     if not (File.Exists graphPath) then
         [ $"EvidenceGraph: {graphPath} does not exist after an emission that exited 0, so there is no graph for the publication rule — or for EvidenceAudit — to read." ]
-    elif (match tryReadText graphPath with | Error _ -> true | Ok _ -> false) then
-        // #62 (4). This function WARNS by contract, so an unreadable graph warns too rather than
-        // throwing past the caller that is about to restore the published bytes.
-        [ $"EvidenceGraph: the freshly emitted {graphPath} exists but could not be read, so neither the publication rule nor EvidenceAudit can see what this run sensed." ]
     else
-        match sensedReadinessFiles (File.ReadAllText graphPath) with
-        | Some sensed when Set.isEmpty sensed ->
+        // #62 (4). ONE read, not a probe followed by a raw one: check-then-act is not totality, and
+        // a file that becomes unreadable between the two still throws. This function WARNS by
+        // contract, so an unreadable graph warns too rather than throwing past the caller that is
+        // about to restore the published bytes.
+        match tryReadText graphPath |> Result.map sensedReadinessFiles with
+        | Error _ ->
+            [ $"EvidenceGraph: the freshly emitted {graphPath} exists but could not be read, so neither the publication rule nor EvidenceAudit can see what this run sensed." ]
+        | Ok (Some sensed) when Set.isEmpty sensed ->
             [ $"EvidenceGraph: the freshly emitted {graphPath} has a `{sensedSectionHeading}` section listing NOTHING, so the publication rule can never refuse anything on this tree." ]
-        | Some _ -> []
-        | None ->
+        | Ok (Some _) -> []
+        | Ok None ->
             [ $"EvidenceGraph: the freshly emitted {graphPath} carries no `{sensedSectionHeading}` section, so the publication rule has nothing to compare and will ABSTAIN on every future run. An engine-side rename of that heading looks exactly like this — re-pin the literal in build.fsx." ]
 
 /// Runs one emission under the rule. `emit` is a parameter, not a hard-wired call,
@@ -1189,17 +1191,35 @@ let private kitTreeScan (root: string) (owner: string) : string list * string li
         | Ok entries ->
             for entry in entries do
                 if not (reportedAsLink entry) then
-                    if Directory.Exists entry then walk entry else files.Add(relativeTo entry)
+                    // #62 (1), found by a hostile critic: `not (Directory.Exists entry)` is NOT proof
+                    // that `entry` is a file. Clearing the execute bit on a kit directory (mode 400,
+                    // readable but not traversable) leaves `readdir`
+                    // working and `stat` on its children failing, so three SUBDIRECTORIES were
+                    // counted in the total as kit files, seven present files were reported missing,
+                    // and the walk emitted no `cannot be listed` line about a subtree it plainly
+                    // could not read. The tree was red, so nothing hid — but "the printed total is
+                    // the number of distinct real files" is the whole of item 1, and it was not.
+                    if Directory.Exists entry then walk entry
+                    elif File.Exists entry then files.Add(relativeTo entry)
+                    else
+                        problems.Add
+                            $"{relativeTo entry}: is neither a readable file nor a listable directory, so it is reported rather than counted — a parent directory that cannot be traversed looks exactly like this"
 
     /// The walk yields depth-first, and the caller this most matters to is `computeKitPins`, which
     /// WRITES `scripts/kit-pins.json` in the order it receives. `Directory.GetFiles(…,
     /// AllDirectories)` returned a flat array that was then sorted on the RELATIVE path, and the two
-    /// orders are not the same wherever a directory and a file share a prefix: `.agents/skills/x/a`
+    /// orders are not the same wherever one entry's name is a prefix of another's: `.agents/skills/x/a`
     /// sorts before `.agents/skills/x.md` (`/` > `.`), but a depth-first walk emits the directory's
-    /// contents first. Three such pairs exist in this repository's kit today, so without this sort
-    /// `KitPins` rewrites the ledger with identical digests in a different order — a gratuitous diff
-    /// on a file four merged audits bind, for no change at all. Measured, not reasoned: the first
-    /// version of this walk moved six lines.
+    /// contents first.
+    ///
+    /// Measured, not reasoned, and the figures are the CORRECTED ones — a critic re-derived both of
+    /// the first version's and both were wrong. This kit has **two** directory/file pairs
+    /// (`fs-gg-symbology/reference` + `reference.fsx`, `fs-gg-symbol-design/reference` +
+    /// `reference.fsx`) and **one** directory/directory family (`work-board` against
+    /// `work-board-best` and `work-board-normal`), which the "a directory and a file share a prefix"
+    /// sentence does not describe and which reorders for the same reason. Over the ledger's 63 pins
+    /// that is **4 pins moved, 8 changed diff lines** — not the six the first commit message claimed.
+    /// A gratuitous diff on a file four merged audits bind, for no change at all.
     let sorted (values: ResizeArray<string>) = values |> List.ofSeq |> List.sort
 
     // The two roots the item names, checked BEFORE the walk: `.claude` itself may be the link, in
@@ -1207,15 +1227,28 @@ let private kitTreeScan (root: string) (owner: string) : string list * string li
     let ownerRoot = path [ root; owner ]
     let treeRoot = path [ root; owner; "skills" ]
 
+    // `reportedAsLink` has an EFFECT — it appends the problem line — so the short-circuit order here
+    // is load-bearing and is stated rather than left to be re-derived: `.claude` is examined first,
+    // and if it is a link its child is never examined, because a link one level up is the whole
+    // finding and reporting `.claude/skills` underneath it would name a path that is not this
+    // repository's to describe.
     if not (Directory.Exists ownerRoot && reportedAsLink ownerRoot) then
         if Directory.Exists treeRoot && not (reportedAsLink treeRoot) then
             walk treeRoot
 
     sorted files, sorted problems
 
-/// The files only, for the callers that want the enumeration and not the refusals. Every caller
-/// that produces VIOLATIONS uses `kitTreeScan` — dropping the problems is legitimate only where
-/// something else is already reporting them.
+/// The files only. TODAY'S CALLERS, named rather than governed by a rule, on a reviewer's argument:
+/// an abstract rule ("only drop the problems where something else reports them") goes stale
+/// silently, and a list of callers goes stale LOUDLY the moment a third one appears and this comment
+/// does not mention it.
+///
+///   * `computeKitPins` — writes the ledger; `TemplateDrift` is what reports on the tree.
+///   * `templateDriftCoverage` — calls `templateDriftViolations` first, which reports them all.
+///
+/// Both are independently pinned by cases. The discard is visible at each call site because
+/// `kitTreeScan` returns a tuple, which is why this is a convenience rather than the invisible
+/// second return value `agentsManifestPins`'s doc comment argues against.
 let private kitTreeFiles (root: string) (owner: string) = fst (kitTreeScan root owner)
 
 /// The ledger as `(path, sha256)` pairs, or a violation line explaining why it could
@@ -1335,9 +1368,17 @@ let private agentsManifestPins (root: string) =
     pins
 
 let private renderKitPins (pins: (string * string) list) =
+    // #62: the path is JSON-ENCODED rather than interpolated. A hostile critic put a kit file called
+    // `q".md` in the tree; `KitPins` cheerfully wrote it raw, produced a ledger that does not parse,
+    // and exited **0** — after which `TemplateDrift` reported `64 of 192 … 128 uncovered` and
+    // re-running the remedy it names reproduced the same broken file. The `unpinnable` guard added
+    // for item 4 covers bytes this cannot READ; it said nothing about names this cannot RENDER, and
+    // "the remedy the gate prints has to work" is the property both exist to hold.
+    let encode (value: string) = System.Text.Json.JsonSerializer.Serialize value
+
     let entries =
         pins
-        |> List.map (fun (relative, digest) -> $"    {{ \"path\": \"{relative}\", \"sha256\": \"{digest}\" }}")
+        |> List.map (fun (relative, digest) -> $"    {{ \"path\": {encode relative}, \"sha256\": {encode digest} }}")
         |> String.concat ",\n"
 
     "{\n"
@@ -1347,12 +1388,23 @@ let private renderKitPins (pins: (string * string) list) =
     + entries
     + "\n  ]\n}\n"
 
-/// Rewrites the ledger from the tree and returns what it pinned. THE one write path: the `KitPins`
+/// What one `KitPins` run did. Two cases, because "wrote a ledger that is missing some files" and
+/// "wrote nothing at all" are different facts and a reviewer acts differently on each — and because
+/// collapsing them into `(pins, problems)` is exactly how the target came to print that an untouched
+/// ledger was INCOMPLETE.
+type private KitPinsOutcome =
+    /// The ledger was rewritten. `unpinnable` names files it could not digest, which are absent
+    /// from what it wrote.
+    | Wrote of pins: (string * string) list * unpinnable: string list
+    /// Nothing was written and the ledger on disk is untouched.
+    | Refused of reason: string
+
+/// Rewrites the ledger from the tree and returns what it did. THE one write path: the `KitPins`
 /// target and `SelfTest`'s fixture re-pin both go through here, so a mutation to the remedy is a
 /// mutation to the thing the tests exercise. They used to be parallel implementations, and a
 /// reviewer's mutant that made the TARGET write an empty ledger survived every case because only
 /// the fixture's copy was ever run.
-let private writeKitPins (root: string) =
+let private writeKitPins (root: string) : KitPinsOutcome =
     // #62 (4), the last instance of "writes a ledger it knows is wrong and exits 0", found by a
     // critic one input over from the one this cycle fixed first. `agentsManifestPins` reports a
     // manifest it cannot read as NO PINS — correct for a check that reports the manifest separately,
@@ -1374,14 +1426,47 @@ let private writeKitPins (root: string) =
                 None
 
     match manifestProblem with
-    | Some reason -> [], [ reason ]
+    | Some reason -> Refused reason
     | None ->
         let manifestPins = agentsManifestPins root
         let pins, unpinnable = computeKitPins root (manifestPins |> Seq.map fst |> Set.ofSeq)
         let target = path [ root; kitPinsRelative ]
         Directory.CreateDirectory(Path.GetDirectoryName target: string) |> ignore
         File.WriteAllText(target, renderKitPins pins)
-        pins, unpinnable
+        Wrote(pins, unpinnable)
+
+/// The operator-facing account of a `KitPins` run, as lines, and whether the run failed. Returned
+/// rather than printed for the reason `evidenceGraphPublicationReport` is: the WORDING is the thing
+/// a person acts on, so it has to be assertable.
+///
+/// A critic found the first version of this printing three false things on the refusal path — that
+/// it had pinned 0 files *into* the ledger, that there was a diff to review, and that the ledger was
+/// INCOMPLETE — while the STATE was entirely correct and the `SelfTest` case asserted only the
+/// state. An untouched file is not an incomplete one, and that clause said the opposite of the
+/// truth, which is the single thing this cycle exists to stop. #46's own lesson, one target over:
+/// the line the gate prints is part of the acceptance, so assert the wording and not just the
+/// effect.
+let private kitPinsReport (outcome: KitPinsOutcome) : string list * bool =
+    match outcome with
+    | Refused reason ->
+        [ $"KitPins: {reason}"
+          // The word the WROTE path uses for a partial ledger deliberately does not appear here, and
+          // the case asserts its absence: an untouched file and a partial one are the two states
+          // this report exists to keep apart, so the two accounts share no vocabulary.
+          $"KitPins: {kitPinsRelative} was NOT rewritten — it is exactly as it was on disk, untouched. Fix the manifest and run this again." ],
+        true
+    | Wrote (pins, unpinnable) ->
+        let written =
+            [ $"KitPins: pinned {List.length pins} kit file(s) under {kitSourcePrefix} that the generated skill manifest does not name, into {kitPinsRelative}"
+              "KitPins: review the diff — a changed pin is the record that a kit file changed on purpose, and it is what a reviewer reads instead of a silent edit." ]
+
+        if List.isEmpty unpinnable then
+            written, false
+        else
+            written
+            @ [ for line in unpinnable -> $"KitPins:   {line}" ]
+            @ [ $"KitPins: {List.length unpinnable} kit file(s) above could not be digested, so {kitPinsRelative} WAS rewritten and is missing them — the next TemplateDrift will report each as covered by nothing." ],
+            true
 
 /// Every materialized kit file matches the digest its manifest pins. Returns one line per
 /// violation; an empty list is a genuine pass.
@@ -1480,7 +1565,12 @@ let templateDriftViolations (root: string) =
                             // mirror pass mirrors. The manifest is generated, so reaching this line
                             // means either the generator changed its contract or someone edited both
                             // copies by hand; either way the gate must say so rather than count it.
-                            violations.Add $"{manifestName}: skill `{id}` pins `{relative}`, which is outside {kitSourcePrefix} — the only tree this gate enumerates, so a pin there is checked by nothing that counts coverage"
+                            // The message carries the DIAGNOSIS and not a remedy, on a reviewer's
+                            // argument: this manifest is generated, so there is no local command
+                            // that fixes it, and naming a remedy that does not exist is worse than
+                            // naming none. What an operator cannot derive is which of the two
+                            // causes they are looking at.
+                            violations.Add $"{manifestName}: skill `{id}` pins `{relative}`, which is outside {kitSourcePrefix} — the only tree this gate enumerates, so a pin there is checked by nothing that counts coverage. This manifest is GENERATED, so reaching this line means either the generator changed its contract or someone edited both copies by hand"
                         else
                             match materializesHere profile condition with
                             | Error expr -> violations.Add $"{manifestName}: skill `{id}` has an unreadable `materializes-when` expression: {expr}"
@@ -1632,6 +1722,16 @@ let templateDriftCoverage (root: string) =
     let manifestPins = agentsManifestPins root
     let manifestPinned = manifestPins |> Seq.map fst |> Set.ofSeq
 
+    // A hostile critic's mutation matrix reports that dropping `withinKitSources` from THIS filter
+    // survives every case, and that is correct and cannot be fixed by adding one: `sources` only
+    // ever holds paths under `.agents/skills/`, so a ledger entry outside the prefix can never match
+    // one and the clause is redundant by construction here. It is kept because the alternative — two
+    // validations that are deliberately different — is what made these two computations disagree
+    // twice, and an untestable clause that cannot diverge is a smaller hazard than a divergence that
+    // can. The real repair is structural and is filed rather than smuggled in: derive the
+    // denominator from the value `templateDriftViolations` already produced, so there is only one
+    // validation to keep honest.
+    //
     // This repeats the enumeration's validation MINUS `File.Exists`, and that difference is
     // deliberate: a pin whose file is absent contributes no enumerated file, so it can neither be
     // counted nor named, and `templateDriftViolations` reports it separately as `pinned but
@@ -1871,7 +1971,7 @@ let private jsonString (value: string) =
 /// this file over the transcript, so it must not be able to say `failures: 0` about a run that
 /// failed for a reason the tally never sees (a repository-clean raise), nor about a run that never
 /// checked itself at all.
-let private writeSelfTestResult (recorded: (string * bool) list) (verdict: string) (detail: string) (probed: bool) =
+let private writeSelfTestResult (recorded: (string * bool) list) (skipped: string list) (verdict: string) (detail: string) (probed: bool) =
     let failed = recorded |> List.filter (snd >> not) |> List.map fst
     let target = selfTestResultPath ()
     let full = Path.GetFullPath target
@@ -1881,13 +1981,23 @@ let private writeSelfTestResult (recorded: (string * bool) list) (verdict: strin
         String.concat
             "\n"
             [ "{"
-              "  \"schemaVersion\": 2,"
+              "  \"schemaVersion\": 3,"
               sprintf "  \"verdict\": %s," (jsonString verdict)
               sprintf "  \"detail\": %s," (jsonString detail)
               sprintf "  \"probed\": %b," probed
               sprintf "  \"cases\": %d," (List.length recorded)
               sprintf "  \"failures\": %d," (List.length failed)
               sprintf "  \"injected\": %b," (selfTestInjecting ())
+              // #62. A case that could not establish its precondition RECORDS NOTHING, so a host
+              // that refuses symbolic links or runs as root simply reports a smaller, entirely
+              // healthy-looking total and exits 0 — a critic measured 164 -> 156 and 164 -> 161 for
+              // those two hosts. The only signal was a `note` line among 160 `ok` lines, and #57
+              // established that the transcript is exactly what must not be trusted. So the skips
+              // travel in the STRUCTURED result, where a gate can read them.
+              sprintf "  \"skipped\": %d," (List.length skipped)
+              "  \"skippedCases\": ["
+              (skipped |> List.map (fun d -> "    " + jsonString d) |> String.concat ",\n")
+              "  ],"
               "  \"failed\": ["
               (failed |> List.map (fun d -> "    " + jsonString d) |> String.concat ",\n")
               "  ]"
@@ -2110,6 +2220,21 @@ let private runSelfTest () =
     // counter whose deletion silences a failure, and the printing below is a REPORT of the record
     // rather than the thing the verdict is computed from.
     let recorded = ResizeArray<string * bool>()
+
+    // #62: what this run could NOT prove. A case guarded by a platform precondition — a symbolic
+    // link this host refuses to create, mode bits a root process ignores — records nothing at all
+    // when the precondition fails, so the run reports a smaller total and exits 0 and a reader
+    // concludes the guards passed. A critic measured that: forcing the mode-bit probe to fail
+    // (i.e. running as root, the default in many container images) drops 3 cases; forcing the link
+    // probe to fail drops 8, including every case for items 1 and 2. Both still print
+    // `0 failure(s)` and exit 0. This list is what makes the absence legible, and it travels in the
+    // structured result rather than in the transcript, because #57's whole subject is that the
+    // transcript is what must not be trusted.
+    let skipped = ResizeArray<string>()
+
+    let skip (group: string) (reason: string) =
+        skipped.Add $"{group}: {reason}"
+        printfn "  SKIP %s — %s" group reason
 
     let expect description condition =
         recorded.Add(description, condition)
@@ -2703,7 +2828,7 @@ let private runSelfTest () =
         /// Creates a symbolic link, or announces that this platform refused. Windows without
         /// developer mode cannot make one; a case that cannot run must SAY SO rather than record a
         /// pass, which is the vacuous-green shape this whole target exists to prevent.
-        let trySymlink (linkPath: string) (target: string) (directory: bool) =
+        let trySymlink (group: string) (linkPath: string) (target: string) (directory: bool) =
             try
                 if directory then
                     Directory.CreateSymbolicLink(linkPath, target) |> ignore
@@ -2712,10 +2837,7 @@ let private runSelfTest () =
 
                 true
             with ex ->
-                printfn
-                    "  note this platform refused to create a symbolic link (%s); the #62 link cases below prove nothing here"
-                    (ex.GetType().Name)
-
+                skip group $"this platform refused to create a symbolic link ({ex.GetType().Name})"
                 false
 
         // #62 (1): `.claude/skills` a link to `.agents/skills`. The gate printed
@@ -2725,7 +2847,7 @@ let private runSelfTest () =
         let linkedTreeRoot, _ = freshFixture ()
         Directory.Delete(path [ linkedTreeRoot; ".claude"; "skills" ], true)
 
-        if trySymlink (path [ linkedTreeRoot; ".claude"; "skills" ]) (path [ linkedTreeRoot; ".agents"; "skills" ]) true then
+        if trySymlink "#62 (1) symlinked kit tree ROOT (3 cases)" (path [ linkedTreeRoot; ".claude"; "skills" ]) (path [ linkedTreeRoot; ".agents"; "skills" ]) true then
             let linkedTreeViolations = templateDriftViolations linkedTreeRoot
 
             expect
@@ -2750,7 +2872,7 @@ let private runSelfTest () =
         let linkedOwnerRoot, _ = freshFixture ()
         Directory.Delete(path [ linkedOwnerRoot; ".claude" ], true)
 
-        if trySymlink (path [ linkedOwnerRoot; ".claude" ]) (path [ linkedOwnerRoot; ".agents" ]) true then
+        if trySymlink "#62 (1) symlinked kit OWNER directory (1 case)" (path [ linkedOwnerRoot; ".claude" ]) (path [ linkedOwnerRoot; ".agents" ]) true then
             expect
                 "a kit OWNER directory replaced by a symbolic link is reported too, not just its skills/ child"
                 (templateDriftViolations linkedOwnerRoot
@@ -2763,6 +2885,7 @@ let private runSelfTest () =
         Directory.Delete(path [ linkedSubdirRoot; ".claude"; "skills"; "fs-gg-kit" ], true)
 
         if trySymlink
+            "#62 (1) symbolic link NESTED inside a kit tree (1 case)"
             (path [ linkedSubdirRoot; ".claude"; "skills"; "fs-gg-kit" ])
             (path [ linkedSubdirRoot; ".agents"; "skills"; "fs-gg-kit" ])
             true then
@@ -2827,7 +2950,7 @@ let private runSelfTest () =
         File.Copy(carriedOut, outsideTheRepository)
         File.Delete carriedOut
 
-        if trySymlink carriedOut outsideTheRepository false then
+        if trySymlink "#62 (2) kit FILE symlinked out of the repository (3 cases)" carriedOut outsideTheRepository false then
             let linkedFileViolations = templateDriftViolations linkedFileRoot
 
             expect
@@ -2880,9 +3003,17 @@ let private runSelfTest () =
             (manifestBoundaryViolations
              |> List.exists (fun v -> v.Contains "skill-manifest.json" && v.Contains "the only tree this gate enumerates"))
 
+        // SURVIVING MUTANT: this assertion does NOT cover `agentsManifestPins`' copy of the
+        // boundary, because `byManifest` intersects with the ENUMERATED sources and an out-of-kit
+        // path is never enumerated — so it reads the same either way. A critic's matrix found that
+        // deleting `&& withinKitSources relative` from `agentsManifestPins` survived every case.
+        // The digest COUNT is what actually distinguishes them: it is `manifestPins.Count`, straight
+        // from the filtered set.
         expect
             "…and the coverage line does not credit the generated manifest for it"
-            ((templateDriftCoverage manifestBoundary).Contains "2 source(s) by the generated manifest")
+            (let line = templateDriftCoverage manifestBoundary
+             line.Contains "2 source(s) by the generated manifest"
+             && line.Contains "Manifest entries carrying a digest: 3")
 
         // The trailing slash, on the manifest side this time: `.agents/skillsX/` must not satisfy
         // `.agents/skills`. Given a real file at a matching digest, so removing the boundary makes
@@ -2944,9 +3075,9 @@ let private runSelfTest () =
         /// Makes a path unreadable and answers whether it really became unreadable. A run as root
         /// ignores the mode entirely, and a case that quietly proves nothing is the defect this
         /// target exists to stop — so the probe READS BACK rather than trusting the mode it just set.
-        let tryMakeUnreadable (target: string) =
+        let tryMakeUnreadable (group: string) (target: string) =
             if OperatingSystem.IsWindows() then
-                printfn "  note this platform has no POSIX mode bits; the #62 unreadable-input cases below prove nothing here"
+                skip group "this platform has no POSIX mode bits"
                 false
             else
                 try
@@ -2954,11 +3085,12 @@ let private runSelfTest () =
 
                     try
                         File.ReadAllBytes target |> ignore
-                        printfn "  note %s is still readable with its mode bits cleared (running as root?); the #62 unreadable-input cases prove nothing here" target
+                        skip group "clearing the mode bits left the file readable (running as root?)"
                         false
                     with _ ->
                         true
-                with _ ->
+                with ex ->
+                    skip group $"the mode bits could not be cleared ({ex.GetType().Name})"
                     false
 
         let restoreReadable (target: string) =
@@ -2973,7 +3105,7 @@ let private runSelfTest () =
         let unreadableSource, unreadableSkill = freshFixture ()
         let unreadableTarget = path [ unreadableSource; unreadableSkill ]
 
-        if tryMakeUnreadable unreadableTarget then
+        if tryMakeUnreadable "#62 (4) unreadable kit file (1 case)" unreadableTarget then
             let outcome = violationsOrCrash unreadableSource
             restoreReadable unreadableTarget
 
@@ -2983,13 +3115,36 @@ let private runSelfTest () =
                  | Error _ -> false
                  | Ok violations -> violations |> List.exists (fun v -> v.Contains unreadableSkill && v.Contains "cannot be read"))
 
+        // SURVIVING MUTANT, found by a hostile matrix: moving the ledger pass's `yield relative,
+        // pinned` inside its `Ok` arm left all 149 cases green. It is not cosmetic. On a tree with an
+        // unreadable SOURCE and a DRIFTED MIRROR, the mutant loses the `mirror: … differs` line
+        // entirely and replaces it with two false `coverage: … pinned by nothing` lines — a file that
+        // IS pinned, reported as pinned by nothing, which is the overstatement this item is about
+        // pointing the other way. The comment above the yield states exactly this consequence and
+        // nothing asserted it.
+        let unreadableSourceDriftedMirror, _ = freshFixture ()
+        let unreadablePinned = path [ unreadableSourceDriftedMirror; unnamedRelative ]
+        File.AppendAllText(path [ unreadableSourceDriftedMirror; ".claude/skills/work-board/references/deep-detail.md" ], "drifted\n")
+
+        if tryMakeUnreadable "#62 (4) unreadable source with a drifted mirror (1 case)" unreadablePinned then
+            let outcome = violationsOrCrash unreadableSourceDriftedMirror
+            restoreReadable unreadablePinned
+
+            expect
+                "an unreadable SOURCE still has its mirror checked against the digest the ledger pins for it"
+                (match outcome with
+                 | Error _ -> false
+                 | Ok violations ->
+                     (violations |> List.exists (fun v -> v.StartsWith "mirror: " && v.Contains "deep-detail.md" && v.Contains "differs"))
+                     && not (violations |> List.exists (fun v -> v.StartsWith "coverage: " && v.Contains "deep-detail.md")))
+
         // The gate's PRIMARY oracle. The ledger has reported its own read failures since #46; the
         // manifest was parsed unguarded, so the tree the gate most needs to describe was the one it
         // could say nothing about.
         let unreadableManifest, _ = freshFixture ()
         let unreadableManifestPath = path [ unreadableManifest; ".agents"; "skills"; "skill-manifest.json" ]
 
-        if tryMakeUnreadable unreadableManifestPath then
+        if tryMakeUnreadable "#62 (4) unreadable skill manifest (1 case)" unreadableManifestPath then
             let outcome = violationsOrCrash unreadableManifest
             restoreReadable unreadableManifestPath
 
@@ -3006,7 +3161,9 @@ let private runSelfTest () =
         let unlistableDir, _ = freshFixture ()
         let unlistableTarget = path [ unlistableDir; ".agents"; "skills"; "work-board"; "references" ]
 
-        if not (OperatingSystem.IsWindows()) then
+        if OperatingSystem.IsWindows() then
+            skip "#62 (4) unlistable KIT directory (1 case)" "this platform has no POSIX mode bits"
+        else
             let becameUnlistable =
                 try
                     DirectoryInfo(unlistableTarget).UnixFileMode <- UnixFileMode.None
@@ -3019,7 +3176,9 @@ let private runSelfTest () =
                 with _ ->
                     false
 
-            if becameUnlistable then
+            if not becameUnlistable then
+                skip "#62 (4) unlistable kit directory (1 case)" "the directory stayed listable with its mode bits cleared (running as root?)"
+            else
                 let outcome = violationsOrCrash unlistableDir
 
                 try
@@ -3043,7 +3202,9 @@ let private runSelfTest () =
         for agent in [ "claude"; "codex" ] do
             Directory.CreateDirectory(path [ commandsDir; agent ]) |> ignore
 
-        if not (OperatingSystem.IsWindows()) then
+        if OperatingSystem.IsWindows() then
+            skip "#62 (4) unlistable generated-guidance directory (1 case)" "this platform has no POSIX mode bits"
+        else
             let becameUnlistable =
                 try
                     DirectoryInfo(commandsDir).UnixFileMode <- UnixFileMode.None
@@ -3056,7 +3217,9 @@ let private runSelfTest () =
                 with _ ->
                     false
 
-            if becameUnlistable then
+            if not becameUnlistable then
+                skip "#62 (4) unlistable generated-guidance directory (1 case)" "the directory stayed listable with its mode bits cleared (running as root?)"
+            else
                 let outcome =
                     try
                         Ok(generatedGuidanceViolations unlistableCommands)
@@ -3081,7 +3244,7 @@ let private runSelfTest () =
         let unreadableAgents, _ = freshFixture ()
         let unreadableAgentsPath = path [ unreadableAgents; ".fsgg"; "agents.yml" ]
 
-        if tryMakeUnreadable unreadableAgentsPath then
+        if tryMakeUnreadable "#62 (4) unreadable .fsgg/agents.yml (1 case)" unreadableAgentsPath then
             let outcome =
                 try
                     Ok(generatedGuidanceViolations unreadableAgents)
@@ -3110,7 +3273,7 @@ let private runSelfTest () =
         writeFile emittedGraphPath graphBody
         writeFile publishedGraphPath graphBody
 
-        if tryMakeUnreadable publishedGraphPath then
+        if tryMakeUnreadable "#62 (4) unreadable PUBLISHED evidence graph (1 case)" publishedGraphPath then
             let outcome =
                 try
                     Ok(applyEvidenceGraphPublicationRule emittedGraphPath publishedGraphPath false)
@@ -3125,7 +3288,7 @@ let private runSelfTest () =
                  | Ok (Unevaluatable reason) -> reason.Contains "cannot be read"
                  | _ -> false)
 
-        if tryMakeUnreadable emittedGraphPath then
+        if tryMakeUnreadable "#62 (4) unreadable EMITTED evidence graph (1 case)" emittedGraphPath then
             let outcome =
                 try
                     Ok(emittedGraphSectionWarning emittedGraphPath)
@@ -3148,20 +3311,90 @@ let private runSelfTest () =
         let blindManifestPath = path [ kitPinsBlindManifest; ".agents"; "skills"; "skill-manifest.json" ]
         let ledgerBefore = File.ReadAllText(path [ kitPinsBlindManifest; kitPinsRelative ])
 
-        if tryMakeUnreadable blindManifestPath then
-            let written, refusals =
+        if tryMakeUnreadable "#62 (4) KitPins refuses on an unreadable manifest (3 cases)" blindManifestPath then
+            let outcome =
                 try
                     writeKitPins kitPinsBlindManifest
                 with ex ->
-                    [], [ ex.GetType().Name ]
+                    Wrote([], [ ex.GetType().Name ])
 
             restoreReadable blindManifestPath
 
             expect
                 "KitPins REFUSES to rewrite the ledger when it cannot read the manifest, instead of pinning everything"
-                (List.isEmpty written
-                 && (refusals |> List.exists (fun r -> r.Contains "skill-manifest.json"))
-                 && File.ReadAllText(path [ kitPinsBlindManifest; kitPinsRelative ]) = ledgerBefore)
+                (match outcome with
+                 | Refused reason -> reason.Contains "skill-manifest.json"
+                 | Wrote _ -> false)
+
+            expect
+                "…and the ledger on disk is untouched, byte for byte"
+                (File.ReadAllText(path [ kitPinsBlindManifest; kitPinsRelative ]) = ledgerBefore)
+
+            // A critic reproduced the FIRST version of this on a bare tree: the STATE was right and
+            // the three lines it PRINTED were all false — that it had pinned 0 files *into* the
+            // ledger, that there was a diff to review, and that the ledger was INCOMPLETE, which is
+            // the opposite of untouched. The case above asserted only the state, so it passed. #46's
+            // own lesson, one target over: the line the gate prints is part of the acceptance.
+            let refusalLines, refusalFailed = kitPinsReport outcome
+
+            expect
+                "…and the account it PRINTS says the ledger was not rewritten, not that it is incomplete"
+                (refusalFailed
+                 && refusalLines |> List.exists (fun l -> l.Contains "was NOT rewritten")
+                 && not (refusalLines |> List.exists (fun l -> l.Contains "review the diff"))
+                 && not (refusalLines |> List.exists (fun l -> l.Contains "pinned 0 kit file(s)"))
+                 && not (refusalLines |> List.exists (fun l -> l.ToLowerInvariant().Contains "incomplete")))
+
+        // The other half of that account, and the guard a mutation matrix found had NO coverage at
+        // all: `computeKitPins` naming a file it could not digest, and `KitPins` failing rather than
+        // exiting 0 over a ledger it wrote WITHOUT that file.
+        let kitPinsUnreadableSource, unreadableSourceRelative = freshFixture ()
+        let unpinnableFile = path [ kitPinsUnreadableSource; unnamedRelative ]
+
+        if tryMakeUnreadable "#62 (4) KitPins names a kit file it cannot digest (2 cases)" unpinnableFile then
+            let outcome =
+                try
+                    writeKitPins kitPinsUnreadableSource
+                with ex ->
+                    Refused(ex.GetType().Name)
+
+            restoreReadable unpinnableFile
+            ignore unreadableSourceRelative
+
+            expect
+                "KitPins NAMES a kit file it could not digest rather than dropping it silently"
+                (match outcome with
+                 | Wrote (pins, unpinnable) ->
+                     (unpinnable |> List.exists (fun u -> u.Contains "deep-detail.md"))
+                     && not (pins |> List.exists (fun (p, _) -> p.Contains "deep-detail.md"))
+                 | Refused _ -> false)
+
+            let wroteLines, wroteFailed = kitPinsReport outcome
+
+            expect
+                "…and the run FAILS, saying the ledger WAS rewritten and is missing it — the opposite claim to the refusal path"
+                (wroteFailed
+                 && wroteLines |> List.exists (fun l -> l.Contains "WAS rewritten and is missing them")
+                 && not (wroteLines |> List.exists (fun l -> l.Contains "was NOT rewritten")))
+
+        // A ledger a JSON parser refuses is a ledger that pins nothing, and `KitPins` used to write
+        // one and exit 0: the path was interpolated raw, so a kit file named with a quote produced
+        // `64 of 192 … 128 uncovered` on the next run and re-running the remedy reproduced it.
+        let quotedName, _ = freshFixture ()
+        let awkwardRelative = ".agents/skills/fs-gg-kit/q\".md"
+        writeFile (path [ quotedName; awkwardRelative ]) "# awkward\n"
+        writeFile (path [ quotedName; ".claude/skills/fs-gg-kit/q\".md" ]) "# awkward\n"
+        repinFixture quotedName
+
+        expect
+            "a kit file whose NAME needs escaping still yields a ledger that parses, and pins it"
+            (match readKitPins quotedName with
+             | Error _ -> false
+             | Ok pins -> pins |> List.exists (fun (p, _) -> p = awkwardRelative))
+
+        expect
+            "…and the tree is clean afterwards, so the remedy the gate names really works on it"
+            (List.isEmpty (templateDriftViolations quotedName))
 
         // Malformed, not unreadable — the same class, reachable on every platform and with no
         // permissions involved, so these run where the mode-bit cases above cannot.
@@ -3184,6 +3417,36 @@ let private runSelfTest () =
             (match violationsOrCrash malformedProvenance with
              | Error _ -> false
              | Ok violations -> violations |> List.exists (fun v -> v.Contains "scaffold-provenance.json" && v.Contains "JSON"))
+
+        // SURVIVING MUTANT: returning the non-string `value` as the profile anyway survived every
+        // case. It is not harmless — `Some null` satisfies the caller's `profile.IsNone` test and
+        // then matches no `profile == x` condition, so the tree reads as DECLARING a profile that
+        // excludes every skill, which is silently weaker than the violation the `None` path reports.
+        let nonStringProfile, _ = freshFixture ()
+
+        writeFile
+            (path [ nonStringProfile; ".fsgg"; "scaffold-provenance.json" ])
+            """{ "schemaVersion": 1, "effectiveParameters": [ { "key": "profile", "value": 7 } ] }"""
+
+        expect
+            "a `profile` whose value is not a STRING is no profile at all, and is reported as none"
+            (match violationsOrCrash nonStringProfile with
+             | Error _ -> false
+             | Ok violations -> violations |> List.exists (fun v -> v.Contains "declares no `profile`"))
+
+        // The same class one door over: `effectiveParameters` that is not an array reached
+        // `EnumerateArray` and threw, before any check had run.
+        let provenanceShape, _ = freshFixture ()
+
+        writeFile
+            (path [ provenanceShape; ".fsgg"; "scaffold-provenance.json" ])
+            """{ "schemaVersion": 1, "effectiveParameters": { } }"""
+
+        expect
+            "a scaffold-provenance whose `effectiveParameters` is not an ARRAY is reported, not enumerated"
+            (match violationsOrCrash provenanceShape with
+             | Error _ -> false
+             | Ok violations -> violations |> List.exists (fun v -> v.Contains "declares no `profile`"))
 
         // Parseable JSON of the WRONG SHAPE. `EnumerateArray` on an object throws, so before the
         // ValueKind tests these files were reported as unparseable — a true verdict for a false
@@ -3746,11 +4009,18 @@ let private runSelfTest () =
 
     // #57: DERIVED from the case record, at the moment of the verdict.
     let recorded = List.ofSeq recorded
+    let skipped = List.ofSeq skipped
     let cases = List.length recorded
     let failures = recorded |> List.filter (snd >> not) |> List.length
     let mutable probed = false
 
-    printfn "SelfTest: %d case(s), %d failure(s)" cases failures
+    // #62: the skip count rides ALONGSIDE the case count on the summary line, because a reader who
+    // sees only `156 case(s), 0 failure(s)` on a host that refused symbolic links concludes the link
+    // guards passed. It is repeated after the per-case lines rather than only among them.
+    printfn "SelfTest: %d case(s), %d failure(s), %d group(s) SKIPPED" cases failures (List.length skipped)
+
+    for line in skipped do
+        printfn "SelfTest:   skipped %s" line
 
     // #57: the result file is written LAST, from a `finally`-equivalent on both paths, because it
     // reports the WHOLE target's verdict. Written before the assertions below, it would say
@@ -3758,7 +4028,7 @@ let private runSelfTest () =
     // the CI guard both tell their reader to trust this file over the transcript, so it must never
     // be able to describe a failed run as a passing one.
     let publish verdict detail =
-        let resultPath = writeSelfTestResult recorded verdict detail probed
+        let resultPath = writeSelfTestResult recorded skipped verdict detail probed
         printfn "SelfTest: structured result written to %s — read THAT, not this transcript (#57)." resultPath
 
     try
@@ -3854,28 +4124,17 @@ let private runSelfTest () =
 /// #46: the remedy the gate names when it reports an unpinned or drifted kit file. Re-pinning is a
 /// deliberate, reviewable act — it rewrites a tracked ledger that the audit-binding gate holds a
 /// digest over — so this prints what it did rather than doing it quietly.
+/// #62 (4): the remedy the gate names must not exit 0 after writing a ledger it knows is incomplete,
+/// and must not describe a file it never touched. Both the wording and the exit code come from
+/// `kitPinsReport`, so `SelfTest` asserts the thing an operator actually reads.
 let private runKitPins () =
-    let pins, unpinnable = writeKitPins (currentRoot ())
+    let lines, failed = kitPinsReport (writeKitPins (currentRoot ()))
 
-    printfn
-        "KitPins: pinned %d kit file(s) under %s that the generated skill manifest does not name, into %s"
-        (List.length pins)
-        kitSourcePrefix
-        kitPinsRelative
+    for line in lines do
+        printfn "%s" line
 
-    printfn "KitPins: review the diff — a changed pin is the record that a kit file changed on purpose, and it is what a reviewer reads instead of a silent edit."
-
-    // #62 (4): the remedy the gate prints must not exit 0 after writing a ledger it knows is
-    // incomplete. A file it could not read is named and the target fails; `TemplateDrift` would
-    // otherwise report the same file as covered by nothing, one run later, with no clue why.
-    if not (List.isEmpty unpinnable) then
-        for line in unpinnable do
-            eprintfn "  %s" line
-
-        failwithf
-            "KitPins could not digest %d kit file(s), so %s is INCOMPLETE — the files above are named in it by nothing"
-            (List.length unpinnable)
-            kitPinsRelative
+    if failed then
+        failwith (List.last lines)
 
 let run target =
     match target with
