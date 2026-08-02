@@ -216,6 +216,10 @@ let runProcess (target: string) (fileName: string) (arguments: string) =
     // Collect both streams concurrently and incrementally. Concurrently because reading one stream
     // to end before the other deadlocks when the child fills the other pipe; incrementally because
     // an abandoned drain must still yield everything received up to that point.
+    // One bounded loss is inherent to reading by line: a final line the child leaves UNTERMINATED is
+    // only flushed when the reader sees EOF, which is precisely what an abandoned drain never sees.
+    // A normally-draining command keeps it (verified), and the abandoned case still keeps every
+    // complete line — against the previous behavior, which kept nothing and never returned at all.
     let outBuffer = Text.StringBuilder()
     let errBuffer = Text.StringBuilder()
 
@@ -248,7 +252,7 @@ let runProcess (target: string) (fileName: string) (arguments: string) =
             ""
         else
             sprintf
-                "%s: stdout/stderr stayed open %.0fs after the command exited with code %d — a surviving grandchild (MSBuild `/nodeReuse:true` worker nodes do this) still holds the inherited handles. Everything the command produced before that point is above; the exit code is authoritative.%s"
+                "%s: stdout/stderr stayed open %.0fs after the command exited with code %d — a surviving grandchild (MSBuild `/nodeReuse:true` worker nodes do this) still holds the inherited handles. Every COMPLETE line the command produced is above; a final line it left unterminated is only flushed at EOF, so that one line alone may be missing. The exit code is authoritative.%s"
                 target
                 postExitDrainSeconds
                 proc.ExitCode

@@ -263,7 +263,7 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e01bfecef3158d4ed79dffbd17021d8b7bca68c9162ec2f476e83df26146a303",
-      "observedSha256": "dfaa4bf3985b2071ff0c63e1fdf7541b74f2749e64b6cf6b78f96e53118c189b",
+      "observedSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
       "reason": "Item #14 rewrote build.fsx's runProcess drain and replaced the Run target's capture with an inherited console. Both audits verified build.fsx as it stood before that fix: 2026-08-02-Rogue3.audit.json cited it as evidence that the Run target stalls, and 2026-08-01-Rogue3-8.audit.json bound it for an unrelated earlier claim. Rebinding either would silently repoint a completed check at bytes it never examined, and would erase the very evidence 2026-08-02-Rogue3 \u00a74.4 recorded. Excused instead; the pre-fix bytes remain reachable at git show 1f19809:build.fsx."
     },
     {
@@ -375,7 +375,7 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "1acae987b6643464764bdff31134e00c1b992413320deeec726a4b9fdd367ae8",
-      "observedSha256": "dfaa4bf3985b2071ff0c63e1fdf7541b74f2749e64b6cf6b78f96e53118c189b",
+      "observedSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
       "reason": "Item #14 rewrote build.fsx's runProcess drain and replaced the Run target's capture with an inherited console. Both audits verified build.fsx as it stood before that fix: 2026-08-02-Rogue3.audit.json cited it as evidence that the Run target stalls, and 2026-08-01-Rogue3-8.audit.json bound it for an unrelated earlier claim. Rebinding either would silently repoint a completed check at bytes it never examined, and would erase the very evidence 2026-08-02-Rogue3 \u00a74.4 recorded. Excused instead; the pre-fix bytes remain reachable at git show 1f19809:build.fsx."
     },
     {

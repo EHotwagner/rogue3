@@ -21,7 +21,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "dfaa4bf3985b2071ff0c63e1fdf7541b74f2749e64b6cf6b78f96e53118c189b"
+          "sha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3"
         },
         {
           "locator": "issue:EHotwagner/rogue3#14",
@@ -63,7 +63,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "dfaa4bf3985b2071ff0c63e1fdf7541b74f2749e64b6cf6b78f96e53118c189b"
+          "sha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3"
         }
       ],
       "confidenceLimits": [
@@ -80,7 +80,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "dfaa4bf3985b2071ff0c63e1fdf7541b74f2749e64b6cf6b78f96e53118c189b"
+          "sha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3"
         },
         {
           "locator": "command:FSGG_RUN_TIMEOUT_SECONDS=15 ./fake.sh build -t Run",
@@ -103,7 +103,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "dfaa4bf3985b2071ff0c63e1fdf7541b74f2749e64b6cf6b78f96e53118c189b"
+          "sha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3"
         }
       ],
       "confidenceLimits": [
