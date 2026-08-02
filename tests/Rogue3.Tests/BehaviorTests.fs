@@ -532,6 +532,69 @@ let behaviorTests =
                 Expect.isFalse
                     (windowDiagnostics |> List.exists (fun message -> message.Contains "mode=windowedfullscreen"))
                     $"{mode} never reaches the native boundary as the work-area-derived windowedfullscreen state (#63)"
+
+            // Issue #75, acceptance row 1, at the native tier: "select a non-default display mode,
+            // quit, relaunch: the window comes back in that mode, with no further input."
+            //
+            // It lives INSIDE this test rather than beside it because it must: the SkiaViewer render
+            // statics are process-global and single-threaded, so a second live run scheduled onto
+            // another Expecto thread throws `FrameCache.beginRun: the SkiaViewer render statics are
+            // single-threaded (Issue #180) … were touched from thread N; the render loop owns them on
+            // thread M`. One live-window owner per test assembly, and this test already is it.
+            //
+            // WHERE THE READBACK IS, since the obvious place is the wrong one. The `Window` diagnostic
+            // CATEGORY is contracted as "runtime native-window behavior changes and their observable
+            // outcomes", so a window that was created correctly and never changed emits nothing on it —
+            // a launch-only run collects an empty event list, and reading that as "the framework does
+            // not report what it created" is wrong. The readback is on the RUN RESULT:
+            // `LiveScriptRunResult.Outcome.OptionResults` carries a `startup-state` row with
+            // `Requested`, `Observed` and a `Status`. It is not an echo — asking for `minimized` on
+            // this host returns `Observed = None, Status = UnsupportedOption`, which is what makes the
+            // `Honored` below mean something.
+            let restoredRoot =
+                IO.Path.Combine(IO.Path.GetTempPath(), $"rogue3-75-live-{Guid.NewGuid():N}")
+
+            IO.Directory.CreateDirectory restoredRoot |> ignore
+
+            try
+                let primary = IO.Path.Combine(restoredRoot, "game-shell-settings.json")
+                let legacy = IO.Path.Combine(restoredRoot, "absent-legacy.json")
+
+                // Choose Fullscreen through the shell reducer the host's Update calls, then write it
+                // with the production writer. Nothing after this line mentions the mode.
+                let saved =
+                    Rogue3.GameShell.update (Rogue3.GameShell.SetDisplayMode Rogue3.GameShell.Fullscreen) (Rogue3.GameShell.init Rogue3.EvidenceCommands.shellConfig)
+                    |> fst
+
+                Expect.isTrue (Rogue3.EvidenceCommands.persistShellSettingsTo primary saved) "the production writer persisted the player's Fullscreen selection"
+
+                let restored = Rogue3.EvidenceCommands.restoreShellSettingsFrom primary legacy (fun _ -> true) (Rogue3.GameShell.init Rogue3.EvidenceCommands.shellConfig)
+
+                let liveResult =
+                    FS.GG.UI.Controls.Elmish.ControlsElmish.Live.runScriptWithWindowBehavior
+                        Rogue3.Program.viewerOptions
+                        // The exact expression `Program.main` builds its launch request with.
+                        (Rogue3.EvidenceCommands.launchWindowRequest [] restored)
+                        Rogue3.Program.interactiveHost
+                        // No input of any kind. "With no further input" is the acceptance.
+                        [ FS.GG.UI.Controls.Elmish.FrameInput.Idle
+                          FS.GG.UI.Controls.Elmish.FrameInput.Idle ]
+
+                match liveResult with
+                | Result.Error failure -> failtestf "the live host failed to launch from a restored settings file: %s" failure.Message
+                | Result.Ok live ->
+                    let startupState =
+                        live.Outcome.OptionResults
+                        |> List.tryFind (fun option -> option.Option = "startup-state")
+
+                    match startupState with
+                    | None -> failtestf "the launch reported no startup-state row at all; OptionResults = %A" live.Outcome.OptionResults
+                    | Some row ->
+                        Expect.equal row.Requested "fullscreen" "a settings file ALONE, with no flag and no input, asked the framework for a fullscreen window (#75)"
+                        Expect.equal row.Observed (Some "fullscreen") "and the framework reports it created that state, not a normal window (#75)"
+                        Expect.equal row.Status ViewerWindowOptionStatus.Honored "and honoured it rather than degrading or refusing it (#75)"
+            finally
+                try IO.Directory.Delete(restoredRoot, true) with _ -> ()
         }
 
         // Issue #63: BORDERLESS BRICKED THE UI, AND NO TEST NOTICED.
@@ -905,28 +968,26 @@ let behaviorTests =
         // ("no test drives the load seam itself without writing to the real profile directory") as
         // unclosed. These tests close it for every branch a launch depends on.
         //
-        // WHERE THESE TESTS STOP, stated rather than implied. They end at the
+        // WHERE THESE TESTS STOP, and where the LIVE one above picks up. These end at the
         // `ViewerWindowBehaviorRequest` handed to the launcher. The last hop — the framework
-        // creating the native window in that request's `StartupState` — is NOT observable from this
-        // product, and that was measured, not assumed: a capability-gated live run of
-        // `ControlsElmish.Live.runScriptWithWindowBehavior` with the restored-Fullscreen request and
-        // a two-idle-frame script produced an EMPTY diagnostic list, across `Startup`, `Window`,
-        // `Renderer`, `Frame` and `EnvironmentSession` alike. `ViewerDiagnosticCategory.Window` is
-        // contracted as "runtime native-window behavior CHANGES and their observable outcomes"
-        // (SkiaViewer.fsi), so a window that was CREATED correctly and never changed reports
-        // nothing. There is no readback of the state a window was created in.
+        // creating the native window in that request's `StartupState` — is asserted at the live
+        // tier, inside the #1022/#63 test, over `LiveScriptRunResult.Outcome.OptionResults`.
         //
-        // What covers that hop instead is the #1022/#63 native test above: it hands the framework
-        // the same `ViewerWindowBehaviorRequest` value `GameShell.windowBehavior Fullscreen`
-        // produces and observes `mode=fullscreen` at the real native boundary. The composition is
-        // therefore: restored file -> that exact request (here) -> that request really reaches a
-        // fullscreen native window (there). The unproven link is the framework applying
-        // `StartupState` at CREATION as it does at mutation, which is its own contract.
+        // A WRONG TURN WORTH LEAVING SIGNPOSTED, because the next author will take it too. The
+        // first attempt at that live assertion subscribed a diagnostics sink and read the event
+        // stream, which for a launch-only run is EMPTY — across `Startup`, `Window`, `Renderer`,
+        // `Frame` and `EnvironmentSession` alike. `ViewerDiagnosticCategory.Window` is contracted as
+        // "runtime native-window behavior CHANGES and their observable outcomes", so a window
+        // created correctly and never changed emits nothing there. That empty list was briefly read
+        // as "the framework does not report what it created", and it is not: the creation-time
+        // readback is on the RUN RESULT, not the event stream. Ask `result.Outcome.OptionResults`
+        // for its `startup-state` row.
         //
-        // A second live-window test is also not available even if there were something to assert:
-        // the SkiaViewer render statics are single-threaded and process-global, so a second live run
-        // on another test's thread fails with "the SkiaViewer render statics are single-threaded
-        // (Issue #180) ... but were touched from thread N; the render loop owns them on thread M".
+        // A second live-window test is not available regardless: the SkiaViewer render statics are
+        // single-threaded and process-global, so a second live run on another test's thread fails
+        // with "the SkiaViewer render statics are single-threaded (Issue #180) ... but were touched
+        // from thread N; the render loop owns them on thread M". That is why the #75 live assertion
+        // lives inside the test that already owns the render thread rather than beside it.
         let withTemporarySettingsDirectory (body: string -> unit) =
             let root =
                 IO.Path.Combine(IO.Path.GetTempPath(), $"rogue3-75-{Guid.NewGuid():N}")
