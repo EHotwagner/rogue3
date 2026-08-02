@@ -1,0 +1,590 @@
+{
+  "grandfatherSchema": 2,
+  "note": "Explicit exceptions to the audit-binding check (scripts/check-audit-bindings.py) written by ONE cycle: `--grandfather --cycle <id>` writes this file and nothing else, ever. Each entry excuses ONE stale binding at ONE observed digest, so a digest no cycle ever excused still fails. The checker evaluates the UNION of every file in this directory, so two concurrent cycles excuse the same binding without sharing a path -- and because both entries survive the merge, the digests a binding tolerates only ever GROW: returning a file to a digest some earlier cycle excused is green under that cycle's recorded reason. An entry that excuses nothing right now is reported as dormant, never as a failure, and only the cycle that owns this file prunes it. Adding an entry here is the PREFERRED remedy; rebinding a MERGED audit rewrites what that audit records its critic as having verified (see 7e71d71) and is right only for an audit you re-verified yourself.",
+  "entries": [
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-10.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "a442d54963784216462f229e28aa7e9798f2282810940ac197c521545671dee1",
+      "observedSha256": "d5db972b6f2a66d39fd6ab14afabc17216ee820384b1b40d1081dbcaa11be3c1",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-10.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M9WinLossPermadeathTests.fs",
+      "boundSha256": "a5c77bbd3e910d570347f00c780c4ad40d5bc1eef553ee0545f23302f293b6bb",
+      "observedSha256": "41fc4a37b80eea35cc4cac5f5f10f721e99c89ed92362bb0b357050077c752f8",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Model.fs",
+      "boundSha256": "a6de2cab37967d49b3f0b148cfad17e4bc309ba11fe70accc2b427aa127a2973",
+      "observedSha256": "27e7eecf420561ea4489fbcf6cb81fb184897f075cdd9db811334921ffff3577",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "63d3bc07c7045d6552827b3b5b5d1aadf170bd517dfc15eea7c05f5a79919a94",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs",
+      "boundSha256": "122443b1422056fa89e533a509684e4912bb7a322e636beac6a2be3580a2f650",
+      "observedSha256": "8b47835d8e6bbeb3c4da1869e22804c8b6c6e5a12562285f085e0e0a389fe35c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/render-m11-frames.fsx",
+      "boundSha256": "de010a4d4b912d1a450d767559078a5f1e2e9de42e5dd62ed9d1d3e2c08be9e6",
+      "observedSha256": "0c30167436d61cd62ef4f3d42046f60a0bb21d87d6fd0d8d6d3300d277053b4c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/AudioCues.fs",
+      "boundSha256": "a53f4db363de567292cf879bf3d1f5de808fb69fb343995331a5f0e5cd39c8cf",
+      "observedSha256": "40ce8d77688460537d87338d3ee2d45fb062222f7fb5cb015518e88a98d01bde",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Model.fs",
+      "boundSha256": "7602e4619ccfb05edf9e2d980317cfbaca93a887744989b99822752987d51381",
+      "observedSha256": "27e7eecf420561ea4489fbcf6cb81fb184897f075cdd9db811334921ffff3577",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "adef667c34d5172df3fc54d02e0b582f3cb66dc4c6710027c60167d184aa20bd",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Render.fs",
+      "boundSha256": "988fa1d955b8beb8f9bec70e616caf2f29a83b668ebba8c610e36977b3e40921",
+      "observedSha256": "ad518d1a1e6d4646f6b10b0841e48d6b4f8ec2f5c201d60ec12647309bb88f9c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs",
+      "boundSha256": "7257ff144eb45c71d9766e993d5e801c4e0f1718ddf546862a931d16fb6f8b1f",
+      "observedSha256": "8b47835d8e6bbeb3c4da1869e22804c8b6c6e5a12562285f085e0e0a389fe35c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs",
+      "boundSha256": "ab6918036155e8448e27166eb07aff803ecae6d922e74655852eafc6cca9f97a",
+      "observedSha256": "b75d2d2e067adec72f2d91e54dde5f1f233cb4ebe77293fdea71044858154af6",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M4ProceduralFloorTests.fs",
+      "boundSha256": "809a557a87c20460beec98f2eae153cd19a2d75235ed58527370cbd75bccf9df",
+      "observedSha256": "2e5fa9e3112161640931c0a9a4d1fc5e69e1bd8f62bf70ba8b7e9520c3506a8c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-2.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "82683752f6e2d60733f67470d03d3a0e79e7175b46da4ddc6ca6f2b0dba75b5b",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-2.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/InputTests.fs",
+      "boundSha256": "78d409613d45ebbd2eb27abd6e7b56f81e8be138f09a8cff8b6b45147f9d16a6",
+      "observedSha256": "c30c82913270b2ca10cb609c24906c7442e655d14ed32c978c24a6a21a97d7aa",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-3.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "f8a50e2d8b905fade32334b06bae01a664ba9d0696567871ea63e55cd0851a5a",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-3.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M2MovementShotTests.fs",
+      "boundSha256": "fd3a545a8becd93467ca08fde4371da12a4e161e7b18efe4e02c20d22da8b08f",
+      "observedSha256": "bc6f34fa48c43a9c35e7e23a94ec94647505d5ef8c02f95a5e7d0138a2eb1276",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-4.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Model.fs",
+      "boundSha256": "9ca9cbe2e46662baf5fb42a59d9ebc8b1c659277d2ce479c03368cb50f6e269f",
+      "observedSha256": "27e7eecf420561ea4489fbcf6cb81fb184897f075cdd9db811334921ffff3577",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-4.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "9e0c02639ff63358c34161670c1aef282ad2e4cd1be010af17ecb69e9d4086b6",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-4.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs",
+      "boundSha256": "4481a91a0f7a50585bc14205a62690354e32cbb1e6df8d91c426b61605face15",
+      "observedSha256": "fc43fb37c397255e9cf47ac76bc680c048b45d157426fa4444ef39f394eb72f8",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-5.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "f312596a1c456cce0133460bcaa10c7dc693cc7c602a2acf2af897fa5bd6ab09",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-5.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M4ProceduralFloorTests.fs",
+      "boundSha256": "c7cb475babf1044dcb1a2f9e084f48c10d323589acc2651a0097f96bbb9b5412",
+      "observedSha256": "2e5fa9e3112161640931c0a9a4d1fc5e69e1bd8f62bf70ba8b7e9520c3506a8c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Model.fs",
+      "boundSha256": "c919d00c98d43c06d0030d597258af664ceebb2e17f43391016d534177c71302",
+      "observedSha256": "27e7eecf420561ea4489fbcf6cb81fb184897f075cdd9db811334921ffff3577",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "f89b3d22f7b0121c7e491e007716db58aad8ddb789bfac12d652445dc16e326a",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs",
+      "boundSha256": "08e8588640b4f19dbc88df0ba86dba023ee6a6f881c56d5a7993e9552295d73c",
+      "observedSha256": "faae0320bed3ce25eee6bf4db1d9026a8c2247ca199374c6309ff320d4f7de3c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-7.audit.json",
+      "kind": "evidence",
+      "locator": "file:readiness/performance-intent.yml",
+      "boundSha256": "46b68bb6bf32acdf558a037814366359211a2ec461ea63fbaf0071ba5c41080c",
+      "observedSha256": "2c3d0b07b9509fe514b20468c7fce939bfacd7b400d61bd782fc1700c48c7017",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-7.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "c7a7ebfc45e89c07968952fe3154effe1151c561347aae996ef2fa831660a787",
+      "observedSha256": "d5db972b6f2a66d39fd6ab14afabc17216ee820384b1b40d1081dbcaa11be3c1",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-7.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/GameplayVisualInventory.fs",
+      "boundSha256": "c6dd3e831ed8024556afb34512820a1a8ce815c1c8f5ecdb898f9917e410e971",
+      "observedSha256": "5e38cda01e3f36782315718e7b73f33e8eb3fac17a8cd96b75e17cbf4db272ab",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-7.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "eef6e90ec857130b67fd2fe0ec820150acb5aa806a454a666213eb23fe3670e8",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-7.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Render.fs",
+      "boundSha256": "46a9b988e4c08101a3f7e0f82cc084231a5db2879919e9c91ed1f532d4fc1843",
+      "observedSha256": "ad518d1a1e6d4646f6b10b0841e48d6b4f8ec2f5c201d60ec12647309bb88f9c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-7.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M6RenderingEnemySymbologyTests.fs",
+      "boundSha256": "853176103f49696cf3eb66daa350c01040aae6230c49674e490b7ac3fb19e5b0",
+      "observedSha256": "79f71edd008d9efedf0859a153de04467ee06c64325e83e7439814e98933831d",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "37b034184cfbac2147b5b585806757297faa04a5f92b0859b62415279e308536",
+      "observedSha256": "d5db972b6f2a66d39fd6ab14afabc17216ee820384b1b40d1081dbcaa11be3c1",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Model.fs",
+      "boundSha256": "4f9dba37e190799e2aa520c023221841495c7ec146bff2ab8c396716c75762dc",
+      "observedSha256": "27e7eecf420561ea4489fbcf6cb81fb184897f075cdd9db811334921ffff3577",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Render.fs",
+      "boundSha256": "89fd92c648483926efce2375e2f1161c28eef4c32ec9b0c62450ae2209c398ad",
+      "observedSha256": "ad518d1a1e6d4646f6b10b0841e48d6b4f8ec2f5c201d60ec12647309bb88f9c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M7UiMenusStatsTests.fs",
+      "boundSha256": "ecccb7db5702115b14e713663066ee00ea57a4bc34403b5219b5c50756337a3e",
+      "observedSha256": "28d0ae16e014a5c47cada947863be475d0aced73846707c1e5c8ee42e89a2219",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-9.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/AudioCues.fs",
+      "boundSha256": "ee49f9cf103bfe4be378c903f9ca1589a27bfd59f507c2ef33a0635a7b8e4dc5",
+      "observedSha256": "40ce8d77688460537d87338d3ee2d45fb062222f7fb5cb015518e88a98d01bde",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-9.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "860cfc4e1015a395c29df0f65d69050774ce5f84f3d277026e435ff35c8f340c",
+      "observedSha256": "d5db972b6f2a66d39fd6ab14afabc17216ee820384b1b40d1081dbcaa11be3c1",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-9.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M8AudioTests.fs",
+      "boundSha256": "727e2646976a441a3c1c25b0034f603db85c5e6f9abae1dcd6a18a02aadfe6c1",
+      "observedSha256": "28728bbaa2292607921b6197a2a3eb55b6a5b205148b2632ff88b654fabfa147",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "033970f6614359ba1d71fd23a1545fbe0d3e908cb8a8e4c02920db3f4349674d",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "c36bf58bf29a6fb439139b2261947e51b0242f17cb18b047e0cff057b5904265",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-13.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Model.fs",
+      "boundSha256": "7e318a82dcb255d2b685b5463b6791e43c4d64eb47787fd1c6d553b1261ae34a",
+      "observedSha256": "27e7eecf420561ea4489fbcf6cb81fb184897f075cdd9db811334921ffff3577",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-13.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+      "boundSha256": "973e92431074cf2e482499d0fdfb8d2658ec4387dc885e9c469a890a92f2611b",
+      "observedSha256": "f703621725e8c04f54c302011e38a6fb79fd5c032714307fbf4cac601dc89d15",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-13.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs",
+      "boundSha256": "083fb605aae90c2b86a48285cd3698e70077e276afb43e6ad81db3403f6a3ed0",
+      "observedSha256": "faae0320bed3ce25eee6bf4db1d9026a8c2247ca199374c6309ff320d4f7de3c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "17391e420286843ac186d3163ffa879fe731a95c8f09cfb3b6c4326af52507aa",
+      "observedSha256": "d5db972b6f2a66d39fd6ab14afabc17216ee820384b1b40d1081dbcaa11be3c1",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/GameplayVisualInventory.fs",
+      "boundSha256": "67ce6e2eae8d29073eee54b9bab49ead2d562fe975c6f767addad8561a412bf2",
+      "observedSha256": "5e38cda01e3f36782315718e7b73f33e8eb3fac17a8cd96b75e17cbf4db272ab",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Model.fs",
+      "boundSha256": "82ffaaff9f7886e6aa2690b2d9006f13358dbc18b01949b79cf65b388ca0e4a8",
+      "observedSha256": "27e7eecf420561ea4489fbcf6cb81fb184897f075cdd9db811334921ffff3577",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "c2fbf43ba7bbff50a63c9381f4bf2adf501f72b7e6fe38afeee31beabf8a69a9",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Render.fs",
+      "boundSha256": "9c09468882200602246524683977962e4309109d91a265b72622f8cfd1437ebe",
+      "observedSha256": "ad518d1a1e6d4646f6b10b0841e48d6b4f8ec2f5c201d60ec12647309bb88f9c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs",
+      "boundSha256": "2a039a3885e61ea99e68bb96eeabf483affcbb9e2451cef5641ab2df816b7039",
+      "observedSha256": "8b47835d8e6bbeb3c4da1869e22804c8b6c6e5a12562285f085e0e0a389fe35c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+      "boundSha256": "7fe9befcdf1f3e94cf620ded16886fba6068f12313060d98373f507395eb77f5",
+      "observedSha256": "f703621725e8c04f54c302011e38a6fb79fd5c032714307fbf4cac601dc89d15",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-18.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "3446b7eeb2ccc76564281b194d66d95cbda6f52dbbff022fc6c5729d65b04557",
+      "observedSha256": "d5db972b6f2a66d39fd6ab14afabc17216ee820384b1b40d1081dbcaa11be3c1",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/AudioCueIds.fs",
+      "boundSha256": "731261e6e2fc74a92f6d409fbe7ad0861de48281098e77c9c1c72d465162d2df",
+      "observedSha256": "8c0dd7071c070acbd1dbd38dd95fd5c13a2cf2fcd25f764b7188275cb39f0e96",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/AudioCues.fs",
+      "boundSha256": "56f54686b350a877ec7fb69e2878606d42805baaaa09af3346c6dcc010219879",
+      "observedSha256": "40ce8d77688460537d87338d3ee2d45fb062222f7fb5cb015518e88a98d01bde",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "729510e7eda14798f7f766eb235c52f06417b4b68e08fa470cb28554b54dc948",
+      "observedSha256": "d5db972b6f2a66d39fd6ab14afabc17216ee820384b1b40d1081dbcaa11be3c1",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M12AudioAssetTests.fs",
+      "boundSha256": "54b3861b30b60d81ffd300b0fb60b74f96bbfb08367d0010c8c6d227341e3bbd",
+      "observedSha256": "2ce26787ff609ad8f2cdb4e49425ae724a2609f8eea117718f580410936e56d1",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M8AudioTests.fs",
+      "boundSha256": "6203ca2f944589bea84686d8585c6580397a3c7f0a45e6f189e46cb257fac183",
+      "observedSha256": "28728bbaa2292607921b6197a2a3eb55b6a5b205148b2632ff88b654fabfa147",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-5.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Model.fs",
+      "boundSha256": "7602e4619ccfb05edf9e2d980317cfbaca93a887744989b99822752987d51381",
+      "observedSha256": "27e7eecf420561ea4489fbcf6cb81fb184897f075cdd9db811334921ffff3577",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-5.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Render.fs",
+      "boundSha256": "988fa1d955b8beb8f9bec70e616caf2f29a83b668ebba8c610e36977b3e40921",
+      "observedSha256": "ad518d1a1e6d4646f6b10b0841e48d6b4f8ec2f5c201d60ec12647309bb88f9c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:readiness/performance-intent.yml",
+      "boundSha256": "7be84d813d30ffec5f3ce34c34578e6613d679054dd78f858f409da6b63e4cd2",
+      "observedSha256": "2c3d0b07b9509fe514b20468c7fce939bfacd7b400d61bd782fc1700c48c7017",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/render-m13-frames.fsx",
+      "boundSha256": "c1718e55dc62e096df8ffd636cd1e673ec6ded0105580baaf93e8b5ac132f9d2",
+      "observedSha256": "622c4309516f29f3919549b95f1c26070d8b4efcaaa5bbceec4c6e008d502115",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/GameplayVisualInventory.fs",
+      "boundSha256": "c4ea8a350fdd027ffa65c1ce7b8adde0e333e169bbe6075d42f2169a3756d9a8",
+      "observedSha256": "5e38cda01e3f36782315718e7b73f33e8eb3fac17a8cd96b75e17cbf4db272ab",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Model.fs",
+      "boundSha256": "697ba5244ee40ad5c5e5ece39faf89ec61fbd8cbbf3f718b95b37a1bc7187bdd",
+      "observedSha256": "27e7eecf420561ea4489fbcf6cb81fb184897f075cdd9db811334921ffff3577",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "2409694ddce38f59b4687065c378055cb9cf9344af65eb756c01325a7b1123c4",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Render.fs",
+      "boundSha256": "422fb85bc64fcfd02b3b23607222b179b598ffc86ae5c01e7f9f29868c1b41b8",
+      "observedSha256": "ad518d1a1e6d4646f6b10b0841e48d6b4f8ec2f5c201d60ec12647309bb88f9c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs",
+      "boundSha256": "a3553bb4fd1f6aa6c0d97107c31d8fc4a40d50482f5b453c607b1363bf6663b9",
+      "observedSha256": "a1e13986ed8965998e835d351e303365a6ea926320069486cac939addcb000f5",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "9bcca9582b936a1b03e9f180cbe677af2cdebd0b09dc7634650b9d54c7eec105",
+      "observedSha256": "d5db972b6f2a66d39fd6ab14afabc17216ee820384b1b40d1081dbcaa11be3c1",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Model.fs",
+      "boundSha256": "8f32200b108f16a458759bba56afb008624c18b5f6ebeb849cfcae3769ea8427",
+      "observedSha256": "27e7eecf420561ea4489fbcf6cb81fb184897f075cdd9db811334921ffff3577",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+      "boundSha256": "c36bf58bf29a6fb439139b2261947e51b0242f17cb18b047e0cff057b5904265",
+      "observedSha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs",
+      "boundSha256": "b169841f51aa1cd663a4bbb90eae0db21cbfa7296f2e0ec7cd9868f916fd6e6a",
+      "observedSha256": "8b47835d8e6bbeb3c4da1869e22804c8b6c6e5a12562285f085e0e0a389fe35c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs",
+      "boundSha256": "89d4788fce4a8256b59d0a80a477694074aeaff500f36b71f83a17645cbca3a1",
+      "observedSha256": "fc43fb37c397255e9cf47ac76bc680c048b45d157426fa4444ef39f394eb72f8",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs",
+      "boundSha256": "083fb605aae90c2b86a48285cd3698e70077e276afb43e6ad81db3403f6a3ed0",
+      "observedSha256": "faae0320bed3ce25eee6bf4db1d9026a8c2247ca199374c6309ff320d4f7de3c",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:work/015-unify-world-state-generations/clarifications.md",
+      "boundSha256": "76893f389893cde1a0067f4f9c13e35257b80b0487a191881c7378cf14d2bb31",
+      "observedSha256": "24fa5b2b36b28e2360bdd514166ee0c4e6567d270ba06d4715bc9f9445943e54",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/M9WinLossPermadeathTests.fs",
+      "boundSha256": "a5c77bbd3e910d570347f00c780c4ad40d5bc1eef553ee0545f23302f293b6bb",
+      "observedSha256": "41fc4a37b80eea35cc4cac5f5f10f721e99c89ed92362bb0b357050077c752f8",
+      "reason": "Board item EHotwagner/rogue3#60 (worker finch-cd0f): reshaping Model once -- the seven Total* cost counters move into an InstrumentationCounters sub-record, and the seventeen M5/M6-prefixed Model fields lose the prefix. Determinism.writeStructured writes record type AND field names structurally, so nesting a field and renaming one are the same class of change; doing them as two items would pay this excuse cost twice for no benefit, which is why #60 folds in #44. No citing audit made a finding that depends on whether a field is spelled M5Enemies or Enemies, or on whether TotalWallQueries sits on Model or on Model.Instrumentation. Excused rather than rebound, following feedback/2026-08-02-Rogue3-12.md 4.5: repointing a merged audit would claim its critic examined code that did not exist when that report was written. Verify exit 0 and 277 tests green at the excused bytes; all 11 definitionDigests re-derived with every cost driver and UI-route scale verdict unchanged."
+    }
+  ]
+}

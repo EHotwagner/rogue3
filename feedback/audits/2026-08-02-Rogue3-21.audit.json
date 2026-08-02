@@ -1,0 +1,246 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-21.md",
+  "reportSha256": "ee8d245ed9547d57067cac323d6896e6d29f25ecf442c031b85e331704a11e47",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git grep -n -E \"Total(ShotSpawns|WallQueries|HomingQueries|CombatCandidates|SecretRevealCandidates|DoorSensorQueries|FloorPickupCandidates)\" 09895b9 ccff119 -- src/ tests/",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#60",
+          "result": "verified"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/InputTests.fs",
+          "result": "verified",
+          "sha256": "c30c82913270b2ca10cb609c24906c7442e655d14ed32c978c24a6a21a97d7aa"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs",
+          "result": "verified",
+          "sha256": "8b47835d8e6bbeb3c4da1869e22804c8b6c6e5a12562285f085e0e0a389fe35c"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M3CombatHealthCurrencyTests.fs",
+          "result": "verified",
+          "sha256": "fc43fb37c397255e9cf47ac76bc680c048b45d157426fa4444ef39f394eb72f8"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M13RoomTransitionWorldStateTests.fs",
+          "result": "verified",
+          "sha256": "a1e13986ed8965998e835d351e303365a6ea926320069486cac939addcb000f5"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic's correction is applied: four files, six assertion lines, THREE distinct counters -- not four.",
+        "Resolved against the critic's missing fact: checked at 09895b9, the issue's own measurement commit, where EvidenceCommands.fs also referenced none of the seven and the same four test files read the same three counters over six lines. The claim was false when written, not decayed."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git show ccff119:tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs",
+          "result": "verified"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs",
+          "result": "verified",
+          "sha256": "faae0320bed3ce25eee6bf4db1d9026a8c2247ca199374c6309ff320d4f7de3c"
+        }
+      ],
+      "confidenceLimits": [
+        "No preserved failure log exists and none is claimed. Resolved against the critic's missing fact by constructive proof instead: at ccff119 the guard asserts Expect.isFalse over [Enemies; Obstacles; ShopSlots] and Expect.isTrue over [M5Enemies; M5Obstacles; M5ShopSlots] against the same field set, and the documented substitution maps the second list onto the first element-for-element -- so after it the test asserts isFalse and isTrue on the identical predicate, unsatisfiable for any Model. The failure is a property of the base file, not an anecdote.",
+        "A mutation critic independently judged the rewrite a strengthening: mutants G1 and G7 are killed by it and could not have been caught by the original name-based guard. Its one surviving mutant, G6, is killed by the Rect-cache assertions added at d0bc78e."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git diff ccff119...HEAD",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git show ccff119:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M5EntitiesBossRoomsTests.fs",
+          "result": "verified",
+          "sha256": "faae0320bed3ce25eee6bf4db1d9026a8c2247ca199374c6309ff320d4f7de3c"
+        },
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca"
+        }
+      ],
+      "confidenceLimits": [
+        "Resolved against the critic's missing fact by measurement rather than estimate: applying the 17 substitutions to the BASE text of every changed .fs/.fsx file and counting the literals that move gives 15 (11 ScaleSource, 3 identifier-as-data, 1 test case name). The 7 hand-made Model.TotalX -> Model.Instrumentation.TotalX prose edits overlap the substitution set in exactly one literal, so 15 + 7 - 1 = 21 total modified, reconciling both counts.",
+        "The 21st literal is a test case name, not an assertion message -- corrected."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "duplicate",
+      "missingFacts": [
+        "The claim that none of the 21 citing audits made a finding depending on a field's spelling is unevidenced; it would require reading all 21 and was not done.",
+        "No distinguishing observation versus at least four prior reports; this cycle contributes a magnitude only."
+      ],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/audit-binding-exceptions/item-60-reshape-model-counters-and-prefixes.json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-12.md",
+          "result": "verified",
+          "sha256": "da00e0eae167e7faa0227bf74352ce70f7cdc4ae0fdf31dd51dd2c01af2bfbf1"
+        }
+      ],
+      "confidenceLimits": [
+        "Returned duplicate by an independent critic against 2026-08-02-Rogue3-12.md 4.5, -17.md 4.8, -18.md 4.7 and -20.md 4.4. No actionable handoff is claimed.",
+        "The 72/24/21 counts describe the pre-excuse state and were independently reproduced; the ledger written at the end of the cycle excuses 73 bindings and the checker then exits 0."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:readiness/performance-evidence.json",
+          "result": "verified",
+          "sha256": "888c171884446e9fc0d4534c24e3d8b08a5e881d0a961d6ea8c93409f8c69888"
+        },
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca"
+        },
+        {
+          "locator": "command:./fake.sh -t PerformanceEvidence",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Six of the seven counters are RequiredIn maximum-content (exact equality); simulation.secret-reveal-candidates is RequiredIn secret-reveal, where the check is the weaker observed < MaximumExpected, so a doubled increment there would pass. Corrected in both the report and the source comment.",
+        "An independent mutation run measured the claim: 15 counter mutants, 9 survived the unit suite, all 15 killed by the cost-driver check."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:readiness/logs/PerformanceEvidence.txt",
+          "result": "verified",
+          "sha256": "9b685b3ae9da4a69494d9401d3b69557ebfb49ae14ee6f166fea7137ae655b7d"
+        },
+        {
+          "locator": "file:readiness/m7-ui-performance.json",
+          "result": "verified",
+          "sha256": "91d080eb20dc39617ecfc8cdc974395b29cbac24c58a3ca271f8ce7ba2322c14"
+        },
+        {
+          "locator": "command:./fake.sh -t PerformanceEvidence",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "readiness/logs/ is gitignored, so the log is never committed; the earlier 'committed log' phrasing overstated the cost and is corrected."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/EvidenceCommands.fs",
+          "result": "verified",
+          "sha256": "d5db972b6f2a66d39fd6ab14afabc17216ee820384b1b40d1081dbcaa11be3c1"
+        },
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca"
+        },
+        {
+          "locator": "command:./fake.sh -t PerformanceEvidence",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Observed directly this cycle: a comment added to Model.fs re-reddened the three byte-hashing route digests and left all seven value-encoding workload digests green."
+      ]
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/EvidenceCommands.fs",
+          "result": "verified",
+          "sha256": "d5db972b6f2a66d39fd6ab14afabc17216ee820384b1b40d1081dbcaa11be3c1"
+        },
+        {
+          "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+          "result": "verified",
+          "sha256": "cfafe571721fe7c96a4c862471e0f004f1cb93c6eff475a2326b0f3bfc437cca"
+        },
+        {
+          "locator": "command:./fake.sh -t PerformanceEvidence",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Found by an independent code critic, which reached the cost-driver check only by calling writeExpectedWorkloadEvidence directly. No end-to-end exploit of the gap was demonstrated."
+      ]
+    },
+    {
+      "id": "§4.9",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:scripts/render-m11-frames.fsx",
+          "result": "verified",
+          "sha256": "0c30167436d61cd62ef4f3d42046f60a0bb21d87d6fd0d8d6d3300d277053b4c"
+        },
+        {
+          "locator": "command:dotnet fsi scripts/render-m11-frames.fsx",
+          "result": "verified"
+        },
+        {
+          "locator": "file:readiness/012-m11-playability-visual-legibility/frames/01-start-room/reference-evidence.md",
+          "result": "verified",
+          "sha256": "7c36cf6fb9c8365f74fd1bdf441c44f2fa1384c3aa38838d29a5e835b438e5ec"
+        }
+      ],
+      "confidenceLimits": [
+        "Whether the M11 frame images are intended to be byte-reproducible across environments is not established; the finding reports the divergence and declines to conclude which side is at fault.",
+        "The regenerated frames were reverted to their committed bytes, so the cited reference-evidence.md is the committed one."
+      ]
+    }
+  ]
+}
