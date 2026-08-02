@@ -1436,7 +1436,24 @@ let m7UiPerformanceEvidence (path:string) =
         SHA256.HashData bytes |> Convert.ToHexString |> fun value -> value.ToLowerInvariant()
     let declared =
         Map.ofList
-            [ // Board item #63 (EIGHTH derivation, and the FIRST that moves this route). Every
+            [ // Board item #60 (NINTH derivation). The `Model` reshape: the seven `Total*` cost
+              // counters moved into an `InstrumentationCounters` sub-record, and the seventeen
+              // `M5`/`M6`-prefixed fields lost their prefix. Neither is a behaviour change, and
+              // that is precisely why the digest set is the evidence rather than a claim —
+              // `sourceFiles` hashes `Model.fs` BYTES, so a pure rename moves a digest exactly as
+              // far as a rewrite does, and the check available is WHICH digests moved and whether
+              // every observed scale held.
+              //
+              // The three routes that hash `Model.fs` moved and `main-menu` — which hashes
+              // `GameShell.fs` and `M7Ui.fs`, neither touched — is byte-identical, still
+              // `f3475b94…` from #63. Every scale verdict is unchanged, which is the real check on
+              // a mechanical reshape: hud-playing still reports 12 scene elements at both outputs
+              // and the same five named regions at the same coordinates, run-result the same 9
+              // nodes / 3 bound actions / 5 summary text fields, stats-charts the same 19 nodes,
+              // four KPI tiles, 5 depth buckets and 2 damage series. A reshape that dropped a
+              // field's value on the floor would show up there, not in the digest.
+              //
+              // Board item #63 (EIGHTH derivation, and the FIRST that moves this route). Every
               // previous re-derivation recorded below moved the three routes that hash `Model.fs`
               // and `Render.fs`, and each one noted that `main-menu` — which hashes `GameShell.fs`
               // and `M7Ui.fs` — was byte-identical, using that as the check that the digest set
@@ -1528,9 +1545,9 @@ let m7UiPerformanceEvidence (path:string) =
               // derivation, noted at the top of this map -- did touch `GameShell.fs`, and
               // `main-menu` moved for the first time. The three digests below are the ones that are
               // byte-identical now.)
-              "hud-playing", "cb44115fce35a1166e3602a65a6819681bdcdb704d65d4348ea41b4e95d03478"
-              "run-result", "2e5355872d5533ee31d04c2d20f6e125d82ce8095fa0ce04679a9666faa75f30"
-              "stats-charts", "363fe2735fbcf73275ac7e29e0de862f21ca4635bc55da3217999149c64439ae" ]
+              "hud-playing", "9cbbd70401c0980f6d05e9bd2d9e6c1141adc25872a70ecaf9b8b4b844a2244b"
+              "run-result", "4b437a22767f840bf7b3bfb41cf84d915ef221a4b4e2411ba94d67e3c7613bc9"
+              "stats-charts", "9ccf872ee448f556141fe9b9faec57d2861ee807bc769e1772aa2d41a4f5d10b" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]

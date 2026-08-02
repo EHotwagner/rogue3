@@ -1497,6 +1497,26 @@ let private secretRevealJourneyBoot () = secretRevealModel ()
 /// rewrite `Definition` to name that route, run PerformanceEvidence once, review the emitted
 /// `definitionDigest`, then change `Placeholder` to `Authored "<digest>"`. The measurement always
 /// drives the real `update` + scene `view` route; there is no local statistics-only escape hatch.
+///
+/// Board item #60 re-derived all seven. `definitionDigest` folds in `modelDefinitionFingerprint`,
+/// which is `Determinism.encode` of the workload's initial `Model` — and `encode` writes record
+/// type names and FIELD names structurally. So moving the seven `Total*` counters into
+/// `InstrumentationCounters` and dropping the `M5`/`M6` prefixes moved every one of these seven,
+/// with no behaviour change whatsoever. That is the reason this reshape was done as ONE item: the
+/// cost is per change-event, not per field, and splitting it would have paid it twice.
+///
+/// The digest moving is therefore expected and proves nothing on its own. What was REVIEWED is the
+/// rest of the artifact, which did NOT move: every workload reported exactly one failing reason
+/// (this stale declaration) and zero cost-driver problems, and every observed cost equalled its
+/// declared `MaximumExpected` — including all of `maximum-content`, where `costDriverProblems`
+/// demands EXACT equality rather than a ceiling. That last part is the load-bearing check on this
+/// particular change: the seven counters are now written through a nested copy-and-update, and an
+/// increment dropped in that rewrite would surface as `collision.combat-candidates`,
+/// `collision.shot-wall-queries`, `simulation.homing-target-considerations`,
+/// `simulation.shot-spawn`, `simulation.door-sensor-candidates`,
+/// `simulation.floor-pickup-candidates` or `simulation.secret-reveal-candidates` missing its exact
+/// value. All seven matched. A green digest copy without that reading is how a reshape ships a
+/// silently unwired counter.
 let expectedWorkloads =
     [ // WORKLOAD-SOURCE-BEGIN idle
       { Id = "idle"
@@ -1513,7 +1533,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "c211b9b3c1f7cd060e832b9fbe69c7edf73726a199c9a1e0bb1bbd0728fb20b5" }
+        Authorship = Authored "b356a97739c1b09e416d61a99e53089d8d2dac6cde35e4cac96249939a40a42d" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -1546,7 +1566,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "7c1a3b2688049cc89425ad194c001fcbd82aee1d0b209a89c1e31548a4b6ef6f" }
+        Authorship = Authored "0199eee0866cdb8c82047d6bc207314ae0311490016f7808b622edf5c96a2156" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -1585,7 +1605,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "d9853351acbbefbae639a994bd50b8b5d35396cd63ed4fd0cd4c9771d101c99e" }
+        Authorship = Authored "f09c0add78ce4af79eb95ce46e67476934fd892e6c1cca682f3bdb760ecf0f7f" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -1612,7 +1632,7 @@ let expectedWorkloads =
               "scene.player-invulnerable"; "scene.player-dodge-roll" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "62b4a8cb66611cd6129874fdb1c2d7491513944cd9be7f8f7e37dab3d9e26620" }
+        Authorship = Authored "194b07bdf452eacd93e9600364f260e0246c8af11ba2956b32c1d46911c70495" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN floor-generation
       { Id = "floor-generation"
@@ -1642,7 +1662,7 @@ let expectedWorkloads =
         CostDriverIds = [ "generation.floor-room-budget"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "5805446acf1c841bb3a6d171f28af4c38776642f37933a17aa03962bcf9546bd" }
+        Authorship = Authored "870bbf7aa5f78efc7a9f85986201a0b6bc9e7d031f7f07538136e5d700d13b8d" }
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
@@ -1736,7 +1756,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "1206d6b5276ebfbebf67b805ee300d0a7856b799064f088b6759a87a81b846ab" }
+        Authorship = Authored "8698dfe7467d727b6ff556961e237a70733ad5ae5f88c6cc514eb5dff7058ba5" }
       // WORKLOAD-SOURCE-END maximum-content
       // WORKLOAD-SOURCE-BEGIN secret-reveal
       { Id = "secret-reveal"
@@ -1759,7 +1779,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "908bea63e81ffc2e10e85b8fc0a23cbfd8f197c7324e6c01962eabc50d6a02f1" }
+        Authorship = Authored "04d753f2fc7cbdc4b7b5fe9b269d47af33202d3bd995cc79b15b668f449705d3" }
       // WORKLOAD-SOURCE-END secret-reveal
       ]
 
