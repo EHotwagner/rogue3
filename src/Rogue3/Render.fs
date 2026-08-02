@@ -572,6 +572,34 @@ let shopSlotScene (at: Vec2) (slot: Rogue3.Entities.ShopSlot) =
             [ Scene.textAt { X=at.Vx-14.0;Y=at.Vy+34.0 } (sprintf "%dc" slot.Price) (color 255uy 225uy 92uy 255uy) ]
     Scene.group ((plinth at :: stock) @ priceLabel)
 
+/// Board item #55: the shop's answer to `trapdoorReadyScene`.
+///
+/// A slot a player can BUY is now a slot a player can stand at and press a key at, and this is the
+/// only thing that says so. Deliberately the same idiom as the trapdoor's `E  DESCEND` halo — a ring
+/// around the fixture plus a verb keyed to the same interact button — because the two are the same
+/// gesture and teaching them as two would be a worse product than teaching them as one.
+///
+/// It also carries the REFUSAL. `Entities.purchase` returns `ok=false` for an unaffordable or
+/// key-locked slot and `purchaseM5ShopSlot` then returns the model UNCHANGED, so a refused purchase
+/// moves nothing a player could otherwise perceive: no currency, no offer, no counter, no audio.
+/// Before this, pressing interact at a slot you could not afford was indistinguishable from pressing
+/// it at nothing at all. The affordable and refused frames differ in colour, in ring style and in
+/// words, so the answer is legible BEFORE the press as well as after it.
+let shopSlotReadyScene (at: Vec2) (affordable: bool) (slot: Rogue3.Entities.ShopSlot) =
+    let halo = if affordable then color 255uy 226uy 150uy 255uy else color 226uy 96uy 96uy 255uy
+    let ring = { X=at.Vx-30.0; Y=at.Vy-46.0; Width=60.0; Height=58.0 }
+    let label =
+        if affordable then "E  BUY"
+        elif slot.KeyLocked then "NEED KEY"
+        else sprintf "NEED %dc" slot.Price
+    Scene.group
+        [ Scene.rectangleWithPaint ring (Paint.stroke halo (if affordable then 3.0 else 2.0))
+          Scene.circle { X=ring.X;Y=ring.Y } 4.0 halo
+          Scene.circle { X=ring.X+ring.Width;Y=ring.Y } 4.0 halo
+          Scene.circle { X=ring.X;Y=ring.Y+ring.Height } 4.0 halo
+          Scene.circle { X=ring.X+ring.Width;Y=ring.Y+ring.Height } 4.0 halo
+          Scene.textAt { X=at.Vx-34.0;Y=ring.Y-10.0 } label halo ]
+
 let roomRewardScene (at: Vec2) (reward: Rogue3.Entities.ItemDefinition) =
     let width = 26.0 + float reward.Quality*5.0
     Scene.group
@@ -744,6 +772,16 @@ let renderedElementsIn grammar model : RenderedElement list =
       for index, (slot: Rogue3.Entities.ShopSlot) in model.M5ShopSlots |> List.indexed do
           let at = placements |> List.tryItem index |> Option.defaultValue (vec2 (playfieldWidth/2.0) 520.0)
           yield rendered "ShopItem" "scene/shop-item" RenderLayer.Pickups (shopSlotScene at slot)
+
+      // Board item #55: drawn from the SAME predicate the purchase route senses with, exactly as the
+      // trapdoor's ready halo is drawn from `canDescend`. Reading `Model.shopSlotUnderPlayer` here
+      // rather than re-testing the distance is what stops the prompt from promising a purchase the
+      // interact route would not raise, or hiding one it would.
+      match Rogue3.Model.shopSlotUnderPlayer model with
+      | Some(slot, at) ->
+          yield rendered "ShopSlotReady" "scene/shop-slot-ready" RenderLayer.Pickups
+                    (shopSlotReadyScene at (Rogue3.Model.shopSlotAffordable model slot) slot)
+      | None -> ()
 
       match model.M5Room.Reward with
       | Some reward ->
