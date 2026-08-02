@@ -338,7 +338,13 @@ let shellConfig: Rogue3.GameShell.Config =
           { Command = "active"; Label = "Use active / interact"; Order = 100; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'E')) }
           { Command = "bomb"; Label = "Drop bomb"; Order = 110; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'Q')) }
           { Command = "map"; Label = "Map"; Order = 120; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'M')) } ]
-      DisplayModes = [ Rogue3.GameShell.Windowed; Rogue3.GameShell.Borderless; Rogue3.GameShell.Fullscreen ]
+      // #63: `Borderless` is deliberately NOT offered. Selecting it moved the window half off
+      // screen and killed every pointer interaction (keyboard kept working) with no recovery but a
+      // restart — a framework defect in `ViewerWindowStartupState.WindowedFullscreen`, filed
+      // upstream and unfixable here. `GameShell.windowBehavior` additionally maps a RESTORED
+      // `Borderless` (from a settings file written before this) onto exclusive `Fullscreen`, so
+      // withdrawing the button is the second of two independent guards, not the only one.
+      DisplayModes = [ Rogue3.GameShell.Windowed; Rogue3.GameShell.Fullscreen ]
       Resolutions = [ { Width = 1280; Height = 720 }; { Width = 1920; Height = 1080 } ]
       InitialDisplay = { Resolution = { Width = 1280; Height = 720 }; Mode = Rogue3.GameShell.Windowed } }
 

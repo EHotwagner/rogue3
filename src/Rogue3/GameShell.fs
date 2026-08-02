@@ -51,6 +51,9 @@ type Screen =
     | Settings
 
 /// How the window presents. Maps onto SkiaViewer's `ViewerWindowStartupState` in `windowBehavior`.
+///
+/// `Borderless` is a RESTORABLE but no longer OFFERED mode (EHotwagner/rogue3#63) — see
+/// `windowBehavior` for why, and `Config.DisplayModes` for the withdrawal.
 type DisplayMode =
     | Windowed
     | Borderless
@@ -214,13 +217,34 @@ let update (msg: Msg) (model: Model) : Model * Effect list =
 // ---- display seams --------------------------------------------------------------------------
 
 /// The `ViewerWindowBehaviorRequest` for a display setting: the window's presentation mode maps
-/// onto a `ViewerWindowStartupState` (windowed / borderless work-area / exclusive fullscreen); the
-/// rest of the request keeps the framework defaults.
+/// onto a `ViewerWindowStartupState`; the rest of the request keeps the framework defaults.
+///
+/// MITIGATION (EHotwagner/rogue3#63): `Borderless` maps onto EXCLUSIVE `Fullscreen`, not onto
+/// `ViewerWindowStartupState.WindowedFullscreen`. The framework's `WindowedFullscreen` must DERIVE
+/// a target rectangle from "the monitor work area" (`SkiaViewer.fsi`), and on a multi-output host
+/// that derivation disagrees with the surface the viewer then fits against: the window lands half
+/// off screen AND every pointer sample inverts through the wrong fit, so it misses every control's
+/// bounds and no `OnClick` fires. Keyboard survives (`MapKey` is coordinate-free), which is the
+/// signature that identifies it. Exclusive `Fullscreen` is handed a definite surface by the
+/// compositor and is unaffected — and product code took the SAME path for both, so the fault is
+/// the enum value, not this repository.
+///
+/// `InteractiveAppHost` has no surface-changed notification (its `View` receives the LOGICAL size;
+/// `CaptureOutputSize`/`InitialOutputSize` belong to the bounded-run evidence workflow), so a
+/// product cannot re-fit after the mode change. `SkiaViewer.fsi` is also explicit that the host
+/// owns both directions of the transform and product code must not apply a second one. Requesting
+/// a state that works is therefore the only correct product-side move; the root cause is filed
+/// upstream. Revert this arm when the framework fixes `WindowedFullscreen`.
+///
+/// The `Borderless` CASE ITSELF IS RETAINED: `modeOfToken` still decodes the `"borderless"` token,
+/// so a settings file written before this mitigation restores a `Borderless` display — and it must
+/// not brick the window on the next launch. Mapping the seam (rather than only withdrawing the
+/// menu button) is what closes that path.
 let windowBehavior (display: DisplaySettings) : ViewerWindowBehaviorRequest =
     let startupState, resizePolicy =
         match display.Mode with
         | Windowed -> ViewerWindowStartupState.Normal, Resizable
-        | Borderless -> ViewerWindowStartupState.WindowedFullscreen, FixedSize
+        | Borderless
         | Fullscreen -> ViewerWindowStartupState.Fullscreen, FixedSize
 
     { Viewer.defaultWindowBehavior with

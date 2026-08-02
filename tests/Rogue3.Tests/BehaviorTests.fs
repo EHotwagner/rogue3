@@ -507,6 +507,157 @@ let behaviorTests =
                 "the generated DisplayChanged request is observed after real native mutation, not only at emission"
         }
 
+        // Issue #63: BORDERLESS BRICKED THE UI, AND NO TEST NOTICED.
+        //
+        // Reported from real play: selecting Borderless moved the window half off screen and left
+        // every button dead. `Esc` still worked. That asymmetry is the whole diagnosis — `MapKey`
+        // is coordinate-free, while a pointer sample is hit-tested against the render tree after
+        // being inverted through the logical-canvas fit. A fit taken against the WRONG surface
+        // inverts every sample to a point outside every control's bounds, no authored `OnClick`
+        // matches, and `MapPointer` (which the shell menu does not implement) has no fallback to
+        // catch it. The click is silently discarded.
+        //
+        // WHY THE EXISTING COVERAGE DID NOT CATCH IT. The `#1014` block above asserts that a mode
+        // change EMITS `ApplyWindowOptions` and `ApplyLogicalCanvas`. Both were emitted correctly
+        // the entire time the bug shipped; the effect wiring was never the fault. An emission
+        // assertion cannot distinguish a request that works from one that bricks the window, so
+        // this test asserts the thing a player actually experiences instead: after the change, a
+        // pointer sample at a button's real on-screen position still fires that button.
+        //
+        // THE NEGATIVE CONTROL IS LOAD-BEARING. The same physical sample inverted through a STALE
+        // fit is asserted to MISS. Without it this test would pass against a host that ignored the
+        // surface entirely, and would be exactly the vacuous coverage the issue warns about.
+        test "every offered display mode keeps the menu clickable through the POST-change surface fit (#63)" {
+            let host = Rogue3.Program.interactiveHost
+            let logical = Rogue3.EvidenceCommands.shellConfig.InitialDisplay.Resolution
+
+            // The surface before the change (the default 1280x720 window) and after it (the
+            // reporter's primary output, DP-1 2560x1440). The third is the bounding box of that
+            // host's two stacked outputs, 3440x2880 — the geometry a mis-derived "monitor work
+            // area" produces, and the leading explanation for the half-off-screen placement.
+            let preChangeSurface: FS.GG.UI.Scene.Size = logical
+            let postChangeSurface: FS.GG.UI.Scene.Size = { Width = 2560; Height = 1440 }
+            let boundingBoxSurface: FS.GG.UI.Scene.Size = { Width = 3440; Height = 2880 }
+
+            let pointer phase x y : ViewerPointerInput =
+                { Phase = phase
+                  X = x
+                  Y = y
+                  Button = Some ViewerPointerButtonKind.Primary
+                  DeltaX = 0.0
+                  DeltaY = 0.0 }
+
+            let foldMessages model messages =
+                messages |> List.fold (fun current msg -> fst (host.Update msg current)) model
+
+            /// The logical centre of an authored, BOUND control — the guard is the point: an
+            /// unbound id would make every "the click fired" claim below unfalsifiable.
+            let logicalCentre controlId model =
+                let frame = FS.GG.UI.Controls.Control.renderTree host.Theme logical (host.View logical model)
+
+                Expect.isTrue
+                    (Set.contains controlId frame.BoundIds)
+                    $"{controlId} is an authored bound control, not a silent test target"
+
+                let available: FS.GG.UI.Layout.AvailableSpace =
+                    { Width = float logical.Width
+                      WidthMode = FS.GG.UI.Layout.Exactly
+                      Height = float logical.Height
+                      HeightMode = FS.GG.UI.Layout.Exactly }
+
+                let layout = FS.GG.UI.Layout.Layout.evaluate available frame.Layout
+                let bounds = (layout.Bounds |> List.find (fun b -> b.NodeId = controlId)).Bounds
+                bounds.X + bounds.Width / 2.0, bounds.Y + bounds.Height / 2.0
+
+            /// Press+release a physical (on-screen) sample, inverting it through the fit for
+            /// `surface` — the same `LogicalCanvas` inverse the host owns. Handing a DIFFERENT
+            /// surface here is precisely how the defect is modelled.
+            let clickPhysicalThrough (surface: FS.GG.UI.Scene.Size) physicalX physicalY model =
+                let routedX, routedY = LogicalCanvas.toLogicalPoint logical surface physicalX physicalY
+
+                let state, down =
+                    FS.GG.UI.Controls.Elmish.ControlsElmish.routeInteractivePointer
+                        host (Pointer.init ()) logical model
+                        (pointer ViewerPointerPhaseKind.Pressed routedX routedY)
+
+                let afterDown = foldMessages model down
+
+                let proof =
+                    FS.GG.UI.Controls.Elmish.ControlsElmish.captureRespondsProof
+                        host state logical afterDown
+                        (pointer ViewerPointerPhaseKind.Released routedX routedY)
+
+                let _, up =
+                    FS.GG.UI.Controls.Elmish.ControlsElmish.routeInteractivePointer
+                        host state logical afterDown
+                        (pointer ViewerPointerPhaseKind.Released routedX routedY)
+
+                proof, foldMessages afterDown up
+
+            /// A control's true on-screen position on `surface`, via the forward fit.
+            let physicalOn (surface: FS.GG.UI.Scene.Size) controlId model =
+                let logicalX, logicalY = logicalCentre controlId model
+                let fit = LogicalCanvas.fit logical surface
+                logicalX * fit.Scale + fit.OffsetX, logicalY * fit.Scale + fit.OffsetY
+
+            // Reach Settings through the production route, not by injecting a message.
+            let model0 = fst (host.Init())
+            let settingsX, settingsY = physicalOn preChangeSurface "config" model0
+            let configProof, settings = clickPhysicalThrough preChangeSurface settingsX settingsY model0
+
+            Expect.equal configProof.Verdict FS.GG.UI.Controls.Elmish.Responsive "the settings screen is reached by a real click, before any mode change"
+            Expect.equal settings.Shell.Screen Rogue3.GameShell.Settings "the pointer route opened Settings"
+
+            // The withdrawal itself. A regression that re-adds the button reds here, and the loop
+            // below then also exercises it — so the mitigation cannot rot silently in either half.
+            Expect.isFalse
+                (List.contains Rogue3.GameShell.Borderless Rogue3.EvidenceCommands.shellConfig.DisplayModes)
+                "Borderless is not offered while the framework's WindowedFullscreen derivation bricks the window (#63)"
+
+            for mode in Rogue3.EvidenceCommands.shellConfig.DisplayModes do
+                // Change the mode by CLICKING its own settings button, through the pointer route.
+                let modeId =
+                    match mode with
+                    | Rogue3.GameShell.Windowed -> "mode-windowed"
+                    | Rogue3.GameShell.Borderless -> "mode-borderless"
+                    | Rogue3.GameShell.Fullscreen -> "mode-fullscreen"
+
+                let modeX, modeY = physicalOn preChangeSurface modeId settings
+                let _, changed = clickPhysicalThrough preChangeSurface modeX modeY settings
+
+                Expect.equal changed.Shell.Display.Mode mode $"clicking {modeId} selects {mode} through the production pointer route"
+
+                // The request that reaches the framework must not be the one that bricks the
+                // window. This is the assertion the emission-only coverage above cannot make.
+                let requested = (Rogue3.GameShell.windowBehavior changed.Shell.Display).StartupState
+
+                Expect.notEqual
+                    requested
+                    ViewerWindowStartupState.WindowedFullscreen
+                    $"{mode} must not ask for the work-area-derived WindowedFullscreen state (#63)"
+
+                // THE ACCEPTANCE: after the change, a sample at Back's real on-screen point on the
+                // POST-change surface still fires Back's OnClick and leaves Settings.
+                let backX, backY = physicalOn postChangeSurface "back" changed
+                let backProof, left = clickPhysicalThrough postChangeSurface backX backY changed
+
+                Expect.equal backProof.Verdict FS.GG.UI.Controls.Elmish.Responsive $"after switching to {mode}, a click at Back's on-screen centre visibly responds"
+                Expect.equal left.Shell.Screen Rogue3.GameShell.MainMenu $"after switching to {mode}, Back's authored OnClick still fires — the UI is not dead (#63)"
+
+                // NEGATIVE CONTROL. Invert that same on-screen sample through the surfaces a stale
+                // fit would use. Both must fail to reach Back, or the assertion above proves
+                // nothing about which surface the fit was taken against.
+                for staleSurface, label in
+                    [ preChangeSurface, "the pre-change window surface"
+                      boundingBoxSurface, "the bounding box of both outputs" ] do
+                    let _, misrouted = clickPhysicalThrough staleSurface backX backY changed
+
+                    Expect.equal
+                        misrouted.Shell.Screen
+                        Rogue3.GameShell.Settings
+                        $"a sample inverted through {label} misses Back entirely — this is the dead-button failure mode, and it is what makes the assertion above load-bearing (#63)"
+        }
+
         // Issue #912: PLAYED THROUGH THE HOST — the one altitude the host tests above never reach.
         //
         // They prove the halves in isolation: `MapKey ArrowUp true` returns SOME message, and
