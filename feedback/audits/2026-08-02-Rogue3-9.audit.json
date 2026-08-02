@@ -1,0 +1,170 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-9.md",
+  "reportSha256": "d6336a79415ed009bc98853b84dbd885dfcb979e1eb5cf8d55113b87bd58927f",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --root COPY --grandfather --reason \"repro pass N\" over four passes yields four distinct ledger digests, after which the same script exits 1 naming the ledger citation",
+          "result": "verified"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --grandfather --reason \"convergence probe\" run four times post-fix yields one ledger digest e291ff3ddfdaa897c312e58b00a8787ce02bdcecf06a55fcc8f0f2c71ccb7ad7, after which the same script exits 0",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#38",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Non-convergence is established empirically over four passes plus the mechanism argument that each pass rewrites the file it binds; it is not a proof of divergence for all inputs."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --root COPY --grandfather --reason \"repro pass N\" printed grandfather-exit=0 on all four passes while the following check printed CHECK_EXIT=1",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3"
+        }
+      ],
+      "confidenceLimits": [
+        "Recorded as only partly discharged: the exit-code invariant now holds as a consequence of the ledger exemption, not because grandfather() re-evaluates. The stronger fix is proposed in §11.3 and is not implemented."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate feedback/2026-08-02-Rogue3-7.md --audit feedback/audits/2026-08-02-Rogue3-7.audit.json exits 1 on a stale ledger evidence digest, and exits 0 against a clean origin/main copy",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git show origin/main:scripts/audit-binding-exceptions.json digested under the LF-normalized sha256 rule yields c2ad54bb862d3af6cce58beb82e7e0bae63bc921e5f87cfe65a29a6f5133c9ed, the value that audit pins",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#40",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The author did not read feedback-tool.fsx; the no-exemption claim rests on the observed command behaviour and one critic's citation of FeedbackReportTool.fs:574.",
+        "No newer release of the fs-gg-feedback-report skill was available to re-verify against."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:a six-mutant matrix over scripts/check-audit-bindings.py reports CAUGHT for all six with the failing case names and exit 1 each",
+          "result": "verified"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --selftest exits 0 with 72 checks",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.5",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --selftest exits 0 with 72 checks reported ok",
+          "result": "verified"
+        },
+        {
+          "locator": "command:grep -rn \"check-audit-bindings\" tests/ build.fsx returns no matches, so the self-test is this script.s only regression suite",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.github/workflows/audit-bindings.yml",
+          "result": "verified",
+          "sha256": "72bdce1d6872444a49c3d4d84ec06bd669b795b1db7ec9d12977230b97294510"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:eval \"$(scripts/fsgg-coord whoami --mint)\" refused with \"this command is too complex to verify that it stays inside the worktree\"",
+          "result": "verified"
+        },
+        {
+          "locator": "command:a --selftest invocation piped into tail with a PIPESTATUS exit-code capture was refused with the same message",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3"
+        }
+      ],
+      "confidenceLimits": [
+        "The harness version is not surfaced to the agent, so the friction could not be re-verified against a newer release."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:a ledger-only variant over a copy of HEAD, rebinding a merged audit that another audit cites, then --grandfather three times, gives check_exit=0 from pass 1 and one ledger digest 3dcea4d632d7 across all three",
+          "result": "verified"
+        },
+        {
+          "locator": "command:os.path.relpath over a realpath-resolved target and a non-realpath root yields \"../real/scripts/audit-binding-exceptions.json\", which matches no exemption",
+          "result": "verified"
+        },
+        {
+          "locator": "command:a six-mutant matrix catches a \"root not realpath.d\" mutant on 2 cases and the rejected wider fix on 5",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3"
+        }
+      ],
+      "confidenceLimits": [
+        "The macOS consequence of the symlinked-root bug is inferred from /var -> /private/var; it was reproduced on Linux with a symlinked $TMPDIR, and no macOS runner was available."
+      ]
+    }
+  ]
+}
