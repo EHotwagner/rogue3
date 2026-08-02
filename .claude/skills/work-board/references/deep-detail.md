@@ -219,6 +219,29 @@ The host hands each subagent essentially this, with `<REPO>` (this workspace's r
 > 7. **If `take` exits 5 (nothing schedulable) or 75 (rate budget exhausted)**, do not spin. Report the
 >    exit code and stop — 5 means the repo is dry for now, 75 means the shared budget is gone and the host
 >    must back the whole fleet off (§6).
+> 7b. **Launching the product: pick the cheapest mode that supports your claim, and never steal the
+>    operator's screen.** A wave can put several live windows on a human's desktop; that human is usually
+>    working. Three modes, in order of preference:
+>    - **Rendered evidence → no window at all.** Use `Render.toPng` / the product's offscreen-readback
+>      evidence options. Every committed frame in `readiness/**/frames/` came from that path. It is
+>      deterministic and does not depend on a compositor.
+>    - **A live host you do not need to watch → launch minimized**, adding `--window-startup minimized`.
+>      Use this when the claim is non-visual — a stderr assertion, an exit-status line, an audio-resolution
+>      check. **Do not assert a rendered frame from a minimized window:** compositors routinely withhold
+>      frame callbacks from minimized surfaces, so `first-frame-presented` and any pixel capture may hang
+>      or return nothing, intermittently and per-compositor.
+>    - **Proving the real window opens → a normal, visible launch.** That is the whole point of the claim,
+>      so it has to be visible to mean anything. Keep these rare and say in your report that you did one.
+>
+>    For any live launch, pass the operator's window defaults rather than hardcoding geometry:
+>    `--window-options-file <path>` reads `startup=` / `position=` / `resize=` / `maximize=` / `backend=`
+>    from a `key=value` file, so placement is the operator's to change and never yours to guess. Do not put
+>    machine-specific coordinates in a brief, a script, or the repository.
+>
+>    Two limits worth knowing before you debug placement: on Wayland `xdg-shell` has **no protocol for a
+>    client to position its own window**, so `position=` is a request the compositor may discard entirely —
+>    a compositor-side window rule is the only guarantee. Minimizing, by contrast, is a real
+>    `xdg-toplevel` request and does work.
 > 8. **Report back**: the item number, the merged PR, the done-stamp, feedback report path, any
 >    blocker/finding you filed (with
 >    issue numbers), and the `take` exit code if you got no item. Then exit.
