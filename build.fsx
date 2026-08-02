@@ -1963,14 +1963,27 @@ let private currentRoot () = Directory.GetCurrentDirectory()
 // The price of carrying no marker is paid by a run that is KILLED inside that
 // window, so it is written down here and in the help banner rather than left for
 // someone to meet cold. What such a run leaves behind, and the remedy:
-//   * one kit file under `.agents/skills/` with 16 junk bytes on the end.
-//     `git status` shows it and `TemplateDrift` names it as drifted; the remedy is
-//     the ordinary one for any drifted tracked file, `git checkout -- <path>`. Do
+//   * one kit file under `.agents/skills/` with 16 junk bytes on the end, and its
+//     untouched copy beside it at `.agents/<32 hex chars>`. `git status` shows both
+//     and `TemplateDrift` names the drifted one; the remedy is the ordinary one for
+//     any drifted tracked file, `git checkout -- <path>`, then delete the copy. Do
 //     NOT run `KitPins`: that would re-pin the junk as if it were deliberate.
 //   * possibly a directory `readiness/<32 hex chars>/agent-commands/<agent>`.
 //     `.gitignore` covers `readiness/*/*`, so this one does NOT show in
 //     `git status` — `GeneratedGuidanceCheck` names the path, and deleting the
 //     named directory is the whole remedy.
+//
+// #87 INTERACTS WITH THAT WINDOW, and it is the one reason to care about it.
+// Nothing here changes `kitTreeScan`: the probe calls `templateDriftViolations`,
+// which walks the same trees the same way. What it does change is WHEN a walk can
+// hang. #87 records that a named pipe under `.agents/skills/` blocks the walk
+// forever, because `tryDigest` is total against exceptions and a blocking `open(2)`
+// is not one. That walk now also runs with a kit file deliberately drifted, so on
+// such a tree the job does not merely time out with no violation line — it times
+// out with a tracked file left modified, and the `finally` that would have put it
+// back never runs. The remedy is the same `git checkout -- <path>`, and it is
+// #87's fix that removes the hang; this is recorded so the two are not diagnosed
+// as separate faults.
 // ---------------------------------------------------------------------------
 
 /// Runs `body realRoot` with the process standing in a directory that is NOT this repository.
@@ -2037,7 +2050,7 @@ type private BindingProbe =
     /// hold — `probed` and the failure-path probe are two expressions for exactly this reason.
     member this.Reported = this.Observed |> List.exists (fun v -> v.Contains this.Expected)
 
-/// #74, the `TemplateDrift` route. Doubles a kit file the manifest itself pins, requires
+/// #74, the `TemplateDrift` route. Drifts a kit file the manifest itself pins, requires
 /// `templateDriftViolations` to report THAT file as drifted, and restores it.
 ///
 /// The target is DERIVED from the manifest rather than written here as a path literal, for the
@@ -2067,33 +2080,61 @@ let private templateDriftBindingProbe (root: string) : BindingProbe =
         let file = path [ root; relative ]
 
         let before =
-            try
-                File.ReadAllBytes file
-            with ex ->
+            match tryDigest file with
+            | Ok digest -> digest
+            | Error reason ->
                 failwithf
-                    "SelfTest could not read %s to plant drift in it (%s), so the check's binding to the real tree is unproven (#74)."
+                    "SelfTest could not digest %s before planting drift in it (%s), so TemplateDrift's binding to the real tree is unproven (#74)."
                     relative
-                    (ex.GetType().Name)
+                    reason
+
+        // The pristine bytes are put ON DISK before anything touches the file, and the restore is a
+        // same-directory-tree RENAME of that copy back over it. The bytes are therefore never
+        // rewritten from memory: byte-exactness is a property of the filesystem here rather than a
+        // promise this code makes, which matters because the cost of getting it wrong is a tracked
+        // file left drifted by the target whose whole job is to notice that. It is also what a run
+        // killed mid-probe leaves recoverable — the untouched copy is sitting there.
+        //
+        // Under `.agents/` and NOT under `.agents/skills/`: `kitTreeScan` walks the `skills`
+        // subtree, so a stash beside it is invisible to every coverage pass, while a stash inside
+        // it would be an extra `coverage:` violation of the probe's own making. Not the temp
+        // directory either — that can be a different filesystem, where `File.Move` degrades to a
+        // copy-and-delete and stops being the atomic restore this relies on.
+        let stash = path [ root; ".agents"; Guid.NewGuid().ToString("N") ]
+
+        try
+            File.Copy(file, stash)
+        with ex ->
+            failwithf
+                "SelfTest could not take a restorable copy of %s (%s), so it will not plant drift in it (#74)."
+                relative
+                (ex.GetType().Name)
 
         let observed =
             try
                 try
-                    File.WriteAllBytes(file, Array.append before (Guid.NewGuid().ToByteArray()))
+                    // 16 arbitrary bytes, through a stream because there is no allowed whole-file
+                    // byte writer here: `tests/Rogue3.Tests/GovernanceTests.fs` bans the
+                    // decommissioned binary LOG writer by scanning this whole file for its name,
+                    // and that scan is deliberately blunt. This is not that writer and must not
+                    // weaken the scan, so it simply does not use the banned call.
+                    (use appended = new FileStream(file, FileMode.Append, FileAccess.Write)
+                     let junk = Guid.NewGuid().ToByteArray()
+                     appended.Write(junk, 0, junk.Length))
+
                     templateDriftViolations root
                 finally
-                    File.WriteAllBytes(file, before)
+                    File.Move(stash, file, true)
             with ex ->
                 failwithf
                     "SelfTest failed while probing %s (%s); the file has been restored (#74)."
                     relative
                     ex.Message
 
-        // The restore is CHECKED, not assumed. `File.WriteAllBytes` in a `finally` is the same
-        // shape of promise as the one #62 item 4 found being made by `File.ReadAllBytes` — total
-        // right up until the filesystem says otherwise — and the cost of it being wrong here is a
-        // tracked file left drifted by the target whose job is to notice that.
+        // The restore is CHECKED, not assumed, and checked against the digest taken BEFORE the
+        // plant rather than against anything the restore itself produced.
         match tryDigest file with
-        | Ok after when after = lowerHex (System.Security.Cryptography.SHA256.HashData before) -> ()
+        | Ok after when digestEquals after before -> ()
         | _ ->
             failwithf
                 "SelfTest could not restore %s after probing it — this repository is now DRIFTED and must be repaired with `git checkout -- %s` (#74)."
@@ -4510,22 +4551,32 @@ let helpBanner =
     + "           ever defeated this gate worked by forging it. The result is carried by readiness/logs/\n"
     + "           selftest-result.json and by the exit code of a child SelfTest run this run spawns with one\n"
     + "           deliberately-failing case injected — a run that cannot report THAT failure reports nothing.\n"
+    + "           It also PLANTS A REAL VIOLATION IN THIS REPOSITORY on every run and requires the real check\n"
+    + "           to report it (#74) — a POSITIVE control, because 'found nothing' is also what a check that\n"
+    + "           stopped looking at this tree says. For a few milliseconds one kit file under .agents/skills\n"
+    + "           carries 16 junk bytes and one bare-GUID directory exists under readiness/; both are restored\n"
+    + "           in a `finally` and the restore is re-digested, not assumed. A run KILLED inside that window\n"
+    + "           leaves the kit file drifted — `git status` shows it, TemplateDrift names it, and the remedy\n"
+    + "           is `git checkout -- <path>`, NOT KitPins, which would re-pin the junk — and possibly a\n"
+    + "           directory readiness/<32 hex>/agent-commands/<agent>, which .gitignore hides from git status\n"
+    + "           and GeneratedGuidanceCheck names. Nothing in the plant is named after the probe: a marker\n"
+    + "           was measured to be a one-line gate defeat all by itself.\n"
     + "           TAMPER-EVIDENT, NOT TAMPER-PROOF. Named residuals, measured, not implied:\n"
-    + "             * A check cannot certify it is still bound to the real tree. An edit that exempts any root\n"
-    + "               it recognises AS this repository — by a MARKER FILE it contains, rather than by the\n"
-    + "               current directory — leaves every fixture case passing and the real tree unchecked. Both\n"
-    + "               checks are run from a working directory this code creates, which closes every cwd-keyed\n"
-    + "               form: plain, path-normalising, and one keyed on `root is not under the temp dir` (the\n"
-    + "               property every fixture relies on, so it reads as an optimisation). It does NOT close the\n"
-    + "               class, and nothing here can: this is the one surviving SINGLE-EDIT defeat of the gate.\n"
     + "             * The printed ok/FAIL labels can be made to lie without changing the verdict. That is now\n"
     + "               a legibility defect rather than a gate defeat, and it is why no guard should read them.\n"
     + "             * Replacing this whole verdict block in ONE contiguous edit defeats the gate. It is not a\n"
     + "               single-LINE edit and a reviewer would see it, but it is real and is named, not hidden.\n"
     + "             * Nothing stops a PATIENT editor. Each layer above falls to its own edit; they are chosen\n"
     + "               so that no SINGLE one leaves the gate green, not so that three cannot be made together.\n"
+    + "           CLOSED by #74, and named here because a reader of the previous banner was told it could not\n"
+    + "           be: an edit that exempts any root it recognises AS this repository — by a MARKER FILE it\n"
+    + "           contains, by its PATH, by anything a predicate can read — left every fixture case passing\n"
+    + "           and the real tree unchecked, and was the one surviving SINGLE-EDIT defeat. It is dead\n"
+    + "           because the tree the positive control checks IS this repository, so an exemption that fires\n"
+    + "           for the repository fires for the probe too and the planted violation goes unreported.\n"
     + "           rogue3#52's acceptance criterion — 'a PR that makes any build.fsx check unconditionally pass\n"
-    + "           is red in CI' — is therefore still NOT fully met, by the first residual above.\n"
+    + "           is red in CI' — is met for a SINGLE-LINE edit to either check, and not for the contiguous\n"
+    + "           multi-line and multi-edit residuals above.\n"
     + "           #62's blind spots — symlinked kit roots and kit files, a manifest pin outside the kit tree,\n"
     + "           and an unreadable input aborting the run with no violation line — are CLOSED. What is not:\n"
     + "             * a kit file replaced by a HARD link, or a bind mount over a kit tree, still reads as a\n"
