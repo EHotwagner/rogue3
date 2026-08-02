@@ -27,11 +27,20 @@ jobs:
         with:
           dotnet-version: 10.0.302
       # The feedback-report validator decides whether a merged cycle report is
-      # still evidence. It carries a deliberate one-path exemption (rogue3#40):
-      # the audit-binding excuse ledger, whose digest has no fixed point. This
-      # selftest proves the exemption is still exactly that one path and that an
-      # ordinary stale digest is still an error, so the exemption cannot quietly
-      # widen into "the validator checks nothing".
+      # still evidence. It carries deliberate exemptions -- TWO classes, not the
+      # one path this comment claimed until rogue3#77: the audit-binding excuse
+      # ledger, whose digest has no fixed point (rogue3#40, widened to the whole
+      # ledger DIRECTORY by rogue3#53), and the derived readiness roll-ups, whose
+      # digest has no single value at all (rogue3#56, given to this validator by
+      # rogue3#77). For an exempt citation the digest AND the file's existence are
+      # waived; workspace containment never is.
+      #
+      # This selftest proves the exempt set is still exactly those two classes and
+      # nothing adjacent -- near-miss filenames, case variants, sibling
+      # directories, another audit, an ignored path the constant does not name --
+      # and that an ordinary stale digest, and an ordinary MISSING file, are both
+      # still errors. So neither exemption can quietly widen into "the validator
+      # checks nothing", and the existence waiver cannot become a blanket one.
       #
       # Deliberately NOT in audit-bindings.yml, even though that is where its
       # sibling `check-audit-bindings.py --selftest` runs: that workflow file is
@@ -207,26 +216,48 @@ jobs:
             # tracked case above would also fire this branch and tell the reader to
             # restore a rule that was never removed.
             if ! git check-ignore --no-index -q "$p"; then
-              echo "::error file=.gitignore::$p is no longer ignored by .gitignore. Restore the rule, or remove the path from DERIVED_ROLLUP_RELPATHS in scripts/check-audit-bindings.py so its audit bindings are checked again."
+              echo "::error file=.gitignore::$p is no longer ignored by .gitignore. Restore the rule, or remove the path from DERIVED_ROLLUP_RELPATHS in scripts/check-audit-bindings.py and derivedRollupRelativePaths in .agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs so its audit bindings are checked again."
               fail=1
             fi
           done
-          # The list above is duplicated from .gitignore and from the checker on
-          # purpose -- three independent statements that must agree. Prove the pair
-          # this job can see really do agree, so a path silently dropped from the
-          # checker's constant cannot leave this step passing over a shorter list.
+          # The list above is duplicated from .gitignore, from the checker and --
+          # since rogue3#77 -- from the feedback validator, on purpose: FOUR
+          # independent statements that must agree. Prove the ones this job can see
+          # really do agree, so a path silently dropped from either constant cannot
+          # leave this step passing over a shorter list.
           # PYTHONDONTWRITEBYTECODE: importing the checker as a module would
           # otherwise leave scripts/__pycache__/ behind, which is neither tracked nor
           # ignored -- a step that proves the tree is clean must not dirty it.
-          declared="$(PYTHONDONTWRITEBYTECODE=1 python3 -c 'import importlib.util; s=importlib.util.spec_from_file_location("c", "scripts/check-audit-bindings.py"); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); print("\n".join(sorted(m.DERIVED_ROLLUP_RELPATHS)))')"
           expected="$(printf '%s\n' readiness/evidence-graph.md readiness/m7-ui-performance.json readiness/performance-evidence.json)"
+          declared="$(PYTHONDONTWRITEBYTECODE=1 python3 -c 'import importlib.util; s=importlib.util.spec_from_file_location("c", "scripts/check-audit-bindings.py"); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); print("\n".join(sorted(m.DERIVED_ROLLUP_RELPATHS)))')"
           if [ "$declared" != "$expected" ]; then
             echo "::error file=scripts/check-audit-bindings.py::DERIVED_ROLLUP_RELPATHS and this job's list disagree."
             diff <(echo "$expected") <(echo "$declared") || true
             fail=1
           fi
+          # rogue3#77 gave the F# validator the same exempt set, so a THIRD copy of
+          # this list now exists. It is read out of the source rather than executed:
+          # `dotnet fsi` is not available in this job and adding it to buy one list
+          # would cost more than the check is worth. The extraction is bounded to the
+          # binding's own body and its failure mode is loud in the safe direction --
+          # a regex that stops matching yields an empty or short list, which is a
+          # mismatch and fails here, never a silent pass. Only the `.agents` copy is
+          # read; TemplateDrift holds `.claude/skills` byte-identical to it.
+          fsharp_source=.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs
+          # `|| true` on the grep deliberately: with `set -euo pipefail` a regex that
+          # matches nothing would abort this step BEFORE the diagnostic below prints,
+          # turning the most likely failure -- somebody renamed the binding -- into a
+          # bare non-zero exit with no message. Swallowing it here loses nothing,
+          # because an empty list is a mismatch and still fails.
+          fsharp_declared="$(sed -n '/^let derivedRollupRelativePaths =$/,/\]$/p' "$fsharp_source" \
+            | { grep -oE '"readiness/[^"]+"' || true; } | tr -d '"' | sort)"
+          if [ "$fsharp_declared" != "$expected" ]; then
+            echo "::error file=$fsharp_source::derivedRollupRelativePaths and this job's list disagree. The feedback validator and scripts/check-audit-bindings.py must exempt exactly the same paths (rogue3#77); a path one tool calls unbindable is a path the other must not bind."
+            diff <(echo "$expected") <(echo "$fsharp_declared") || true
+            fail=1
+          fi
           if [ "$fail" -eq 0 ]; then
-            echo "All three derived roll-ups are untracked, ignored, and agree with DERIVED_ROLLUP_RELPATHS."
+            echo "All three derived roll-ups are untracked, ignored, and agree with DERIVED_ROLLUP_RELPATHS and derivedRollupRelativePaths."
           fi
           exit "$fail"
 

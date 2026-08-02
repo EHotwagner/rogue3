@@ -1,0 +1,222 @@
+{
+  "grandfatherSchema": 2,
+  "note": "Explicit exceptions to the audit-binding check (scripts/check-audit-bindings.py) written by ONE cycle: `--grandfather --cycle <id>` writes this file and nothing else, ever. Each entry excuses ONE stale binding at ONE observed digest, so a digest no cycle ever excused still fails. The checker evaluates the UNION of every file in this directory, so two concurrent cycles excuse the same binding without sharing a path -- and because both entries survive the merge, the digests a binding tolerates only ever GROW: returning a file to a digest some earlier cycle excused is green under that cycle's recorded reason. An entry that excuses nothing right now is reported as dormant, never as a failure, and only the cycle that owns this file prunes it. Adding an entry here is the PREFERRED remedy; rebinding a MERGED audit rewrites what that audit records its critic as having verified (see 7e71d71) and is right only for an audit you re-verified yourself.",
+  "entries": [
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+      "boundSha256": "982f6fdd9f9fbe5c95faec14b14494b05ccafc449846f5f42138772bc89275bf",
+      "observedSha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-10.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/skill-manifest.json",
+      "boundSha256": "e97bab4a98ba9a1ee316bc84cb3ca75030185bbfc9b65e63dc8b4a6a915bf0f4",
+      "observedSha256": "d7846aa2ce9bf4c089857110b3dd1b2a07b53e9803e74d3ea5735fdcf8242608",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources, and .github/workflows/verify.yml now compares the F# constant as well as the Python one. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
+      "boundSha256": "e4ca54416bc62bf4b8ffde1a7a87f59fa13c7277c1aa15f2f40695f38d7232da",
+      "observedSha256": "09816fdee4821b517537aa2101cd7579a713b812169bcc4502e62dbf9cbbc27b",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources, and .github/workflows/verify.yml now compares the F# constant as well as the Python one. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+      "boundSha256": "e675ae7fc10ff06e78bc739a94e2f9514bbc72958418e3343c045b65bf4f413c",
+      "observedSha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+      "boundSha256": "3d2418ea7becd3eed591e0efaacc542334eb26ffac2ad63b0e86824ed2521460",
+      "observedSha256": "aad7b45af4b364db12f0fffb89e9d7411ab6752875f15b26b0d905673d6f41fd",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/skill-manifest.json",
+      "boundSha256": "a9e86b4ec1b65c964eb07be767a3b0757d8687295d6a92724f238327adb8c630",
+      "observedSha256": "d7846aa2ce9bf4c089857110b3dd1b2a07b53e9803e74d3ea5735fdcf8242608",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources, and .github/workflows/verify.yml now compares the F# constant as well as the Python one. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "089b1fdcd2f14e1d7f8ba5cce0435059c204ffa0c0574bb80e229885b40142c3",
+      "observedSha256": "08d4ef8db053ddd2e831820e3961f3613c6e2c7c27605e90b030b9e758f1a5e4",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e), third pass: the second rebase onto d2c4e2f (#62) re-staled this cycle's own excuses, which were pinned at the pre-rebase digests. Same change as the earlier passes: the exemption is decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed, workspace containment unchanged, and the derived readiness roll-up exemption ported to F# so the validator and this checker agree on the exempt set. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison. Verify exit 0 with a clean tree, 277 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3",
+      "observedSha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "089b1fdcd2f14e1d7f8ba5cce0435059c204ffa0c0574bb80e229885b40142c3",
+      "observedSha256": "08d4ef8db053ddd2e831820e3961f3613c6e2c7c27605e90b030b9e758f1a5e4",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e), third pass: the second rebase onto d2c4e2f (#62) re-staled this cycle's own excuses, which were pinned at the pre-rebase digests. Same change as the earlier passes: the exemption is decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed, workspace containment unchanged, and the derived readiness roll-up exemption ported to F# so the validator and this checker agree on the exempt set. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison. Verify exit 0 with a clean tree, 277 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-14.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "257798a7cb1afbd8574091fd220c97af368aadbbadefbdb868a21e0c2b2244a6",
+      "observedSha256": "08d4ef8db053ddd2e831820e3961f3613c6e2c7c27605e90b030b9e758f1a5e4",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e), third pass: the second rebase onto d2c4e2f (#62) re-staled this cycle's own excuses, which were pinned at the pre-rebase digests. Same change as the earlier passes: the exemption is decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed, workspace containment unchanged, and the derived readiness roll-up exemption ported to F# so the validator and this checker agree on the exempt set. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison. Verify exit 0 with a clean tree, 277 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-15.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/skill-manifest.json",
+      "boundSha256": "a9e86b4ec1b65c964eb07be767a3b0757d8687295d6a92724f238327adb8c630",
+      "observedSha256": "d7846aa2ce9bf4c089857110b3dd1b2a07b53e9803e74d3ea5735fdcf8242608",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources, and .github/workflows/verify.yml now compares the F# constant as well as the Python one. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-15.audit.json",
+      "kind": "evidence",
+      "locator": "file:.claude/skills/skill-manifest.json",
+      "boundSha256": "a9e86b4ec1b65c964eb07be767a3b0757d8687295d6a92724f238327adb8c630",
+      "observedSha256": "d7846aa2ce9bf4c089857110b3dd1b2a07b53e9803e74d3ea5735fdcf8242608",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources, and .github/workflows/verify.yml now compares the F# constant as well as the Python one. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-15.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/kit-pins.json",
+      "boundSha256": "f6276d820369945e9b2b438e5fd68134d68809ddff5b781a523fa843a36e31f6",
+      "observedSha256": "8e1607cf3aaa97401ac0513f7220b725828e07985c5a8fdb7c7b6fb4089f753c",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources, and .github/workflows/verify.yml now compares the F# constant as well as the Python one. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa",
+      "observedSha256": "08d4ef8db053ddd2e831820e3961f3613c6e2c7c27605e90b030b9e758f1a5e4",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e), third pass: the second rebase onto d2c4e2f (#62) re-staled this cycle's own excuses, which were pinned at the pre-rebase digests. Same change as the earlier passes: the exemption is decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed, workspace containment unchanged, and the derived readiness roll-up exemption ported to F# so the validator and this checker agree on the exempt set. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison. Verify exit 0 with a clean tree, 277 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3",
+      "observedSha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-17.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa",
+      "observedSha256": "08d4ef8db053ddd2e831820e3961f3613c6e2c7c27605e90b030b9e758f1a5e4",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e), third pass: the second rebase onto d2c4e2f (#62) re-staled this cycle's own excuses, which were pinned at the pre-rebase digests. Same change as the earlier passes: the exemption is decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed, workspace containment unchanged, and the derived readiness roll-up exemption ported to F# so the validator and this checker agree on the exempt set. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison. Verify exit 0 with a clean tree, 277 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-18.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "78b072330cf1e5fb7a271761b72c21609e1ab4c97897468997ca86e1dea771bb",
+      "observedSha256": "08d4ef8db053ddd2e831820e3961f3613c6e2c7c27605e90b030b9e758f1a5e4",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e), third pass: the second rebase onto d2c4e2f (#62) re-staled this cycle's own excuses, which were pinned at the pre-rebase digests. Same change as the earlier passes: the exemption is decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed, workspace containment unchanged, and the derived readiness roll-up exemption ported to F# so the validator and this checker agree on the exempt set. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison. Verify exit 0 with a clean tree, 277 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-19.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "78b072330cf1e5fb7a271761b72c21609e1ab4c97897468997ca86e1dea771bb",
+      "observedSha256": "08d4ef8db053ddd2e831820e3961f3613c6e2c7c27605e90b030b9e758f1a5e4",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e), third pass: the second rebase onto d2c4e2f (#62) re-staled this cycle's own excuses, which were pinned at the pre-rebase digests. Same change as the earlier passes: the exemption is decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed, workspace containment unchanged, and the derived readiness roll-up exemption ported to F# so the validator and this checker agree on the exempt set. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison. Verify exit 0 with a clean tree, 277 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-19.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "c05adc4ac820c53a3beccced63ae5c7f2aee33990e5e83d13f45a6e5cd3eda3e",
+      "observedSha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-20.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
+      "boundSha256": "52b6eab3cdccb52b540968d21fca7515eaaae0b96b37ea159152973024d7f800",
+      "observedSha256": "09816fdee4821b517537aa2101cd7579a713b812169bcc4502e62dbf9cbbc27b",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources, and .github/workflows/verify.yml now compares the F# constant as well as the Python one. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-20.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+      "boundSha256": "3c9e86805a685d9392e50d4c6e9bbad59c79f9810d88407d09c52f76623d83b9",
+      "observedSha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-20.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045",
+      "observedSha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-22.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "54a9af4b88e13f6a8b81bad23dd1de2a3d498b15072af8085d30efdc65a9d5e9",
+      "observedSha256": "08d4ef8db053ddd2e831820e3961f3613c6e2c7c27605e90b030b9e758f1a5e4",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e), third pass: the second rebase onto d2c4e2f (#62) re-staled this cycle's own excuses, which were pinned at the pre-rebase digests. Same change as the earlier passes: the exemption is decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed, workspace containment unchanged, and the derived readiness roll-up exemption ported to F# so the validator and this checker agree on the exempt set. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison. Verify exit 0 with a clean tree, 277 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-3.audit.json",
+      "kind": "evidence",
+      "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
+      "boundSha256": "2d7127addbab83625a31d0d9defe7c9322845209a93b6e02b00f5d7cad11e4f8",
+      "observedSha256": "09816fdee4821b517537aa2101cd7579a713b812169bcc4502e62dbf9cbbc27b",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources, and .github/workflows/verify.yml now compares the F# constant as well as the Python one. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only apart from the new roll-up list comparison; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-3.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1",
+      "observedSha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1",
+      "observedSha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-9.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3",
+      "observedSha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3",
+      "reason": "Board item EHotwagner/rogue3#77 (worker finch-2d8e): the audit-binding exemption waived the DIGEST check but not the EXISTENCE check, and the existence check ran first, so a path any merged audit cited could never be deleted. The exemption is now decided before File.Exists in FeedbackReportTool.validateActionabilityAuditDetailed; workspace containment is unchanged, so an escaping locator is still an error. Second half: the validator and this checker disagreed on the exempt SET -- rogue3#56 exempted three untracked readiness roll-ups here alone -- so gitignore_declarations and derived_exemptions are ported to F#, keyed on the same two sources. Moves .agents/skills/fs-gg-feedback-report/{SKILL.md,scripts/FeedbackReportTool.fs,scripts/feedback-tool.fsx}, their .claude mirrors, both skill-manifest.json copies, scripts/{check-audit-bindings.py,kit-pins.json,audit-binding-exceptions.json} and .github/workflows/verify.yml. The check-audit-bindings.py and verify.yml edits are comment-only; the ledger note edit is text-only. None of the citing audits' findings depend on the moved bytes. Verify exit 0 with a clean tree, 276 tests, SelfTest 125/0, TemplateDrift 190 of 190, feedback-tool selftest 88/88 at the excused bytes."
+    }
+  ]
+}

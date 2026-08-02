@@ -1,0 +1,326 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-23.md",
+  "reportSha256": "18e3a9652dba4d2c87580b1103ce75e512a1d49bbe511cad1087ddeae24da4ec",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --json reports 20 notBound citations at ccff119, of which 5 name scripts/audit-binding-exceptions.json across audits 2026-08-02-Rogue3-{7,8,11,17,18}",
+          "result": "verified"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate feedback/2026-08-02-Rogue3-17.md --audit feedback/audits/2026-08-02-Rogue3-17.audit.json exits 1 with three \"digest is stale\" errors",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t SelfTest reports \"SelfTest: 125 case(s), 0 failure(s)\"",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#81",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Re-derived at f044f28 against a `git archive` export of ccff119: the gate there returns exactly 20 notBound and exactly 5 audits naming scripts/audit-binding-exceptions.json (Rogue3-7, -8, -11, -17, -18) against the four rogue3#77's body lists, and Rogue3-17 exits 1 on exactly three 'digest is stale' errors (build.fsx x2, verify.yml). NOTE THE FIGURE THIS FINDING QUOTES IS A ccff119 FIGURE: `./fake.sh build -t SelfTest` reports 125 case(s), 0 failure(s) at ccff119, and 164 case(s), 0 failure(s), 0 group(s) SKIPPED at f044f28 after #62 landed. The locator is explicit that 125 is the ccff119 measurement, so it is provenance rather than staleness -- but a reader running it today gets 164.",
+        "The claim that the cycle brief quoted SelfTest at 111/0 is not checkable: the brief is not in the tree."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+          "result": "verified",
+          "sha256": "aad7b45af4b364db12f0fffb89e9d7411ab6752875f15b26b0d905673d6f41fd"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports 88/88 on the candidate and \"13 of 88 cases FAILED\" with the existence test restored upstream of the exemption",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#77",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Re-run at f044f28, not carried forward: baseline 88/88, and re-inserting `| Some path when not (File.Exists path) ->` above the `| Some path ->` arm fails exactly 13 of 88 with exactly 4 failure names beginning 'CLI:'. ccff119 has the guard at FeedbackReportTool.fs:657 and the `digestExemption` match at :662."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate feedback/2026-08-01-Rogue3-8.md --audit feedback/audits/2026-08-01-Rogue3-8.audit.json reports its two readiness roll-up citations under NOT BOUND on the candidate, where ccff119 reported \"evidence file is missing\" for both",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#56",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Reproduced against the ccff119 export, where all three roll-ups are absent as claimed and both citations fail as 'evidence file is missing'; at f044f28 both are reported under NOT BOUND. This worktree has run `Verify`, so the roll-ups are PRESENT here -- the NOT BOUND result is unaffected, which is the finding's point."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:grep -rn \"digestExemption\\|validateActionabilityAudit\\|ledgerExemption\\|ledgerRelativePath\" over --include=*.fs,*.fsx,*.md,*.json,*.py,*.yml returns one call site of digestExemption",
+          "result": "verified"
+        },
+        {
+          "locator": "command:grep -rn \"file is missing\\|does not exist\\|File.Exists\\|os.path.isfile\" over .agents/skills, .claude/skills and scripts returns two citation-existence seams",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
+        }
+      ],
+      "confidenceLimits": [
+        "Both greps were re-run against the ccff119 export, since the finding says they ran before the first edit. Grep 1 returns exactly one `digestExemption` call site per kit copy (FeedbackReportTool.fs:662) and exactly three `validateActionabilityAuditDetailed` call sites, all in feedback-tool.fsx (lines 56, 271, 276). Grep 2 returns 56 raw hits; that only two of them decide whether a CITED evidence file must exist (FeedbackReportTool.fs:657, check-audit-bindings.py:986) is a judgement I confirmed by reading each hit.",
+        "'Both greps ran before the first edit' is a process claim no artifact can confirm."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.github/workflows/verify.yml",
+          "result": "verified",
+          "sha256": "08d4ef8db053ddd2e831820e3961f3613c6e2c7c27605e90b030b9e758f1a5e4"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
+        },
+        {
+          "locator": "command:the job's sed/grep extraction over the candidate's FeedbackReportTool.fs prints the three roll-up paths and exits 0, and over the ccff119 copy of the same file prints a three-line diff against the expected list and exits 1",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "RE-RUN AFTER THE REBASE, because #62 moved .github/workflows/verify.yml (its digest went fea2fd65… -> 08d4ef8d…). The 'Derived roll-ups stay out of the index' job survives with four references to `derivedRollupRelativePaths`, and the extraction still exits 0 against f044f28's FeedbackReportTool.fs (three paths) and 1 against the ccff119 copy (empty extraction, diff printed). Reproduced as a standalone script carrying the same sed/grep/tr/sort/diff pipeline, not by running GitHub Actions."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+          "result": "verified",
+          "sha256": "aad7b45af4b364db12f0fffb89e9d7411ab6752875f15b26b0d905673d6f41fd"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports 88/88 on the candidate",
+          "result": "verified"
+        },
+        {
+          "locator": "command:with the comment filter removed it reports \"gitignoreDeclarations: a COMMENT contributes nothing to the declared set\" FAILED and with negations left in the positive set it reports two named failures, while removing the five direct gitignoreDeclarations cases leaves 83/83 green with both of those mutants applied",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Re-derived at f044f28: with the five direct `gitignoreDeclarations` cases removed, `expectedCases` at 83, and BOTH the comment-filter and `!`-exclusion mutants applied simultaneously, the suite reports 'feedback-tool: selftest: 83/83 cases passed' at exit 0.",
+        "The claim that a code critic found seven survivors was not independently re-derived; five of the seven were not applied."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+          "result": "verified",
+          "sha256": "aad7b45af4b364db12f0fffb89e9d7411ab6752875f15b26b0d905673d6f41fd"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
+        },
+        {
+          "locator": "command:replacing the canonicalized containment test with `if true then` fails \"a symlink INSIDE the workspace pointing OUT is rejected\" and disabling the lexical test fails \"a LEXICALLY escaping locator that symlinks back inside is still rejected\", where removing those two cases from the shipped suite and setting expectedCases to 86 lets BOTH mutants pass 86/86 at exit 0, reproducible against the merged tree without reference to any commit",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "THE PROCEDURE IS NOW THE WHOLE LOCATOR AND I RAN IT, on a clean `git archive` export of f044f28. Deleting the two cases under `--- containment, BOTH halves of it, separately ---` and setting `expectedCases` to 86 gives 'feedback-tool: selftest: 86/86 cases passed' at exit 0 with the canonicalized-containment mutant applied, and again at exit 0 with the lexical-containment mutant applied -- BOTH mutants, as the locator says. On the unmodified suite each mutant kills exactly one case, with the exact names quoted.",
+        "This locator names no commit at all, which is what makes it durable: it runs against the merged tree forever, where the two shas I rejected in the previous two signatures could not. Verified by hex sweep that §4.7 now contains no commit id."
+      ]
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+          "result": "verified",
+          "sha256": "aad7b45af4b364db12f0fffb89e9d7411ab6752875f15b26b0d905673d6f41fd"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports \"88/88 cases passed\" and, with expectedCases left at a stale value, \"88 cases ran and 0 were skipped, expected 85 in total\"",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Both halves reproduced at f044f28: `expectedCases` set to a stale value prints the quoted message verbatim over an 88-case run. The ccff119 history also holds -- `minimumCases = 38` against an actual 49/49.",
+        "The locator quotes 'expected 85 in total', which is the message text for one particular stale value rather than a property of the suite; any stale value produces the same sentence with its own number."
+      ]
+    },
+    {
+      "id": "§4.9",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest covers the F# reader with 14 cases -- 5 named \"gitignoreDeclarations:\" driven directly, 6 negation forms, 1 padded declaration, 2 line-ending fixtures -- and no case in either suite feeds both readers the same input",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The count was re-enumerated from feedback-tool.fsx at f044f28 and matches exactly: 5 cases named 'gitignoreDeclarations:' driven directly (lines 845, 851, 857, 863, 867), 6 negation forms in the loop at line 783, 1 padded-declaration case (812) and 2 line-ending fixtures (825) -- 14. No fixture is shared between the two suites.",
+        "The 46-fixture differential sweep asserted in FeedbackReportTool.fs's doc comment was not re-run."
+      ]
+    },
+    {
+      "id": "§4.10",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t TemplateDrift on the first attempt reports \"7 violation(s)\" naming .agents/skills/fs-gg-feedback-report/SKILL.md pinned 52b6eab3cdcc found 4c9a4e9503a6, and after the manual manifest edit reports 2 violations naming .agents/skills/skill-manifest.json pinned d26f8898ec65 found 6b51adecb3ac",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t KitPins",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.agents/skills/skill-manifest.json",
+          "result": "verified",
+          "sha256": "d7846aa2ce9bf4c089857110b3dd1b2a07b53e9803e74d3ea5735fdcf8242608"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#78",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The TemplateDrift figures were reproduced by reconstructing the pre-rebase intermediate state (ccff119 export plus that round's three kit files and mirrors): 7 violations naming SKILL.md pinned 52b6eab3cdcc found 4c9a4e9503a6, then 2 violations naming skill-manifest.json pinned d26f8898ec65 found 6b51adecb3ac. `KitPins` runs clean and writes only scripts/kit-pins.json.",
+        "The withdrawal is real: rogue3#78's body says 'The repair is three manual steps across five files' and carries the round as step 3 verbatim, and comment 5159393445 on #78 withdraws the earlier claim in those terms.",
+        "The '~6 minutes' cost is an estimate no artifact can confirm."
+      ]
+    },
+    {
+      "id": "§4.11",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-23.md",
+          "result": "verified",
+          "sha256": "18e3a9652dba4d2c87580b1103ce75e512a1d49bbe511cad1087ddeae24da4ec"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
+          "result": "verified",
+          "sha256": "09816fdee4821b517537aa2101cd7579a713b812169bcc4502e62dbf9cbbc27b"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports 88/88 and 13 of 88 FAILED with the pre-#77 ordering restored, against the \"10 of 68\" an earlier draft quoted",
+          "result": "verified"
+        },
+        {
+          "locator": "command:a corpus sweep over the pre-existing report/audit pairs, excluding this cycle's own, reports pass=2 fail=32 on main at d2c4e2f (green: Rogue3-21, Rogue3-22) and pass=1 fail=33 on the candidate (green: Rogue3-21), where at the earlier base 14fd9eb the same sweep reported pass=2 (green: Rogue3-19, Rogue3-21) and pass=1 -- the count this cycle reds is invariant at one, the identity is not",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git branch -a --contains b689137 is empty after the rebase, git ls-remote origin matches neither b689137 nor be74e52, and git log --format=%p over origin/main shows every recent commit with exactly one parent -- so no feature-branch sha is citable in this repository",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#81",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "THE COUNT AND THE SPLIT ARE BOTH RIGHT, RECOUNTED FROM THE LETTERS IN THE FILE AT f044f28 AND FROM GIT HISTORY, ASSUMING NOTHING. Letters present: (a)…(l) = 12. (a) and (b) are one claim in two files, as the finding states, so 11 distinct claims. Rows: first draft 5 claims / 6 letters ((a)+(b), (c), (d), (e), (f)); written wrong by a correcting round 4 / 4 ((g), (i), (j), (l)); falsified by the rebase 1 / 1 ((k)); falsified by a sibling merging 1 / 1 ((h)). 5+4+1+1 = 11 claims, 6+4+1+1 = 12 letters. This matches the derivation I supplied at the previous signature, including the placement of (l) with the round that recorded (g) and (h) and (h) in its own mechanism row.",
+        "THE INVARIANT FRAMING HOLDS AND I TESTED IT AT BOTH BASES. main @ d2c4e2f is 34 pre-existing pairs / 2 pass (Rogue3-21, Rogue3-22) / 32 fail; the candidate is 34 / 1 pass (Rogue3-21) / 33 fail; the single green-to-red is Rogue3-22. At the earlier base 14fd9eb the same sweep gives 33 pairs / 2 pass (Rogue3-19, Rogue3-21) and 1 pass. So the count this cycle reds is invariant at one across both bases and the identity moved from Rogue3-19 to Rogue3-22 -- Rogue3-19 having gone red on main without help from this branch. Both dated measurements are reproduced, and the figure remains audit-independent because this cycle's own pair is excluded.",
+        "(j) DESCRIBES WHAT HAPPENED, NOT WHAT IS NOW THE CASE. It says 'it had taken two at the time' and records separately that the second rebase forced a third pass so 'three' is now correct, on the stated ground that a figure which becomes true later was not evidence when asserted. I confirmed both halves: this cycle's ledger file is written by exactly three commits on the rebased branch (bc6ee0d, 4438ccd, f044f28), and was written by exactly two before the second rebase.",
+        "CLOSED AT cb129fe, AND RECORDED HERE BECAUSE THIS AUDIT IS A RE-EMISSION OF THE f044f28 SIGNATURE. At f044f28 I reported that a full hex sweep found seven commit ids, two of which -- `9100cd9` and `904002b`, both in §4.11's own Observed prose -- were branch-only and not named as broken locators, so by (k)'s own rule they would rot at the squash merge. The two-token edit at cb129fe replaced them with 'the re-measurement round' and 'the revision a fresh-context critic first enumerated'. I re-ran the sweep: the report now holds exactly five commit ids -- ccff119, 14fd9eb and d2c4e2f, each an ancestor of origin/main, plus b689137 and be74e52 confined to (k) where they are named as the broken locators they are. Neither claim lost any support: the '2 green merged reports to' span and the nine-across-ten enumeration were both verified independently at the previous signature and are unchanged.",
+        "EVERY §10 FIGURE RE-MEASURED AT f044f28, NONE CARRIED FORWARD FROM de86f3c: Verify exit 0 with 277 tests and a clean tree; SelfTest 164 case(s), 0 failure(s), 0 group(s) SKIPPED; TemplateDrift 190 of 190, 0 uncovered; feedback-tool selftest 88/88; `diff -rq .agents/skills .claude/skills` exit 0; `check-audit-bindings.py` exit 0 at exactly 35 audits, 306 bindings, 177 fresh, 129 excused, 22 not bound, 129 dormant over 7 ledger files (6 per-cycle files plus the legacy archive).",
+        "§11.6's revised wording is accurate: byte-pinning makes any post-signature edit DETECTABLE ('the audit's reportSha256 binds the current bytes' is mechanical), while 'falsifies no sentence' is a judgement no tool checks. Calling it a tripwire rather than a proof is the correct characterisation."
+      ]
+    },
+    {
+      "id": "§4.12",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:eval \"$(scripts/fsgg-coord whoami --mint)\" is refused as too complex to verify",
+          "result": "verified"
+        },
+        {
+          "locator": "command:python3 - <<EOF heredoc is refused with the same message",
+          "result": "verified"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest > FILE 2>&1 followed by a separate read is the form that works",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "All three refusals reproduced verbatim in this critic's own harness, again at this tip. The two-call form the finding names does work: `cmd > file 2>&1; echo \"EXIT=$?\"` is accepted while `cmd > file; echo $?; tail file` is refused."
+      ]
+    }
+  ]
+}
