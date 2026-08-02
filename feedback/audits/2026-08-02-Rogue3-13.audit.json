@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-13.md",
-  "reportSha256": "e284bd837aee774be9ddbac3e96c7e1251a7dca0dad30500447e0b1a642dea16",
+  "reportSha256": "325013cc0708ed44712c5a6c6dd68dda4aca5bd8935c49e64ca416374a9ffa56",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -27,7 +27,7 @@
         {
           "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
           "result": "verified",
-          "sha256": "6d9bded758ab617b85575de3112f4f96421cb181b709cb560dd99a2aebbd473b"
+          "sha256": "973e92431074cf2e482499d0fdfb8d2658ec4387dc885e9c469a890a92f2611b"
         }
       ],
       "confidenceLimits": [
@@ -43,12 +43,12 @@
         {
           "locator": "file:feedback/audits/2026-08-02-Rogue3-13.mutations.md",
           "result": "verified",
-          "sha256": "b7ec06557ef1dcc426095b8557890acd19aa3963a257f32a685d618facc6d822"
+          "sha256": "3543037d3e95f64ce5dd202e1adf51837131ca4f73b3dae3237d20fb948b8679"
         },
         {
           "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
           "result": "verified",
-          "sha256": "6d9bded758ab617b85575de3112f4f96421cb181b709cb560dd99a2aebbd473b"
+          "sha256": "973e92431074cf2e482499d0fdfb8d2658ec4387dc885e9c469a890a92f2611b"
         },
         {
           "locator": "command:dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -m:1 --disable-build-servers",
@@ -59,7 +59,8 @@
         "The critic graded this finding incomplete for lacking a committed mutation artifact and for a 26-versus-16 inconsistency. Both were resolved before this audit: feedback/audits/2026-08-02-Rogue3-13.mutations.md now records every mutation, its target and its verdict across four sweeps, including the 246-test baseline the critic measured against and the one void run.",
         "The cited dotnet test command reproduces green at 253 tests but is not itself probative of the mutation counts; the mutation rows must be re-run to reproduce them.",
         "The critic independently spot-checked one named survivor (roomRewardRadius 20.0 -> 400.0) and reproduced two failing tests, corroborating row S11.",
-        "Three of the critic's 22 actionable survivors remain unpinned and are stated as such in both the report and the artifact: loosenings of roomRewardRadius that stay inside the walk helper's 2-unit settling tolerance."
+        "Three of the critic's 22 actionable survivors remain unpinned and are stated as such in both the report and the artifact: loosenings of roomRewardRadius that stay inside the walk helper's 2-unit settling tolerance.",
+        "A fourth critic reviewed the pushed pull request and found two further surviving mutations: reward collection could also strip the Trapdoor fixture (a softlock the suite passed green), and a new AudioEvent case added WITH a cue was not caught by the reflection guard, disproving a claim of protection the author had written into two test comments. Both are now killed and both are recorded as sweep E in the mutations artifact; the comments were corrected to state what the guard actually does."
       ]
     },
     {
@@ -75,7 +76,7 @@
         {
           "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
           "result": "verified",
-          "sha256": "6d9bded758ab617b85575de3112f4f96421cb181b709cb560dd99a2aebbd473b"
+          "sha256": "973e92431074cf2e482499d0fdfb8d2658ec4387dc885e9c469a890a92f2611b"
         }
       ],
       "confidenceLimits": [
@@ -90,7 +91,7 @@
         {
           "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
           "result": "verified",
-          "sha256": "6d9bded758ab617b85575de3112f4f96421cb181b709cb560dd99a2aebbd473b"
+          "sha256": "973e92431074cf2e482499d0fdfb8d2658ec4387dc885e9c469a890a92f2611b"
         },
         {
           "locator": "file:src/Rogue3/FloorGeneration.fs",
@@ -188,7 +189,7 @@
         {
           "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
           "result": "verified",
-          "sha256": "6d9bded758ab617b85575de3112f4f96421cb181b709cb560dd99a2aebbd473b"
+          "sha256": "973e92431074cf2e482499d0fdfb8d2658ec4387dc885e9c469a890a92f2611b"
         }
       ],
       "confidenceLimits": [

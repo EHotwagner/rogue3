@@ -199,7 +199,8 @@ let m14ItemGrantTests =
                   (granted.PlayerItems |> List.map _.Id)
                   (Rogue3.Entities.baseItems |> List.map _.Id)
                   "in acquisition order"
-              // The whole pool at once, as a literal: damage is (3.5 + 1 + 2 + 0.5(+0)) x 0.75.
+              // The whole pool at once, as a literal: damage is (3.5 + 1 + 2) x 0.75 = 4.875 —
+              // base, plus coal-heart's +1 and iron-teeth's +2, all through cracked-lens's x0.75.
               Expect.equal granted.PlayerStats.Damage 4.875 "the whole inventory folds into one damage figure"
               Expect.equal granted.PlayerStats.Multishot 2 "and one multishot figure"
               Expect.equal granted.PlayerStats.Pierce 1 "and one pierce figure"
@@ -216,11 +217,23 @@ let m14ItemGrantTests =
 
               Expect.equal (cuesFor AudioEvent.ItemGranted) [ "item-pickup", 0.85 ] "a granted item asks for the item-pickup cue"
 
-              // Reflection, so ADDING an AudioEvent case without cueing it fails here rather than
-              // being silently omitted from the hand-maintained lists in M8/M12.
+              // Reflection, so adding an AudioEvent case WITHOUT cueing it fails here.
               let allEvents =
                   Reflection.FSharpType.GetUnionCases typeof<AudioEvent>
                   |> Array.map (fun case -> Reflection.FSharpValue.MakeUnion(case, [||]) :?> AudioEvent)
+
+              // A PR reviewer disproved the first version of this guard's claim by experiment: it
+              // said an event missing from the hand-maintained lists in `M8AudioTests` and
+              // `M12AudioAssetTests` would fail here, and it would not — this test builds its own
+              // case array and never reads those lists, so a new case WITH a cue sailed past all
+              // three. Asserting the case count is what actually makes the claim true: adding a case
+              // fails HERE, and this message is where the author is told the other two lists exist.
+              // (Claiming a protection without exercising it is the failure mode this repository
+              // keeps repeating, so it is not one to plant in a test comment.)
+              Expect.equal
+                  allEvents.Length 8
+                  "AudioEvent case count changed: cue it above, and add it to the hand-maintained event lists in M8AudioTests.fs and M12AudioAssetTests.fs, which this guard cannot see"
+
               for event in allEvents do
                   match cuesFor event with
                   | [ _, volume ] -> Expect.isGreaterThan volume 0.0 $"{event} is audible"
@@ -501,10 +514,13 @@ let m14ItemGrantTests =
               Expect.isEmpty guarded.PlayerItems "walking onto a guarded plinth takes nothing"
               Expect.equal guarded.RunStats.ItemsFound 0 "and counts nothing"
 
-              // Clear the room the way the product does, then walk back onto it.
+              // Clear the room the way the product does — `damageM5Boss` runs BOTH halves, the live
+              // room's `bossCleared` and the floor record's `clearBoss`, and it is the second that
+              // lays down the trapdoor fixture asserted at the end of this test.
               let cleared =
                   { guarded with
                       M5Room = Rogue3.Entities.bossCleared guarded.M5Room.Reward guarded.M5Room
+                      Floor = FloorGeneration.clearBoss bossRoom guarded.Floor
                       M5Boss = None }
               Expect.isTrue (roomRewardCollectable cleared) "a cleared boss room releases its reward"
               let reward = cleared.M5Room.Reward |> Option.defaultWith (fun () -> failtest "the reward survives the clear")
@@ -526,6 +542,16 @@ let m14ItemGrantTests =
               Expect.isNone revisited.M5Room.Reward "re-entering the boss room presents no reward"
               let relingered = walkTo takenAt (fun _ -> false) 240 revisited
               Expect.equal relingered.PlayerItems.Length 1 "and standing on the old spot grants nothing further"
+
+              // Taking the prize must not strip the way OUT. `withoutRewardFixture` filters
+              // `Floor.Rooms[..].Fixtures`, and `trapdoorPresent` reads that same list — a PR
+              // reviewer showed that widening the filter to include `Trapdoor` passes the whole
+              // suite green while softlocking the run: the player takes the boss reward and can
+              // never descend again. The code was already right; nothing asserted it.
+              Expect.isTrue
+                  (taken.Floor.Rooms.[bossRoom].Fixtures |> List.contains Trapdoor)
+                  "collecting the boss reward leaves the trapdoor fixture on the floor record"
+              Expect.isTrue (trapdoorPresent taken) "so the room still depicts a trapdoor"
           }
 
           test "a descent does not carry the departed floor's reward onto the new one" {

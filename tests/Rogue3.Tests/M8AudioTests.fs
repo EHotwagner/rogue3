@@ -28,9 +28,11 @@ let audioTests =
                         [ AudioEvent.ShotFired; AudioEvent.ShotHit; AudioEvent.EnemyDied
                           AudioEvent.PlayerHit; AudioEvent.PlayerDied; AudioEvent.DodgeRolled
                           AudioEvent.BombExploded
-                          // Board item #47. A mutation critic found this list is hand-maintained and
-                          // omitting a case is silent, so `M14ItemGrantTests` carries a reflection
-                          // guard that fails when an `AudioEvent` case is missing from here.
+                          // Board item #47. This list is hand-maintained and nothing can see into it,
+                          // so omitting a case here is silent. `M14ItemGrantTests` cannot check it
+                          // either — a reviewer proved that by experiment — but it does assert the
+                          // `AudioEvent` CASE COUNT, so adding a case fails there and its message
+                          // points back at this list.
                           AudioEvent.ItemGranted ] }
             let actual = AudioCues.forTransition (Tick fixedDt) Program.initialModel next |> requested
             let expected =
