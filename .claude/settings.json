@@ -1,6 +1,7 @@
 {
   "env": {
-    "FSGG_COORD_OWNER": "FS-GG",
-    "FSGG_COORD_PROJECT": "Coordination"
+    "FSGG_COORD_OWNER_TYPE": "user",
+    "FSGG_COORD_OWNER": "EHotwagner",
+    "FSGG_COORD_PROJECT": "Rogue3"
   }
 }

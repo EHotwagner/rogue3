@@ -2,7 +2,9 @@
 
 Source: https://github.com/FS-GG/FS.GG.Game/blob/main/docs/TestSpecs/Games/roguelike-dungeon-crawler.md
 
-This local roadmap is the implementation ledger for the source specification. Milestones are sequential. Preserve milestone text and append concise merge, test, SDD, and feedback evidence when marking work complete.
+**As of 2026-08-02 this file is a historical record, not the live ledger.** Scheduling moved to the coordination-wired product board — https://github.com/users/EHotwagner/projects/7 (`FSGG_COORD_OWNER_TYPE=user`, `FSGG_COORD_OWNER=EHotwagner`, `FSGG_COORD_PROJECT=Rogue3`, wired in `.claude/settings.json`). Open work lives there as issues with `Status`, `Effort`, `Blocked by` and a declared `Paths:` touch-set, and is driven by `work-board` rather than `work-roadmap`. M12 is the last milestone driven from this file; its worker was already in flight when the board was wired.
+
+This roadmap remains the implementation ledger for the source specification and the durable record of what shipped per milestone: milestone text, merge/test/SDD/feedback evidence, and each milestone's "Reason for this milestone" paragraph stay here and stay accurate. Do not delete rows to reflect board state. Milestones were sequential; board items need not be.
 
 **Legend:** 🟥 Not started · 🟨 In progress · 🟩 Done · ⬜ Deferred (post-v1)
 

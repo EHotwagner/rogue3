@@ -41,17 +41,15 @@ These call/define the starter game model directly — they are yours to replace:
   `Visibility.polygon`. Edit the sight radius, cone the field of view, swap the polygon output for a
   fog-of-war mask, or delete the file: its compile item is `Exists`-guarded, so deleting it keeps the
   build green and you never touch the durable `Product.fsproj`.
-- `<ProductDir>/Grids.fs` *(game / sample-pack only)* — the adaptable grid-parts helper (see the
-  `fs-gg-grids` skill). It compiles **before** `Model.fs` so your `update`/`view` can address the edges
-  and corners between cells (`Grids.cellEdges`, `Grids.edgeSegment`, `Grids.cellAt`). Move the grid
-  origin, add a diagonal-edge variant, extend it toward hex grids, or delete the file: its compile item
-  is `Exists`-guarded, so deleting it keeps the build green and you never touch the durable
-  `Product.fsproj`.
-- `<ProductDir>/LineDrawing.fs` *(game / sample-pack only)* — the adaptable grid line-drawing helper (see
-  the `fs-gg-line-drawing` skill). It compiles **before** `Model.fs` so your `update`/`view` can call
-  `LineDrawing.line`/`supercover`/`lineOfSight`. Switch the thin line for the supercover, cap the length
-  for a limited-range beam, or delete the file: its compile item is `Exists`-guarded, so deleting it keeps
-  the build green and you never touch the durable `Product.fsproj`.
+- `<ProductDir>/Grids.fs` and `<ProductDir>/LineDrawing.fs` *(game / sample-pack only)* — the adaptable
+  grid-parts and grid line-drawing helpers (the `fs-gg-grids` / `fs-gg-line-drawing` skills). **This
+  product deleted both** (issue #19): it is continuous-space, so nothing here ever referenced them and
+  they compiled 282 unreachable lines into every build. Exercising the documented delete path is what
+  the `Exists`-guarded compile items are for. Note the one thing this map's delete advice does not say:
+  deleting the file leaves an orphan compile item plus its comment block behind, so we removed those
+  from `Rogue3.fsproj` too. To restore either module, take it from git history at `1f19809` — the
+  `fs-gg-grids` / `fs-gg-line-drawing` skills document the API but do **not** carry the module source,
+  so "just re-add it from the skill" is not a route.
 - `tests/Product.Tests/BehaviorTests.fs` — the replaceable scaffold-behaviour tests that drive
   the starter's `view`/`update`/`tick`/host directly (the test-split detail is below).
 

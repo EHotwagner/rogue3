@@ -32,15 +32,16 @@
          adaptable source — compiled before Model.fs so your update/view can call Visibility.polygon.
          The Exists guard keeps the build green if you delete the file (Rogue3.fsproj stays "durable"). -->
     <Compile Include="Visibility.fs" Condition="Exists('Visibility.fs')" />
-    <!-- Feature 249: the import-and-adapt grid-parts helper (fs-gg-grids skill). Consumer-owned,
-         adaptable source — compiled before Model.fs so your update/view can call Grids.cellEdges etc.
-         The Exists guard keeps the build green if you delete the file (Rogue3.fsproj stays "durable"). -->
-    <Compile Include="Grids.fs" Condition="Exists('Grids.fs')" />
-    <!-- Feature 248: the import-and-adapt line-drawing helper (fs-gg-line-drawing skill).
-         Consumer-owned, adaptable source — compiled before Model.fs so your update/view can call
-         LineDrawing.line / supercover / lineOfSight. The Exists guard keeps the build green if you
-         delete the file (Rogue3.fsproj stays "durable"). -->
-    <Compile Include="LineDrawing.fs" Condition="Exists('LineDrawing.fs')" />
+    <!-- Issue #19: the scaffold's two import-and-adapt grid helpers — Grids.fs (Feature 249,
+         fs-gg-grids) and LineDrawing.fs (Feature 248, fs-gg-line-drawing) — were DELETED, and their
+         compile items with them. This roguelike never adopted them: the simulation is continuous-space
+         (Collision.sweepCircle over Rect room bounds and Vec2 obstacles), and every `Cell` value in the
+         product is a room-graph coordinate produced by FloorGeneration.fs and consumed by Render.fs's
+         minimap and Model.fs's roomPoint — none of which wants the edges/corners BETWEEN cells or a
+         Bresenham sight-line THROUGH them. They compiled 282 unreachable lines into every build.
+         To restore either module, take it from git history at 1f19809: both are product-owned source
+         with no backing package, and the fs-gg-grids / fs-gg-line-drawing skills document the API with
+         call-site examples but do NOT carry the module source. -->
     <!-- Issue #991: the generic game-shell module (fs-gg-game-shell skill) — a reusable
          menu/start screen + settings (resolution/fullscreen) + key rebinding that composes the
          framework pieces (KeyRebind + Keymap/KeymapCodec, LogicalCanvas + window-behavior, the
