@@ -47,8 +47,8 @@
       "kind": "evidence",
       "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
       "boundSha256": "982f6fdd9f9fbe5c95faec14b14494b05ccafc449846f5f42138772bc89275bf",
-      "observedSha256": "37ee5cbb2dfd2f87a1107f7a181685ee33ca851365d12e7858eb8763e9555a57",
-      "reason": "rogue3#40: the feedback-report validator had the same no-fixed-point binding as this gate. Fixing it required editing .agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs (the digest rule and the not-bound reporting) and .agents/skills/fs-gg-feedback-report/SKILL.md (documenting the one-path exemption and the new selftest). Excused rather than rebound, following 7e71d71 and #38: feedback/audits/2026-08-01-Rogue3-12.audit.json \u00a74.14 and feedback/audits/2026-08-02-Rogue3-3.audit.json \u00a74.2 record critics who read the PRE-fix bytes, and repointing them would claim those critics examined code that did not exist when those reports were written."
+      "observedSha256": "e675ae7fc10ff06e78bc739a94e2f9514bbc72958418e3343c045b65bf4f413c",
+      "reason": "rogue3#40: the feedback-report validator had the same no-fixed-point binding as this gate. Fixing it required editing .agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs (the one-path digest exemption, the not-bound reporting, and a case-sensitive comparison matching this checker's) and .agents/skills/fs-gg-feedback-report/SKILL.md (documenting the exemption, its narrowness, the selftest, and the fact that this validator has no excuse ledger). Excused rather than rebound, following 7e71d71 and #38: feedback/audits/2026-08-01-Rogue3-12.audit.json 4.14 and feedback/audits/2026-08-02-Rogue3-3.audit.json 4.2 record critics who read the PRE-fix bytes, and repointing them would claim those critics examined code that did not exist when those reports were written."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-12.audit.json",
@@ -439,8 +439,8 @@
       "kind": "evidence",
       "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
       "boundSha256": "2d7127addbab83625a31d0d9defe7c9322845209a93b6e02b00f5d7cad11e4f8",
-      "observedSha256": "8ac8477c68de364f2f88d64f56c095530f16250a76f31b9c88f834563943944d",
-      "reason": "rogue3#40: the feedback-report validator had the same no-fixed-point binding as this gate. Fixing it required editing .agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs (the digest rule and the not-bound reporting) and .agents/skills/fs-gg-feedback-report/SKILL.md (documenting the one-path exemption and the new selftest). Excused rather than rebound, following 7e71d71 and #38: feedback/audits/2026-08-01-Rogue3-12.audit.json \u00a74.14 and feedback/audits/2026-08-02-Rogue3-3.audit.json \u00a74.2 record critics who read the PRE-fix bytes, and repointing them would claim those critics examined code that did not exist when those reports were written."
+      "observedSha256": "e4ca54416bc62bf4b8ffde1a7a87f59fa13c7277c1aa15f2f40695f38d7232da",
+      "reason": "rogue3#40: the feedback-report validator had the same no-fixed-point binding as this gate. Fixing it required editing .agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs (the one-path digest exemption, the not-bound reporting, and a case-sensitive comparison matching this checker's) and .agents/skills/fs-gg-feedback-report/SKILL.md (documenting the exemption, its narrowness, the selftest, and the fact that this validator has no excuse ledger). Excused rather than rebound, following 7e71d71 and #38: feedback/audits/2026-08-01-Rogue3-12.audit.json 4.14 and feedback/audits/2026-08-02-Rogue3-3.audit.json 4.2 record critics who read the PRE-fix bytes, and repointing them would claim those critics examined code that did not exist when those reports were written."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-3.audit.json",

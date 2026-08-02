@@ -369,16 +369,26 @@ let private ledgerExemption =
 /// one-token rewrite reintroduce the unsatisfiable binding this exempts.
 ///
 /// Deliberately ONE path, not a class. In particular a citation onto another
-/// `*.audit.json` is NOT exempt. The gate's rule is "fresh OR excused" and
-/// excusing writes only the ledger -- never an audit -- so once the ledger is
-/// exempt a stale binding onto another audit settles in a single `--grandfather`
-/// pass and stays settled. Exempting audits as well would buy nothing about
-/// convergence and would cost the only check that notices an edit to merged
-/// evidence. This mirrors `exemption` in scripts/check-audit-bindings.py, and
-/// the two must stay in agreement: a file that checker calls unbindable is a
-/// file this validator must not call stale.
+/// `*.audit.json` is NOT exempt, for one reason only: it would cost the only
+/// check that notices an edit to merged evidence, and an audit's digest CAN be
+/// held stable -- nothing this validator does rewrites an audit.
+///
+/// Do NOT justify that with the gate's convergence argument. `check-audit-bindings.py`
+/// can say "a stale binding onto another audit settles in a single `--grandfather`
+/// pass" because it HAS an excuse ledger. This validator has none: `--grandfather`
+/// changes no verdict here, and a stale citation onto another audit has no remedy
+/// short of rebinding merged evidence. That is a real gap in this tool, not an
+/// argument for widening the exemption.
+///
+/// Compared with StringComparison.Ordinal on EVERY platform, deliberately -- not
+/// the `pathComparison` used elsewhere in this file, which is OrdinalIgnoreCase on
+/// Windows. `exemption` in scripts/check-audit-bindings.py compares with Python
+/// `==`, which is case-sensitive everywhere; matching case-insensitively on Windows
+/// would exempt a path that checker still binds. The two must stay in agreement: a
+/// file the checker calls unbindable is a file this validator must not call stale,
+/// and vice versa.
 let digestExemption (rel: string) =
-    if String.Equals(rel, ledgerRelativePath, pathComparison) then
+    if String.Equals(rel, ledgerRelativePath, StringComparison.Ordinal) then
         Some ledgerExemption
     else
         None
