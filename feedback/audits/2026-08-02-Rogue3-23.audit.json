@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-23.md",
-  "reportSha256": "12f18ad44d1aac26761ed0990411a09bdae1a3a53888bf7246f54c13213c9ab5",
+  "reportSha256": "ecfb6acd8aeeeccbd733abda346c29d782c7ec77877f61b5bd1a8983bda94e7a",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -26,6 +26,10 @@
           "locator": "issue:EHotwagner/rogue3#81",
           "result": "verified"
         }
+      ],
+      "confidenceLimits": [
+        "Re-derived at the shipped tip. `check-audit-bindings.py --json` in a `git archive` export of ccff119 returns exactly 20 notBound and exactly 5 audits naming scripts/audit-binding-exceptions.json (2026-08-02-Rogue3-7, -8, -11, -17, -18) against the four rogue3#77's body lists; Rogue3-17 exits 1 there on exactly three 'digest is stale' errors (build.fsx x2, .github/workflows/verify.yml); `./fake.sh build -t SelfTest` reports 125 case(s), 0 failure(s) at BOTH ccff119 and the candidate, and build.fsx is untouched by this branch.",
+        "The claim that the cycle brief quoted SelfTest at 111/0 is not checkable: the brief is not in the tree."
       ]
     },
     {
@@ -44,13 +48,17 @@
           "sha256": "aad7b45af4b364db12f0fffb89e9d7411ab6752875f15b26b0d905673d6f41fd"
         },
         {
-          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports 68/68 on the candidate and \"10 of 68 cases FAILED\" with the existence test restored upstream of the exemption",
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports 88/88 on the candidate and \"13 of 88 cases FAILED\" with the existence test restored upstream of the exemption",
           "result": "verified"
         },
         {
           "locator": "issue:EHotwagner/rogue3#77",
           "result": "verified"
         }
+      ],
+      "confidenceLimits": [
+        "The corrected figure was re-derived, not accepted. Baseline `selftest` is 88/88 at 194fe1c; re-inserting `| Some path when not (File.Exists path) ->` immediately above the `| Some path ->` arm fails exactly 13 of 88, and exactly 4 of the 13 failure names begin 'CLI:'. The source claim also holds: ccff119 has the guard at FeedbackReportTool.fs:657 and the `digestExemption` match at :662, and the shipped arm decides the exemption before `File.Exists` with `resolveEvidencePath` unchanged.",
+        "The 10-of-68 figure the previous draft carried is genuine at intermediate commit b689137, which I checked out and reproduced (68/68 baseline, 10 of 68 with the mutant, 3 of them CLI). It was stale, not invented."
       ]
     },
     {
@@ -76,6 +84,9 @@
           "locator": "issue:EHotwagner/rogue3#56",
           "result": "verified"
         }
+      ],
+      "confidenceLimits": [
+        "Reproduced against a ccff119 `git archive` export, where all three roll-ups are absent as claimed: there the two citations fail as 'evidence file is missing', and on the shipped tree they are both reported under NOT BOUND. This worktree has run `Verify`, so the roll-ups are PRESENT here; the NOT BOUND result is unaffected because the exemption is decided before existence, which is the finding's point."
       ]
     },
     {
@@ -96,6 +107,10 @@
           "result": "verified",
           "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
         }
+      ],
+      "confidenceLimits": [
+        "Both greps were re-run against the ccff119 export, since the finding says they ran before the first edit. Grep 1 returns exactly one `digestExemption` call site per kit copy (FeedbackReportTool.fs:662) and exactly three `validateActionabilityAuditDetailed` call sites, all in feedback-tool.fsx (lines 56, 271, 276). Grep 2 returns 56 raw hits; that only two of them decide whether a CITED evidence file must exist (FeedbackReportTool.fs:657, check-audit-bindings.py:986) is a judgement I confirmed by reading each hit. `validate-feedback-state.py`'s hit is about a checkpoint file, not a citation, as claimed.",
+        "'Both greps ran before the first edit' is a process claim no artifact can confirm."
       ]
     },
     {
@@ -117,6 +132,9 @@
           "locator": "command:the job's sed/grep extraction over the candidate's FeedbackReportTool.fs prints the three roll-up paths and exits 0, and over the ccff119 copy of the same file prints a three-line diff against the expected list and exits 1",
           "result": "verified"
         }
+      ],
+      "confidenceLimits": [
+        "The workflow step was reproduced as a standalone script carrying the same sed/grep/tr/sort/diff pipeline and the same expected list, not by running GitHub Actions: exit 0 against the shipped FeedbackReportTool.fs (three paths extracted), exit 1 against the ccff119 copy (empty extraction, diff printed). The ccff119 wording quoted in Observed -- 'three independent statements that must agree' -- was confirmed verbatim at verify.yml:215 of the export."
       ]
     },
     {
@@ -134,9 +152,13 @@
           "result": "verified"
         },
         {
-          "locator": "command:with the comment filter removed it reports \"gitignoreDeclarations: a COMMENT contributes nothing to the declared set\" FAILED, and with negations left in the positive set it reports two named failures, where before these cases both mutants passed 85/85",
+          "locator": "command:with the comment filter removed it reports \"gitignoreDeclarations: a COMMENT contributes nothing to the declared set\" FAILED and with negations left in the positive set it reports two named failures, while removing the five direct gitignoreDeclarations cases leaves 83/83 green with both of those mutants applied",
           "result": "verified"
         }
+      ],
+      "confidenceLimits": [
+        "The corrected pre-state was re-derived independently: with the five direct `gitignoreDeclarations` cases removed, `expectedCases` set to 83 and BOTH the comment-filter and `!`-exclusion mutants applied simultaneously, the suite reports 'feedback-tool: selftest: 83/83 cases passed' at exit 0. Applied singly on the shipped suite, the comment-filter mutant fails exactly the one named case and the `!`-exclusion mutant fails exactly the two named cases.",
+        "The claim that a code critic found seven survivors was not independently re-derived; five of the seven were not applied."
       ]
     },
     {
@@ -155,13 +177,12 @@
           "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
         },
         {
-          "locator": "command:replacing the canonicalized containment test with `if true then` fails \"a symlink INSIDE the workspace pointing OUT is rejected\", and disabling the lexical test fails \"a LEXICALLY escaping locator that symlinks back inside is still rejected\"",
-          "result": "verified"
-        },
-        {
-          "locator": "where before these cases both mutants passed 68/68",
+          "locator": "command:replacing the canonicalized containment test with `if true then` fails \"a symlink INSIDE the workspace pointing OUT is rejected\" and disabling the lexical test fails \"a LEXICALLY escaping locator that symlinks back inside is still rejected\", where at commit b689137 -- before these two cases existed -- both mutants passed 68/68",
           "result": "verified"
         }
+      ],
+      "confidenceLimits": [
+        "Both mutants were applied at the shipped tip and each kills exactly one case, with the exact names quoted. The 68/68 provenance is now named and was checked: at commit b689137 the suite is 68 cases and BOTH mutants survive at 68/68. The stray semicolon that made a fourth pseudo-locator out of this line in the previous draft is gone; the Evidence line now parses as three locators."
       ]
     },
     {
@@ -178,6 +199,9 @@
           "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports \"88/88 cases passed\" and, with expectedCases left at a stale value, \"88 cases ran and 0 were skipped, expected 85 in total\"",
           "result": "verified"
         }
+      ],
+      "confidenceLimits": [
+        "Both halves reproduced at the shipped tip: `expectedCases` set to 85 prints the quoted message verbatim. The Observed's history also holds -- at ccff119 `minimumCases = 38` against an actual 49/49, and at b689137 (floor 66, 68 actual) deleting two of this cycle's own `check` blocks verbatim leaves '66/66 cases passed' at exit 0."
       ]
     },
     {
@@ -196,9 +220,13 @@
           "sha256": "3cde3c51afcd215de165f3ade08572b95f9ed650fee4713b44f2b87261686eb3"
         },
         {
-          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest covers the F# reader with 8 cases, three of them negation forms, and no case in either suite feeds both readers the same input",
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest covers the F# reader with 14 cases -- 5 named \"gitignoreDeclarations:\" driven directly, 6 negation forms, 1 padded declaration, 2 line-ending fixtures -- and no case in either suite feeds both readers the same input",
           "result": "verified"
         }
+      ],
+      "confidenceLimits": [
+        "The corrected count was enumerated from the shipped feedback-tool.fsx and matches exactly: 5 cases named 'gitignoreDeclarations:' driven directly (lines 845, 851, 857, 863, 867), 6 negation forms in the loop at line 783, 1 padded-declaration case (812) and 2 line-ending fixtures (CRLF, CR-only, line 825) -- 14. That no fixture is shared between the two suites was confirmed by reading both; neither language's suite can invoke the other's reader.",
+        "The 46-fixture differential sweep asserted in FeedbackReportTool.fs's doc comment was not re-run."
       ]
     },
     {
@@ -217,16 +245,51 @@
         {
           "locator": "file:.agents/skills/skill-manifest.json",
           "result": "verified",
-          "sha256": "97b2714c333dc34fba023b2525bd58951b5fa03876cc6b1e7e7e812787e74b7a"
+          "sha256": "d7846aa2ce9bf4c089857110b3dd1b2a07b53e9803e74d3ea5735fdcf8242608"
         },
         {
           "locator": "issue:EHotwagner/rogue3#78",
           "result": "verified"
         }
+      ],
+      "confidenceLimits": [
+        "The TemplateDrift figures were reproduced by reconstructing the intermediate state (ccff119 export plus commit 28cc887's three kit files and their mirrors): 7 violations naming SKILL.md pinned 52b6eab3cdcc found 4c9a4e9503a6, then, after the manifests are hand-edited and kit-pins still pins the old manifest digest, 2 violations naming skill-manifest.json pinned d26f8898ec65 found 6b51adecb3ac. `KitPins` runs clean and writes only scripts/kit-pins.json.",
+        "The withdrawal is real and correctly described: rogue3#78's body says 'The repair is three manual steps across five files' and carries the round as step 3 verbatim, and comment 5159393445 on #78 (2026-08-02T16:57:13Z) withdraws the earlier claim in those terms. The previous draft's contradicted sentence is gone.",
+        "The '~6 minutes' cost is an estimate no artifact can confirm."
       ]
     },
     {
       "id": "§4.11",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-23.md",
+          "result": "verified",
+          "sha256": "ecfb6acd8aeeeccbd733abda346c29d782c7ec77877f61b5bd1a8983bda94e7a"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
+          "result": "verified",
+          "sha256": "09816fdee4821b517537aa2101cd7579a713b812169bcc4502e62dbf9cbbc27b"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports 88/88 and 13 of 88 FAILED with the pre-#77 ordering restored, against the \"10 of 68\" an earlier draft quoted",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#81",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Every lettered item was re-derived against git history rather than accepted: (a) d8217d6's report says '10 of 68' and the shipped mutant kills 13 of 88 with 4 CLI cases; (b) d8217d6's SKILL.md says 'fails on ten cases' and the shipped one says '13 of its 88 cases ... four of them driving the real CLI'; (c) 83/83 measured; (d) 14 cases enumerated; (e) #78's body and the withdrawal comment both read as described; (f) d8217d6's §10 says '18 / 13 / 1' and my own 32-pair sweep at the shipped tree measures 17 / 13 / 2. The critic disposition it cites -- four findings incomplete, one evidence locator contradictory -- is an accurate account of the previous audit.",
+        "COUNTING TENSION, stated rather than waved through: the heading and Impact say five claims in SIX locations, and the (a)-(f) enumeration is exactly six with (a)/(b) named as one claim in two places -- self-consistent. But the Impact also counts 'a comment on another worker's issue' as one of the six, and that comment is a SEVENTH location: item (e) already occupies §4.10's Recurrence line. Under the enumeration the count is exact; under the Impact sentence it is one short. In a finding whose subject is numerical precision this is worth naming, and I do not treat it as falsifying any cited locator.",
+        "'Three of the five figures were written between a critic pass and the next' is a process claim no artifact can confirm."
+      ]
+    },
+    {
+      "id": "§4.12",
       "status": "actionable",
       "missingFacts": [],
       "checkedEvidence": [
@@ -242,6 +305,9 @@
           "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest > FILE 2>&1 followed by a separate read is the form that works",
           "result": "verified"
         }
+      ],
+      "confidenceLimits": [
+        "All three refusals reproduced verbatim in this critic's own harness, including the exact refusal text, on both the innocuous and the cited form of the `eval` command. The two-call form the finding names does work: `cmd > file 2>&1; echo \"EXIT=$?\"` is accepted while `cmd > file; echo $?; tail file` is refused -- exactly the distinction the Observed paragraph draws."
       ]
     }
   ]
