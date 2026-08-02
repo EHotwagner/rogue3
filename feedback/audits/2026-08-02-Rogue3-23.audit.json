@@ -1,0 +1,187 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-23.md",
+  "reportSha256": "df2cd52387f843cd9314a6070c4e51ccaf1be13fff339002ea29116c81bf28e1",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --json reports 20 notBound citations at ccff119, of which 5 name scripts/audit-binding-exceptions.json across audits 2026-08-02-Rogue3-{7,8,11,17,18}",
+          "result": "verified"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate feedback/2026-08-02-Rogue3-17.md --audit feedback/audits/2026-08-02-Rogue3-17.audit.json exits 1 with three \"digest is stale\" errors",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t SelfTest reports \"SelfTest: 125 case(s), 0 failure(s)\"",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#81",
+          "result": "verified"
+        }
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "cfdedd7411b17583e8324d41707c86e8175030aad82e0e1dea8dfb49642f09a7"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx",
+          "result": "verified",
+          "sha256": "68dab1bff6f2674886b224fe170e122fc4d3468f6cd4c3b1722657655239fff9"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest reports 68/68 on the candidate and \"10 of 68 cases FAILED\" with the existence test restored upstream of the exemption",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#77",
+          "result": "verified"
+        }
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "cfdedd7411b17583e8324d41707c86e8175030aad82e0e1dea8dfb49642f09a7"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "a5e40d876b1fc0aa95b1ce9229caab8c42903fb2ed0a2f97f2be1164135fd05e"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate feedback/2026-08-01-Rogue3-8.md --audit feedback/audits/2026-08-01-Rogue3-8.audit.json reports its two readiness roll-up citations under NOT BOUND on the candidate, where ccff119 reported \"evidence file is missing\" for both",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#56",
+          "result": "verified"
+        }
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:grep -rn \"digestExemption\\|validateActionabilityAudit\\|ledgerExemption\\|ledgerRelativePath\" over --include=*.fs,*.fsx,*.md,*.json,*.py,*.yml returns one call site of digestExemption",
+          "result": "verified"
+        },
+        {
+          "locator": "command:grep -rn \"file is missing\\|does not exist\\|File.Exists\\|os.path.isfile\" over .agents/skills, .claude/skills and scripts returns two citation-existence seams",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "cfdedd7411b17583e8324d41707c86e8175030aad82e0e1dea8dfb49642f09a7"
+        }
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.github/workflows/verify.yml",
+          "result": "verified",
+          "sha256": "9119b8232f3435e5923afbf24fec0552eb1f52b7bdbf53595d37c83d4c8b5fc3"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "cfdedd7411b17583e8324d41707c86e8175030aad82e0e1dea8dfb49642f09a7"
+        },
+        {
+          "locator": "command:the job's sed/grep extraction over the candidate's FeedbackReportTool.fs prints the three roll-up paths and exits 0, and over the ccff119 copy of the same file prints a three-line diff against the expected list and exits 1",
+          "result": "verified"
+        }
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "cfdedd7411b17583e8324d41707c86e8175030aad82e0e1dea8dfb49642f09a7"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "a5e40d876b1fc0aa95b1ce9229caab8c42903fb2ed0a2f97f2be1164135fd05e"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest covers the F# reader with 8 cases, three of them negation forms, and no case in either suite feeds both readers the same input",
+          "result": "verified"
+        }
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t TemplateDrift on the first attempt reports \"7 violation(s)\" naming .agents/skills/fs-gg-feedback-report/SKILL.md pinned 52b6eab3cdcc found 4c9a4e9503a6, and after the manual manifest edit reports 2 violations naming .agents/skills/skill-manifest.json pinned d26f8898ec65 found 6b51adecb3ac",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t KitPins",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.agents/skills/skill-manifest.json",
+          "result": "verified",
+          "sha256": "6b51adecb3acd9c77a8bb3df3bb8f0b4dddc2763c1d70a0174faee1fb13cba70"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#78",
+          "result": "verified"
+        }
+      ]
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:eval \"$(scripts/fsgg-coord whoami --mint)\" is refused as too complex to verify",
+          "result": "verified"
+        },
+        {
+          "locator": "command:python3 - <<EOF heredoc is refused with the same message",
+          "result": "verified"
+        },
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest > FILE 2>&1 followed by a separate read is the form that works",
+          "result": "verified"
+        }
+      ]
+    }
+  ]
+}
