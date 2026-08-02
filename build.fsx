@@ -32,10 +32,43 @@ let targetFromArgs args =
 
     loop args
 
+/// #57: set on the CHILD run of `SelfTest`'s self-probe only. Declared here, far above the target,
+/// because `writeLog` below has to know about it.
+let private selfTestInjectVar = "FSGG_SELFTEST_INJECT_FAILURE"
+
+/// Set on every spawned child INDEPENDENTLY of the inject flag. Two separate variables look
+/// redundant and are not: deleting the single line that sets the inject flag would otherwise make
+/// the child spawn its own child, without bound — measured at 15 live `dotnet fsi` processes and
+/// climbing before this existed. A depth marker the same edit does not remove turns that runaway
+/// into an immediate, cheap red: the child declines to probe, so it passes, and the parent's
+/// exit-code channel reports that a run which must fail did not.
+let private selfTestDepthVar = "FSGG_SELFTEST_DEPTH"
+
+let private selfTestInjecting () =
+    match Environment.GetEnvironmentVariable selfTestInjectVar with
+    | null
+    | "" -> false
+    | _ -> true
+
+/// True for ANY run this script spawned, however it was spawned. Only a top-level run probes.
+let private selfTestIsChild () =
+    selfTestInjecting ()
+    || match Environment.GetEnvironmentVariable selfTestDepthVar with
+       | null
+       | "" -> false
+       | _ -> true
+
 let writeLog target =
-    Directory.CreateDirectory("readiness/logs") |> ignore
-    File.WriteAllText(Path.Combine("readiness", "logs", target + ".txt"), $"{target} completed for generated rogue3.{Environment.NewLine}")
-    printfn "%s completed for generated rogue3" target
+    // #57: a self-probe CHILD must leave no completion marker in the parent's tree. The child is a
+    // run that is REQUIRED to fail, and a mutation that makes it pass anyway would otherwise leave
+    // `readiness/logs/SelfTest.txt` saying "completed" while the parent exits non-zero — a forged
+    // green marker, written by the very run whose dishonesty the parent is about to report.
+    if selfTestInjecting () then
+        printfn "%s completed for generated rogue3 (self-probe child; no marker written)" target
+    else
+        Directory.CreateDirectory("readiness/logs") |> ignore
+        File.WriteAllText(Path.Combine("readiness", "logs", target + ".txt"), $"{target} completed for generated rogue3.{Environment.NewLine}")
+        printfn "%s completed for generated rogue3" target
 
 // ADR-0056 §Decision.2: the fail-closed half of the sdd-lane guard. The `sdd` lane (the default)
 // emits the rogue3 only and expects an external SDD lifecycle owner (fsgg-sdd) to re-supply the
@@ -1310,6 +1343,216 @@ let private runTemplateDrift () =
     runViolationCheck "TemplateDrift" (templateDriftViolations (currentRoot ()))
 
 // ---------------------------------------------------------------------------
+// #57: SelfTest's RESULT must not be inferable from what SelfTest PRINTS.
+//
+// Every mutant that defeated this gate before #57 worked the same way: it left
+// the printed transcript looking like a pass. Deleting `failures <- failures + 1`
+// printed every FAIL and still exited 0; rewriting `expect`'s failure branch to
+// `printfn "  ok   %s"` printed 111 ok lines and exited 0, which also defeated
+// #52's ok-count == case-count CI guard. No guard that reads stdout can survive
+// that class, because stdout is the thing being forged.
+//
+// So the verdict is carried on two channels that a transcript cannot fake:
+//
+//   1. a STRUCTURED result file (`selftest-result.json`) written from the same
+//      recorded case list the verdict is computed from, and
+//   2. the true PROCESS EXIT CODE of a child `SelfTest` run that this run
+//      spawns with one deliberately-false case injected (`FSGG_SELFTEST_INJECT_FAILURE`).
+//
+// The child carries whatever mutation the parent carries. So a mutation that
+// disarms the failure path disarms it in the child too — and the child, which
+// is KNOWN to contain a failing case, then exits 0 and records 0 failures.
+// That is the signal. It is checked by a direct `failwith` that is NOT routed
+// through `expect`, so disarming `expect` cannot disarm the check on `expect`.
+// ---------------------------------------------------------------------------
+
+// `selfTestInjectVar` / `selfTestInjecting` are declared near `writeLog`, which needs them. Its
+// presence means two things: inject one known-false case, and do not spawn a further child
+// (otherwise the probe would recurse without bound).
+
+/// Where the child is told to write its structured result, so the probe reads a file it named
+/// rather than scraping the child's stdout — and so a child run never overwrites the parent's own
+/// structured result. (The child writes no `readiness/logs/*.txt` at all; see `writeLog`.)
+let private selfTestResultVar = "FSGG_SELFTEST_RESULT_PATH"
+
+/// The injected case's description, shared by the child that RECORDS it and the parent that
+/// requires to find it. One literal, so the two halves cannot drift apart silently.
+let private selfTestInjectedDescription =
+    "INJECTED failing case (the probe's control: this run MUST report a failure)"
+
+let private selfTestResultPath () =
+    match Environment.GetEnvironmentVariable selfTestResultVar with
+    | null
+    | "" -> path [ "readiness"; "logs"; "selftest-result.json" ]
+    | explicit -> explicit
+
+let private jsonString (value: string) =
+    let builder = Text.StringBuilder()
+    builder.Append '"' |> ignore
+
+    for ch in value do
+        match ch with
+        | '"' -> builder.Append "\\\"" |> ignore
+        | '\\' -> builder.Append "\\\\" |> ignore
+        | '\n' -> builder.Append "\\n" |> ignore
+        | '\r' -> builder.Append "\\r" |> ignore
+        | '\t' -> builder.Append "\\t" |> ignore
+        | c when c < ' ' -> builder.Append(sprintf "\\u%04x" (int c)) |> ignore
+        | c -> builder.Append c |> ignore
+
+    builder.Append('"').ToString()
+
+/// The structured result. `cases`/`failures` are DERIVED from the recorded case list rather than
+/// tracked in a counter alongside it, so there is no counter to silence: to report a false result
+/// you have to falsify the recorded outcome of a case, which is what the probe below detects.
+///
+/// `verdict` is the WHOLE target's outcome, not just the case tally, and `probed` records whether
+/// the self-probe actually ran. Both exist because a reader — and the CI guard — is told to trust
+/// this file over the transcript, so it must not be able to say `failures: 0` about a run that
+/// failed for a reason the tally never sees (a repository-clean raise), nor about a run that never
+/// checked itself at all.
+let private writeSelfTestResult (recorded: (string * bool) list) (verdict: string) (detail: string) (probed: bool) =
+    let failed = recorded |> List.filter (snd >> not) |> List.map fst
+    let target = selfTestResultPath ()
+    let full = Path.GetFullPath target
+    Directory.CreateDirectory(Path.GetDirectoryName full) |> ignore
+
+    let body =
+        String.concat
+            "\n"
+            [ "{"
+              "  \"schemaVersion\": 2,"
+              sprintf "  \"verdict\": %s," (jsonString verdict)
+              sprintf "  \"detail\": %s," (jsonString detail)
+              sprintf "  \"probed\": %b," probed
+              sprintf "  \"cases\": %d," (List.length recorded)
+              sprintf "  \"failures\": %d," (List.length failed)
+              sprintf "  \"injected\": %b," (selfTestInjecting ())
+              "  \"failed\": ["
+              (failed |> List.map (fun d -> "    " + jsonString d) |> String.concat ",\n")
+              "  ]"
+              "}"
+              "" ]
+
+    File.WriteAllText(full, body)
+    full
+
+/// Reads one integer field out of the child's structured result. Deliberately NOT a read of the
+/// child's stdout: the whole point is a channel the transcript cannot forge.
+let private selfTestResultField (contents: string) (field: string) =
+    let m = Text.RegularExpressions.Regex.Match(contents, sprintf "\"%s\"\\s*:\\s*(-?\\d+)" field)
+
+    if m.Success then
+        Some(int m.Groups[1].Value)
+    else
+        None
+
+/// #57: the probe. Runs THIS script's `SelfTest` again, in a child process, with one extra case
+/// that is false by construction, and requires the child to have noticed.
+///
+/// `expectedCases`/`expectedFailures` are the parent's own recorded totals. The child runs the
+/// parent's cases plus exactly the one injected case, so the expected child totals are
+/// `parent + 1` on BOTH counters — an expected-case-count assertion that is DERIVED rather than a
+/// bare literal, which is what #57 asks for (and what keeps #54-style case-set changes from
+/// needing a magic number updated by hand).
+/// Bounds the probe. The merge gate must not be able to hang: a wedged child would otherwise burn
+/// the whole CI job timeout with no diagnosis. ~45x the ~2s the child really takes, and deliberately
+/// not more: this deadline is also the last line of defence against a runaway spawn chain, which
+/// grows one nested process every couple of seconds until it trips.
+let private selfTestProbeTimeoutMs = 90_000
+
+let private probeSelfTestFailurePath () =
+    let resultPath =
+        path [ Path.GetTempPath(); "rogue3-selftest-probe-" + Guid.NewGuid().ToString("N") + ".json" ]
+
+    let startInfo = ProcessStartInfo("dotnet", "fsi build.fsx -t SelfTest")
+    startInfo.UseShellExecute <- false
+    startInfo.RedirectStandardOutput <- true
+    startInfo.RedirectStandardError <- true
+    startInfo.WorkingDirectory <- currentRoot ()
+    startInfo.Environment[selfTestInjectVar] <- "1"
+    startInfo.Environment[selfTestResultVar] <- resultPath
+    // Independent of the line above, on purpose — see `selfTestDepthVar`.
+    startInfo.Environment[selfTestDepthVar] <- "1"
+
+    let exitCode, childOut =
+        // `Process.Start` THROWS when `dotnet` cannot be resolved — it does not return null — so the
+        // launch failure has to be caught, not pattern-matched away. (`Option.ofObj` alone left the
+        // crafted message below unreachable.)
+        use proc =
+            try
+                match Process.Start startInfo |> Option.ofObj with
+                | Some proc -> proc
+                | None -> failwith "SelfTest self-probe could not launch `dotnet fsi build.fsx -t SelfTest`."
+            with ex ->
+                failwithf "SelfTest self-probe could not launch `dotnet fsi build.fsx -t SelfTest`: %s" ex.Message
+        // Both streams drained concurrently: reading one to end before the other deadlocks as soon
+        // as the child fills the pipe we are not reading.
+        let outTask = proc.StandardOutput.ReadToEndAsync()
+        let errTask = proc.StandardError.ReadToEndAsync()
+
+        // DEADLINE, not the no-argument overload. See the note above `runProcess`: the bare
+        // `WaitForExit()` additionally waits for the async readers to reach EOF, which is exactly
+        // the unbounded wait this file already decided never to take without a deadline.
+        if not (proc.WaitForExit selfTestProbeTimeoutMs) then
+            try
+                proc.Kill true
+            with _ ->
+                ()
+
+            failwithf
+                "SelfTest self-probe did not finish within %d ms; the child was killed. The gate cannot certify itself (#57)."
+                selfTestProbeTimeoutMs
+
+        proc.ExitCode, outTask.Result + errTask.Result
+
+    try
+        // CHANNEL 1 — the child's true process exit code.
+        if exitCode = 0 then
+            failwithf
+                "SelfTest's own failure path is DISARMED: a child run carrying one INJECTED failing case exited 0. %s\n%s"
+                "Whatever this run printed about itself is therefore not evidence (#57)."
+                childOut
+
+        // CHANNEL 2 — the child's structured result, which is not its transcript.
+        if not (File.Exists resultPath) then
+            failwithf
+                "SelfTest's own failure path is unverifiable: the child run wrote no structured result to %s (#57).\n%s"
+                resultPath
+                childOut
+
+        let contents = File.ReadAllText resultPath
+
+        let childFailures =
+            match selfTestResultField contents "failures" with
+            | Some value -> value
+            | None -> failwithf "The child SelfTest result at %s records no `failures` (#57).\n%s" resultPath childOut
+
+        // Deliberately NOT arithmetic on totals. Requiring `child = parent + 1` couples the gate to
+        // the two runs having identical case SETS, and they legitimately need not: the child runs
+        // with extra environment, redirected stdio, and a tree the parent has already written its
+        // result into, so any environment-conditional case makes an honest run red with a message
+        // that blames the accounting. What actually matters is narrower and stronger — the child
+        // must have NOTICED THE ONE CASE that cannot pass — so that is what is asserted.
+        if childFailures < 1 then
+            failwithf
+                "SelfTest cannot count its own failures: the injected child recorded %d, and it contains a case that cannot pass (#57).\n%s"
+                childFailures
+                childOut
+
+        if not (contents.Contains selfTestInjectedDescription) then
+            failwithf
+                "SelfTest did not report its own INJECTED failing case: %s is absent from the child's recorded failures at %s (#57).\n%s"
+                (jsonString selfTestInjectedDescription)
+                resultPath
+                childOut
+    finally
+        try
+            if File.Exists resultPath then File.Delete resultPath
+        with _ ->
+            ()
+
+// ---------------------------------------------------------------------------
 // #34: the checker proves itself before the gate trusts it.
 //
 // Each case PLANTS one violation in a synthetic tree and requires the check to
@@ -1392,17 +1635,26 @@ let private plantFixture (root: string) =
 
 let private runSelfTest () =
     let sandbox = path [ Path.GetTempPath(); "rogue3-selftest-" + Guid.NewGuid().ToString("N") ]
-    let mutable failures = 0
-    let mutable cases = 0
+
+    // #57: ONE record per case, holding the case's outcome — not two counters running alongside a
+    // transcript. `cases` and `failures` are derived from this list at the verdict, so there is no
+    // counter whose deletion silences a failure, and the printing below is a REPORT of the record
+    // rather than the thing the verdict is computed from.
+    let recorded = ResizeArray<string * bool>()
 
     let expect description condition =
-        cases <- cases + 1
+        recorded.Add(description, condition)
 
         if condition then
             printfn "  ok   %s" description
         else
-            failures <- failures + 1
             eprintfn "  FAIL %s" description
+
+    // #57: the one case that is false by construction, present only in the child run the probe
+    // spawns. A run that cannot report THIS as a failure cannot report any failure, and the parent
+    // checks that from outside, on the child's exit code and structured result.
+    if selfTestInjecting () then
+        expect selfTestInjectedDescription false
 
     let freshFixture () =
         let root = path [ sandbox; Guid.NewGuid().ToString("N") ]
@@ -2266,10 +2518,110 @@ let private runSelfTest () =
         if Directory.Exists sandbox then
             try Directory.Delete(sandbox, true) with _ -> ()
 
+    // #57: DERIVED from the case record, at the moment of the verdict.
+    let recorded = List.ofSeq recorded
+    let cases = List.length recorded
+    let failures = recorded |> List.filter (snd >> not) |> List.length
+    let mutable probed = false
+
     printfn "SelfTest: %d case(s), %d failure(s)" cases failures
 
-    if failures > 0 then
-        failwithf "SelfTest failed: %d of %d case(s)." failures cases
+    // #57: the result file is written LAST, from a `finally`-equivalent on both paths, because it
+    // reports the WHOLE target's verdict. Written before the assertions below, it would say
+    // `failures: 0` about a run that then failed on a repository-clean raise — and the banner and
+    // the CI guard both tell their reader to trust this file over the transcript, so it must never
+    // be able to describe a failed run as a passing one.
+    let publish verdict detail =
+        let resultPath = writeSelfTestResult recorded verdict detail probed
+        printfn "SelfTest: structured result written to %s — read THAT, not this transcript (#57)." resultPath
+
+    try
+        // A gate that asserted nothing is not a pass, and this run is the only thing that can say
+        // so about itself: with the case record emptied, the child's record is empty too.
+        if cases < 1 then
+            failwith "SelfTest recorded 0 case(s) — a gate that asserts nothing is not a pass (#57)."
+
+        // #57: prove the failure path still works before believing a zero. The child run carries
+        // this run's mutations, so if the failure path is disarmed here it is disarmed there too —
+        // and there it has a case that MUST fail. Skipped in the child, which would else recurse.
+        if not (selfTestIsChild ()) then
+            probeSelfTestFailurePath ()
+            probed <- true
+
+        // Independent of the branch above, so that rewriting `if not (selfTestIsChild ())` to
+        // `if false` — ONE edit that would otherwise remove BOTH probe channels at once and leave
+        // a result file byte-identical to an honest run — is itself caught.
+        if not (selfTestIsChild ()) && not probed then
+            failwith "SelfTest did not probe its own failure path, so its verdict is not evidence (#57)."
+
+        if failures > 0 then
+            failwithf "SelfTest failed: %d of %d case(s)." failures cases
+
+        // #57 / M15: the repository-clean assertions above are booleans, and a boolean can be
+        // rewritten to `true` in one edit. These are the same assertions carried by a RAISE instead —
+        // the real checks, over the real root, with nothing catching them. To make the gate vacuous
+        // over this repository you now have to edit BOTH the `expect` conditions and these, because
+        // each catches the mutation that defeats the other (measured: neutering `runViolationCheck`
+        // is caught by the `expect`s, and rewriting the `expect` conditions to `true` by these).
+        //
+        // Deliberately AFTER the case verdict: a genuinely drifted tree should report every case and
+        // fail on the summary, not abort on the first violation with no transcript.
+        //
+        // #57 / M21: and both are evaluated over the same tree from a DIFFERENT WORKING DIRECTORY.
+        // M21's whole trick is `if root = Directory.GetCurrentDirectory() then []` — an exemption
+        // that fires only for the real repository, while every fixture case (which uses a temp root)
+        // still passes. Normalising the comparison (`Path.GetFullPath root = Path.GetFullPath cwd`)
+        // defeats a mere second SPELLING of the root. It does not defeat this: the process is
+        // standing somewhere else entirely, so `root` is the repository and the current directory is
+        // not, and no root-vs-cwd equality can hold however it is normalised. Both check functions
+        // derive every path they touch from `root`, so relocating the process cannot change their
+        // answers.
+        //
+        // BOTH checks, not just TemplateDrift: covering one and not the other left the identical
+        // one-line exemption on `generatedGuidanceViolations` as a live gate defeat.
+        let driftFromElsewhere, guidanceFromElsewhere =
+            let here = Directory.GetCurrentDirectory()
+            let realRoot = Path.GetFullPath here
+
+            // A directory this code CREATES, not `Path.GetTempPath()` itself. `GetTempPath` honours
+            // $TMPDIR, so `TMPDIR=$PWD` would relocate the process to the repository root and turn
+            // this entire defence into a silent no-op — measured: the cwd-keyed exemption went from
+            // caught to green, with drift on disk. A fresh subdirectory is a different directory
+            // whatever $TMPDIR says.
+            let elsewhere =
+                path [ Path.GetTempPath(); "rogue3-selftest-elsewhere-" + Guid.NewGuid().ToString("N") ]
+
+            Directory.CreateDirectory elsewhere |> ignore
+
+            try
+                Directory.SetCurrentDirectory elsewhere
+
+                // Fail CLOSED rather than check from the wrong place: if the relocation did not
+                // actually move us, the two calls below would be exactly the ones M21 exempts.
+                if Path.GetFullPath(Directory.GetCurrentDirectory()) = realRoot then
+                    failwith
+                        "SelfTest could not evaluate the repository checks from outside the repository, so the M21 class is unguarded here (#57)."
+
+                templateDriftViolations realRoot, generatedGuidanceViolations realRoot
+            finally
+                Directory.SetCurrentDirectory here
+
+                try
+                    Directory.Delete(elsewhere, true)
+                with _ ->
+                    ()
+
+        // Called AFTER the directory is restored: the success path calls `writeLog`, which writes to
+        // a RELATIVE path and would otherwise land in the temp dir. The coverage line is printed
+        // here rather than via `runTemplateDrift` so the 190-file walk is not repeated a third time.
+        printfn "%s" (templateDriftCoverage (currentRoot ()))
+        runViolationCheck "TemplateDrift" driftFromElsewhere
+        runViolationCheck "GeneratedGuidanceCheck" guidanceFromElsewhere
+
+        publish "pass" ""
+    with ex ->
+        publish "fail" ex.Message
+        reraise ()
 
     writeLog "SelfTest"
 
@@ -2359,6 +2711,30 @@ let helpBanner =
     + "           non-empty, and generated guidance never exists for one agent only.\n"
     + "  SelfTest Plants a violation for each check above and requires it to be reported, so a check that\n"
     + "           silently stopped checking fails here first. Run it before trusting a green gate.\n"
+    + "           Its VERDICT is not what it prints (#57): the transcript is a report, and every mutant that\n"
+    + "           ever defeated this gate worked by forging it. The result is carried by readiness/logs/\n"
+    + "           selftest-result.json and by the exit code of a child SelfTest run this run spawns with one\n"
+    + "           deliberately-failing case injected — a run that cannot report THAT failure reports nothing.\n"
+    + "           TAMPER-EVIDENT, NOT TAMPER-PROOF. Named residuals, measured, not implied:\n"
+    + "             * A check cannot certify it is still bound to the real tree. An edit that exempts any root\n"
+    + "               it recognises AS this repository — by a MARKER FILE it contains, rather than by the\n"
+    + "               current directory — leaves every fixture case passing and the real tree unchecked. Both\n"
+    + "               checks are run from a working directory this code creates, which closes every cwd-keyed\n"
+    + "               form: plain, path-normalising, and one keyed on `root is not under the temp dir` (the\n"
+    + "               property every fixture relies on, so it reads as an optimisation). It does NOT close the\n"
+    + "               class, and nothing here can: this is the one surviving SINGLE-EDIT defeat of the gate.\n"
+    + "             * The printed ok/FAIL labels can be made to lie without changing the verdict. That is now\n"
+    + "               a legibility defect rather than a gate defeat, and it is why no guard should read them.\n"
+    + "             * Replacing this whole verdict block in ONE contiguous edit defeats the gate. It is not a\n"
+    + "               single-LINE edit and a reviewer would see it, but it is real and is named, not hidden.\n"
+    + "             * Nothing stops a PATIENT editor. Each layer above falls to its own edit; they are chosen\n"
+    + "               so that no SINGLE one leaves the gate green, not so that three cannot be made together.\n"
+    + "           rogue3#52's acceptance criterion — 'a PR that makes any build.fsx check unconditionally pass\n"
+    + "           is red in CI' — is therefore still NOT fully met, by the first residual above.\n"
+    + "           See #62 for the checker's own known blind spots (symlinked kit roots, unreadable files).\n"
+    + "           Two environment variables belong to the probe and are otherwise unset: FSGG_SELFTEST_INJECT_FAILURE\n"
+    + "           (inject one failing case and do not recurse) and FSGG_SELFTEST_RESULT_PATH (where to write the\n"
+    + "           structured result). Both are FAIL-CLOSED if set by accident — they red the run, never green it.\n"
     + "  Test     The first real compile: `dotnet test` + Release expected-workload performance evidence (audit-free).\n"
     + "           A fresh game scaffold fails until all five Placeholder workloads drive rogue3-authored state/messages;\n"
     + "           run PerformanceEvidence, review each definitionDigest, then acknowledge it as Authored.\n"

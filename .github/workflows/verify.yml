@@ -52,6 +52,9 @@ jobs:
       # [] unconditionally leaves `dotnet test -c Release` completely green
       # (Failed: 0, Passed: 235) while `./fake.sh -t SelfTest` exits 1 with
       # "SelfTest: 77 case(s), 15 failure(s)". This step is what kills that mutant.
+      # (That case count is anchored at 09895b9 and is deliberately not updated;
+      # the same tree is 111 cases today. Re-measured at 48b3a6a for rogue3#57:
+      # the same mutant gives 111 case(s), 42 failure(s), still exit 1.)
       #
       # SelfTest plants a violation for each check and requires it to be reported,
       # and additionally asserts TemplateDrift and GeneratedGuidanceCheck are clean
@@ -67,8 +70,16 @@ jobs:
       # to the system temp dir, build.fsx carries no `#r` (BCL only), and the
       # engine assembly is `lazy` and only forced by EvidenceGraph/EvidenceAudit,
       # so SelfTest needs neither `dotnet restore` nor an engine feed. Hence it
-      # runs BEFORE Restore, where it fails fastest. Its only write is
-      # readiness/logs/SelfTest.txt, which .gitignore already excludes.
+      # runs BEFORE Restore, where it fails fastest. That still holds after
+      # rogue3#57, whose self-probe re-runs THIS script as a child and so inherits
+      # the same BCL-only hermeticity -- but two facts about the step changed and
+      # are worth stating rather than leaving a reader to discover:
+      #   * It now SPAWNS A PROCESS, and its runtime roughly doubled -- measured
+      #     1.8s before, 3.5s after, of which ~1.8s is the child.
+      #   * Its writes are readiness/logs/{SelfTest,TemplateDrift,
+      #     GeneratedGuidanceCheck}.txt plus readiness/logs/selftest-result.json,
+      #     and one temp probe JSON under the system temp dir that it deletes.
+      #     .gitignore's `readiness/*/*` already excludes all four.
       #
       # THREE gates this repository mandates are DELIBERATELY still not wired
       # here. This job does NOT enforce every mandated gate and does not claim to;
@@ -98,61 +109,101 @@ jobs:
       #     it as-is would red every open PR. The validator's own `selftest`
       #     directly above is a different check and IS required.
       #
-      # Scope limits worth naming, so a green result is not over-read:
-      #   * TemplateDrift covers 64 of 190 kit files (rogue3#46), so a green
-      #     SelfTest is not "no kit file drifted".
-      #   * SelfTest does not fully self-certify, and rogue3#52's acceptance
-      #     criterion ("a PR that makes any build.fsx check unconditionally pass is
-      #     red in CI") is therefore NOT fully met by this job. 7 of 23 single-edit
-      #     mutants survive SelfTest. The guard below closes the two worst, but one
-      #     single-line edit -- returning [] from templateDriftViolations only when
-      #     root = Directory.GetCurrentDirectory() -- exempts the REAL repository
-      #     while every fixture case still passes, so a tree carrying genuine kit
-      #     drift stays green. Measured. That residual needs a build.fsx fix and is
-      #     tracked as rogue3#57; it is out of this item's declared paths.
+      # Scope limits worth naming, so a green result is not over-read. These
+      # figures were RE-DERIVED at 48b3a6a for rogue3#57; the older ones here were
+      # measured before rogue3#46 rewrote this area and had gone stale:
+      #   * TemplateDrift covers 190 of 190 kit files (rogue3#46 closed the 64/190
+      #     gap via scripts/kit-pins.json), so a green SelfTest now does mean every
+      #     kit file the gate knows about matched its pin. It does NOT mean the
+      #     inventory is complete -- rogue3#62 records that a symlinked kit root
+      #     still reports 190 when only 95 distinct files exist.
+      #   * Mutation results, stated over a FIXED mutant set so the two sides are
+      #     comparable. On the SAME 24 mutants, 17 survived SelfTest before
+      #     rogue3#57 and 2 survive after. (Not the "7 of 23" in rogue3#57's body:
+      #     that sweep predates rogue3#46 and was re-derived here at 48b3a6a.)
+      #     Both remaining survivors of that set are measured NON-defeats -- they
+      #     make the printed ok/FAIL labels lie without changing the verdict, and
+      #     their drift-carrying counterparts are killed.
+      #   * A further 28 mutants were written against the new design, 20 of them by
+      #     two independent reviewing critics; 52 rows in all, 5 survivors. Exactly
+      #     ONE is a single-edit GATE DEFEAT, and it is the residual named in
+      #     build.fsx's own help banner: an edit that exempts any root it recognises
+      #     AS this repository by a MARKER FILE it contains, rather than by the
+      #     current directory. SelfTest cannot certify it is still bound to the real
+      #     tree. Running both checks from a different working directory closes
+      #     every cwd-keyed form -- plain, path-normalising, and one keyed on "the
+      #     root is not under the temp dir", which is the property every fixture
+      #     relies on and so reads as an optimisation rather than a backdoor -- but
+      #     it does NOT close the class.
+      #     Of the other four survivors: two are the transcript-only non-defeats
+      #     above, one disables ONE of the probe's two channels and is killed
+      #     independently by the other, and one is a deliberate TWO-edit
+      #     combination. A reviewer also demonstrated that replacing the whole
+      #     ~50-line verdict block in one contiguous edit defeats the gate; that is
+      #     not a single-LINE edit and a reviewer would see it, but it is real and
+      #     is recorded here rather than left out because it is inconvenient.
       #   * main is not branch-protected, so no check here is a REQUIRED status
       #     check -- these gates block by turning a job red, not by blocking merge.
       #
-      # Why the guard asserts a positive signal rather than grepping for "FAIL":
-      # SelfTest tracks its result in one mutable counter, so DELETING THE ONE LINE
-      # `failures <- failures + 1` makes it print every failure and still exit 0
-      # (`if failures > 0 then` -> `if false then` does the same). Combined with a
-      # vacuous check, two single-line edits leave BOTH `-t SelfTest` and
-      # `dotnet test -c Release` green (235/235 at 09895b9, 253/253 at 95b1170 --
-      # the suite grows, so this is anchored rather than a running total). A guard
-      # that grepped for the FAIL
-      # line would catch that -- but would itself be fail-OPEN: renaming that one
-      # printf label re-greens the same two-edit mutant with 15 failing cases in the
-      # log, measured. So the guard requires ok-count == case-count instead, which
-      # reds on a relabel of either message, on a silenced counter, and on a zeroed
-      # case count. A gate that can be disarmed by a cosmetic edit is the defect
-      # this item exists to remove; it must not be reintroduced by its own fix.
+      # Why this guard reads a FILE and not the log (rogue3#57):
+      # Every guard this step has carried was defeated by forging the transcript.
+      # Grepping for "FAIL" was fail-OPEN to renaming one printf label. Its
+      # replacement, ok-count == case-count, was fail-open to a single contiguous
+      # edit replacing `expect`'s failure branch with `printfn "  ok   %s"`, which
+      # produced 111 ok lines, 111 cases, and exit 0 with a vacuous check present
+      # (found by rogue3#46's reviewer; measured again at 48b3a6a). There is no
+      # third arrangement of stdout-scraping that survives, because stdout is the
+      # thing being forged.
+      #
+      # So SelfTest now emits readiness/logs/selftest-result.json, derived from the
+      # same recorded case list its verdict is computed from, and it self-probes by
+      # re-running itself in a CHILD process with one deliberately-failing case
+      # injected -- requiring the child to exit non-zero AND to record exactly one
+      # more case and one more failure than the parent. This step asserts the
+      # structured result, so a forged transcript is simply not read.
       - name: Self-test the build.fsx merge gate
         run: |
           set -euo pipefail
-          log="$(mktemp)"
-          ./fake.sh -t SelfTest 2>&1 | tee "$log"
-          # Assert a POSITIVE signal, never the absence of a negative one. Grepping
-          # for "FAIL" would be fail-OPEN: relabelling one printf disarms it
-          # silently, which is the very defect class this step exists to catch.
-          # Requiring ok-count == case-count reds on a relabel of EITHER message,
-          # on a silenced counter, and on a zeroed case count.
-          summary="$(grep -m1 -E '^SelfTest: [0-9]+ case\(s\)' "$log" || true)"
-          if [ -z "$summary" ]; then
-            echo "::error::SelfTest printed no recognisable summary line -- it did not run to completion, or its output format changed (rogue3#57)."
+          result=readiness/logs/selftest-result.json
+          # Remove any pre-existing artifact FIRST, so this step can never read a
+          # stale result as if this run had produced it. It is gitignored, so a
+          # fresh checkout has none -- but a local run of this step would.
+          rm -f "$result"
+          # The `tee` the previous guard used is simply not needed now that no file
+          # is parsed out of the log -- the output still reaches the step log
+          # either way. (It was never an exit-code hazard: `set -o pipefail` on the
+          # line above already returns the rightmost non-zero status.)
+          ./fake.sh -t SelfTest
+          if [ ! -f "$result" ]; then
+            echo "::error::SelfTest wrote no structured result at $result -- it did not run to completion (rogue3#57)."
             exit 1
           fi
-          cases="$(printf '%s' "$summary" | sed -E 's/^SelfTest: ([0-9]+) case\(s\).*/\1/')"
-          oks="$(grep -c '^  ok   ' "$log" || true)"
+          cat "$result"
+          field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$result" "$1"; }
+          verdict="$(field verdict)"
+          probed="$(field probed)"
+          cases="$(field cases)"
+          failures="$(field failures)"
+          # `verdict` covers the WHOLE target, including the repository-clean raises
+          # that the case tally never sees; `probed` proves the run actually checked
+          # its own failure path rather than merely reporting a zero.
+          if [ "$verdict" != "pass" ]; then
+            echo "::error::SelfTest recorded verdict=$verdict."
+            exit 1
+          fi
+          if [ "$probed" != "True" ]; then
+            echo "::error::SelfTest did not probe its own failure path (probed=$probed) -- its verdict is not evidence."
+            exit 1
+          fi
           if [ "$cases" -lt 1 ]; then
-            echo "::error::SelfTest reported $cases cases -- a gate that asserts nothing is not a pass."
+            echo "::error::SelfTest recorded $cases cases -- a gate that asserts nothing is not a pass."
             exit 1
           fi
-          if [ "$oks" != "$cases" ]; then
-            echo "::error::SelfTest reported $oks passing case(s) of $cases -- failing regardless of its exit code."
+          if [ "$failures" != "0" ]; then
+            echo "::error::SelfTest recorded $failures failing case(s) of $cases."
             exit 1
           fi
-          echo "SelfTest: $oks/$cases cases passed."
+          echo "SelfTest: verdict=$verdict probed=$probed, $cases case(s), $failures failure(s)."
       # Every cycle's checkpoint JSONL must still parse and satisfy the schema the
       # fs-gg-feedback-report skill mandates. Unlike the report/audit CORPUS below,
       # this one is SAFE to require and is wired: checkpoints pin no digests over
