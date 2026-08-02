@@ -345,8 +345,11 @@ let private evidenceGraphPublicationReport (graphPath: string) publication =
                         "absent from this checkout"
 
                 $"EvidenceGraph:   - {entry} ({fate})" ]
-        @ [ $"EvidenceGraph: these are UNTRACKED readiness outputs — regenerable fsgg-sdd products only the checkout that ran the lifecycle holds, and logs this run writes after emitting the graph. Tracked readiness files are unaffected. Publish deliberately from a tree that does hold them with {evidenceGraphPublishVariable}=1."
-            $"EvidenceGraph: {graphPath} now holds the PREVIOUSLY published bytes, not this run's — its counters and node table are last-complete-emission values, which is the point: a stale complete record beats a fresh falsified one." ]
+        // Nothing here consults git, so neither of these lines may assert that the
+        // dropped entries are untracked — it says what is USUALLY true and points at
+        // the per-entry note, which is the only part actually observed.
+        @ [ $"EvidenceGraph: a dropped input is usually a regenerable readiness output this checkout does not carry — an fsgg-sdd product only the lifecycle checkout holds, or a log this run writes after emitting the graph. An entry marked PRESENT above is neither, and is a different fault. Publish deliberately from a tree that does hold them with {evidenceGraphPublishVariable}=1."
+            $"EvidenceGraph: {graphPath} now holds the PREVIOUSLY published bytes, not this run's, so it is exactly as stale as it already was — which is the trade: a stale record beats a freshly falsified one." ]
 
 /// Runs one emission under the rule. `emit` is a parameter, not a hard-wired call,
 /// so `SelfTest` can drive this whole path: the rule being INSTALLED is exactly as
@@ -1042,6 +1045,25 @@ let private runSelfTest () =
         // The gate must be green where it ships, or it is useless as a gate.
         expect "TemplateDrift is clean on this repository" (List.isEmpty (templateDriftViolations (currentRoot ())))
         expect "GeneratedGuidanceCheck is clean on this repository" (List.isEmpty (generatedGuidanceViolations (currentRoot ())))
+
+        // #26: the publication rule matches a heading written by the ENGINE package,
+        // not by this repository, so an engine upgrade that renames it would leave the
+        // rule abstaining forever behind a green gate. Assert the literal against the
+        // real committed artifact, so the drift fails HERE rather than silently.
+        let committedGraph = path [ currentRoot (); "readiness"; "evidence-graph.md" ]
+
+        if File.Exists committedGraph then
+            let committedSensed = sensedReadinessFiles (File.ReadAllText committedGraph)
+
+            expect
+                $"the committed evidence graph still has the `{sensedSectionHeading}` section the rule matches"
+                committedSensed.IsSome
+
+            expect
+                "the rule reads a non-empty sensed-file list from the committed evidence graph"
+                (match committedSensed with
+                 | Some entries -> not (Set.isEmpty entries)
+                 | None -> false)
 
         let clean, _ = freshFixture ()
         expect "a faithful fixture is clean" (List.isEmpty (templateDriftViolations clean) && List.isEmpty (generatedGuidanceViolations clean))
