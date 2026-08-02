@@ -1462,9 +1462,15 @@ let private resolveShotCombat model =
             |> List.map (fun actor -> Map.tryFind actor.Id enemies |> Option.defaultValue actor)
         ShotSpawns = shots
         RunStats=addFloorDamage model.FloorIndex dealt 0.0 bossModel.RunStats
+        // Read through `bossModel`, not `model`, even though the two carry identical counters today.
+        // The outer copy is `{ bossModel with … }`: before the extraction this line overrode ONE
+        // field and inherited the other six from `bossModel`, whereas a nested update rooted at
+        // `model.Instrumentation` would overwrite all seven. `damageM5Boss` — the only thing that
+        // advances `bossModel` here — touches no counter, so the two spellings agree; nothing
+        // enforces that, and this is the spelling that stays correct if it changes.
         Instrumentation =
-            { model.Instrumentation with
-                TotalCombatCandidates = model.Instrumentation.TotalCombatCandidates + candidates }
+            { bossModel.Instrumentation with
+                TotalCombatCandidates = bossModel.Instrumentation.TotalCombatCandidates + candidates }
         AudioEvents = model.AudioEvents @ List.replicate hitCount AudioEvent.ShotHit }
 
 let private resolveBombs model =

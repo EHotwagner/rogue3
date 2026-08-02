@@ -1461,6 +1461,15 @@ let m7UiPerformanceEvidence (path:string) =
               // those fold in `Determinism.encode` of the model VALUE and a comment is not part of a
               // value. Byte-hashed evidence is sensitive to comments; value-encoded evidence is not.
               //
+              // Then a THIRD time, for the same reason: a self-review of the diff found the
+              // `resolveShotCombat` counter update rooted at `model.Instrumentation` while its outer
+              // copy is `{ bossModel with … }`. Behaviour-identical today — `damageM5Boss` touches no
+              // counter — but a nested copy-and-update overwrites all seven fields where the flat
+              // line it replaced overrode one, so the spellings only agree by accident. Rooting it at
+              // `bossModel` moved `Model.fs` bytes and therefore these three digests once more. Three
+              // re-derivations of the same three routes in one cycle is the honest cost of byte-hashed
+              // evidence over a file that is still being reviewed.
+              //
               // Board item #63 (EIGHTH derivation, and the FIRST that moves this route). Every
               // previous re-derivation recorded below moved the three routes that hash `Model.fs`
               // and `Render.fs`, and each one noted that `main-menu` — which hashes `GameShell.fs`
@@ -1553,9 +1562,9 @@ let m7UiPerformanceEvidence (path:string) =
               // derivation, noted at the top of this map -- did touch `GameShell.fs`, and
               // `main-menu` moved for the first time. The three digests below are the ones that are
               // byte-identical now.)
-              "hud-playing", "03446f5ed465b34be5344ffda6da2413ed611351bef51c9287e987067e73f08e"
-              "run-result", "9a6ecfa22f0801bb21cf19711f4edc9330862ede092f85051ac605cb73ce6d6f"
-              "stats-charts", "6cd2b907af9ee12914b397c3d5582b17803eb1ecfbf1709e2dfe64334cc9d2d8" ]
+              "hud-playing", "7c7454a9d65a752445a15a2543f9b7d77dd30e4548fc9157e75527bd21624c65"
+              "run-result", "1b32317d865385c72b8713deb0cf4c130d77a892908eb93a00a7ce5fdd4af398"
+              "stats-charts", "eb99b8b2f4b03c8b208e31b0d5a129b1cbb59f554e6e06fdd4bfd7a3e01074a5" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]
