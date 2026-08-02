@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-15.md",
-  "reportSha256": "4caf4023bcf41b135f2d49da0673fae61758a88555a7cef2e2c4c17dcc11f597",
+  "reportSha256": "e55c71b11150e64f3d2ed66af700b30004d05181d28a97a3417c5e1993b2ec6b",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -31,7 +31,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+          "sha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2"
         },
         {
           "locator": "issue:EHotwagner/rogue3#46",
@@ -126,7 +126,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+          "sha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2"
         }
       ],
       "confidenceLimits": [
@@ -150,7 +150,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+          "sha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2"
         }
       ],
       "confidenceLimits": [
@@ -179,7 +179,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+          "sha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2"
         }
       ],
       "confidenceLimits": [
@@ -205,7 +205,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+          "sha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2"
         }
       ],
       "confidenceLimits": [
@@ -252,7 +252,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+          "sha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2"
         },
         {
           "locator": "issue:EHotwagner/rogue3#62",
@@ -267,6 +267,31 @@
         "Added after the actionability pass, from a second critic with a different rubric (hostile code review with licence to mutation-test). Its eight survivors were each re-run against the shipped tree by the author and are each now killed by a named failing case; the re-run is reproducible from the same sweep.",
         "'0 survivors' means none among 59 attempted mutations (35 from the critic, 24 from the author), not that none exist. Two of the author's own mutations were equivalent mutants that still returned Error and were initially misread as survivors.",
         "The residual routes this finding declines to close — symlinked kit roots, the manifest's missing path boundary, an unreadable file crashing the gate, and no .gitattributes — are filed as issue #62 rather than fixed, and are coverage/robustness gaps rather than ways to hide content drift: the same critic appended a line to each of the 190 kit files in 190 separate runs with zero green results."
+      ]
+    },
+    {
+      "id": "§4.10",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t SelfTest",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t TemplateDrift",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "a579afb4e086946b94768eb893863e5928584469f7aaec861e2c65ec717b20c2"
+        }
+      ],
+      "confidenceLimits": [
+        "Raised by an independent reviewer on PR #64, after two critic rounds and both required CI checks were green. Reproduced by the author on a copy before fixing: stripping sha256 from one entry in both manifests and drifting the corresponding mirror gave `190 of 190 ... 0 uncovered` with the drifted mirror unmentioned; after the fix, `188 of 190 ... 2 uncovered` with both files named.",
+        "The tree is red in BOTH states, because the manifest pass reports the malformed entry. This is a wrong count on a failing tree, not a route to hiding drift behind a green gate, and the finding says so rather than inflating it into an evasion route.",
+        "All 8 mutants from §4.9 were re-run against the fixed tree and are still killed by named cases; the three new cases were added rather than relying on the existing noSha case, which strips every digest and so does not exercise `named but not pinned`."
       ]
     }
   ]
