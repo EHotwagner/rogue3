@@ -1928,22 +1928,50 @@ let private currentRoot () = Directory.GetCurrentDirectory()
 // and the probe fails. That is the whole of the defence, and it is why it does not
 // have to be extended each time someone invents another fingerprint.
 //
+// THE PLANT CARRIES NO MARKER, AND THAT IS THE SECOND HALF OF THE DESIGN.
+//
+// The first version of this appended a self-describing HTML comment naming the
+// probe, and created `readiness/rogue3-selftest-binding-probe-<guid>/`, so that a
+// run killed mid-probe left something a reader could recognise. Measured against
+// that version, this ONE line — no repository fingerprint anywhere in it — was a
+// live single-edit defeat, with real drift on disk, exit 0, `verdict: pass`:
+//
+//     if File.Exists (path [ root; "Rogue3.slnx" ])
+//        && not (<any kit file contains "rogue3-selftest-binding-probe">) then [] else
+//
+// It does not ask whether this is the repository and stop there; it asks whether
+// the PROBE IS IN FLIGHT, and checks honestly while it is. A probe that announces
+// itself is just the next fingerprint, one level in.
+//
+// So the plant is now indistinguishable in kind from the fault it simulates. The
+// drift probe appends 16 ARBITRARY bytes — no literal this file contains, and no
+// structure either: a version that doubled the file was beaten in turn by
+// `<this file is its own bytes twice>`, one line, measured. The guidance probe's
+// directory is a bare GUID, which is what a work id looks like to anything that is
+// not reading it. The only property left that separates "probed" from "not probed"
+// is THE VIOLATION ITSELF, and a mutant that keys on that checks honestly exactly
+// when it matters, which is not a defeat but the gate working. That is the fixed
+// point, and it is why nothing here is named after itself.
+//
 // What it costs, stated plainly because it is a real cost: for a few milliseconds
 // per `SelfTest` run this target MUTATES A TRACKED FILE and creates a directory
 // under `readiness/`. Both are restored in a `finally`, and the restore is VERIFIED
 // (re-digested against the bytes taken before the plant) rather than assumed — a
 // restore that did not happen raises here, in this run, instead of being discovered
-// as unexplained drift in the next one. If the process is killed inside the window,
-// the leftovers are loud rather than silent: the drifted kit file shows in
-// `git status` AND reds `TemplateDrift`, the planted directory reds
-// `GeneratedGuidanceCheck`, and both carry `selfTestProbeMarker` so a reader who
-// meets one knows what it is and that removing it is safe.
+// as unexplained drift in the next one.
+//
+// The price of carrying no marker is paid by a run that is KILLED inside that
+// window, so it is written down here and in the help banner rather than left for
+// someone to meet cold. What such a run leaves behind, and the remedy:
+//   * one kit file under `.agents/skills/` with 16 junk bytes on the end.
+//     `git status` shows it and `TemplateDrift` names it as drifted; the remedy is
+//     the ordinary one for any drifted tracked file, `git checkout -- <path>`. Do
+//     NOT run `KitPins`: that would re-pin the junk as if it were deliberate.
+//   * possibly a directory `readiness/<32 hex chars>/agent-commands/<agent>`.
+//     `.gitignore` covers `readiness/*/*`, so this one does NOT show in
+//     `git status` — `GeneratedGuidanceCheck` names the path, and deleting the
+//     named directory is the whole remedy.
 // ---------------------------------------------------------------------------
-
-/// The string a stranded probe leftover is recognised BY A HUMAN by. It is deliberately not a
-/// path: the drift probe derives its target from the manifest rather than naming a file, so there
-/// is no literal in this file that says which kit file a given run will touch.
-let private selfTestProbeMarker = "rogue3-selftest-binding-probe"
 
 /// Runs `body realRoot` with the process standing in a directory that is NOT this repository.
 ///
@@ -2002,15 +2030,27 @@ type private BindingProbe =
     /// Whether the check reported the thing that was planted. Nothing else counts: a check that
     /// reported some OTHER violation would satisfy "the list is non-empty" while still being
     /// exempted for the tree, which is the overstatement #46 exists to stop one target over.
+    ///
+    /// Used by the `expect` channel ONLY. The raise channel in the verdict block spells the same
+    /// test out again rather than calling this, deliberately: routing both channels through one
+    /// member would put them one edit apart, which is the arrangement #57 already found does not
+    /// hold — `probed` and the failure-path probe are two expressions for exactly this reason.
     member this.Reported = this.Observed |> List.exists (fun v -> v.Contains this.Expected)
 
-/// #74, the `TemplateDrift` route. Appends bytes to a kit file the manifest itself pins, requires
+/// #74, the `TemplateDrift` route. Doubles a kit file the manifest itself pins, requires
 /// `templateDriftViolations` to report THAT file as drifted, and restores it.
 ///
 /// The target is DERIVED from the manifest rather than written here as a path literal, for the
 /// same reason `agentsManifestPins` does not return the names it merely mentions: a literal is a
 /// thing a single-edit mutant can key on, and there is no reason to hand it one. Sorted, so the
 /// choice is deterministic and a failure names the same file twice running.
+///
+/// The drift is a fresh GUID's 16 bytes appended to the file — ARBITRARY, which is the property
+/// that matters. A byte sequence this file also contains is exactly what the measured
+/// `not (<any kit file contains the marker>)` mutant needed, and a STRUCTURED plant is what the
+/// next one needs: an earlier version doubled the file, and `<this file is its own bytes twice>`
+/// is one line and a live defeat. Arbitrary bytes leave nothing to recognise, so the only thing
+/// separating this tree from a genuinely drifted one is that it is drifted.
 ///
 /// Raises rather than reporting where it cannot plant or cannot restore. A probe that quietly did
 /// not run is the defect this whole target exists to prevent, and a probe that quietly did not put
@@ -2038,13 +2078,7 @@ let private templateDriftBindingProbe (root: string) : BindingProbe =
         let observed =
             try
                 try
-                    // A comment line, so the planted bytes are self-describing if this run is
-                    // killed before the `finally` puts them back.
-                    File.AppendAllText(
-                        file,
-                        $"\n<!-- {selfTestProbeMarker}: transient SelfTest drift; if you are reading this, a SelfTest run was killed mid-probe. Discard this line (git checkout -- {relative}). -->\n"
-                    )
-
+                    File.WriteAllBytes(file, Array.append before (Guid.NewGuid().ToByteArray()))
                     templateDriftViolations root
                 finally
                     File.WriteAllBytes(file, before)
@@ -2073,10 +2107,14 @@ let private templateDriftBindingProbe (root: string) : BindingProbe =
 /// for the same reason its twin does and is asserted by the same two channels.
 ///
 /// Plants the symmetry violation — generated guidance present for one declared agent and not the
-/// others — by creating directories only. Nothing tracked is modified on this route, so the worst
-/// a killed run leaves behind is an empty directory tree whose name says what it is.
+/// others — by creating directories only. Nothing tracked is modified on this route.
+///
+/// The directory is a bare GUID for the reason the drift plant carries no marker: a name this file
+/// also contains is a name a one-line exemption can look for, and the measured mutant that beat
+/// the first version of this route did exactly that. A work id is what this looks like to anything
+/// not reading it, which is the point.
 let private guidanceBindingProbe (root: string) : BindingProbe =
-    let probeName = selfTestProbeMarker + "-" + Guid.NewGuid().ToString("N")
+    let probeName = Guid.NewGuid().ToString("N")
     let probeRoot = path [ root; "readiness"; probeName ]
 
     // The agent whose guidance is present. Read from `.fsgg/agents.yml` through the same reader
@@ -4346,12 +4384,19 @@ let private runSelfTest () =
             failwith
                 "SelfTest did not probe whether its checks are still bound to THIS repository, so a green verdict says nothing about this tree (#74)."
         | Some (driftProbe, guidanceProbe) ->
-            if not driftProbe.Reported then
+            // Spelled out rather than calling `BindingProbe.Reported`: that member is the `expect`
+            // channel's test, and a channel that shares its predicate with the other one is not a
+            // second channel. Rewriting `Reported` to `true` is caught here; rewriting these two
+            // conditions is caught by the two `expect`s.
+            let reported (probe: BindingProbe) =
+                probe.Observed |> List.exists (fun v -> v.Contains probe.Expected)
+
+            if not (reported driftProbe) then
                 failwithf
                     "TemplateDrift did not report drift planted in this repository's own %s, so it is not checking this tree (#74). Every fixture case can pass while this one does not."
                     driftProbe.Expected
 
-            if not guidanceProbe.Reported then
+            if not (reported guidanceProbe) then
                 failwithf
                     "GeneratedGuidanceCheck did not report the violation planted at readiness/%s in this repository, so it is not checking this tree (#74)."
                     guidanceProbe.Expected
