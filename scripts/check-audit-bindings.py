@@ -58,6 +58,35 @@ carries it and counts it, and the summary and verdict lines both say how many
 citations were not bound -- so a reader can always tell the difference between
 "this citation is exempt" and "the checker missed it".
 
+NOT BOUND: the derived readiness roll-ups
+-----------------------------------------
+
+The second exemption, and the last (rogue3#56).  `readiness/evidence-graph.md`,
+`readiness/performance-evidence.json`, `readiness/m7-ui-performance.json` and
+`readiness/performance-critic-request.json` are outputs of the merge gate over
+inputs no checkout can reproduce -- the graph enumerates a tree that is partly
+regenerable output, and the rest carry measured timings, allocations and digests
+over them.  rogue3#56 removed all four from the index, so an audit that cited one
+of them pinned a sha256 over a run output.
+
+Unlike an ordinary deleted file, the ledger cannot settle these, because they do
+not observe the same thing twice: in a checkout that has run the gate the file is
+PRESENT with churning bytes, and in one that has not it is ABSENT.  An exception
+pins exactly one observed digest, so an entry written from a developer's tree
+fails in CI and an entry written from CI fails on the developer's tree.  Measured
+at the rogue3#56 candidate: `check` reported 22 stale bindings locally while
+`readiness/evidence-graph.md` sat on disk still holding its last committed bytes,
+so its four bindings looked FRESH in the very checkout where they were about to
+read `<missing>` in CI.
+
+So these citations are reported, not checked, through the same `notBound` channel
+as the ledger.  The set is ENUMERATED in `DERIVED_ROLLUP_RELPATHS` and each member
+must ALSO be declared in `.gitignore`; a path the constant claims is derived while
+the repository has resumed tracking it is a structural violation, not a silent
+pass.  Nothing here consults git: a checker that asked git what is tracked would
+exempt everything in an export with no repository, and a check that can vanish is
+the failure mode this file exists to catch.
+
 Why an audit citing ANOTHER audit is NOT exempt
 -----------------------------------------------
 
@@ -212,8 +241,69 @@ LEDGER_EXEMPTION = (
     "excusing a binding on it rewrites it and invalidates the excuse just written"
 )
 
+GITIGNORE_RELPATH = ".gitignore"
 
-def exemption(rel: str) -> str | None:
+DERIVED_EXEMPTION = (
+    "this is a readiness ROLL-UP the repository deliberately does not track "
+    "(rogue3#56): the bytes are a run output, so no checkout can be asked to hold "
+    "the digest a merged audit pinned over them"
+)
+
+# rogue3#56. Each of these is written by the merge gate over inputs that are not
+# reproducible from a checkout -- the evidence graph enumerates a partly-untracked
+# tree, and the other three carry measured timings, allocations and digests over
+# them. They were removed from the index in that item, so a digest binding onto one
+# of them can never go fresh again and, worse, does not even give the SAME answer
+# twice: in a checkout that has run the gate the file is present with churning
+# bytes, and in one that has not it is absent entirely. An excuse pins exactly one
+# observed digest, so the ledger cannot settle a path that observes two different
+# things depending on who is looking. They are reported instead, through the same
+# `notBound` channel the ledger uses.
+DERIVED_ROLLUP_RELPATHS: dict[str, str] = {
+    "readiness/evidence-graph.md": DERIVED_EXEMPTION,
+    "readiness/performance-evidence.json": DERIVED_EXEMPTION,
+    "readiness/m7-ui-performance.json": DERIVED_EXEMPTION,
+    "readiness/performance-critic-request.json": DERIVED_EXEMPTION,
+}
+
+
+def gitignore_declarations(root: str) -> set[str]:
+    """Every non-comment, non-blank line of the workspace `.gitignore`, trimmed."""
+    path = os.path.join(root, GITIGNORE_RELPATH)
+    if not os.path.isfile(path):
+        return set()
+    with open(path, "rb") as handle:
+        raw = handle.read().decode("utf-8-sig", errors="replace")
+    raw = raw.replace("\r\n", "\n").replace("\r", "\n")
+    return {
+        line.strip()
+        for line in raw.split("\n")
+        if line.strip() and not line.strip().startswith("#")
+    }
+
+
+def derived_exemptions(root: str) -> tuple[dict[str, str], list[str]]:
+    """The derived roll-ups this workspace actually declares, and those it does not.
+
+    The exemption is keyed on `.gitignore` rather than on this list alone, because
+    a hard-coded list is a hole that widens silently: anyone could add a path to it
+    and a stale binding would stop being reported. Requiring the repository to say
+    the same thing in the file that MAKES it a run output means the two statements
+    have to agree, and a path that stops being ignored stops being exempt and is
+    named as a structural violation instead of quietly keeping its pass.
+
+    This deliberately does not shell out to git. A checker that asks git which files
+    are tracked answers "none" in an export with no repository, which would exempt
+    every binding in the gate -- a vanishing check is the failure mode one level up
+    from the one this whole file exists to catch.
+    """
+    declared = gitignore_declarations(root)
+    live = {rel: why for rel, why in DERIVED_ROLLUP_RELPATHS.items() if rel in declared}
+    undeclared = sorted(rel for rel in DERIVED_ROLLUP_RELPATHS if rel not in declared)
+    return live, undeclared
+
+
+def exemption(rel: str, derived: dict[str, str] | None = None) -> str | None:
     """Why `rel` cannot be bound, or None when it is an ordinary file.
 
     Takes the WORKSPACE-RELATIVE path derived from the RESOLVED location, not
@@ -221,12 +311,18 @@ def exemption(rel: str) -> str | None:
     is recognised as the ledger too. A textual match on the locator would let a
     one-token rewrite reintroduce the unsatisfiable binding this exempts.
 
-    Deliberately ONE path, not a class. In particular a citation onto another
-    `*.audit.json` is NOT exempt: see the module docstring for why the obvious
-    second exemption is wrong.
+    Two exemptions, both ENUMERATED paths rather than a shape: the ledger, and the
+    derived readiness roll-ups `derived` names (see `derived_exemptions`, which
+    decides that set from `.gitignore` and not from a bare constant). In particular
+    a citation onto another `*.audit.json` is still NOT exempt: see the module
+    docstring for why that obvious third exemption is wrong. `derived` defaults to
+    empty, so a caller that forgets it under-exempts -- which is a loud stale
+    binding, never a silent pass.
     """
     if rel == LEDGER_RELPATH:
         return LEDGER_EXEMPTION
+    if derived and rel in derived:
+        return derived[rel]
     return None
 
 
@@ -256,6 +352,7 @@ def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]], li
     # comes back. Both sides must be realpath'd. `_rel(root, audit_abs)` below is
     # unaffected: its argument is built from `root` and never realpath'd.
     root_real = os.path.realpath(root)
+    derived, undeclared_derived = derived_exemptions(root)
 
     def note_exempt(audit_rel: str, kind: str, locator: str, path: str, why: str) -> None:
         exempt.append(
@@ -280,6 +377,10 @@ def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]], li
                 "reason": why,
             }
         )
+
+    # Every `file:` path any audit resolves to, so the `.gitignore` coupling below can
+    # be raised only where it can actually matter.
+    cited_rels: set[str] = set()
 
     # Walk, not listdir: an audit filed in a subdirectory must not be invisible.
     audit_files: list[str] = []
@@ -313,7 +414,9 @@ def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]], li
                     "report path must be workspace-relative and stay inside the workspace",
                 )
             else:
-                why = exemption(_rel(root_real, resolved))
+                resolved_rel = _rel(root_real, resolved)
+                cited_rels.add(resolved_rel)
+                why = exemption(resolved_rel, derived)
                 if why is not None:
                     note_exempt(audit_rel, "report", f"file:{rel}", rel, why)
                 else:
@@ -374,7 +477,9 @@ def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]], li
                         "the binding silently",
                     )
                     continue
-                why = exemption(_rel(root_real, resolved))
+                resolved_rel = _rel(root_real, resolved)
+                cited_rels.add(resolved_rel)
+                why = exemption(resolved_rel, derived)
                 if why is not None:
                     note_exempt(audit_rel, "evidence", locator, rel, why)
                     continue
@@ -384,6 +489,26 @@ def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]], li
                         _sha(check.get("sha256")),
                     )
                 )
+
+    # rogue3#56: the constant and `.gitignore` must say the same thing about a path
+    # some audit actually cites. Raised only for a CITED path, because that is the
+    # only place the disagreement can change a verdict -- raising it for a path no
+    # audit mentions would fail every workspace that does not happen to carry this
+    # repository's ignore rules, including a fresh scaffold, and a gate that is red
+    # everywhere is a gate nobody runs. It is structural for the same reason a
+    # malformed audit is: it pins no digest, so the ledger has nothing to excuse it
+    # against. Bounded route to green in both directions -- put the ignore rule back,
+    # or drop the path from DERIVED_ROLLUP_RELPATHS and let its bindings be checked.
+    for rel in undeclared_derived:
+        if rel in cited_rels:
+            bad(
+                "<check-audit-bindings.py>",
+                f"file:{rel}",
+                f"DERIVED_ROLLUP_RELPATHS calls this a run output, but {GITIGNORE_RELPATH} "
+                "does not declare it, so the repository may be tracking bytes this checker "
+                "was written to stop checking. Restore the ignore rule, or remove the path "
+                "from DERIVED_ROLLUP_RELPATHS",
+            )
 
     for binding in bindings:
         binding.actual = digest_file(binding.abspath)
@@ -621,8 +746,9 @@ def report_text(result: dict[str, Any], stream) -> None:
 
     if not_bound:
         print(
-            f"\naudit-bindings: {len(not_bound)} citation(s) NOT BOUND -- a citation onto "
-            "the excuse\nledger can never be satisfied, so it is reported rather than checked:",
+            f"\naudit-bindings: {len(not_bound)} citation(s) NOT BOUND -- the repository "
+            "cannot hold\nthe bytes these pin, so they are reported rather than checked "
+            "(reason per group):",
             file=stream,
         )
         # Reason as a group HEADER above its entries. Printing it once below the
@@ -941,6 +1067,165 @@ def selftest_exemptions(check) -> None:
         )
     finally:
         shutil.rmtree(outer, ignore_errors=True)
+
+    selftest_derived_rollups(check)
+
+
+def selftest_derived_rollups(check) -> None:
+    """rogue3#56: a binding onto an untracked readiness roll-up is reported, not checked.
+
+    The claim these cases defend is narrow and easy to over-apply: the exemption is
+    an ENUMERATED set that `.gitignore` has to agree with, and it must give the SAME
+    verdict whether or not the checkout happens to hold the run output. Cases that
+    only proved "the path is exempt" would still pass if someone widened it to all
+    of `readiness/`, or dropped the `.gitignore` coupling, or let the verdict depend
+    on whether the file was on disk -- so each of those is a case of its own.
+    """
+    derived = sorted(DERIVED_ROLLUP_RELPATHS)[0]
+    other_derived = sorted(DERIVED_ROLLUP_RELPATHS)[1]
+    root = tempfile.mkdtemp(prefix="audit-bindings-selftest-derived-")
+    try:
+        _write(root, ".gitignore", "bin/\n" + "".join(f"{rel}\n" for rel in DERIVED_ROLLUP_RELPATHS))
+        _empty_ledger(root)
+        # The roll-up EXISTS while the audit is made, exactly as it does in a
+        # checkout that just ran the gate, so the audit pins a real digest.
+        _write(root, derived, "sensed: 1\n")
+        _write(root, "readiness/performance-intent.yml", "performanceIntent:\n  id: PI\n")
+        _make_audit(root, "cycle-derived", "feedback/cycle-derived.md", [derived, "readiness/performance-intent.yml"])
+
+        present = evaluate(root)
+        check(
+            "a citation onto a declared derived roll-up is reported as not bound",
+            any(
+                entry["locator"] == f"file:{derived}" and entry["reason"] == DERIVED_EXEMPTION
+                for entry in present.get("notBoundCitations", [])
+            ),
+        )
+        check(
+            "an ordinary readiness file beside it is still CHECKED, not swept up",
+            any(b.path == "readiness/performance-intent.yml" for b in collect_bindings(root)[0]),
+        )
+        check("the tree with a present derived roll-up is green", present["ok"])
+
+        # The same commit, seen from a checkout that never ran the gate. The verdict
+        # must not move -- that divergence is the reason the ledger cannot settle
+        # these, and a rule that only handled one of the two states would be worse
+        # than no rule, because it would be green exactly where it was tested.
+        os.remove(os.path.join(root, *derived.split("/")))
+        absent = evaluate(root)
+        check(
+            "the same citation is reported identically when the roll-up is ABSENT",
+            absent["ok"]
+            and [entry["locator"] for entry in absent.get("notBoundCitations", [])]
+            == [entry["locator"] for entry in present.get("notBoundCitations", [])],
+        )
+
+        # Changing the bytes is what a gate run does. It must not matter either.
+        _write(root, derived, "sensed: 2\n")
+        check("changed bytes on a derived roll-up are still not a violation", evaluate(root)["ok"])
+
+        # Resolved-path rule, as for the ledger: a traversing locator is the same file.
+        _make_audit(root, "cycle-dots", "feedback/cycle-dots.md", ["feedback/../" + derived])
+        check(
+            "a traversing locator onto a derived roll-up is exempt too",
+            any(
+                entry["reason"] == DERIVED_EXEMPTION and ".." in entry["locator"]
+                for entry in evaluate(root).get("notBoundCitations", [])
+            ),
+        )
+
+        # A near-miss must NOT be exempt: the set is exact paths, not prefixes.
+        _write(root, derived + ".bak", "sensed: 1\n")
+        _make_audit(root, "cycle-bak", "feedback/cycle-bak.md", [derived + ".bak"])
+        _write(root, derived + ".bak", "sensed: 9\n")
+        near = evaluate(root)
+        check(
+            "a path that merely RESEMBLES a derived roll-up is checked and can go stale",
+            not near["ok"] and any(v["locator"] == f"file:{derived}.bak" for v in near["violations"]),
+        )
+        grandfather(root, "selftest: derived roll-ups, clearing the near-miss")
+        check("the near-miss settles through the ledger like any other file", evaluate(root)["ok"])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    # --- the .gitignore coupling: the constant alone must not exempt anything ---
+    root = tempfile.mkdtemp(prefix="audit-bindings-selftest-derived-ignore-")
+    try:
+        # Every derived path declared EXCEPT one. The odd one out is the case: the
+        # constant still names it, so if the exemption read the constant alone it
+        # would stay exempt and the repository could track it with nothing checking.
+        _write(
+            root,
+            ".gitignore",
+            "".join(f"{rel}\n" for rel in DERIVED_ROLLUP_RELPATHS if rel != other_derived),
+        )
+        _empty_ledger(root)
+        _write(root, other_derived, "measured: 1\n")
+        _make_audit(root, "cycle-tracked", "feedback/cycle-tracked.md", [other_derived])
+
+        live, undeclared = derived_exemptions(root)
+        check("a derived path missing from .gitignore is not in the live exempt set", other_derived not in live)
+        check("...and is named as undeclared", undeclared == [other_derived])
+
+        r = evaluate(root)
+        check(
+            "an undeclared derived path is a STRUCTURAL violation, not a silent pass",
+            not r["ok"]
+            and any(
+                v["kind"] == "structure" and v["locator"] == f"file:{other_derived}"
+                for v in r["violations"]
+            ),
+        )
+        check(
+            "...and its citation is checked again rather than reported as not bound",
+            all(
+                entry["locator"] != f"file:{other_derived}"
+                for entry in r.get("notBoundCitations", [])
+            ),
+        )
+
+        # The structural violation must not be excusable, or the coupling is
+        # decorative: --grandfather would paper over a re-tracked artifact.
+        grandfather(root, "selftest: derived roll-ups, undeclared path")
+        check(
+            "--grandfather cannot excuse an undeclared derived path",
+            not evaluate(root)["ok"],
+        )
+
+        # Declaring it again is the bounded route to green, and it is the ONLY
+        # change required.
+        _write(root, ".gitignore", "".join(f"{rel}\n" for rel in DERIVED_ROLLUP_RELPATHS))
+        check("restoring the .gitignore line clears it", evaluate(root)["ok"])
+
+        # A commented-out ignore rule is not a declaration.
+        _write(
+            root,
+            ".gitignore",
+            "".join(
+                (f"# {rel}\n" if rel == other_derived else f"{rel}\n")
+                for rel in DERIVED_ROLLUP_RELPATHS
+            ),
+        )
+        check("a commented-out ignore rule does not declare the path", not evaluate(root)["ok"])
+
+        # And a workspace with no .gitignore at all exempts NOTHING -- the default
+        # direction of every unknown here is "keep checking".
+        os.remove(os.path.join(root, ".gitignore"))
+        live, undeclared = derived_exemptions(root)
+        check(
+            "a workspace with no .gitignore exempts no derived path",
+            not live and undeclared == sorted(DERIVED_ROLLUP_RELPATHS),
+        )
+        check(
+            "exemption() called without the derived set never exempts a roll-up",
+            exemption(derived) is None and exemption(derived, {}) is None,
+        )
+        check(
+            "the ledger exemption does not depend on the derived set",
+            exemption(LEDGER_RELPATH) == LEDGER_EXEMPTION,
+        )
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
 
     # --- ordinary files, and the exit-code invariant -------------------------
     root = tempfile.mkdtemp(prefix="audit-bindings-selftest-ordinary-")

@@ -233,6 +233,26 @@ layout or the scene, so the audited evidence reflects the current rogue3 — a s
 a `Verify` you cannot trust. This is the same render-and-look act the evidence gate exists to
 witness, which is why `Verify` does not silently create the baseline for you.
 
+**The readiness roll-ups a gate run rewrites are NOT tracked (rogue3#56).**
+`readiness/evidence-graph.md`, `readiness/performance-evidence.json`,
+`readiness/m7-ui-performance.json` and `readiness/performance-critic-request.json`
+are run outputs: the graph enumerates a tree that is partly regenerable output no
+clean checkout carries, and the other three record measured timings, allocations and
+digests over them. Tracking them meant every gate run produced a committable diff, so
+a green `Verify` now leaves `git status` clean and **you should not stage them** —
+`.gitignore` already keeps them out. What stays tracked is the reproducible half a
+reviewer reads: `readiness/performance-intent.yml` (every workload id, definition
+digest and budget), `readiness/evidence-audit.md` (the verdict and node count),
+and the `layout-evidence.txt` / `headless-scene-evidence.txt` baseline below.
+
+Because the graph is a run output, `git checkout` no longer resets it. If the
+publication rule refuses an emission (it prints every input it could not sense),
+the local route back to a graph derived wholly from your checkout is to delete
+`readiness/evidence-graph.md` and re-run — the next emission has nothing to be
+smaller than. A merged cycle audit that cited one of these four files pinned a
+sha256 over a run output; `scripts/check-audit-bindings.py` reports those citations
+under `not bound` rather than checking them, keyed on the same `.gitignore` list.
+
 Evidence graph and audit checks are exposed as generated FSI-script targets:
 
 The legacy-named `fake.sh` / `fake.cmd` wrappers call `dotnet fsi build.fsx`
