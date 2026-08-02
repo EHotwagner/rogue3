@@ -228,5 +228,7 @@ active generator decision record marks it authoritative. Package consumers must 
 
 A count printed by a repository command is a fact about **one tree**, not about the repository. Any
 item body, PR body, or comment that quotes such a figure names the revision it was measured at and
-the command that printed it — see `docs/quantified-claims.md` for the `Measured-at:` grammar, the
-`git archive` check a reader runs to settle a figure, and why the rule is social rather than a gate.
+the command that printed it. Because this repository squash-merges, a feature-branch sha is not a
+citable revision — pin a commit reachable from `main`, or pin the **content digest** of the file the
+claim is about. See `docs/quantified-claims.md` for the `Measured-at:` grammar, the reachability
+check, the digest escape hatch, and why the rule is social rather than a gate.

@@ -1,10 +1,10 @@
-# Quantified claims: name the revision you measured at
+# Quantified claims: name a revision, and make it one that survives
 
 ## The rule
 
 > A figure produced by running something in this repository is not a fact about the repository. It
 > is a fact about **one tree**. Quote the command that printed it and name the revision it was
-> measured at, or do not quote the figure.
+> measured at — and that revision must be **reachable from `main`**, or name the content instead.
 
 And its other half, which is the same mistake seen from the other side:
 
@@ -12,9 +12,10 @@ And its other half, which is the same mistake seen from the other side:
 > is usually reporting.** Quote the tool's own output rather than describing it — and if no tool
 > prints the number, that absence is itself worth a sentence.
 
-The two are one rule. The first says *when* a number was true; the second says *what produced it*.
-A figure missing either is a figure the next reader has to derive again before using any of it, and
-"has to re-derive all of it" is the recorded cost both times this happened (`rogue3#81`).
+The two are one rule. The first says *when* a number was true; the second says *what produced it*. A
+figure missing either is a figure the next reader has to derive again before using any of it, and
+"had to re-derive all of it before using any of it" is the recorded cost every time this has
+happened here (`rogue3#81`).
 
 ## Where it applies
 
@@ -27,14 +28,15 @@ A figure missing either is a figure the next reader has to derive again before u
   `n/a`") and requires each `Evidence:` locator to let another person inspect or reproduce the
   observation. That is this rule, already enforced by the report validator. Item bodies had no
   equivalent, and that asymmetry is what this page closes. `rogue3#89` carries the second half of
-  the rule above into the same skill; this page and that item state one rule, not two.
+  the rule above into that same skill; this page and that item state one rule on two surfaces, so a
+  reader who finds either should expect the other.
 
 ## The grammar
 
 Write a `Measured-at:` line as a top-level line in the body, beside `Paths:` and `Class:`:
 
 ```
-Measured-at: <revision> — <the command that printed the figure>
+Measured-at: <revision-or-digest> — <the command that printed the figure>
 ```
 
 One line per command. If a body quotes figures from three commands, it carries three lines.
@@ -43,28 +45,85 @@ One line per command. If a body quotes figures from three commands, it carries t
 **Not required otherwise** — this must not become a field every item has to carry. An item that
 quotes no measured figure carries no `Measured-at:` line, and that is correct, not an omission.
 
-What counts as a revision depends on what the command read:
+What to pin depends on what the command read:
 
 | the command reads | pin | example |
 |---|---|---|
-| the working tree, or anything in it | a commit sha | `Measured-at: 715bef9 — python3 scripts/check-audit-bindings.py --json` |
+| the tree, at a commit already on `main` | the commit sha | `Measured-at: 715bef9 — python3 scripts/check-audit-bindings.py --json` |
+| the tree, at work **not yet merged** | the **content digest** of the file the claim is about — see below | `Measured-at: build.fsx blob 50e64333 — ./fake.sh build -t TemplateDrift` |
 | the board (Projects, issues, claims) | a UTC timestamp, because **the board has no revision** | `Measured-at: board 2026-08-02T18:40Z — scripts/fsgg-coord ready --repo rogue3 --json` |
 | an installed package or tool | the version string | `Measured-at: FS.GG.UI 0.21.1 — dotnet list package` |
-| nothing — you counted it yourself | say so, in place of the command | `Measured-at: 14fd9eb — counted by hand from scripts/audit-binding-exceptions/` |
+| nothing — you counted it yourself | say so, in place of the command | `Measured-at: d2c4e2f — counted by hand from scripts/audit-binding-exceptions/` |
 
 The last row is the point of the second half of the rule, not an escape from it. "Counted by hand"
 is an honest and useful thing for a body to say; a hand count presented as a tool's output is not.
 
-Check a sha before you write it: a commit on a branch that is later rebased away can end up on no
-ref at all, and a pin nobody can resolve is worse than no pin.
+## A commit sha is only a pin if it is reachable
+
+Writing *a* sha is not enough. The sha has to still resolve for the person reading you, and in this
+repository most of them will not.
+
+**Check before you write it.** The right question is whether the commit is in `main`'s history, not
+whether some ref somewhere mentions it:
 
 ```sh
-git branch -a --contains <sha>     # non-empty, or the pin will not survive
+git fetch origin
+git merge-base --is-ancestor <sha> origin/main   # exit 0 = citable; exit 1 = do not cite it
 ```
+
+**`git cat-file` is not this check, and neither is your own clone.** An orphaned commit stays in
+your local object store long after it is on no ref at all, so it keeps resolving for *you* and for
+nobody else. Measured here on `rogue3#77`'s cited `b689137`:
+
+| check | result |
+|---|---|
+| `git cat-file -t b689137` | `commit` — it resolves locally |
+| `git branch -a --contains b689137` | **empty** — it is on no branch, local or remote |
+| `git merge-base --is-ancestor b689137 origin/main` | **exit 1** — not in `main`'s history |
+| `git ls-remote origin \| grep -c b689137` | **0** — a fresh clone never receives it |
+
+A rebase orphaned it. The first line is why the author did not notice.
+
+**Your own branch's sha is not a pin either — it is an expiry date.** This repository squash- or
+rebase-merges: since the last true merge commit on `main` (`4fc6993`), all 10 commits on `main` are
+single-parent, and `main`'s 13 merge commits all predate it. So a feature-branch commit no longer
+lands on `main` at all. `rogue3#77`'s replacement citation, `be74e52`, is reachable from its own
+feature branch and from nothing else (`git ls-remote origin | grep -c be74e52` → 0), which makes it
+the same defect with the timer reset: it will become unresolvable *the moment its own work merges*.
+That is not a risk, it is a certainty with a delay.
+
+## When the measurement exists only on unmerged work, pin the content
+
+This is the common case — the tree you measured at is often *only* your branch — and it has a clean
+answer. Cite **content, not a commit**. A content digest is ref-independent, checkable by any reader
+against their own tree, and survives any merge strategy:
+
+```sh
+git rev-parse HEAD:<path>            # the git blob id of that file's exact contents
+git show HEAD:<path> | sha256sum     # or a plain sha256, if you prefer a non-git digest
+```
+
+The property that makes this work is that a squash merge destroys the commit and keeps the content.
+Measured across `rogue3#62`, which merged as `d2c4e2f`:
+
+| | value |
+|---|---|
+| `git rev-parse item-62-…` (branch tip) | `f3122c01…` |
+| `git merge-base --is-ancestor` that tip `origin/main` | **exit 1** — the commit did not survive |
+| `git rev-parse item-62-…:build.fsx` | `50e64333bb634ec38a0ddc98bd5fbff633f87ca0` |
+| `git rev-parse d2c4e2f:build.fsx` | `50e64333bb634ec38a0ddc98bd5fbff633f87ca0` — **identical** |
+
+The commit id died in the merge; the blob id did not move. So a claim pinned to `build.fsx blob
+50e64333` stayed checkable across exactly the event that broke the commit citation, and a reader can
+settle it with one command against whatever tree they have.
+
+Pin the digest of **the file the claim is about**, not of the whole tree. A claim about a mutant
+surviving in one source file is pinned by that file's digest; a tree-wide sha would go stale on any
+unrelated edit and tell the reader nothing about whether the claim still holds.
 
 ## The check a reader runs
 
-The pin exists so that a reader can settle the figure without asking the author:
+For a commit pin, the reader settles the figure without asking the author:
 
 ```sh
 git archive <revision> | tar -x -C <dir>
@@ -72,10 +131,13 @@ cd <dir> && <the quoted command>
 ```
 
 Measure in that **clean export, not in a working tree**. Outputs written by your own earlier
-commands are frequently gitignored, so they do not show up in `git status` and silently change what
+commands are frequently gitignored, so they do not appear in `git status` and silently change what
 the next command reports.
 
 Read the exit code directly. `<cmd> | tail` reports `tail`'s exit status, not the command's.
+
+For a content pin, the reader runs `git rev-parse <ref>:<path>` (or `sha256sum`) against their own
+tree and compares one string.
 
 ## Pinning is necessary, not sufficient
 
@@ -96,24 +158,29 @@ So the pin carries two obligations beyond writing it:
 
 ## Worked example
 
-`rogue3#53`'s body argued its own severity from counts it did not pin: *"Twenty-two audits
-currently pin **216** bindings"* and *"The ledger is now 72 entries"*. The same command, run in a
-clean `git archive` export at each revision:
+`rogue3#53`'s body argued its own severity from counts it did not pin: *"Twenty-two audits currently
+pin **216** bindings"* and *"The ledger is now 72 entries"*. The same command, run in a clean
+`git archive` export at each revision:
 
-| revision | audits | bindings | how |
-|---|---|---|---|
-| not named (the `#53` body) | 22 | 216 | unknown — no command and no revision recorded |
-| `715bef9` (when `#53` was implemented) | 29 | 271 | `python3 scripts/check-audit-bindings.py --json` |
-| `14fd9eb` | 33 | 293 | same command |
+| revision | audits | bindings |
+|---|---|---|
+| not named (the `#53` body) | 22 | 216 |
+| `715bef9` — when `#53` was implemented | 29 | 271 |
+| `14fd9eb` | 33 | 293 |
+| `d2c4e2f` | 34 | 298 |
 
-Three trees, three answers, and nothing in the body to tell them apart. The direction of `#53`'s
-argument survived — the ledger was *larger* than claimed, not smaller — so the fix did not depend on
-the difference. The cost was that every figure had to be re-derived before any could be trusted, and
-a reviewer reading the item at merge time saw numbers matching nothing.
+All rows but the first from `python3 scripts/check-audit-bindings.py --json`. Four trees, four
+answers, and nothing in the body to tell them apart. The last two are three commits apart and were
+measured hours apart while *this page* was being written — which is the honest scale of the problem:
+the figure moves faster than the item that quotes it.
+
+The direction of `#53`'s argument survived — the ledger was *larger* than claimed, not smaller — so
+the fix did not depend on the difference. The cost was that every figure had to be re-derived before
+any could be trusted, and a reviewer reading the item at merge time saw numbers matching nothing.
 
 Note also what the second claim counted. The tool reports `excused`; the body described "the
 ledger". Those were the same number once and are not now — the ledger became a directory of
-per-cycle files, and the tool's own output grew `superseded`, `dormant` and `obsolete` alongside
+per-cycle files, and the tool's output grew `superseded`, `dormant` and `obsolete` alongside
 `excused`. A body quoting `excused` from the tool would have aged into a different number; a body
 describing "the ledger" aged into a different *question*.
 
@@ -123,7 +190,8 @@ Nothing computes this. `scripts/fsgg-coord lint` fails an item with no usable `P
 no opinion about `Measured-at:`; adding or omitting the line changes no gate's verdict, and no CI
 target reads it.
 
-What catches a missing or stale pin is a reader re-running the quoted command — which is what caught
-both recorded instances. Writing the rule down makes that re-run cheap and makes its absence
-visible; it does not make it automatic. A rule that presents itself as a gate is a failure this
-repository files against often, and this is deliberately not one.
+What catches a missing, unreachable or stale pin is a reader re-running the quoted command — which
+is what caught every recorded instance, including the two `rogue3#77` citations above. Writing the
+rule down makes that re-run cheap and its absence visible; it does not make it automatic. A rule
+that presents itself as a gate is a failure this repository files against often, and this is
+deliberately not one.
