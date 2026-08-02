@@ -62,7 +62,7 @@ let private performanceIntentSeed: PerformanceIntentDeclaration =
       TargetFps = 60
       WorkloadIds = []
       WorkloadDefinitionDigests = []
-      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 820 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition carrying a departed-room shell, four directional doorways per room with one room-wall shell of up to eight solid slabs the player also sweeps, a hidden wall staying unbroken and eight doorway-sensor examinations per frame, six positioned floor pickups scanned twice per frame, and all five pre-M6 visuals"
+      MaximumExpectedScale = "20 generated floor rooms plus 40 live player shots, 30 combat actors spanning all eight kinds clustered on the player, 120 enemy bullets, 60 M5 decisions/frame, nine placed obstacles covering all five kinds of which 8 block movement and 7 also block shots, three deterministic shop slots, 740 wall primitives, 2,100 combat candidates, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition carrying a departed-room shell, four directional doorways per room with one room-wall shell of up to eight solid slabs the player also sweeps, a hidden wall staying unbroken and eight doorway-sensor examinations per frame, six positioned floor pickups scanned twice per frame, and all five pre-M6 visuals. Board item #20 removed the pre-M5 world-state generation, so the free-floating static-AABB list and the 30-enemy legacy list are gone and their scale is carried by the M5 obstacles and actors that replaced them"
       MaxP95Ms = 16.67m
       MaxP99Ms = 25.0m
       MaxCatchUpFrames = 0
@@ -228,8 +228,8 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "floor-generation" ] }
       { Id = "collision.shot-wall-queries"
         Category = Simulation
-        ScaleSource = "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once and perform two player-axis casts plus four slide contact folds against 8 stable AABBs and, from M13, the 7 solid wall slabs of the room shell (four walls, three of them split by a passable doorway; the fourth carries a hidden wall, which stays solid)"
-        MaximumExpected = 820
+        ScaleSource = "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once against the 7 shot-blocking rects of the room's obstacles, and perform two player-axis casts plus four slide contact folds against all 8 movement-blocking rects and, from M13, the 7 solid wall slabs of the room shell (four walls, three of them split by a passable doorway; the fourth carries a hidden wall, which stays solid). Board item #20 moved this from 820: the collider set is derived from Model.M5Obstacles now, so the shot pass-through filter finally subtracts the Pit the player still collides with - the old free-floating rect list could never match a derived rect and left that filter a no-op"
+        MaximumExpected = 740
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "simulation.homing-target-considerations"
@@ -240,7 +240,7 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "state.static-obstacles"
         Category = Simulation
-        ScaleSource = "Model.Obstacles exact live count"
+        ScaleSource = "blockingObstacleRects Model.M5Obstacles exact count: the grounded-blocking projection the player sweep and the shot-wall filter iterate"
         MaximumExpected = 8
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
@@ -252,7 +252,7 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "state.live-enemies"
         Category = Simulation
-        ScaleSource = "Model.Enemies exact live count"
+        ScaleSource = "Model.M5Enemies exact live count (HitPoints > 0)"
         MaximumExpected = 30
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
@@ -282,8 +282,8 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "state.m5-obstacles"
         Category = Simulation
-        ScaleSource = "Model.M5Obstacles exact count includes all five kinds"
-        MaximumExpected = 5
+        ScaleSource = "Model.M5Obstacles exact count: nine placed obstacles spanning all five kinds, eight of which block movement and seven of which also block shots"
+        MaximumExpected = 9
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "state.m5-shop-slots"
@@ -300,8 +300,8 @@ let performanceCostDrivers =
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "collision.combat-candidates"
         Category = Simulation
-        ScaleSource = "Model.TotalCombatCandidates delta: two fixed steps query 37 spatially overlapping retained shots x 30 enemies, 30 player-contact candidates, and all 120 bullet-player broadphase candidates; all 40 shots still traverse movement/wall/homing"
-        MaximumExpected = 2520
+        ScaleSource = "Model.TotalCombatCandidates delta: two fixed steps query 30 spatially overlapping retained shots x 30 enemies, 30 player-contact candidates, and all 120 bullet-player broadphase candidates; all 40 shots still traverse movement/wall/homing. Board item #20 moved this from 2520: the enemy population is a spawnable roster clustered on the player now, with radii 8..22 in place of 30 uniform 64-unit discs no floor can produce, so fewer shots are retained past their pierce budget"
+        MaximumExpected = 2100
         VisualElement = None
         Disposition = RequiredIn [ "maximum-content" ] }
       { Id = "scene.player"
@@ -931,9 +931,9 @@ let private observeCostScale visualCounts driverId routed beforeModel afterModel
         | "generation.floor-room-budget", _, _ -> afterModel.Floor.Rooms.Count
         | "collision.shot-wall-queries", _, _ -> afterModel.TotalWallQueries - beforeModel.TotalWallQueries
         | "simulation.homing-target-considerations", _, _ -> afterModel.TotalHomingQueries - beforeModel.TotalHomingQueries
-        | "state.static-obstacles", _, _ -> afterModel.Obstacles.Length
+        | "state.static-obstacles", _, _ -> (blockingObstacleRects afterModel.M5Obstacles).Length
         | "state.homing-targets", _, _ -> afterModel.HomingTargets.Length
-        | "state.live-enemies", _, _ -> afterModel.Enemies |> List.filter (fun enemy -> enemy.HitPoints > 0.0) |> List.length
+        | "state.live-enemies", _, _ -> afterModel.M5Enemies |> List.filter (fun (enemy: Rogue3.Entities.EnemyActor) -> enemy.HitPoints > 0.0) |> List.length
         | "state.enemy-bullets", _, _ -> afterModel.EnemyBullets |> List.filter(fun bullet->bullet.Id<=120) |> List.length
         | "projectiles.m5-boss-emitted", _, _ -> afterModel.M5BossBulletEmissions - beforeModel.M5BossBulletEmissions
         | "state.m5-enemies", _, _ -> afterModel.M5Enemies.Length
@@ -1278,17 +1278,8 @@ let private maximumShotHistory =
         |> List.exactlyOne
         |> fun shot -> { shot with Pierce = 30; HitsRemaining = 31 })
 
-let private maximumObstacles: SimRect list =
-    [ for index in 0 .. 7 -> { X = 80.0 + float index * 140.0; Y = 24.0; Width = 32.0; Height = 32.0 } ]
-
 let private maximumTargets =
     [ for index in 0 .. 29 -> { Id = index + 1; Position = vec2 (644.0 + float (index % 3)) (360.0 + float (index % 3)) } ]
-
-let private maximumEnemies =
-    maximumTargets
-    |> List.map (fun target ->
-        { Id = target.Id; Position = target.Position; Velocity = zero; Radius = 64.0
-          HitPoints = 10000.0; ContactDamage = 0; LastContactTick = None; HitFlashTicks = 0 })
 
 let private maximumEnemyBullets =
     [ for index in 0 .. 119 ->
@@ -1296,15 +1287,48 @@ let private maximumEnemyBullets =
         // by strict circleContact, so all 120 candidates remain stable across both fixed steps.
         { Id = index + 1; Position = add initialModel.PlayerPosition (vec2 16.0 0.0); Velocity=zero; Radius = 3.0; Damage = 1;Homing=0.;AgeTicks=0 } ]
 
+/// Board item #20: these 30 actors are the workload's ONLY enemy population now. The legacy list of
+/// 30 discs that used to carry the combat broadphase beside them is gone, and reproducing what that
+/// list measured needs both of the devices it used, restated over actors a floor can actually spawn.
+///
+/// POSITION is the first. `collision.combat-candidates` measures the retained shots'
+/// `SpatialGrid.queryRadius` against the enemy population, and every retained shot sits at the
+/// player's start. The legacy discs sat on the player and bought their reach with a 64-unit radius no
+/// floor can spawn; a real roster tops out at `Brute` 22, so the actors are placed in the same tight
+/// cluster on the player instead. At their old spread positions the driver collapsed from 2520 to
+/// 310 — the workload stopped measuring the thing it exists to measure. The cluster is also the state
+/// production converges to, since every kind in the roster seeks the player, so it is the honest
+/// maximum rather than a contrivance.
+///
+/// HIT POINTS are the second, and are why the first attempt at this fixture read `state.live-enemies`,
+/// `state.m5-enemies` and `ai.m5-decisions` as 0: forty piercing shots sitting on the cluster kill a
+/// floor-6 roster outright inside the first sampled step, and a population that dies is a population
+/// that stops being measured. The legacy list carried 10000 hit points for exactly this reason. Same
+/// device, same value, now on the actor — the workload measures the broadphase SCAN, not a kill, so
+/// every actor must survive the frames it is counted in, which is the rule the M13 floor-pickup
+/// fixture states in the same words a few fields below.
 let private maximumM5Enemies =
     [ for index in 0 .. 29 ->
         let kind = Rogue3.Entities.roster.[index % Rogue3.Entities.roster.Length]
-        Rogue3.Entities.spawn 6 (1000+index) kind (vec2 (100.0+float(index%10)*80.0) (100.0+float(index/10)*100.0)) ]
+        { Rogue3.Entities.spawn 6 (1000+index) kind (vec2 (644.0+float(index%3)) (360.0+float(index%3))) with
+            HitPoints = 10000.0 } ]
 
+/// Board item #20: the player's static collider set is DERIVED from `M5Obstacles` now, so the
+/// maximum-content fixture places real obstacles instead of carrying a free-floating rect list
+/// beside them. Nine obstacles at distinct positions spanning all five kinds: eight block movement
+/// (everything but `Spikes`) and seven of those also block shots (`Pit` does not). The old fixture
+/// could not exercise the shot pass-through filter at all — its eight legacy rects were 32x32 at
+/// hand-written coordinates and could never equal a 40x40 rect derived from an M5 obstacle, so the
+/// filter was a no-op in the workload that is supposed to measure it.
 let private maximumM5Obstacles =
     [ Rogue3.Entities.ObstacleKind.Rock; Rogue3.Entities.ObstacleKind.TintedRock
-      Rogue3.Entities.ObstacleKind.Pot; Rogue3.Entities.ObstacleKind.Spikes; Rogue3.Entities.ObstacleKind.Pit ]
-    |> List.mapi (fun index kind -> Rogue3.Entities.obstacle kind index)
+      Rogue3.Entities.ObstacleKind.Pot; Rogue3.Entities.ObstacleKind.Rock
+      Rogue3.Entities.ObstacleKind.TintedRock; Rogue3.Entities.ObstacleKind.Pot
+      Rogue3.Entities.ObstacleKind.Rock; Rogue3.Entities.ObstacleKind.Pit
+      Rogue3.Entities.ObstacleKind.Spikes ]
+    |> List.mapi (fun index kind ->
+        Rogue3.Entities.obstacle kind index
+        |> Rogue3.Entities.obstacleAt (vec2 (100.0 + float index * 140.0) 24.0))
 
 let private maximumM5ShopSlots =
     let slots,_,_ = Rogue3.Entities.generateShop (FS.GG.Game.Core.Rng.ofSeed 0xA55AUL) (Rogue3.Entities.itemPool [])
@@ -1319,9 +1343,7 @@ let private maximumContentModel () =
             TotalShotSpawns = maximumShotSpawnHistory
             NextShotId = maximumShotSpawnHistory + 1
             PlayerStats = { basePlayerStats with Homing = 1.0; Multishot = 3; Pierce = 30 }
-            Obstacles = maximumObstacles
             HomingTargets = maximumTargets
-            Enemies = maximumEnemies
             EnemyBullets = maximumEnemyBullets
             Bombs = [ { Id=9000;Position=vec2 700.0 390.0;FuseTicks=10000 } ]
             M5Enemies = maximumM5Enemies
@@ -1479,7 +1501,7 @@ let expectedWorkloads =
         CostDriverIds = [ "simulation.fixed-step"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "26d191e813857d587638bd1acfb71ee26a7c5899aeabf0b030855f94eaa15219" }
+        Authorship = Authored "c211b9b3c1f7cd060e832b9fbe69c7edf73726a199c9a1e0bb1bbd0728fb20b5" }
       // WORKLOAD-SOURCE-END idle
       // WORKLOAD-SOURCE-BEGIN movement-aiming
       { Id = "movement-aiming"
@@ -1512,7 +1534,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "0ec57072d9fc208dfd952e3d4c64c215ae83c622ef58a9c868658d1e4b44093d" }
+        Authorship = Authored "7c1a3b2688049cc89425ad194c001fcbd82aee1d0b209a89c1e31548a4b6ef6f" }
       // WORKLOAD-SOURCE-END movement-aiming
       // WORKLOAD-SOURCE-BEGIN firing
       { Id = "firing"
@@ -1551,7 +1573,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "64df35977fec09861b32a24bb5d3430151c8c5661c97de8efbe1480f80de2611" }
+        Authorship = Authored "d9853351acbbefbae639a994bd50b8b5d35396cd63ed4fd0cd4c9771d101c99e" }
       // WORKLOAD-SOURCE-END firing
       // WORKLOAD-SOURCE-BEGIN effects-fog
       { Id = "effects-fog"
@@ -1578,7 +1600,7 @@ let expectedWorkloads =
               "scene.player-invulnerable"; "scene.player-dodge-roll" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "94f5fd39ee1ed3279d651685d72dc713bb156a63ea48531858056ab1c61f1bde" }
+        Authorship = Authored "62b4a8cb66611cd6129874fdb1c2d7491513944cd9be7f8f7e37dab3d9e26620" }
       // WORKLOAD-SOURCE-END effects-fog
       // WORKLOAD-SOURCE-BEGIN floor-generation
       { Id = "floor-generation"
@@ -1608,7 +1630,7 @@ let expectedWorkloads =
         CostDriverIds = [ "generation.floor-room-budget"; "scene.player"; "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "cbf8fefc5c63b09de9a02ea2db630fd5de0b4039f8513f9478bc78f2749e8b07" }
+        Authorship = Authored "5805446acf1c841bb3a6d171f28af4c38776642f37933a17aa03962bcf9546bd" }
       // WORKLOAD-SOURCE-END floor-generation
       // WORKLOAD-SOURCE-BEGIN maximum-content
       { Id = "maximum-content"
@@ -1702,7 +1724,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "77c9c0030c0542a979598957740a5977663dddc58ae585b79dd6b80589894e77" }
+        Authorship = Authored "1206d6b5276ebfbebf67b805ee300d0a7856b799064f088b6759a87a81b846ab" }
       // WORKLOAD-SOURCE-END maximum-content
       // WORKLOAD-SOURCE-BEGIN secret-reveal
       { Id = "secret-reveal"
@@ -1725,7 +1747,7 @@ let expectedWorkloads =
               "scene.floor-background" ]
         Budget = Some normalBudget
         BlockingDebt = None
-        Authorship = Authored "c3bf021ad4430207580a648a4046a53c114037dfbeee90587584cb08c7293975" }
+        Authorship = Authored "908bea63e81ffc2e10e85b8fc0a23cbfd8f197c7324e6c01962eabc50d6a02f1" }
       // WORKLOAD-SOURCE-END secret-reveal
       ]
 
