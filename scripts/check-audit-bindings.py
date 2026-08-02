@@ -24,12 +24,18 @@ and also fail, which stops the ledger from rotting the way the digests did.
 
 Remedies, in preference order:
 
-  1. Rebind the audit -- re-run the feedback tool for that cycle so the audit
-     pins the bytes that now exist.
+  1. Rebind the audit, so it pins the bytes that now exist.  NOTE: feedback-tool
+     .fsx has no `rebind` subcommand -- it offers `digest <file>` for one hash at
+     a time, so this means recomputing and pasting each `sha256` by hand.  It is
+     still the right answer whenever the cited evidence still supports the
+     finding.
   2. Excuse it explicitly:
        python3 scripts/check-audit-bindings.py --grandfather --reason "<why>"
      which rewrites the ledger from the current violations and prunes obsolete
      entries.  The diff is the record of what was excused and why.
+
+Because (1) has no tooling, expect (2) to be the common path until a rebind
+command exists.  That is a known weakness, not the intended design.
 
 Digest rule: sha256 over the file's text with CRLF/CR normalized to LF, encoded
 UTF-8.  This is byte-for-byte the rule the feedback tool applies
@@ -44,8 +50,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import ntpath
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 from typing import Any
@@ -70,8 +78,14 @@ LEDGER_NOTE = (
 
 
 def digest_text(raw: bytes) -> str:
-    """sha256 of newline-normalized UTF-8 text -- the feedback tool's rule."""
-    text = raw.decode("utf-8-sig", errors="strict")
+    """sha256 of newline-normalized UTF-8 text -- the feedback tool's rule.
+
+    `errors="replace"` matches .NET: `File.ReadAllText` substitutes U+FFFD for
+    undecodable bytes and never throws. Being stricter here would mean the
+    first audit citing a rendered PNG as `file:` evidence crashes the gate with
+    a traceback -- and crashes `--grandfather` too, leaving no way out.
+    """
+    text = raw.decode("utf-8-sig", errors="replace")
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -83,6 +97,30 @@ def digest_file(path: str) -> str | None:
         return digest_text(handle.read())
 
 
+class UsageError(Exception):
+    """An input the checker cannot interpret -- distinct from a violation."""
+
+
+def resolve_inside(root: str, rel: str) -> str | None:
+    """Absolute path of `rel` under `root`, or None when it escapes.
+
+    Mirrors FeedbackReportTool.resolveEvidencePath: reject absolute paths, and
+    reject anything that resolves outside the workspace -- including through a
+    symlink, which is why both sides are realpath'd. Without this, an audit
+    could bind `file:../outside.txt` and the checker would happily digest a
+    file the repository does not contain and call the binding fresh.
+    """
+    if not rel or os.path.isabs(rel) or ntpath.isabs(rel):
+        return None
+    root_real = os.path.realpath(root)
+    candidate = os.path.realpath(os.path.join(root_real, *rel.split("/")))
+    if candidate == root_real:
+        return None
+    if not candidate.startswith(root_real + os.sep):
+        return None
+    return candidate
+
+
 # --------------------------------------------------------------------------
 # model
 # --------------------------------------------------------------------------
@@ -91,13 +129,14 @@ def digest_file(path: str) -> str | None:
 class Binding:
     """One (audit, kind, locator) -> pinned digest pin."""
 
-    __slots__ = ("audit", "kind", "locator", "path", "bound", "actual")
+    __slots__ = ("audit", "kind", "locator", "path", "abspath", "bound", "actual")
 
-    def __init__(self, audit: str, kind: str, locator: str, path: str, bound: str | None):
+    def __init__(self, audit: str, kind: str, locator: str, path: str, abspath: str, bound: str | None):
         self.audit = audit
         self.kind = kind
         self.locator = locator
         self.path = path
+        self.abspath = abspath
         self.bound = bound
         self.actual: str | None = None
 
@@ -123,66 +162,144 @@ def _rel(root: str, path: str) -> str:
     return os.path.relpath(path, root).replace(os.sep, "/")
 
 
-def collect_bindings(root: str) -> list[Binding]:
-    """Every file binding declared by every audit under feedback/audits/."""
+def collect_bindings(root: str) -> tuple[list[Binding], list[dict[str, Any]]]:
+    """Every file binding declared by every audit, plus every malformed audit.
+
+    Shape is checked strictly. An audit whose `findings` or `checkedEvidence`
+    is absent, renamed, or not an array would otherwise contribute ZERO
+    bindings and pass silently -- which turns this whole gate into a no-op that
+    a single mistyped key can open. Malformed structure is a violation, and one
+    the exceptions ledger cannot excuse: it pins no digest, so there is nothing
+    to excuse it against. Fix the audit.
+    """
     audit_dir = os.path.join(root, *AUDIT_GLOB_DIR.split("/"))
     bindings: list[Binding] = []
+    malformed: list[dict[str, Any]] = []
     if not os.path.isdir(audit_dir):
-        return bindings
+        return bindings, malformed
 
-    for name in sorted(os.listdir(audit_dir)):
-        if not name.endswith(AUDIT_SUFFIX):
-            continue
-        audit_abs = os.path.join(audit_dir, name)
+    def bad(audit_rel: str, where: str, why: str) -> None:
+        malformed.append(
+            {
+                "audit": audit_rel,
+                "kind": "structure",
+                "locator": where,
+                "path": "",
+                "boundSha256": "",
+                "observedSha256": MISSING,
+                "reason": why,
+            }
+        )
+
+    # Walk, not listdir: an audit filed in a subdirectory must not be invisible.
+    audit_files: list[str] = []
+    for current, _dirs, names in os.walk(audit_dir):
+        for name in names:
+            if name.endswith(AUDIT_SUFFIX):
+                audit_files.append(os.path.join(current, name))
+
+    for audit_abs in sorted(audit_files):
         audit_rel = _rel(root, audit_abs)
         with open(audit_abs, "rb") as handle:
             try:
                 doc: Any = json.loads(handle.read().decode("utf-8-sig"))
             except (ValueError, UnicodeDecodeError) as exc:
-                raise SystemExit(f"{audit_rel}: not readable as JSON: {exc}")
+                bad(audit_rel, "<document>", f"not readable as JSON: {exc}")
+                continue
         if not isinstance(doc, dict):
-            raise SystemExit(f"{audit_rel}: audit root must be a JSON object")
+            bad(audit_rel, "<document>", "audit root must be a JSON object")
+            continue
 
         report = doc.get("report")
-        if isinstance(report, str) and report.strip():
+        if not isinstance(report, str) or not report.strip():
+            bad(audit_rel, "report", "audit must name the report it binds")
+        else:
             rel = report.strip()
-            bindings.append(
-                Binding(audit_rel, "report", f"file:{rel}", rel, _sha(doc.get("reportSha256")))
-            )
+            resolved = resolve_inside(root, rel)
+            if resolved is None:
+                bad(
+                    audit_rel,
+                    f"report {rel}",
+                    "report path must be workspace-relative and stay inside the workspace",
+                )
+            else:
+                bindings.append(
+                    Binding(
+                        audit_rel, "report", f"file:{rel}", rel, resolved,
+                        _sha(doc.get("reportSha256")),
+                    )
+                )
 
         findings = doc.get("findings")
-        if isinstance(findings, list):
-            for finding in findings:
-                if not isinstance(finding, dict):
+        if not isinstance(findings, list):
+            bad(
+                audit_rel,
+                "findings",
+                f"'findings' must be an array, found {_typename(findings)} -- an audit whose "
+                "findings cannot be read binds nothing and would pass silently",
+            )
+            continue
+
+        for index, finding in enumerate(findings):
+            if not isinstance(finding, dict):
+                bad(audit_rel, f"findings[{index}]", "each finding must be a JSON object")
+                continue
+            fid = finding.get("id") if isinstance(finding.get("id"), str) else f"findings[{index}]"
+            checks = finding.get("checkedEvidence")
+            if not isinstance(checks, list):
+                bad(
+                    audit_rel,
+                    f"{fid}.checkedEvidence",
+                    f"'checkedEvidence' must be an array, found {_typename(checks)} -- absent, "
+                    "renamed or mistyped, this finding's file bindings vanish unnoticed",
+                )
+                continue
+            for position, check in enumerate(checks):
+                if not isinstance(check, dict):
+                    bad(audit_rel, f"{fid}.checkedEvidence[{position}]", "each entry must be a JSON object")
                     continue
-                checks = finding.get("checkedEvidence")
-                if not isinstance(checks, list):
-                    continue
-                for check in checks:
-                    if not isinstance(check, dict):
-                        continue
-                    locator = check.get("locator")
-                    if not isinstance(locator, str):
-                        continue
-                    locator = locator.strip()
-                    if not locator.startswith("file:"):
-                        continue
-                    rel = locator[len("file:") :].strip()
-                    if not rel or os.path.isabs(rel):
-                        continue
-                    bindings.append(
-                        Binding(audit_rel, "evidence", f"file:{rel}", rel, _sha(check.get("sha256")))
+                locator = check.get("locator")
+                if not isinstance(locator, str) or not locator.strip():
+                    bad(
+                        audit_rel,
+                        f"{fid}.checkedEvidence[{position}]",
+                        f"'locator' must be a non-empty string, found {_typename(locator)}",
                     )
+                    continue
+                locator = locator.strip()
+                if not locator.startswith("file:"):
+                    continue  # command:/issue: locators pin no bytes; nothing to check
+                rel = locator[len("file:") :].strip()
+                resolved = resolve_inside(root, rel)
+                if resolved is None:
+                    bad(
+                        audit_rel,
+                        f"{fid} {locator}",
+                        "file locator must be a non-empty workspace-relative path that stays "
+                        "inside the workspace -- an unresolvable locator would otherwise skip "
+                        "the binding silently",
+                    )
+                    continue
+                bindings.append(
+                    Binding(
+                        audit_rel, "evidence", f"file:{rel}", rel, resolved,
+                        _sha(check.get("sha256")),
+                    )
+                )
 
     for binding in bindings:
-        binding.actual = digest_file(os.path.join(root, *binding.path.split("/")))
+        binding.actual = digest_file(binding.abspath)
 
     # One audit routinely cites the same file at the same digest from several
     # findings. That is one binding, not several.
     unique: dict[tuple[str, str, str, str], Binding] = {}
     for binding in bindings:
         unique.setdefault(binding.key, binding)
-    return sorted(unique.values(), key=Binding.sort_key)
+    return sorted(unique.values(), key=Binding.sort_key), malformed
+
+
+def _typename(value: Any) -> str:
+    return "nothing" if value is None else type(value).__name__
 
 
 def _sha(value: Any) -> str | None:
@@ -212,29 +329,29 @@ def load_ledger(root: str) -> dict[tuple[str, str, str, str], dict[str, str]]:
         try:
             doc = json.loads(handle.read().decode("utf-8-sig"))
         except (ValueError, UnicodeDecodeError) as exc:
-            raise SystemExit(f"{LEDGER_RELPATH}: not readable as JSON: {exc}")
+            raise UsageError(f"{LEDGER_RELPATH}: not readable as JSON: {exc}")
     if not isinstance(doc, dict):
-        raise SystemExit(f"{LEDGER_RELPATH}: root must be a JSON object")
+        raise UsageError(f"{LEDGER_RELPATH}: root must be a JSON object")
     entries = doc.get("entries")
     if entries is None:
         entries = []
     if not isinstance(entries, list):
-        raise SystemExit(f"{LEDGER_RELPATH}: 'entries' must be a list")
+        raise UsageError(f"{LEDGER_RELPATH}: 'entries' must be a list")
 
     required = ("audit", "kind", "locator", "boundSha256", "observedSha256", "reason")
     out: dict[tuple[str, str, str, str], dict[str, str]] = {}
     for index, entry in enumerate(entries):
         if not isinstance(entry, dict):
-            raise SystemExit(f"{LEDGER_RELPATH}: entry {index} must be an object")
+            raise UsageError(f"{LEDGER_RELPATH}: entry {index} must be an object")
         missing = [field for field in required if not entry.get(field)]
         if missing:
-            raise SystemExit(
+            raise UsageError(
                 f"{LEDGER_RELPATH}: entry {index} is missing required field(s): {', '.join(missing)}"
             )
         normalized = {field: str(entry[field]) for field in required}
         key = entry_key(normalized)
         if key in out:
-            raise SystemExit(f"{LEDGER_RELPATH}: duplicate entry for {key[0]} {key[2]}")
+            raise UsageError(f"{LEDGER_RELPATH}: duplicate entry for {key[0]} {key[2]}")
         out[key] = normalized
     return out
 
@@ -244,9 +361,13 @@ def write_ledger(root: str, entries: list[dict[str, str]]) -> None:
     doc = {"grandfatherSchema": LEDGER_SCHEMA, "note": LEDGER_NOTE, "entries": ordered}
     path = ledger_path(root)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+    # Temp + rename: an interrupted rewrite must not truncate the ledger, which
+    # is the only record of what was excused.
+    temp = path + ".tmp"
+    with open(temp, "w", encoding="utf-8", newline="\n") as handle:
         json.dump(doc, handle, indent=2, sort_keys=False, ensure_ascii=True)
         handle.write("\n")
+    os.replace(temp, path)
 
 
 # --------------------------------------------------------------------------
@@ -255,12 +376,12 @@ def write_ledger(root: str, entries: list[dict[str, str]]) -> None:
 
 
 def evaluate(root: str) -> dict[str, Any]:
-    bindings = collect_bindings(root)
+    bindings, malformed = collect_bindings(root)
     ledger = load_ledger(root)
 
     fresh: list[Binding] = []
     excused: list[dict[str, str]] = []
-    violations: list[dict[str, Any]] = []
+    violations: list[dict[str, Any]] = list(malformed)
     used_keys: set[tuple[str, str, str, str]] = set()
 
     for binding in bindings:
@@ -296,8 +417,9 @@ def evaluate(root: str) -> dict[str, Any]:
 
     return {
         "root": root,
-        "audits": len({b.audit for b in bindings}),
+        "audits": len({b.audit for b in bindings} | {m["audit"] for m in malformed}),
         "bindings": len(bindings),
+        "malformed": len(malformed),
         "fresh": len(fresh),
         "excused": len(excused),
         "excusedEntries": excused,
@@ -331,10 +453,12 @@ def grandfather(root: str, reason: str) -> dict[str, Any]:
     # only newly stale bindings pick up the new --reason. Anything that excuses
     # nothing at all is simply not re-emitted, which is the prune.
     entries: list[dict[str, str]] = [dict(entry) for entry in result["excusedEntries"]]
+    unexcusable: list[dict[str, Any]] = []
     for violation in result["violations"]:
         if not violation["boundSha256"]:
-            # An audit that pins no digest at all cannot be excused -- there is
-            # nothing to excuse it against. Rebind that audit.
+            # A malformed audit, or one that pins no digest at all, cannot be
+            # excused -- there is nothing to excuse it against. Fix the audit.
+            unexcusable.append(violation)
             continue
         entries.append(
             {
@@ -353,6 +477,7 @@ def grandfather(root: str, reason: str) -> dict[str, Any]:
         "entries": len(entries),
         "carriedForward": sum(1 for entry in entries if previous.get(entry_key(entry)) == entry),
         "pruned": len([key for key in previous if key not in kept]),
+        "notExcusable": unexcusable,
     }
 
 
@@ -362,7 +487,8 @@ def grandfather(root: str, reason: str) -> dict[str, Any]:
 
 
 def report_text(result: dict[str, Any], stream) -> None:
-    violations = result["violations"]
+    malformed = [v for v in result["violations"] if v["kind"] == "structure"]
+    violations = [v for v in result["violations"] if v["kind"] != "structure"]
     obsolete = result["obsoleteExceptions"]
 
     print(
@@ -370,6 +496,21 @@ def report_text(result: dict[str, Any], stream) -> None:
         "{excused} explicitly excused".format(**result),
         file=stream,
     )
+
+    if malformed:
+        print(
+            f"\naudit-bindings: {len(malformed)} MALFORMED AUDIT LOCATION(S) "
+            "-- these bind nothing and would otherwise pass silently:",
+            file=stream,
+        )
+        for entry in malformed:
+            print(f"    {entry['audit']}  {entry['locator']}", file=stream)
+            print(f"      {entry['reason']}", file=stream)
+        print(
+            "\n  The exceptions ledger cannot excuse these: they pin no digest, so there is\n"
+            "  nothing to excuse them against. Repair the audit document.",
+            file=stream,
+        )
 
     if violations:
         print(
@@ -402,14 +543,15 @@ def report_text(result: dict[str, Any], stream) -> None:
 
     if violations or obsolete:
         print(
-            "\naudit-bindings: fix by REBINDING the audit (re-run the feedback tool for that\n"
-            "cycle so it pins the bytes that now exist), or by excusing each one EXPLICITLY:\n"
+            "\naudit-bindings: fix by REBINDING the audit -- recompute each stale sha256 so it\n"
+            "pins the bytes that now exist (feedback-tool.fsx has no rebind subcommand; use\n"
+            "`-- digest <file>` per file) -- or by excusing each one EXPLICITLY:\n"
             '    python3 scripts/check-audit-bindings.py --grandfather --reason "<why>"\n'
             "then commit the ledger. An exception is pinned to one observed digest, so the\n"
             "next change to the same file fails again.",
             file=stream,
         )
-    else:
+    elif not malformed:
         print("audit-bindings: OK -- every audit binding is fresh or explicitly excused.", file=stream)
 
 
@@ -423,6 +565,14 @@ def _write(root: str, rel: str, text: str) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(text)
+
+
+def _bad_root(script: str) -> int:
+    return subprocess.run(
+        [sys.executable, script, "--root", os.path.join(tempfile.gettempdir(), "no-such-root-xyz")],
+        capture_output=True,
+        text=True,
+    ).returncode
 
 
 def _make_audit(root: str, name: str, report_rel: str, evidence: list[str]) -> None:
@@ -533,15 +683,39 @@ def selftest() -> int:
         r = evaluate(root)
         check("rebinding the audit clears the violation", r["ok"])
 
-        # 10. CRLF is normalized the way the feedback tool normalizes it
+        # 10. the digest rule matches FeedbackReportTool.sha256Text
+        #     Golden vector for "a\nb\n", produced by the F# tool itself from
+        #     CRLF input:
+        #       printf 'a\r\nb\r\n' > f
+        #       dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/\
+        #         feedback-tool.fsx -- digest f
+        #     Anchoring to that constant, rather than to digest_text itself, is
+        #     what makes this a cross-tool claim instead of a tautology.
+        golden = "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+        check("the digest rule matches a golden vector", digest_text(b"a\nb\n") == golden)
         crlf = os.path.join(root, "src", "crlf.fs")
         os.makedirs(os.path.dirname(crlf), exist_ok=True)
         with open(crlf, "wb") as handle:
-            handle.write(b"let a = 1\r\n")
+            handle.write(b"a\r\nb\r\n")
+        check("CRLF digests identically to LF", digest_file(crlf) == golden)
+        with open(crlf, "wb") as handle:
+            handle.write(b"a\rb\r")
+        check("bare CR digests identically to LF", digest_file(crlf) == golden)
+        with open(crlf, "wb") as handle:
+            handle.write(b"\xef\xbb\xbfa\nb\n")
+        check("a UTF-8 BOM is stripped, as File.ReadAllText strips it", digest_file(crlf) == golden)
+        with open(crlf, "wb") as handle:
+            handle.write(b"\x89PNG\r\n\x1a\n\xff\xfe binary")
+        undecodable = None
+        try:
+            undecodable = digest_file(crlf)
+        except UnicodeDecodeError:
+            undecodable = None
         check(
-            "CRLF and LF digest identically",
-            digest_file(crlf) == digest_text(b"let a = 1\n"),
+            "a non-UTF-8 bound file digests instead of crashing",
+            isinstance(undecodable, str) and len(undecodable) == 64,
         )
+        os.remove(crlf)
 
         # 11. a second audit binding the same file is reported independently
         _make_audit(root, "cycle-2", "feedback/cycle-2.md", ["src/thing.fs"])
@@ -577,7 +751,91 @@ def selftest() -> int:
             evaluate(root)["ok"] and len(load_ledger(root)) == before - 1,
         )
 
-        # 14. a hand-written exception missing a reason is rejected
+        # 14. a malformed audit must FAIL, never bind nothing and pass
+        def mangle(mutate) -> dict[str, Any]:
+            """Write cycle-4 correctly, then break it, and evaluate."""
+            _write(root, "src/mangle.fs", "let d = 1\n")
+            _make_audit(root, "cycle-4", "feedback/cycle-4.md", ["src/mangle.fs"])
+            path = os.path.join(root, "feedback", "audits", "cycle-4.audit.json")
+            with open(path, encoding="utf-8") as handle:
+                doc = json.load(handle)
+            mutate(doc)
+            _write(root, "feedback/audits/cycle-4.audit.json", json.dumps(doc, indent=2) + "\n")
+            return evaluate(root)
+
+        baseline_ok = evaluate(root)["ok"]
+
+        def structural(mutate) -> bool:
+            r = mangle(mutate)
+            return not r["ok"] and any(v["kind"] == "structure" for v in r["violations"])
+
+        check("a correctly formed extra audit keeps the tree green", baseline_ok and mangle(lambda d: d)["ok"])
+        check(
+            "a finding with checkedEvidence REMOVED fails",
+            structural(lambda d: d["findings"][0].pop("checkedEvidence")),
+        )
+        check(
+            "a finding with checkedEvidence RENAMED fails",
+            structural(lambda d: d["findings"][0].update(
+                {"checked_evidence": d["findings"][0].pop("checkedEvidence")})),
+        )
+        check(
+            "checkedEvidence that is not an array fails",
+            structural(lambda d: d["findings"][0].update({"checkedEvidence": {}})),
+        )
+        check("findings that is not an array fails", structural(lambda d: d.update({"findings": {}})))
+        check("a missing findings key fails", structural(lambda d: d.pop("findings")))
+        check("a missing report key fails", structural(lambda d: d.pop("report")))
+        check(
+            "an absolute file locator fails",
+            structural(lambda d: d["findings"][0]["checkedEvidence"][0].update(
+                {"locator": "file:/etc/passwd"})),
+        )
+        check(
+            "a non-string locator fails",
+            structural(lambda d: d["findings"][0]["checkedEvidence"][0].update({"locator": 7})),
+        )
+        # An escaping locator must never be silently skipped: that would let a
+        # one-token edit hide a stale binding behind exit 0.
+        outside = os.path.join(os.path.dirname(root), "audit-bindings-outside.txt")
+        with open(outside, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write("outside the workspace\n")
+        try:
+            check(
+                "a file: locator escaping the workspace fails",
+                structural(lambda d: d["findings"][0]["checkedEvidence"][0].update(
+                    {"locator": "file:../audit-bindings-outside.txt"})),
+            )
+            check(
+                "an escaping report path fails",
+                structural(lambda d: d.update({"report": "../audit-bindings-outside.txt"})),
+            )
+        finally:
+            os.remove(outside)
+        check(
+            "an empty file: locator fails",
+            structural(lambda d: d["findings"][0]["checkedEvidence"][0].update({"locator": "file:"})),
+        )
+        r = mangle(lambda d: d["findings"][0]["checkedEvidence"][0].pop("sha256"))
+        check(
+            "a file locator pinning no sha256 fails and cannot be excused",
+            not r["ok"]
+            and any("pins no sha256" in v["reason"] for v in r["violations"])
+            and grandfather(root, "selftest: unpinned")["notExcusable"] != [],
+        )
+        check("an audit that is not valid JSON fails",
+              (lambda: (_write(root, "feedback/audits/cycle-4.audit.json", "{not json\n"),
+                        evaluate(root))[1])()["ok"] is False)
+        check(
+            "--grandfather refuses to bless a malformed audit",
+            grandfather(root, "selftest: must not excuse structure")["notExcusable"] != []
+            and not evaluate(root)["ok"],
+        )
+        os.remove(os.path.join(root, "feedback", "audits", "cycle-4.audit.json"))
+        grandfather(root, "selftest: prune cycle-4")
+        check("removing the malformed audit restores green", evaluate(root)["ok"])
+
+        # 15. a hand-written exception missing a reason is rejected
         _write(
             root,
             LEDGER_RELPATH,
@@ -597,12 +855,53 @@ def selftest() -> int:
             )
             + "\n",
         )
-        rejected = False
-        try:
-            evaluate(root)
-        except SystemExit:
-            rejected = True
-        check("an exception without a reason is rejected", rejected)
+        def ledger_rejected() -> bool:
+            try:
+                evaluate(root)
+            except UsageError:
+                return True
+            return False
+
+        check("an exception without a reason is rejected", ledger_rejected())
+        # The previous fixture omitted boundSha256 too, so it passed even if
+        # only that field were required. Each required field gets its own case.
+        base_entry = {
+            "audit": "feedback/audits/cycle-1.audit.json",
+            "kind": "evidence",
+            "locator": "file:src/thing.fs",
+            "boundSha256": "0" * 64,
+            "observedSha256": "1" * 64,
+            "reason": "selftest",
+        }
+        for field in ("audit", "kind", "locator", "boundSha256", "observedSha256", "reason"):
+            entry = {k: v for k, v in base_entry.items() if k != field}
+            _write(
+                root,
+                LEDGER_RELPATH,
+                json.dumps({"grandfatherSchema": 1, "entries": [entry]}, indent=2) + "\n",
+            )
+            check(f"a ledger entry missing '{field}' is rejected", ledger_rejected())
+
+        # 16. the CLI surface: documented exit codes actually happen
+        script = os.path.abspath(__file__)
+
+        def cli(*argv: str) -> int:
+            return subprocess.run(
+                [sys.executable, script, "--root", root, *argv],
+                capture_output=True,
+                text=True,
+            ).returncode
+
+        check("a malformed ledger exits 2, not 1", cli() == 2)
+        os.remove(ledger_path(root))
+        check("--grandfather without --reason exits 2", cli("--grandfather") == 2)
+        check("--reason without --grandfather exits 2", cli("--reason", "x") == 2)
+        check("a nonexistent --root exits 2", _bad_root(script) == 2)
+        check("--grandfather via the CLI exits 0", cli("--grandfather", "--reason", "selftest: cli") == 0)
+        check("a clean tree exits 0", cli() == 0)
+        _write(root, "src/thing.fs", "let a = 99\n")
+        check("a stale binding exits 1", cli() == 1)
+        check("--json still exits 1 on violations", cli("--json") == 1)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -641,6 +940,10 @@ def main(argv: list[str]) -> int:
     if args.selftest:
         return selftest()
 
+    if args.reason and not args.grandfather:
+        print("audit-bindings: --reason has no effect without --grandfather", file=sys.stderr)
+        return 2
+
     root = os.path.abspath(args.root or default_root())
     if not os.path.isdir(root):
         print(f"audit-bindings: not a directory: {root}", file=sys.stderr)
@@ -658,7 +961,15 @@ def main(argv: list[str]) -> int:
                 f"audit-bindings: wrote {outcome['written']} with {outcome['entries']} "
                 f"exception(s); pruned {outcome['pruned']}."
             )
-        return 0
+            for entry in outcome["notExcusable"]:
+                print(
+                    f"audit-bindings: NOT excused (repair the audit): {entry['audit']} "
+                    f"{entry['locator']} -- {entry['reason']}",
+                    file=sys.stderr,
+                )
+        # A malformed audit is not something the ledger can absorb, so the
+        # rewrite does NOT report success while such a violation stands.
+        return 1 if outcome["notExcusable"] else 0
 
     result = evaluate(root)
     if args.json:
@@ -668,9 +979,18 @@ def main(argv: list[str]) -> int:
     return 0 if result["ok"] else 1
 
 
+def run(argv: list[str]) -> int:
+    """main() with the input-error class mapped to its documented exit code."""
+    try:
+        return main(argv)
+    except UsageError as error:
+        print(f"audit-bindings: {error}", file=sys.stderr)
+        return 2
+
+
 if __name__ == "__main__":
     try:
-        sys.exit(main(sys.argv[1:]))
+        sys.exit(run(sys.argv[1:]))
     except SystemExit:
         raise
     except OSError as error:  # pragma: no cover - defensive
