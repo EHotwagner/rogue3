@@ -1,0 +1,135 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3.md",
+  "reportSha256": "14178a4e2957c9cf371dfd56e27a5e488edc0cb7644641265b3582952330dd72",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate feedback/2026-08-01-Rogue3-8.md --audit feedback/audits/2026-08-01-Rogue3-8.audit.json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:docs/reports/2026-08-01-roguelike-dungeon-crawler-completion.md",
+          "result": "verified",
+          "sha256": "1025ae2bb3eb1faaa43f54ea78d3c203b42e8c8890279497f412c65c4bb6e248"
+        }
+      ],
+      "confidenceLimits": [
+        "Both critics independently re-derived 11-of-12 failing and 51 stale digests at 97a352a; both numbers reproduce exactly.",
+        "The per-cycle stale-digest counts measure the tree at 97a352a and establish nothing about whether those audits were accurate when their cycles were accepted; that is unrecoverable.",
+        "Scope was narrowed after critique: the false claim covered the validate --audit result only. The completion report's separate claim for validate-checkpoints and validate-feedback-state.py was not withdrawn and still stands.",
+        "Novelty was narrowed after critique: feedback/2026-08-01-Rogue3-12.md §4.14 is a full precedent for the mechanism including the coordinator-side occurrence, and §4.13 already published the 11-of-12 sweep and the -8=11 / -11=8 breakdown. Only the merged-false-claim consequence is new here, which is why the disposition is 'existing issue' rather than 'issue'.",
+        "The evidence file cited now contains the correction rather than the original false claim; the original text is reachable only at git show 3dbf7b3."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:scripts/fsgg-coord ready --repo EHotwagner/rogue3 --all --json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.claude/settings.json",
+          "result": "verified",
+          "sha256": "a33834dcd4fefce96e9663742fbdef5cb7c28909f5bc1349e49d7a3bc6445108"
+        }
+      ],
+      "confidenceLimits": [
+        "Both critics verified all three preconditions independently and confirmed the read returns [] on stdout with exit 0 and the governance warning only on stderr.",
+        "A draft claim that the skill's termination rule reads the empty result as a burned-down board was contradicted by the skill text and has been removed; work-board's host-loop and deep-detail both state an empty batch is not completion. The finding is narrowed to: no installed skill text covers a board that is readable but names no row for this repository.",
+        "The engine lists nine values, of which eight are repositories and cross-repo is a Repo Scope bucket."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:docs/roguelike-dungeon-crawler-roadmap.md",
+          "result": "verified",
+          "sha256": "071c767013d14a4e24c6c599a3a442814d7bc5ddd5686b5e40a1389a4d6a1ee0"
+        },
+        {
+          "locator": "file:readiness/010-m9-win-loss-permadeath/ship-verdict.json",
+          "result": "verified",
+          "sha256": "d551fab515b09608e5f1ae35feeafa156fb189cc398eef5dbb45b81a84f34af5"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/M9WinLossPermadeathTests.fs",
+          "result": "verified",
+          "sha256": "a5c77bbd3e910d570347f00c780c4ad40d5bc1eef553ee0545f23302f293b6bb"
+        }
+      ],
+      "confidenceLimits": [
+        "Both critics confirmed the work-roadmap brief requires no launch: playtest, screenshot, window and render return zero hits across the skill directory, and the delegated pnext-item and fs-gg-sdd-lifecycle return zero for launch and screenshot.",
+        "Both confirmed the four M9 record-update sub-claims are exact at lines 52-57.",
+        "Counts were reframed after critique as an as-of-M10 snapshot; at 97a352a there are twelve shipReady verdicts, 199 tests and 222 observed obligations.",
+        "A draft recurrence attribution to feedback/2026-08-01-Rogue3-12.md §4.1 was wrong and has been corrected: that finding concerns the journey action vocabulary and is owned by FS.GG.Game.Harness and fs-gg-playtest. The product-level cost is banked there and is deliberately not re-banked here, so this finding claims no avoidable cost of its own.",
+        "Two facts favouring the finding were added after critique (boss forced to HitPoints=1.0; bomb and RedHalfHearts=1 staged) and one counter-fact was added: the assertion runs through the real update reducer and real fixed-step collision, so M9's evidence line is accurate about the route."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:dotnet run --project src/Rogue3",
+          "result": "verified"
+        },
+        {
+          "locator": "command:dotnet build src/Rogue3/Rogue3.fsproj -c Debug",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "1acae987b6643464764bdff31134e00c1b992413320deeec726a4b9fdd367ae8"
+        }
+      ],
+      "confidenceLimits": [
+        "Both critics returned this finding incomplete against the draft, because the owner attribution rested on a stall neither could reproduce and the one discriminating experiment had not been run.",
+        "The discriminator was then run: dotnet run --project src/Rogue3, the exact inner command of build.fsx:277, exits 0 and opens a window with first-frame-presented=true. That is what makes the FAKE wrapper attribution supportable rather than assumed.",
+        "The stall itself still has no committed artifact. The zero-byte log lived in host scratch, not the repository, so the stall rests on author narration; only the discriminating comparison is reproducible by a reader.",
+        "Stall count was corrected from two to one after critique; the second launch succeeded."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git show --stat d626d0e",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git show --stat af8e515",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/audits/2026-08-01-Rogue3-12.audit.json",
+          "result": "verified",
+          "sha256": "1350139aa867c7635cddf2263269462b6471c52f4e4ec15084a728078168d409"
+        }
+      ],
+      "confidenceLimits": [
+        "The draft's central claim that the worker rebound every locator rather than only the four that failed was contradicted by its own diff: d626d0e changes four sha256 values over one path plus reportSha256, out of 26 file: locators. The finding was rewritten around what the diff does support.",
+        "A draft claim that CI had not reported at the first resumption was not supportable and has been removed.",
+        "The draft cited two files that record none of the claimed sequence; both critics returned that as claim-only. The evidence was replaced with the two commits that do show it.",
+        "The surviving pattern is the finding-capture: d626d0e adds the §4.13 and §4.14 entries in the same commit as the digest repair, and af8e515 fixes a §7 prose miscount an independent verifier caught. Neither critic disputed those.",
+        "No tracked artifact records the host resumptions themselves; that sequence rests on host narration and is not load-bearing for the pattern as now stated."
+      ]
+    }
+  ]
+}
