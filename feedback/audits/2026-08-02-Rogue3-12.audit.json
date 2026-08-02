@@ -1,0 +1,95 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-12.md",
+  "reportSha256": "922dbaccda4f19eb2424d69126b07de718d6e73534b55ad3e657e975e69ab136",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "command:./fake.sh -t Verify", "result": "verified" },
+        { "locator": "command:git check-ignore -v readiness/logs/Test.txt", "result": "verified" },
+        { "locator": "file:build.fsx", "result": "verified", "sha256": "e09f2e37851655a4a8d6fecbd30f45c6acdf72ff78a572b475841a2e25a503b3" },
+        { "locator": "file:.gitignore", "result": "verified", "sha256": "62a471dc3da66ba16fbfb1c7d6ae44efb017540624eff49b38eb9f8553b56775" },
+        { "locator": "issue:EHotwagner/rogue3#26", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "The 102 -> 93 figure was measured at 7d9d442 and is not reproducible now; main has moved while the committed graph has not. The figures reproducible today are 102 -> 96 under Verify and 102 -> 94 for a standalone EvidenceGraph, both measured directly.",
+        "Reproduced on Linux only. The Windows rendering of one diagnostic path is unexercised."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "command:git --no-pager diff -U0 readiness/m7-ui-performance.json", "result": "verified" },
+        { "locator": "file:src/Rogue3/PerformanceEvidence.fs", "result": "verified", "sha256": "c36bf58bf29a6fb439139b2261947e51b0242f17cb18b047e0cff057b5904265" },
+        { "locator": "command:python3 scripts/check-audit-bindings.py", "result": "verified" },
+        { "locator": "issue:EHotwagner/rogue3#26", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "A first draft of this finding repeated the excuse ledger's own description of compositionAuthority as a per-process GUID. The source calls it an MVID that changes when the assembly is rebuilt; the critic caught the repetition and the finding now states the source's wording and flags the ledger's as imprecise.",
+        "scripts/audit-binding-exceptions.json corroborates this finding but is cited via the checker's output rather than as a digest-bound locator, because #40/#49 make any such citation rot on the next --grandfather run by any cycle."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "command:git --no-pager diff -U0 readiness/evidence-graph.md", "result": "verified" },
+        { "locator": "file:readiness/evidence-graph.md", "result": "verified", "sha256": "866418d923c2febea7975d70aef99222108d38b497db95966035ca98b410dc54" },
+        { "locator": "command:./fake.sh -t EvidenceGraph", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "The 94 and 96 sensed-file counts were obtained by publishing under FSGG_EVIDENCE_GRAPH_PUBLISH=1 and reverting; the committed artifact deliberately still records 102, so the counts are reproducible by that procedure rather than readable from the tree."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "file:.github/workflows/verify.yml", "result": "verified", "sha256": "4dafd54d41eb7955249bd1591a3a2cd628c0636f4f30e07d8c1165802d7d5a5e" },
+        { "locator": "file:.github/workflows/audit-bindings.yml", "result": "verified", "sha256": "72bdce1d6872444a49c3d4d84ec06bd669b795b1db7ec9d12977230b97294510" },
+        { "locator": "file:tests/Rogue3.Tests/GovernanceTests.fs", "result": "verified", "sha256": "77d1e6960028d9c4e6d52862eadb0bdeac2df0ad812092c1dda5fb83384bb0de" },
+        { "locator": "command:./fake.sh -t SelfTest", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "The absence of any build.fsx invocation was established by reading both workflow files in full, not by a single grep; the two files are the complete contents of .github/workflows/."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "command:python3 scripts/check-audit-bindings.py", "result": "verified" },
+        { "locator": "command:scripts/fsgg-coord overlap rogue3#26 --active", "result": "verified" },
+        { "locator": "issue:EHotwagner/rogue3#41", "result": "verified" },
+        { "locator": "issue:EHotwagner/rogue3#53", "result": "verified" }
+      ],
+      "confidenceLimits": [
+        "The three-way convergence rests on coordination messages received during the cycle and on tool output observed at the time. The tool output is reproducible; the composition of that particular wave is not, and the messages are quoted rather than bound."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        { "locator": "command:./fake.sh -t SelfTest", "result": "verified" },
+        { "locator": "file:build.fsx", "result": "verified", "sha256": "e09f2e37851655a4a8d6fecbd30f45c6acdf72ff78a572b475841a2e25a503b3" },
+        { "locator": "file:feedback/checkpoints/item-26-verify-rewrites-tracked-evidence.jsonl", "result": "verified", "sha256": "01a88025cd5555afc4e10b7e6dc85a055a2cce5e41fa4b4770d49c2be078b1a1" }
+      ],
+      "confidenceLimits": [
+        "The two critics' reports are not committed artifacts; what is bound here is the resulting source and the checkpoint record. The mutation results are reproducible against the committed build.fsx.",
+        "The code critic reviewed a revision with 48 SelfTest cases; the committed revision has 75. Its three surviving runner mutants were re-run against the final code and are killed."
+      ]
+    }
+  ]
+}
