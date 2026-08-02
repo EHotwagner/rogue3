@@ -1140,6 +1140,17 @@ let private kitTreeScan (root: string) (owner: string) : string list * string li
                 | Some target -> reportLink entry target
                 | None -> if Directory.Exists entry then walk entry else files.Add(relativeTo entry)
 
+    /// The walk yields depth-first, and the caller this most matters to is `computeKitPins`, which
+    /// WRITES `scripts/kit-pins.json` in the order it receives. `Directory.GetFiles(…,
+    /// AllDirectories)` returned a flat array that was then sorted on the RELATIVE path, and the two
+    /// orders are not the same wherever a directory and a file share a prefix: `.agents/skills/x/a`
+    /// sorts before `.agents/skills/x.md` (`/` > `.`), but a depth-first walk emits the directory's
+    /// contents first. Three such pairs exist in this repository's kit today, so without this sort
+    /// `KitPins` rewrites the ledger with identical digests in a different order — a gratuitous diff
+    /// on a file four merged audits bind, for no change at all. Measured, not reasoned: the first
+    /// version of this walk moved six lines.
+    let sorted (values: ResizeArray<string>) = values |> List.ofSeq |> List.sort
+
     // The two roots the item names, checked BEFORE the walk: `.claude` itself may be the link, in
     // which case `.claude/skills` is a perfectly ordinary directory reached through it.
     let ownerRoot = path [ root; owner ]
@@ -1153,7 +1164,7 @@ let private kitTreeScan (root: string) (owner: string) : string list * string li
             | Some target -> reportLink treeRoot target
             | None -> walk treeRoot
 
-    List.ofSeq files, List.ofSeq problems
+    sorted files, sorted problems
 
 /// The files only, for the callers that want the enumeration and not the refusals. Every caller
 /// that produces VIOLATIONS uses `kitTreeScan` — dropping the problems is legitimate only where
@@ -2676,6 +2687,41 @@ let private runSelfTest () =
                 "a symbolic link NESTED inside a kit tree is reported, not followed"
                 (templateDriftViolations linkedSubdirRoot
                  |> List.exists (fun v -> v.Contains ".claude/skills/fs-gg-kit" && v.Contains "symbolic link"))
+
+        // The tree walk feeds `computeKitPins`, which WRITES the ledger in the order it receives, so
+        // the enumeration's ORDER is part of the contract and not an implementation detail. The
+        // hand-written walk is depth-first and the array it replaced was sorted flat; the two differ
+        // wherever a directory and a file share a prefix. This was not caught by reading — the first
+        // version of the walk reordered six lines of the real `scripts/kit-pins.json`, a gratuitous
+        // diff on a file four merged audits bind, discovered only by running `KitPins` and looking at
+        // `git diff`. The fixture plants exactly that pair so a dropped sort cannot pass.
+        let walkOrder, _ = freshFixture ()
+        writeFile (path [ walkOrder; ".agents/skills/fs-gg-kit/section/nested.md" ]) "# nested\n"
+        writeFile (path [ walkOrder; ".agents/skills/fs-gg-kit/section.md" ]) "# sibling\n"
+        let walkOrderFiles = kitTreeFiles walkOrder ".agents"
+
+        expect
+            "the kit enumeration is SORTED, so the ledger it writes has a stable order"
+            (walkOrderFiles
+             |> List.contains ".agents/skills/fs-gg-kit/section.md"
+             && walkOrderFiles |> List.contains ".agents/skills/fs-gg-kit/section/nested.md"
+             && walkOrderFiles = List.sort walkOrderFiles)
+
+        // …and the property that actually matters, asserted on THIS repository rather than on a
+        // fixture: the committed ledger is byte-for-byte what the remedy would write today. A
+        // fixture can only prove the walk agrees with itself; only the real tree can prove it still
+        // agrees with the file 63 pins and four merged audit bindings already depend on. This is
+        // read-only — it renders the content and compares, and writes nothing, so `Verify` still
+        // leaves `git status --porcelain` empty (rogue3#56).
+        expect
+            "scripts/kit-pins.json is byte-for-byte what KitPins would write for this tree right now"
+            (let root = currentRoot ()
+             let manifestPinned = agentsManifestPins root |> Seq.map fst |> Set.ofSeq
+             let pins, unpinnable = computeKitPins root manifestPinned
+
+             List.isEmpty unpinnable
+             && File.Exists(path [ root; kitPinsRelative ])
+             && File.ReadAllText(path [ root; kitPinsRelative ]) = renderKitPins pins)
 
         // #62 (2): a kit SOURCE replaced by a link to identical bytes outside the repository. Every
         // digest matches — that is the point — so nothing but file TYPE can report it. The file's
