@@ -6,7 +6,7 @@
   "criticPromptVersion": "actionability-v1",
   "findings": [
     {
-      "id": "§4.1",
+      "id": "\u00a74.1",
       "status": "duplicate",
       "missingFacts": [],
       "checkedEvidence": [
@@ -38,13 +38,13 @@
         }
       ],
       "confidenceLimits": [
-        "Both critics agree the observation is substantially report-5 §4.1 restated: same defect, same owner, same proposed remedy. It is recorded as a duplicate rather than a new finding, and the report's Recurrence line says so. The only non-duplicate element is that a cycle passed without the remedy and the module report-5 §11 named by hand was still compiled in, which is why it was escalated into issue #32.",
-          "The cited Release test command evidences the 208/208 pass count only. It cannot evidence the finding's headline that no gate reports the gap; that sentence rests on the grep locator and on §4.6's direct reading of the gate's target bodies.",
-        "The full FAKE Verify gate was not run this cycle (report §5), so 'a green gate never mentioned it' is inherited from report-5 rather than re-observed here. The report states this explicitly in §5."
+        "Both critics agree the observation is substantially report-5 \u00a74.1 restated: same defect, same owner, same proposed remedy. It is recorded as a duplicate rather than a new finding, and the report's Recurrence line says so. The only non-duplicate element is that a cycle passed without the remedy and the module report-5 \u00a711 named by hand was still compiled in, which is why it was escalated into issue #32.",
+        "The cited Release test command evidences the 208/208 pass count only. It cannot evidence the finding's headline that no gate reports the gap; that sentence rests on the grep locator and on \u00a74.6's direct reading of the gate's target bodies.",
+        "The full FAKE Verify gate was not run this cycle (report \u00a75), so 'a green gate never mentioned it' is inherited from report-5 rather than re-observed here. The report states this explicitly in \u00a75."
       ]
     },
     {
-      "id": "§4.2",
+      "id": "\u00a74.2",
       "status": "actionable",
       "missingFacts": [],
       "checkedEvidence": [
@@ -76,14 +76,14 @@
         }
       ],
       "confidenceLimits": [
-        "The draft claimed 'three of the five whole-tree occurrences of Visibility'. Both critics refuted it independently: five is the src/tests line count, and the name occurs many further times in the skills, docs/, .fsgg/scaffold-provenance.json, feedback/ and work/. Corrected in the published report to name the grep scope explicitly, and §1's confidence limit corrected with it. The error mattered because this is a finding about miscounted greps.",
-        "The draft also stated 'those hits were prose' of both modules. Corrected: all three Visibility hits are prose, but two of Collision's eight are real call sites (Model.fs clampCircleInside and sweepCircle), as both issue #28 and report-5 §4.5 state correctly.",
-        "The mechanism itself is not new — report-5 §4.5 already recorded that the Vec2.fs doc comments disguised both modules. The novelty verified here is ownership: git log over Vec2.fs returns exactly two commits, the scaffold baseline cd0028f and this cycle's 52d9e46, so the misleading text is generator-emitted rather than a local edit, which moves the durable fix upstream. The report's Recurrence line was rewritten to claim only this.",
+        "The draft claimed 'three of the five whole-tree occurrences of Visibility'. Both critics refuted it independently: five is the src/tests line count, and the name occurs many further times in the skills, docs/, .fsgg/scaffold-provenance.json, feedback/ and work/. Corrected in the published report to name the grep scope explicitly, and \u00a71's confidence limit corrected with it. The error mattered because this is a finding about miscounted greps.",
+        "The draft also stated 'those hits were prose' of both modules. Corrected: all three Visibility hits are prose, but two of Collision's eight are real call sites (Model.fs clampCircleInside and sweepCircle), as both issue #28 and report-5 \u00a74.5 state correctly.",
+        "The mechanism itself is not new \u2014 report-5 \u00a74.5 already recorded that the Vec2.fs doc comments disguised both modules. The novelty verified here is ownership: git log over Vec2.fs returns exactly two commits, the scaffold baseline cd0028f and this cycle's 52d9e46, so the misleading text is generator-emitted rather than a local edit, which moves the durable fix upstream. The report's Recurrence line was rewritten to claim only this.",
         "Causation to #19's scope decision is supported rather than assumed: #19's body carries both the counts and the contrast sentence that scoped it to two modules, and excluding Rogue3.fsproj the only file supplying Visibility hits at 6b4ed07 is Vec2.fs. No provider intent is claimed for why the comments were authored."
       ]
     },
     {
-      "id": "§4.3",
+      "id": "\u00a74.3",
       "status": "actionable",
       "missingFacts": [],
       "checkedEvidence": [
@@ -112,18 +112,18 @@
       "confidenceLimits": [
         "The draft framed this as a Paths-derivation defect that made the fix impossible, and the second critic refuted it: #19 declared Paths of Grids.fs, LineDrawing.fs and Rogue3.fsproj, and cb6621e shows it edited docs/scaffold-map.md regardless. The boundary permitted the fix. The finding was rewritten from 'the boundary prevented it' to 'the deferral was a judgement, and a wrong one', and the product was changed accordingly in ca0c1fc rather than left for #31.",
         "The residual actionable content is narrower than the draft's: the item's Paths were derived from code alone, so a literal reading produces a false doc. That is supported by #28's own body, which records the identical omission as the reason Visibility.fs survived #19.",
-        "The draft's Recurrence cited only issue #28 and understated prior coverage; corrected to cite report-5 §4.2 and §4.4, making this the third report on the same surface."
+        "The draft's Recurrence cited only issue #28 and understated prior coverage; corrected to cite report-5 \u00a74.2 and \u00a74.4, making this the third report on the same surface."
       ]
     },
     {
-      "id": "§4.4",
+      "id": "\u00a74.4",
       "status": "actionable",
       "missingFacts": [],
       "checkedEvidence": [
         {
           "locator": "file:scripts/audit-binding-exceptions.json",
           "result": "verified",
-          "sha256": "76fa77c3f6b588419e18e7be85d8fb1b08531af02bc5e60220437c0c29ca4538"
+          "sha256": "62f7a7288c67a7ed8b1b7a407b3f28c65a4e302c9958201d66e72bdee78c072d"
         },
         {
           "locator": "command:git diff 6b4ed07 HEAD -- scripts/audit-binding-exceptions.json",
@@ -145,14 +145,14 @@
         }
       ],
       "confidenceLimits": [
-        "The draft's arithmetic was wrong and both critics caught it: it claimed '3 of the 50 were added by this PR'. The ledger diff shows 48 entries at 6b4ed07 and 51 at HEAD, with the Rogue3.fsproj entry pre-existing from M12 and rewritten in place rather than added. Corrected throughout the report, including §7.",
-        "The draft's Recurrence claimed the growth was 'not previously recorded'. Refuted: report-3 §7 records this ledger as a standing workaround at 45 entries with the same permanence risk, and report-3 §4.2 records that no rebind command exists, which is why the weaker remedy is the only tooled one. The published Recurrence cites both and narrows the novel claim to the self-referential case plus the in-place rewriting of a prior entry's reason.",
-        "The draft wrote that the report-5 audit 'established' Visibility.fs was dead. Narrowed to 'verified': the audit JSON records per-locator verification results, and report-5 §2 credits the author's grep with finding the third dead module.",
+        "The draft's arithmetic was wrong and both critics caught it: it claimed '3 of the 50 were added by this PR'. The ledger diff shows 48 entries at 6b4ed07 and 51 at HEAD, with the Rogue3.fsproj entry pre-existing from M12 and rewritten in place rather than added. Corrected throughout the report, including \u00a77.",
+        "The draft's Recurrence claimed the growth was 'not previously recorded'. Refuted: report-3 \u00a77 records this ledger as a standing workaround at 45 entries with the same permanence risk, and report-3 \u00a74.2 records that no rebind command exists, which is why the weaker remedy is the only tooled one. The published Recurrence cites both and narrows the novel claim to the self-referential case plus the in-place rewriting of a prior entry's reason.",
+        "The draft wrote that the report-5 audit 'established' Visibility.fs was dead. Narrowed to 'verified': the audit JSON records per-locator verification results, and report-5 \u00a72 credits the author's grep with finding the third dead module.",
         "'The ledger only grows' is the observed direction plus the mechanism, not a proof that entries are never pruned. The checker does prune obsolete entries and reported 'pruned 0' on both runs this cycle."
       ]
     },
     {
-      "id": "§4.5",
+      "id": "\u00a74.5",
       "status": "positive-pattern",
       "missingFacts": [],
       "checkedEvidence": [
@@ -172,7 +172,7 @@
       ]
     },
     {
-      "id": "§4.6",
+      "id": "\u00a74.6",
       "status": "actionable",
       "missingFacts": [],
       "checkedEvidence": [
