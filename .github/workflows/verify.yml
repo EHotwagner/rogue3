@@ -40,6 +40,136 @@ jobs:
       # exact breakage this item exists to remove.
       - name: Self-test the feedback-report validator
         run: dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest
+      # rogue3#52: until now nothing in CI executed `build.fsx` in ANY target, so
+      # every check the documented merge gate owns was enforced only by a human
+      # remembering to run it locally. `GovernanceTests.fs` reads build.fsx as
+      # TEXT and asserts required/forbidden substrings, so a *textual* regression
+      # is caught by `dotnet test` -- but nothing executed its logic, and a check
+      # that quietly stops checking passed green. (`grep -rn` over tests/ finds no
+      # reference to SelfTest, TemplateDrift or GeneratedGuidanceCheck at all.)
+      #
+      # Measured at 09895b9, not argued: making `templateDriftViolations` return
+      # [] unconditionally leaves `dotnet test -c Release` completely green
+      # (Failed: 0, Passed: 235) while `./fake.sh -t SelfTest` exits 1 with
+      # "SelfTest: 77 case(s), 15 failure(s)". This step is what kills that mutant.
+      #
+      # SelfTest plants a violation for each check and requires it to be reported,
+      # and additionally asserts TemplateDrift and GeneratedGuidanceCheck are clean
+      # on the checked-out tree. Those repo-clean assertions call the check
+      # FUNCTIONS directly rather than the targets, which is what makes them
+      # strictly stronger than a `-t TemplateDrift` step: with the target dispatch
+      # neutered to `writeLog target` AND a genuinely drifted kit file present,
+      # `./fake.sh -t TemplateDrift` exits 0 while `-t SelfTest` exits 1 (measured).
+      # So the target invocations are deliberately NOT added here; they would be
+      # weaker duplicates, not extra coverage.
+      #
+      # It is hermetic: fixtures go
+      # to the system temp dir, build.fsx carries no `#r` (BCL only), and the
+      # engine assembly is `lazy` and only forced by EvidenceGraph/EvidenceAudit,
+      # so SelfTest needs neither `dotnet restore` nor an engine feed. Hence it
+      # runs BEFORE Restore, where it fails fastest. Its only write is
+      # readiness/logs/SelfTest.txt, which .gitignore already excludes.
+      #
+      # THREE gates this repository mandates are DELIBERATELY still not wired
+      # here. This job does NOT enforce every mandated gate and does not claim to;
+      # the list below is meant to be exhaustive, so that anything missing from it
+      # is a bug in this comment:
+      #   * The full `Verify` target (TemplateDrift + GeneratedGuidanceCheck, then
+      #     the EvidenceGraph -> EvidenceAudit merge-gate audit, plus ADR-0056's
+      #     fail-closed lifecycle guard). Verify rewrites TRACKED readiness
+      #     artifacts; rogue3#26 (the exit-0-on-a-falsified-graph half) landed in
+      #     #54, but rogue3#56 is OPEN -- those roll-ups are still derived from a
+      #     partly-untracked tree. A job that ran Verify and then checked for a
+      #     dirty tree would fail for reasons unrelated to the PR under test.
+      #   * The fail-closed normal-play PERFORMANCE gate (`PerformanceIntent` +
+      #     `PerformanceEvidence`, which `Test` and `Verify` both run and which raw
+      #     `dotnet test` does not). Both exit 0 on this tree, so this is not a red
+      #     gate -- it is a NON-REPRODUCIBLE one. Its artifacts are measured
+      #     latencies: two consecutive `-t PerformanceEvidence` runs on an idle
+      #     host produced different p50/p95/p99 values and a different
+      #     artifactDigest in readiness/performance-evidence.json, and neither
+      #     matched the committed bytes. On a shared runner that is worse, so
+      #     requiring it would gate merges on runner contention. Tracked by
+      #     rogue3#56 for the tracked-artifact churn.
+      #   * The feedback-report validator CORPUS -- `validate` over every
+      #     feedback/*.md against its audit. Measured at bfd1288 over all 23
+      #     pairs: 3 pass, 20 fail. Audits legitimately cite files that later
+      #     change and `validate` has no excuse ledger (rogue3#49), so requiring
+      #     it as-is would red every open PR. The validator's own `selftest`
+      #     directly above is a different check and IS required.
+      #
+      # Scope limits worth naming, so a green result is not over-read:
+      #   * TemplateDrift covers 64 of 190 kit files (rogue3#46), so a green
+      #     SelfTest is not "no kit file drifted".
+      #   * SelfTest does not fully self-certify, and rogue3#52's acceptance
+      #     criterion ("a PR that makes any build.fsx check unconditionally pass is
+      #     red in CI") is therefore NOT fully met by this job. 7 of 23 single-edit
+      #     mutants survive SelfTest. The guard below closes the two worst, but one
+      #     single-line edit -- returning [] from templateDriftViolations only when
+      #     root = Directory.GetCurrentDirectory() -- exempts the REAL repository
+      #     while every fixture case still passes, so a tree carrying genuine kit
+      #     drift stays green. Measured. That residual needs a build.fsx fix and is
+      #     tracked as rogue3#57; it is out of this item's declared paths.
+      #   * main is not branch-protected, so no check here is a REQUIRED status
+      #     check -- these gates block by turning a job red, not by blocking merge.
+      #
+      # Why the guard asserts a positive signal rather than grepping for "FAIL":
+      # SelfTest tracks its result in one mutable counter, so DELETING THE ONE LINE
+      # `failures <- failures + 1` makes it print every failure and still exit 0
+      # (`if failures > 0 then` -> `if false then` does the same). Combined with a
+      # vacuous check, two single-line edits leave BOTH `-t SelfTest` and
+      # `dotnet test -c Release` green (235/235 at 09895b9, 253/253 at 95b1170 --
+      # the suite grows, so this is anchored rather than a running total). A guard
+      # that grepped for the FAIL
+      # line would catch that -- but would itself be fail-OPEN: renaming that one
+      # printf label re-greens the same two-edit mutant with 15 failing cases in the
+      # log, measured. So the guard requires ok-count == case-count instead, which
+      # reds on a relabel of either message, on a silenced counter, and on a zeroed
+      # case count. A gate that can be disarmed by a cosmetic edit is the defect
+      # this item exists to remove; it must not be reintroduced by its own fix.
+      - name: Self-test the build.fsx merge gate
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"
+          ./fake.sh -t SelfTest 2>&1 | tee "$log"
+          # Assert a POSITIVE signal, never the absence of a negative one. Grepping
+          # for "FAIL" would be fail-OPEN: relabelling one printf disarms it
+          # silently, which is the very defect class this step exists to catch.
+          # Requiring ok-count == case-count reds on a relabel of EITHER message,
+          # on a silenced counter, and on a zeroed case count.
+          summary="$(grep -m1 -E '^SelfTest: [0-9]+ case\(s\)' "$log" || true)"
+          if [ -z "$summary" ]; then
+            echo "::error::SelfTest printed no recognisable summary line -- it did not run to completion, or its output format changed (rogue3#57)."
+            exit 1
+          fi
+          cases="$(printf '%s' "$summary" | sed -E 's/^SelfTest: ([0-9]+) case\(s\).*/\1/')"
+          oks="$(grep -c '^  ok   ' "$log" || true)"
+          if [ "$cases" -lt 1 ]; then
+            echo "::error::SelfTest reported $cases cases -- a gate that asserts nothing is not a pass."
+            exit 1
+          fi
+          if [ "$oks" != "$cases" ]; then
+            echo "::error::SelfTest reported $oks passing case(s) of $cases -- failing regardless of its exit code."
+            exit 1
+          fi
+          echo "SelfTest: $oks/$cases cases passed."
+      # Every cycle's checkpoint JSONL must still parse and satisfy the schema the
+      # fs-gg-feedback-report skill mandates. Unlike the report/audit CORPUS below,
+      # this one is SAFE to require and is wired: checkpoints pin no digests over
+      # other files, so they cannot rot when an unrelated file changes -- which is
+      # exactly why the corpus is red (rogue3#49) and this is green. Measured over
+      # every checkpoint file at 09895b9: 25 pass, 0 fail.
+      - name: Validate every cycle's checkpoint state
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in feedback/checkpoints/*.jsonl; do
+            if ! dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate-checkpoints "$f"; then
+              echo "::error file=$f::checkpoint file failed validation"
+              fail=1
+            fi
+          done
+          exit "$fail"
       - name: Restore
         run: >-
           dotnet restore Rogue3.slnx
