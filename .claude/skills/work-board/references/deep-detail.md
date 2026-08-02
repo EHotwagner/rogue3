@@ -225,23 +225,30 @@ The host hands each subagent essentially this, with `<REPO>` (this workspace's r
 >    - **Rendered evidence → no window at all.** Use `Render.toPng` / the product's offscreen-readback
 >      evidence options. Every committed frame in `readiness/**/frames/` came from that path. It is
 >      deterministic and does not depend on a compositor.
->    - **A live host you do not need to watch → launch minimized**, adding `--window-startup minimized`.
->      Use this when the claim is non-visual — a stderr assertion, an exit-status line, an audio-resolution
->      check. **Do not assert a rendered frame from a minimized window:** compositors routinely withhold
->      frame callbacks from minimized surfaces, so `first-frame-presented` and any pixel capture may hang
->      or return nothing, intermittently and per-compositor.
->    - **Proving the real window opens → a normal, visible launch.** That is the whole point of the claim,
->      so it has to be visible to mean anything. Keep these rare and say in your report that you did one.
+>    - **A live host → launch minimized. This is the DEFAULT for a worker.** Always add
+>      `--window-startup minimized` unless the claim itself requires a visible window. A wave can put
+>      several windows on a working human's desktop, and **you cannot choose which screen they land on** —
+>      see the limits below — so minimized is the only placement a worker can actually guarantee.
+>      **Do not assert a rendered frame from a minimized window:** compositors routinely withhold frame
+>      callbacks from minimized surfaces, so `first-frame-presented` and any pixel capture may hang or
+>      return nothing, intermittently and per-compositor. If you need a frame, use the offscreen path above.
+>    - **Proving the real window opens → a normal, visible launch, and only then.** That is the whole
+>      point of that particular claim, so it has to be visible to mean anything. These should be rare;
+>      say in your report that you did one and why the minimized or offscreen path could not serve.
 >
 >    For any live launch, pass the operator's window defaults rather than hardcoding geometry:
 >    `--window-options-file <path>` reads `startup=` / `position=` / `resize=` / `maximize=` / `backend=`
 >    from a `key=value` file, so placement is the operator's to change and never yours to guess. Do not put
 >    machine-specific coordinates in a brief, a script, or the repository.
 >
->    Two limits worth knowing before you debug placement: on Wayland `xdg-shell` has **no protocol for a
->    client to position its own window**, so `position=` is a request the compositor may discard entirely —
->    a compositor-side window rule is the only guarantee. Minimizing, by contrast, is a real
->    `xdg-toplevel` request and does work.
+>    Two limits worth knowing before you debug placement, both **measured on this workspace's host**, not
+>    inferred: on Wayland `xdg-shell` has **no protocol for a client to position its own window**, so
+>    `position=` is a request the compositor discards — a launch passing an options file with an explicit
+>    second-monitor position still opened on the primary. A compositor-side window rule (on KDE: Window
+>    Rules → Screen → **Force**) is the only guarantee, and it is the operator's to set, not yours.
+>    **Do not spend budget trying to make `position=` work, and do not report a placement failure as a
+>    product defect** — it is a protocol boundary. Minimizing, by contrast, is a real `xdg-toplevel`
+>    request and does work, which is why it is the default above.
 > 8. **Report back**: the item number, the merged PR, the done-stamp, feedback report path, any
 >    blocker/finding you filed (with
 >    issue numbers), and the `take` exit code if you got no item. Then exit.
