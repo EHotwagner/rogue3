@@ -233,12 +233,14 @@ layout or the scene, so the audited evidence reflects the current rogue3 — a s
 a `Verify` you cannot trust. This is the same render-and-look act the evidence gate exists to
 witness, which is why `Verify` does not silently create the baseline for you.
 
-**The readiness roll-ups a gate run rewrites are NOT tracked (rogue3#56).**
-`readiness/evidence-graph.md`, `readiness/performance-evidence.json`,
-`readiness/m7-ui-performance.json` and `readiness/performance-critic-request.json`
-are run outputs: the graph enumerates a tree that is partly regenerable output no
-clean checkout carries, and the other three record measured timings, allocations and
-digests over them. Tracking them meant every gate run produced a committable diff, so
+**The readiness roll-ups a build target rewrites are NOT tracked (rogue3#56).**
+`readiness/evidence-graph.md`, `readiness/performance-evidence.json` and
+`readiness/m7-ui-performance.json` are rewritten by every `-t Verify`;
+`readiness/performance-critic-request.json` is written by `-t PerformanceCriticRequest`
+(which `Verify` does not call) and digests the first performance artifact. All four are
+run outputs: the graph enumerates a tree that is partly regenerable output no clean
+checkout carries, and the other three record measured timings, allocations and digests
+over them. Tracking them meant every gate run produced a committable diff, so
 a green `Verify` now leaves `git status` clean and **you should not stage them** —
 `.gitignore` already keeps them out. What stays tracked is the reproducible half a
 reviewer reads: `readiness/performance-intent.yml` (every workload id, definition

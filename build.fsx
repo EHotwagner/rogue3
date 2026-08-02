@@ -242,12 +242,17 @@ let private runGeneratedEvidence (target: string) : int =
 // reproduce is the defect; a rule that keeps it byte-stable only made the failure
 // quieter. `readiness/evidence-graph.md` is therefore NO LONGER TRACKED (see
 // `.gitignore` and rogue3#56), along with the two performance artifacts this rule was
-// deliberately never extended to (`readiness/performance-evidence.json` and
-// `readiness/m7-ui-performance.json`, which move because they record MEASUREMENTS —
-// p50/p95/p99, `allocatedBytes`, and a composition-authority MVID that changes
-// whenever the assembly is rebuilt; see `src/Rogue3/PerformanceEvidence.fs`,
-// `provenanceDefinitionToken`) and `readiness/performance-critic-request.json`, which
-// digests one of them.
+// deliberately never extended to, which move because they record MEASUREMENTS rather
+// than because an input was missing. Their field lists are NOT the same, and saying so
+// once cost the previous cycle a critic finding: `readiness/performance-evidence.json`
+// carries `p50Ms`/`p95Ms`/`p99Ms`, `allocatedBytes`, the input/receipt/artifact digests
+// over them and a `compositionAuthority` MVID that changes whenever the assembly is
+// rebuilt (see `src/Rogue3/PerformanceEvidence.fs`), while
+// `readiness/m7-ui-performance.json` carries measured `p95Ms`/`p99Ms` and nothing else —
+// no `p50Ms`, no `allocatedBytes`, no `compositionAuthority` anywhere in the document.
+// Measured over one gate run at `715bef9`: 39 differing leaves against `origin/main` for
+// the first, 8 for the second. `readiness/performance-critic-request.json` joins them
+// because it digests the first.
 //
 // The rule is KEPT, with a narrower and honestly smaller job. It can no longer falsify
 // a committed artifact, because there is none. What it still does:

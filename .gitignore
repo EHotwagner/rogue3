@@ -10,9 +10,11 @@ readiness/*/*
 
 # rogue3#56 — the top-level readiness ROLL-UPS that no checkout can reproduce.
 #
-# Everything below is written by `./fake.sh build -t Verify` (or by a target Verify
-# calls) over inputs that are NOT reproducible from a checkout, so tracking them made
-# every gate run produce a committable diff nobody wanted:
+# Everything below is a build-target output over inputs that are NOT reproducible from
+# a checkout, so tracking them made a gate run produce a committable diff nobody
+# wanted. The first three are rewritten by every `./fake.sh build -t Verify`; the
+# fourth is written by `-t PerformanceCriticRequest`, which Verify does NOT call, so it
+# is listed for its input rather than for dirtying a Verify:
 #
 #   evidence-graph.md            enumerates whatever is on disk under `readiness/`, and
 #                                part of that tree is `readiness/*/*` output above plus
@@ -22,9 +24,16 @@ readiness/*/*
 #                                which 12 exist in no clean checkout, so every ordinary
 #                                run refused to publish (#26) and the committed graph was
 #                                frozen: it also OMITTED four tracked files that do exist.
-#   performance-evidence.json    measured p50/p95/p99, allocatedBytes, receipt digests and
-#   m7-ui-performance.json       a composition-authority MVID that moves whenever the
-#                                assembly is rebuilt. Re-running cannot reproduce them.
+#   performance-evidence.json    measured p50Ms/p95Ms/p99Ms and allocatedBytes, plus the
+#                                inputDigest/receiptDigest/artifactDigest over them and a
+#                                compositionAuthority MVID that moves whenever the assembly
+#                                is rebuilt (src/Rogue3/PerformanceEvidence.fs). 39 leaves
+#                                differed between origin/main and one gate run at 715bef9.
+#   m7-ui-performance.json       measured p95Ms/p99Ms and NOTHING else -- it carries no
+#                                p50Ms, no allocatedBytes and no compositionAuthority at
+#                                all. 8 leaves differed over the same run. The two files
+#                                are grouped here because both are irreproducible, not
+#                                because they record the same things.
 #   performance-critic-request.json  a digest OVER performance-evidence.json, so it is
 #                                irreproducible for exactly the reason its input is.
 #
