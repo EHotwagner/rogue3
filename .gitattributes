@@ -1,0 +1,25 @@
+# rogue3#46. TemplateDrift pins a sha256 over all 190 files under `.agents/skills/**` and
+# `.claude/skills/**` and requires the two trees to stay byte-identical. Git's default
+# `core.autocrlf=true` on Windows rewrites every text file on checkout, which changes those
+# bytes and makes the gate red on a correct clone — the failure mode `build.fsx` is written
+# throughout to avoid.
+#
+# Pinning EOL here is what makes "190 of 190" a property of the repository rather than of the
+# platform that happened to clone it. Filed as #62 item 5 and brought forward into #46 on a
+# reviewer's argument: this item is what raises the affected surface from 64 files to 190, so
+# it is the item that should carry the one-line fix.
+#
+# `text eol=lf` normalises to LF in the index and checks out LF everywhere. The kit is all
+# text (`.md`, `.yaml`, `.json`, `.fs`, `.fsx`, `.py`), so this is safe and keeps diffs textual;
+# `-text` would also stabilise the bytes but would make every kit file diff as binary.
+.agents/skills/** text eol=lf
+.claude/skills/** text eol=lf
+
+# The ledger, for the same reason. The two skill manifests are the gate's other oracle and are
+# already covered by the globs above, since both live inside the kit trees.
+scripts/kit-pins.json text eol=lf
+
+# If anyone ever widens this to a repo-wide `* text=auto eol=lf`, add `*.cmd *.bat eol=crlf` in the
+# same change: this repository ships `build.cmd` and `fake.cmd`, and batch files checked out with
+# LF have well-known failures around labels and `goto`. Scoped narrowly here for that reason, and
+# because a repo-wide rule would renormalise the whole index in one commit unrelated to #46.

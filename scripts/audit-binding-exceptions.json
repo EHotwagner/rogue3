@@ -327,8 +327,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e01bfecef3158d4ed79dffbd17021d8b7bca68c9162ec2f476e83df26146a303",
-      "observedSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
-      "reason": "Item #26 makes the Verify gate's EvidenceGraph step refuse to publish a graph that sensed less than the committed one, so a gate run in a worktree stops rewriting the tracked readiness/evidence-graph.md into a smaller, false state. The change is confined to build.fsx: a byte-exact snapshot/restore around the emitter, a set-based superset rule, an FSGG_EVIDENCE_GRAPH_PUBLISH escape hatch, and forty-seven new SelfTest cases covering the rule, its installation, and the engine-written section heading it matches. Five earlier cycles' audits bind file:build.fsx and go stale on any edit to it. Excused rather than rebound, following the 7e71d71 precedent and the defect feedback/2026-08-01-Rogue3-12.md 4.13 filed: repointing an earlier cycle's audit would claim its critic examined a build script that did not exist when that report was written. Item #26's own audit, feedback/audits/2026-08-02-Rogue3-12.audit.json, was REBOUND instead, which the remedy order permits for an audit you authored and re-verified yourself. Regenerated after rebasing onto bfd1288 (#48) and after two review rounds, per the sequencing agreed with the workers on rogue3#40 and rogue3#47, who share this file; see #53."
+      "observedSha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea",
+      "reason": "rogue3#46, after rebase onto 4fc6993: re-pinned scripts/kit-pins.json for #66's legitimate change to work-board/references/deep-detail.md, and applied PR #64 review round 2 (agentsManifestPins returns pins only, so keying coverage on names is unconstructible). Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
@@ -439,8 +439,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4",
-      "observedSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
-      "reason": "Item #26 makes the Verify gate's EvidenceGraph step refuse to publish a graph that sensed less than the committed one, so a gate run in a worktree stops rewriting the tracked readiness/evidence-graph.md into a smaller, false state. The change is confined to build.fsx: a byte-exact snapshot/restore around the emitter, a set-based superset rule, an FSGG_EVIDENCE_GRAPH_PUBLISH escape hatch, and forty-seven new SelfTest cases covering the rule, its installation, and the engine-written section heading it matches. Five earlier cycles' audits bind file:build.fsx and go stale on any edit to it. Excused rather than rebound, following the 7e71d71 precedent and the defect feedback/2026-08-01-Rogue3-12.md 4.13 filed: repointing an earlier cycle's audit would claim its critic examined a build script that did not exist when that report was written. Item #26's own audit, feedback/audits/2026-08-02-Rogue3-12.audit.json, was REBOUND instead, which the remedy order permits for an audit you authored and re-verified yourself. Regenerated after rebasing onto bfd1288 (#48) and after two review rounds, per the sequencing agreed with the workers on rogue3#40 and rogue3#47, who share this file; see #53."
+      "observedSha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea",
+      "reason": "rogue3#46, after rebase onto 4fc6993: re-pinned scripts/kit-pins.json for #66's legitimate change to work-board/references/deep-detail.md, and applied PR #64 review round 2 (agentsManifestPins returns pins only, so keying coverage on names is unconstructible). Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
@@ -457,6 +457,22 @@
       "boundSha256": "089b1fdcd2f14e1d7f8ba5cce0435059c204ffa0c0574bb80e229885b40142c3",
       "observedSha256": "257798a7cb1afbd8574091fd220c97af368aadbbadefbdb868a21e0c2b2244a6",
       "reason": "rogue3#52 wired the build.fsx merge gate's SelfTest into verify.yml; the audits of cycles -11 and -12 cite the workflow file as it was before that step existed"
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-12.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
+      "observedSha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea",
+      "reason": "rogue3#46, after rebase onto 4fc6993: re-pinned scripts/kit-pins.json for #66's legitimate change to work-board/references/deep-detail.md, and applied PR #64 review round 2 (agentsManifestPins returns pins only, so keying coverage on names is unconstructible). Every stale binding is file:build.fsx and every citing audit predates this item."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-13.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
+      "observedSha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea",
+      "reason": "rogue3#46, after rebase onto 4fc6993: re-pinned scripts/kit-pins.json for #66's legitimate change to work-board/references/deep-detail.md, and applied PR #64 review round 2 (agentsManifestPins returns pins only, so keying coverage on names is unconstructible). Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
@@ -511,8 +527,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
-      "observedSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
-      "reason": "Item #26 makes the Verify gate's EvidenceGraph step refuse to publish a graph that sensed less than the committed one, so a gate run in a worktree stops rewriting the tracked readiness/evidence-graph.md into a smaller, false state. The change is confined to build.fsx: a byte-exact snapshot/restore around the emitter, a set-based superset rule, an FSGG_EVIDENCE_GRAPH_PUBLISH escape hatch, and forty-seven new SelfTest cases covering the rule, its installation, and the engine-written section heading it matches. Five earlier cycles' audits bind file:build.fsx and go stale on any edit to it. Excused rather than rebound, following the 7e71d71 precedent and the defect feedback/2026-08-01-Rogue3-12.md 4.13 filed: repointing an earlier cycle's audit would claim its critic examined a build script that did not exist when that report was written. Item #26's own audit, feedback/audits/2026-08-02-Rogue3-12.audit.json, was REBOUND instead, which the remedy order permits for an audit you authored and re-verified yourself. Regenerated after rebasing onto bfd1288 (#48) and after two review rounds, per the sequencing agreed with the workers on rogue3#40 and rogue3#47, who share this file; see #53."
+      "observedSha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea",
+      "reason": "rogue3#46, after rebase onto 4fc6993: re-pinned scripts/kit-pins.json for #66's legitimate change to work-board/references/deep-detail.md, and applied PR #64 review round 2 (agentsManifestPins returns pins only, so keying coverage on names is unconstructible). Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-4.audit.json",
@@ -615,8 +631,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
-      "observedSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
-      "reason": "Item #26 makes the Verify gate's EvidenceGraph step refuse to publish a graph that sensed less than the committed one, so a gate run in a worktree stops rewriting the tracked readiness/evidence-graph.md into a smaller, false state. The change is confined to build.fsx: a byte-exact snapshot/restore around the emitter, a set-based superset rule, an FSGG_EVIDENCE_GRAPH_PUBLISH escape hatch, and forty-seven new SelfTest cases covering the rule, its installation, and the engine-written section heading it matches. Five earlier cycles' audits bind file:build.fsx and go stale on any edit to it. Excused rather than rebound, following the 7e71d71 precedent and the defect feedback/2026-08-01-Rogue3-12.md 4.13 filed: repointing an earlier cycle's audit would claim its critic examined a build script that did not exist when that report was written. Item #26's own audit, feedback/audits/2026-08-02-Rogue3-12.audit.json, was REBOUND instead, which the remedy order permits for an audit you authored and re-verified yourself. Regenerated after rebasing onto bfd1288 (#48) and after two review rounds, per the sequencing agreed with the workers on rogue3#40 and rogue3#47, who share this file; see #53."
+      "observedSha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea",
+      "reason": "rogue3#46, after rebase onto 4fc6993: re-pinned scripts/kit-pins.json for #66's legitimate change to work-board/references/deep-detail.md, and applied PR #64 review round 2 (agentsManifestPins returns pins only, so keying coverage on names is unconstructible). Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
@@ -655,8 +671,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "1acae987b6643464764bdff31134e00c1b992413320deeec726a4b9fdd367ae8",
-      "observedSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
-      "reason": "Item #26 makes the Verify gate's EvidenceGraph step refuse to publish a graph that sensed less than the committed one, so a gate run in a worktree stops rewriting the tracked readiness/evidence-graph.md into a smaller, false state. The change is confined to build.fsx: a byte-exact snapshot/restore around the emitter, a set-based superset rule, an FSGG_EVIDENCE_GRAPH_PUBLISH escape hatch, and forty-seven new SelfTest cases covering the rule, its installation, and the engine-written section heading it matches. Five earlier cycles' audits bind file:build.fsx and go stale on any edit to it. Excused rather than rebound, following the 7e71d71 precedent and the defect feedback/2026-08-01-Rogue3-12.md 4.13 filed: repointing an earlier cycle's audit would claim its critic examined a build script that did not exist when that report was written. Item #26's own audit, feedback/audits/2026-08-02-Rogue3-12.audit.json, was REBOUND instead, which the remedy order permits for an audit you authored and re-verified yourself. Regenerated after rebasing onto bfd1288 (#48) and after two review rounds, per the sequencing agreed with the workers on rogue3#40 and rogue3#47, who share this file; see #53."
+      "observedSha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea",
+      "reason": "rogue3#46, after rebase onto 4fc6993: re-pinned scripts/kit-pins.json for #66's legitimate change to work-board/references/deep-detail.md, and applied PR #64 review round 2 (agentsManifestPins returns pins only, so keying coverage on names is unconstructible). Every stale binding is file:build.fsx and every citing audit predates this item."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
