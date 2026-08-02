@@ -408,6 +408,34 @@ let governanceTests =
                 (defaultBranch.Contains("windowBehavior Rogue3.EvidenceCommands.shellConfig.InitialDisplay", StringComparison.Ordinal))
                 "the default launch no longer derives its window request from the InitialDisplay literal, which is what silently dropped every saved display mode (#75)"
 
+            // Issue #75, round 2 (independent critic). The scan above pins WHAT `Program.main` calls;
+            // it cannot see what that function does, and an earlier candidate was green with
+            // `restoredShellSettings` reverted to `GameShell.init shellConfig` — defect #75 itself —
+            // because `Program.fs` was byte-identical under that mutation.
+            //
+            // `restoredShellSettingsFrom` is driven behaviourally in BehaviorTests against a
+            // temporary directory. What remains is the ONE line that binds it to the two per-user
+            // platform paths, which no test can execute without writing into the player's own
+            // profile directory. Pin its text — including the argument ORDER, since swapping the two
+            // would make a launch prefer the legacy file and then delete the player's real settings.
+            // A source scan is strictly weaker than a behaviour test and strictly more than nothing;
+            // it is the same trade this file already makes for `Program.main` two assertions above.
+            let evidenceCommands = rogue3Source "EvidenceCommands.fs"
+
+            Expect.stringContains
+                evidenceCommands
+                "restoredShellSettingsFrom shellSettingsPath legacyShellSettingsPath"
+                "the launch-time restore is bound to the platform settings path as PRIMARY and the readiness path as LEGACY, in that order (#75)"
+
+            Expect.stringContains
+                evidenceCommands
+                "let shell = restoredShellSettings ()"
+                "and the interactive host's Init restores through the very same call the launch request is built from, so the menu and the window cannot read different files (#75)"
+
+            Expect.isFalse
+                (evidenceCommands.Contains("loadShellSettings", StringComparison.Ordinal))
+                "the second, parallel composition of the same restore is gone — one seam, one order, one migration target (#75)"
+
             Expect.stringContains source "manualWindowOptionResults windowBehaviorRequest" "normal launch validates parsed behavior request before calling SkiaViewer"
             Expect.stringContains source "window-options=%s" "normal launch reports option validation output"
             Expect.stringContains source "option=resize" "option report includes resize rows"

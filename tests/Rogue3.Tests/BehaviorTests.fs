@@ -756,10 +756,10 @@ let behaviorTests =
             Expect.isNonEmpty unnormalised "the settings screen draws its display-mode rows"
             Expect.isEmpty (selected unnormalised) "an un-normalised restored Borderless marks NO offered mode — this is the state the load-seam guard exists to prevent (#63)"
 
-            // What `loadShellSettings` actually hands the host — driven through the SAME decoder it
+            // What the RESTORE actually hands the host — driven through the SAME decoder it
             // uses, over real `encodeSettings` bytes, so this covers the guard's WIRING and not just
             // the guard. A mutation critic showed the difference: calling the retirement directly
-            // left `loadShellSettings` free to drop it entirely with the suite still green.
+            // left the load path free to drop it entirely with the suite still green.
             let borderlessBlob =
                 Rogue3.GameShell.encodeSettings (settingsScreenFor Rogue3.GameShell.Borderless).Shell
 
@@ -902,8 +902,8 @@ let behaviorTests =
         //
         // The substitution is the point of `persistShellSettingsTo`/`restoreShellSettingsFrom`:
         // `shellSettingsPath` is a fixed per-user platform path, and #63 recorded the resulting gap
-        // ("no test drives `loadShellSettings` itself without writing to the real profile
-        // directory") as unclosed. These tests close it for every branch a launch depends on.
+        // ("no test drives the load seam itself without writing to the real profile directory") as
+        // unclosed. These tests close it for every branch a launch depends on.
         //
         // WHERE THESE TESTS STOP, stated rather than implied. They end at the
         // `ViewerWindowBehaviorRequest` handed to the launcher. The last hop — the framework
@@ -1193,6 +1193,71 @@ let behaviorTests =
 
                 Expect.equal failedMigration.Display.Mode Rogue3.GameShell.Fullscreen "a failed migration still restores this launch's settings"
                 Expect.isTrue (IO.File.Exists unmigrated) "and leaves the legacy file in place to retry next launch")
+        }
+
+        // Issue #75, ROUND 2 — found by an independent critic on the first candidate, and the reason
+        // this test exists at all.
+        //
+        // The first round parameterised the RESTORE (`restoreShellSettingsFrom`) and left its
+        // INSTANTIATION untested: which two paths, in which order, with which migration write.
+        // Nothing in `tests/` called the function that supplies those arguments, and the governance
+        // scan could only see `Program.fs`. So reverting the entire fix at that point —
+        // `restoredShellSettings () = GameShell.init shellConfig`, which IS defect #75 — left
+        // `./fake.sh build -t Test` at exit 0 with `Failed: 0, Passed: 281`. Swapping the primary and
+        // legacy paths, which would make a launch prefer the legacy file and then delete the player's
+        // real one, was green too.
+        //
+        // Each assertion below is written against one of those mutants. `restoredShellSettingsFrom`
+        // is the production composition; the only thing `restoredShellSettings ()` adds is the pair
+        // of platform path constants, whose text `GovernanceTests` pins because executing that line
+        // means writing into the player's profile directory.
+        test "the production restore composition prefers the primary file, migrates onto it, and never eats it (#75)" {
+            withTemporarySettingsDirectory (fun root ->
+                let primary = IO.Path.Combine(root, "platform-settings.json")
+                let legacy = IO.Path.Combine(root, "legacy-settings.json")
+
+                // FRESH INSTALL: neither file exists.
+                Expect.equal
+                    (Rogue3.EvidenceCommands.restoredShellSettingsFrom primary legacy).Display
+                    Rogue3.EvidenceCommands.shellConfig.InitialDisplay
+                    "with neither file present the production composition restores the shell's authored default"
+
+                // PRECEDENCE, with the two files disagreeing. This is the assertion that kills a
+                // swapped wiring: under it the launch would read the LEGACY file in preference to
+                // the player's real settings.
+                saveSelected primary Rogue3.GameShell.Windowed |> ignore
+                saveSelected legacy Rogue3.GameShell.Fullscreen |> ignore
+
+                let bothPresent = Rogue3.EvidenceCommands.restoredShellSettingsFrom primary legacy
+
+                Expect.equal bothPresent.Display.Mode Rogue3.GameShell.Windowed "the primary file wins outright when both exist"
+                Expect.isTrue (IO.File.Exists primary) "and the file it read is still there afterwards"
+                Expect.isTrue (IO.File.Exists legacy) "and an unread legacy file is left untouched rather than consumed"
+
+                Expect.equal
+                    (Rogue3.EvidenceCommands.launchWindowRequest [] bothPresent).StartupState
+                    (expectedStartupState Rogue3.GameShell.Windowed)
+                    "and the launch this composition feeds asks for the primary file's mode"
+
+                // MIGRATION TARGET. The production invariant the first round never asserted: the
+                // migration write lands on the PRIMARY path — the one this product now reads — so
+                // the migration happens once rather than on every launch forever.
+                IO.File.Delete primary
+                let legacyOnly = Rogue3.EvidenceCommands.restoredShellSettingsFrom primary legacy
+
+                Expect.equal legacyOnly.Display.Mode Rogue3.GameShell.Fullscreen "with only the legacy file present its saved mode is restored"
+                Expect.isTrue (IO.File.Exists primary) "and the migration wrote it to the PRIMARY path, not to some third location"
+                Expect.isFalse (IO.File.Exists legacy) "and removed the legacy file, only after that write succeeded"
+
+                Expect.equal
+                    (Rogue3.EvidenceCommands.restoredShellSettingsFrom primary legacy).Display.Mode
+                    Rogue3.GameShell.Fullscreen
+                    "so the very next launch reads the migrated file and gets the same mode — the migration converged"
+
+                Expect.equal
+                    (Rogue3.EvidenceCommands.launchWindowRequest [] legacyOnly).StartupState
+                    (expectedStartupState Rogue3.GameShell.Fullscreen)
+                    "and a player migrating from the legacy path gets the window they saved (#75)")
         }
 
         // Issue #912: PLAYED THROUGH THE HOST — the one altitude the host tests above never reach.
