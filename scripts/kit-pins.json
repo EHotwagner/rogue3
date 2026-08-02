@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "note": "Repository-owned digests for the kit files .agents/skills/skill-manifest.json does not name. Read by TemplateDrift in build.fsx; regenerate with ./fake.sh build -t KitPins after a DELIBERATE kit edit. Pinned itself by the audit-binding gate, not by TemplateDrift.",
+  "note": "Repository-owned digests for the kit files .agents/skills/skill-manifest.json does not name. Read by TemplateDrift in build.fsx; regenerate with ./fake.sh build -t KitPins after a DELIBERATE kit edit. This file cannot pin itself; it is pinned only for as long as some audit under feedback/audits/ cites it - check with: scripts/check-audit-bindings.py --json | grep kit-pins",
   "pins": [
     { "path": ".agents/skills/check-board/SKILL.md", "sha256": "558a936de5b38860bde88515c7dafed0ade11ad3b13246f1488bc0b498061153" },
     { "path": ".agents/skills/check-board/agents/openai.yaml", "sha256": "ce496dbe4554189ab811f644c23d82019dba330c7a0449bdcc3973f46966bcf0" },

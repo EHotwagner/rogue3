@@ -655,11 +655,19 @@ let runPerformanceIntent () =
 //     #28), and nothing distinguishes "produced then removed" from "produced and
 //     still present", so a drift verdict over it would be false;
 //   * `mirroredPaths`/`driverPaths` pin digests for skills this repository owns
-//     and edits locally, so 12 of them are already legitimately stale. Checking
+//     and edits locally, so many of them are already legitimately stale. Checking
 //     them would make the gate red on a correct tree, which is the failure mode
 //     that trained everyone to ignore gates in the first place.
-// The skill manifests are the honest source: they are re-pinned when kit files
-// are re-materialized, and both are correct as this ships.
+//     #34 wrote "12" here, measured at `d8d0024`. Re-measured at `09895b9` it is
+//     **18** of the 110 sha-bearing entries (producedPaths 4, mirroredPaths 4,
+//     driverPaths 10); every pinned file is present, so all 18 are content drift.
+//     The count is deliberately no longer stated as a constant in this comment —
+//     it grows every time the repository edits a driver skill, which is exactly
+//     why provenance cannot be the oracle. Recompute it rather than trust a
+//     number in a comment; a stale figure here is how this one got to 18.
+// The skill manifests are the honest source for what they name: they are
+// re-pinned when kit files are re-materialized. They name only 32 of 95, which is
+// what #46 below is about.
 // ---------------------------------------------------------------------------
 
 let private lowerHex (bytes: byte array) = (Convert.ToHexString bytes).ToLowerInvariant()
@@ -749,20 +757,39 @@ let private skillManifests = [ ".agents"; ".claude" ]
 // ---------------------------------------------------------------------------
 // #46: the generated manifest pins 32 of the 95 files it materializes, so the
 // check #34 shipped covered 64 of 190 kit files and its own oracle was pinned by
-// nothing. Two evasion routes survived, both green on every gate:
+// nothing that this gate reads. #46 records two surviving evasion routes. ONE of
+// them was still live when this was written; the other had been closed by
+// accident in the meantime, and the difference matters:
 //
 //   1. edit any kit file no manifest names — 63 of the 95 under `.agents/skills`,
-//      including every `fs-gg-sdd-*` skill and all of `work-board`;
-//   2. mutate a pinned kit file and delete its entry from BOTH manifests, which
-//      the cross-manifest agreement check cannot see.
+//      including every `fs-gg-sdd-*` skill and 7 of `work-board`'s 8 files (its
+//      `SKILL.md` IS named; its references, agents and scripts are not). MEASURED at
+//      `09895b9`: appending one line to
+//      `.agents/skills/work-board/references/deep-detail.md` leaves
+//      `check-audit-bindings.py` at exit 0 and every other gate green. Genuinely
+//      open, and closed here.
+//   2. mutate a pinned kit file and delete its entry from BOTH manifests. #46
+//      says this is green on every gate; it is NOT, as of `09895b9`. Two merged
+//      audits — `feedback/audits/2026-08-02-Rogue3-10.audit.json` and `-11` —
+//      cite `file:.agents/skills/skill-manifest.json` with a sha256, so the same
+//      mutation exits 1 from `check-audit-bindings.py`. #46's claim was true when
+//      it was filed and went stale when #45's and #40's own audits merged.
+//      That guard is real but INCIDENTAL — it is a side effect of two cycles
+//      happening to cite the manifest as evidence, exactly the "guarded by
+//      accident" shape #34 recorded for 7 of 32 kit files — it lives only in CI
+//      rather than in `./fake.sh -t TemplateDrift`, `--grandfather` clears it,
+//      and it covers `.agents/` only: NO audit binds
+//      `.claude/skills/skill-manifest.json`. The coverage rule below makes it
+//      first-class, local and intentional instead.
 //
 // The upstream fix — widen the generated manifest — is not available here: the
-// manifest is emitted by FS.GG.SDD.Artifacts and a local edit to it is clobbered
-// on the next materialization. So this takes #46's second acceptance option, and
-// takes it in the strong form. `TemplateDrift` now ENUMERATES both kit trees and
-// reports every file that no pin covers, and a repository-owned ledger,
-// `scripts/kit-pins.json`, pins the complement the generated manifest omits — so
-// the uncovered set is both reported by the gate and empty on this tree.
+// manifest is generated (FS.GG.SDD.Artifacts 0.32.0 emitted it), so a local
+// widening is not durable and would be lost whenever the generator re-emits it.
+// So this takes #46's second acceptance option, and takes it in the strong form.
+// `TemplateDrift` now ENUMERATES both kit trees and reports every file that no
+// pin covers, and a repository-owned ledger, `scripts/kit-pins.json`, pins the
+// complement the generated manifest omits — so the uncovered set is both
+// reported by the gate and empty on this tree.
 //
 // Why a ledger and not an allow-list. #46 offers "the manifest widened first or
 // an explicit allow-list". An allow-list of the 63 would make the gate green
@@ -777,17 +804,33 @@ let private skillManifests = [ ".agents"; ".claude" ]
 //
 // What pins the ledger. Not this gate — a digest file cannot pin itself, the
 // same fixed point `scripts/audit-binding-exceptions.json` is exempted from in
-// `check-audit-bindings.py`. It is pinned OUT of band, by the audit-binding gate:
-// this cycle's audit cites `scripts/kit-pins.json` and both manifests as `file:`
-// evidence, so `.github/workflows/audit-bindings.yml` — which, unlike `Verify`,
-// really does run on every pull request — reports any edit to the three of them
-// as a stale binding. That is a genuine CI-enforced pin, and it is the first one
-// either manifest has ever had (`grep -rl skill-manifest.json feedback/audits/`
-// was empty before this cycle). It is not tamper-PROOF: a worker who edits a kit
-// file, re-pins the ledger and grandfathers the binding gets green. It is
-// tamper-EVIDENT, which is the honest ceiling for an oracle that lives in the
-// same tree as its subject, and every step of that sequence is a reviewable diff
-// rather than the single invisible line append that passed before.
+// `check-audit-bindings.py`. It is pinned OUT of band, by the audit-binding gate,
+// PROVIDED this cycle's audit ships in the same pull request as this file:
+// `feedback/audits/2026-08-02-Rogue3-15.audit.json` cites `scripts/kit-pins.json`
+// and BOTH manifests as `file:` evidence, and `.github/workflows/audit-bindings.yml`
+// — which, unlike the FAKE `Verify` target, really does run on every pull request
+// — then reports an edit to any of the three as a stale binding.
+//
+// That is stated as a condition because it IS one. A reviewer reading this file at
+// a commit where the audit is not yet present is looking at a ledger pinned by
+// nothing; a critic caught exactly that on the first commit of this branch, which
+// is why the paragraph is worded this way. Verify rather than believe — run the
+// audit-binding checker and look for the ledger among its bindings:
+//     scripts/check-audit-bindings.py --json | grep kit-pins
+// (the interpreter prefix is omitted deliberately: a governance scan in
+// tests/Rogue3.Tests/GovernanceTests.fs forbids that token anywhere in this file)
+//
+// Note also what is and is not new here. `.agents/skills/skill-manifest.json`
+// already had such a pin, from the two audits named above; what this cycle adds is
+// a pin on the ledger, the first pin on `.claude/skills/skill-manifest.json`, and
+// — unlike those two — a citation made deliberately for that purpose rather than
+// as a by-product of citing evidence for an unrelated finding.
+//
+// It is not tamper-PROOF: a worker who edits a kit file, re-pins the ledger and
+// grandfathers the binding gets green. It is tamper-EVIDENT, which is the honest
+// ceiling for an oracle that lives in the same tree as its subject, and every
+// step of that sequence is a reviewable diff rather than the single invisible
+// line append that passed before.
 // ---------------------------------------------------------------------------
 
 let private kitPinsRelative = "scripts/kit-pins.json"
@@ -887,7 +930,7 @@ let private renderKitPins (pins: (string * string) list) =
 
     "{\n"
     + "  \"schemaVersion\": 1,\n"
-    + "  \"note\": \"Repository-owned digests for the kit files .agents/skills/skill-manifest.json does not name. Read by TemplateDrift in build.fsx; regenerate with ./fake.sh build -t KitPins after a DELIBERATE kit edit. Pinned itself by the audit-binding gate, not by TemplateDrift.\",\n"
+    + "  \"note\": \"Repository-owned digests for the kit files .agents/skills/skill-manifest.json does not name. Read by TemplateDrift in build.fsx; regenerate with ./fake.sh build -t KitPins after a DELIBERATE kit edit. This file cannot pin itself; it is pinned only for as long as some audit under feedback/audits/ cites it - check with: scripts/check-audit-bindings.py --json | grep kit-pins\",\n"
     + "  \"pins\": [\n"
     + entries
     + "\n  ]\n}\n"
@@ -901,12 +944,21 @@ let templateDriftViolations (root: string) =
     if profile.IsNone then
         violations.Add ".fsgg/scaffold-provenance.json declares no `profile`, so `materializes-when` cannot be evaluated"
 
-    // The manifests ARE the oracle, and nothing else in the tree pins them: provenance's own pins
-    // for both are already stale, and no audit binds either. They are byte-identical by
-    // construction, so requiring them to agree means tampering has to be done twice, identically,
-    // to go unnoticed — a weak guarantee, but strictly better than trusting one file absolutely.
-    // The residual (an edit applied to BOTH manifests still hides drift) is recorded in
-    // feedback/2026-08-02-Rogue3-10.md §4.2 and filed, not papered over.
+    // The manifests are byte-identical by construction, so requiring them to agree means tampering
+    // has to be done twice, identically, to go unnoticed.
+    //
+    // #34 shipped this comment saying "nothing else in the tree pins them … and no audit binds
+    // either", and called the residual — an edit applied to BOTH manifests — unclosed. BOTH halves
+    // of that are now wrong, and leaving the words would misdescribe the code directly below them:
+    //   * `feedback/audits/2026-08-02-Rogue3-{10,11}.audit.json` cite
+    //     `file:.agents/skills/skill-manifest.json` with a sha256, so the audit-binding gate has
+    //     pinned that file since those audits merged. It was already false when written.
+    //   * #46's `scripts/kit-pins.json` now pins `.agents/skills/skill-manifest.json` outright, and
+    //     the mirror pass holds `.claude/skills/skill-manifest.json` to the same digest — so an
+    //     edit applied to both manifests IS reported, and the agreement check below is no longer
+    //     the only thing standing between this gate and its own oracle.
+    // The agreement check is kept regardless: it names the ONE-sided edit precisely ("edited
+    // alone"), which the digest pins would otherwise report as two unexplained drifts.
     let manifestPaths = skillManifests |> List.map (fun owner -> owner, path [ root; owner; "skills"; "skill-manifest.json" ])
 
     match manifestPaths |> List.filter (snd >> File.Exists) with
@@ -1034,11 +1086,18 @@ let templateDriftViolations (root: string) =
     // The mirror pass walks SOURCES, so a file added only to `.claude/skills` is named by nothing it
     // iterates. Enumerating the mirror tree too is what makes the 190 a real total rather than
     // 95 plus an assumption.
+    //
+    // The second arm exists because a reviewer caught the first draft COUNTING an uncovered mirror
+    // without NAMING it: the summary said "2 uncovered" while only one `coverage:` line was
+    // emitted. #46's acceptance is that the uncovered set is visible in the gate's output, so a
+    // file that the denominator counts as uncovered has to appear by name, not by arithmetic.
     for mirrored in kitTreeFiles root ".claude" do
         let source = ".agents/" + mirrored.Substring(".claude/".Length)
 
         if not (File.Exists(path [ root; source ])) then
             violations.Add $"coverage: {mirrored} mirrors no source at {source}, so no pin covers it"
+        elif not (manifestNamed.Contains source) && not (pinnedSources.Contains source) then
+            violations.Add $"coverage: {mirrored} is pinned by nothing, because its source {source} is pinned by nothing"
 
     List.ofSeq violations
 
@@ -1532,10 +1591,26 @@ let private runSelfTest () =
         writeFile (path [ injected; ".agents/skills/fs-gg-kit/backdoor.md" ]) "# added\n"
         writeFile (path [ injected; ".claude/skills/fs-gg-kit/backdoor.md" ]) "# added\n"
 
+        let injectedViolations = templateDriftViolations injected
+
         expect
             "an INJECTED kit file no pin covers is reported BY NAME"
-            (templateDriftViolations injected
-             |> List.exists (fun v -> v.StartsWith "coverage: " && v.Contains "backdoor.md"))
+            (injectedViolations
+             |> List.exists (fun v -> v.StartsWith "coverage: " && v.Contains ".agents/skills/fs-gg-kit/backdoor.md"))
+
+        // A reviewer found the counter and the enumeration disagreeing: the summary COUNTED an
+        // uncovered mirror that no `coverage:` line NAMED. #46's acceptance is that the uncovered
+        // set is visible in the gate's output, so both halves of the pair must be named.
+        expect
+            "the uncovered MIRROR of an injected file is reported by name too, not merely counted"
+            (injectedViolations
+             |> List.exists (fun v -> v.StartsWith "coverage: " && v.Contains ".claude/skills/fs-gg-kit/backdoor.md"))
+
+        expect
+            "every file the coverage COUNTER calls uncovered is also NAMED by a coverage line"
+            (let line = templateDriftCoverage injected
+             let named = injectedViolations |> List.filter (fun v -> v.StartsWith "coverage: ") |> List.length
+             line.Contains $"{named} uncovered")
 
         // Injected into the MIRROR tree only, where no source exists to walk from.
         let injectedMirror, _ = freshFixture ()
