@@ -2901,7 +2901,9 @@ let private runSelfTest () =
         // the enumeration's ORDER is part of the contract and not an implementation detail. The
         // hand-written walk is depth-first and the array it replaced was sorted flat; the two differ
         // wherever a directory and a file share a prefix. This was not caught by reading — the first
-        // version of the walk reordered six lines of the real `scripts/kit-pins.json`, a gratuitous
+        // version of the walk moved 4 pins — 8 changed diff lines — of the real
+        // `scripts/kit-pins.json` (the figure `sorted`'s own comment carries; "six" was the first
+        // commit message's and was wrong), a gratuitous
         // diff on a file a merged audit binds, discovered only by running `KitPins` and looking at
         // `git diff`. The fixture plants exactly that pair so a dropped sort cannot pass.
         let walkOrder, _ = freshFixture ()

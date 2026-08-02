@@ -7,16 +7,16 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e01bfecef3158d4ed79dffbd17021d8b7bca68c9162ec2f476e83df26146a303",
-      "observedSha256": "817152da4937652d95cdd6effb055d6dad25612f9c9f3f2872f071fde3de1ac0",
-      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger and case-vacuity defects two critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change."
+      "observedSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger, non-regular-entry and case-vacuity defects three critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change. Re-run after an audit critic's final figure corrections reopened build.fsx, which is the re-staling residual rogue3#53 records."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-10.audit.json",
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e4ffba908062819db9891d9a89ca59c0097826bdef8cf386e072716c318e48a4",
-      "observedSha256": "817152da4937652d95cdd6effb055d6dad25612f9c9f3f2872f071fde3de1ac0",
-      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger and case-vacuity defects two critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change."
+      "observedSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger, non-regular-entry and case-vacuity defects three critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change. Re-run after an audit critic's final figure corrections reopened build.fsx, which is the re-staling residual rogue3#53 records."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-11.audit.json",
@@ -39,16 +39,16 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
-      "observedSha256": "817152da4937652d95cdd6effb055d6dad25612f9c9f3f2872f071fde3de1ac0",
-      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger and case-vacuity defects two critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change."
+      "observedSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger, non-regular-entry and case-vacuity defects three critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change. Re-run after an audit critic's final figure corrections reopened build.fsx, which is the re-staling residual rogue3#53 records."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-13.audit.json",
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490",
-      "observedSha256": "817152da4937652d95cdd6effb055d6dad25612f9c9f3f2872f071fde3de1ac0",
-      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger and case-vacuity defects two critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change."
+      "observedSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger, non-regular-entry and case-vacuity defects three critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change. Re-run after an audit critic's final figure corrections reopened build.fsx, which is the re-staling residual rogue3#53 records."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-14.audit.json",
@@ -63,8 +63,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea",
-      "observedSha256": "817152da4937652d95cdd6effb055d6dad25612f9c9f3f2872f071fde3de1ac0",
-      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger and case-vacuity defects two critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change."
+      "observedSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger, non-regular-entry and case-vacuity defects three critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change. Re-run after an audit critic's final figure corrections reopened build.fsx, which is the re-staling residual rogue3#53 records."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
@@ -87,8 +87,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "486fd8012c4dba5a23e4e0270eec14d70a36ea3c474c9740e610445d87c1180c",
-      "observedSha256": "817152da4937652d95cdd6effb055d6dad25612f9c9f3f2872f071fde3de1ac0",
-      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger and case-vacuity defects two critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change."
+      "observedSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger, non-regular-entry and case-vacuity defects three critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change. Re-run after an audit critic's final figure corrections reopened build.fsx, which is the re-staling residual rogue3#53 records."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-18.audit.json",
@@ -111,40 +111,40 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "1ef477799c13a80e64b56d5e5c554e6598373c49b10b9e3170f1e53736a1000c",
-      "observedSha256": "817152da4937652d95cdd6effb055d6dad25612f9c9f3f2872f071fde3de1ac0",
-      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger and case-vacuity defects two critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change."
+      "observedSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger, non-regular-entry and case-vacuity defects three critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change. Re-run after an audit critic's final figure corrections reopened build.fsx, which is the re-staling residual rogue3#53 records."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-20.audit.json",
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "486fd8012c4dba5a23e4e0270eec14d70a36ea3c474c9740e610445d87c1180c",
-      "observedSha256": "817152da4937652d95cdd6effb055d6dad25612f9c9f3f2872f071fde3de1ac0",
-      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger and case-vacuity defects two critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change."
+      "observedSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger, non-regular-entry and case-vacuity defects three critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change. Re-run after an audit critic's final figure corrections reopened build.fsx, which is the re-staling residual rogue3#53 records."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-4.audit.json",
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
-      "observedSha256": "817152da4937652d95cdd6effb055d6dad25612f9c9f3f2872f071fde3de1ac0",
-      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger and case-vacuity defects two critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change."
+      "observedSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger, non-regular-entry and case-vacuity defects three critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change. Re-run after an audit critic's final figure corrections reopened build.fsx, which is the re-staling residual rogue3#53 records."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-7.audit.json",
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
-      "observedSha256": "817152da4937652d95cdd6effb055d6dad25612f9c9f3f2872f071fde3de1ac0",
-      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger and case-vacuity defects two critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change."
+      "observedSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger, non-regular-entry and case-vacuity defects three critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change. Re-run after an audit critic's final figure corrections reopened build.fsx, which is the re-staling residual rogue3#53 records."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "1acae987b6643464764bdff31134e00c1b992413320deeec726a4b9fdd367ae8",
-      "observedSha256": "817152da4937652d95cdd6effb055d6dad25612f9c9f3f2872f071fde3de1ac0",
-      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger and case-vacuity defects two critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change."
+      "observedSha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3",
+      "reason": "rogue3#62: build.fsx's TemplateDrift/GeneratedGuidanceCheck gates and .github/workflows/verify.yml's SelfTest step both changed to close #62 items 1-4 - symlinked kit roots and files, the generated manifest's missing path boundary, and an unreadable input aborting a run with no violation line - plus the walk-order, unparseable-ledger, non-regular-entry and case-vacuity defects three critics found against the candidate. Every cited audit binds these two files as evidence for unrelated findings; nothing they assert about this repository is falsified by the change. Re-run after an audit critic's final figure corrections reopened build.fsx, which is the re-staling residual rogue3#53 records."
     }
   ]
 }
