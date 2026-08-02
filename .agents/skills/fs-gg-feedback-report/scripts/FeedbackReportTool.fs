@@ -348,6 +348,76 @@ let private normalizedJsonString value =
     | null -> ""
     | text -> (unbox<string> text).Trim()
 
+/// The audit-binding gate's excuse ledger (scripts/check-audit-bindings.py).
+///
+/// This is the ONE path whose digest cannot be pinned, because it is the only
+/// place an excuse can live: excusing any stale binding REWRITES this file, so
+/// a citation onto it is invalidated by the documented remedy for an unrelated
+/// violation. Binding it is a fixed-point equation with no fixed point.
+let ledgerRelativePath = "scripts/audit-binding-exceptions.json"
+
+let private ledgerExemption =
+    "this is the audit-binding excuse ledger itself: the only place an excuse can live, so "
+    + "excusing any binding rewrites it and invalidates the digest just pinned"
+
+/// Why the file at workspace-relative `rel` cannot have its digest checked, or
+/// None when it is an ordinary file.
+///
+/// Takes the workspace-relative path derived from the RESOLVED location, not the
+/// locator text, so `file:feedback/../scripts/audit-binding-exceptions.json`
+/// is recognised as the ledger too. A textual match on the locator would let a
+/// one-token rewrite reintroduce the unsatisfiable binding this exempts.
+///
+/// Deliberately ONE path, not a class. In particular a citation onto another
+/// `*.audit.json` is NOT exempt, for one reason only: it would cost the only
+/// check that notices an edit to merged evidence, and an audit's digest CAN be
+/// held stable -- nothing this validator does rewrites an audit.
+///
+/// Do NOT justify that with the gate's convergence argument. `check-audit-bindings.py`
+/// can say "a stale binding onto another audit settles in a single `--grandfather`
+/// pass" because it HAS an excuse ledger. This validator has none: `--grandfather`
+/// changes no verdict here, and a stale citation onto another audit has no remedy
+/// short of rebinding merged evidence. That is a real gap in this tool, not an
+/// argument for widening the exemption.
+///
+/// Compared with StringComparison.Ordinal on EVERY platform, deliberately -- not
+/// the `pathComparison` used elsewhere in this file, which is OrdinalIgnoreCase on
+/// Windows. `exemption` in scripts/check-audit-bindings.py compares with Python
+/// `==`, which is case-sensitive everywhere; matching case-insensitively on Windows
+/// would exempt a path that checker still binds. The two must stay in agreement: a
+/// file the checker calls unbindable is a file this validator must not call stale,
+/// and vice versa.
+let digestExemption (rel: string) =
+    if String.Equals(rel, ledgerRelativePath, StringComparison.Ordinal) then
+        Some ledgerExemption
+    else
+        None
+
+/// A citation whose digest was deliberately not checked. Reported, never
+/// silently dropped, so a reader can always tell "this citation is exempt"
+/// apart from "the validator missed it".
+type NotBoundCitation =
+    { findingId: string
+      locator: string
+      path: string
+      reason: string }
+
+/// Errors, plus the citations the validator deliberately did not check.
+type AuditValidation =
+    { errors: string list
+      notBound: NotBoundCitation list }
+
+let private workspaceRelative (workspaceRoot: string) (resolved: string) =
+    // The resolved path has had its existing segments canonicalized (symlinks
+    // followed). Relativising it against a root that still contains a symlinked
+    // component yields `../real/...`, which matches no exemption -- so the whole
+    // exemption would silently switch off. Both sides must be canonicalized.
+    let canonicalRoot = canonicalizeExistingSegments workspaceRoot
+
+    Path
+        .GetRelativePath(canonicalRoot, resolved)
+        .Replace(Path.DirectorySeparatorChar, '/')
+
 let private resolveEvidencePath (workspaceRoot: string) (locator: string) =
     if
         String.IsNullOrWhiteSpace locator
@@ -374,13 +444,14 @@ let private resolveEvidencePath (workspaceRoot: string) (locator: string) =
                 else
                     None
 
-let validateActionabilityAudit
+let validateActionabilityAuditDetailed
     (workspaceRoot: string)
     (reportPath: string)
     (reportText: string)
     (auditText: string)
     =
     let errors = ResizeArray<string>()
+    let notBound = ResizeArray<NotBoundCitation>()
 
     let audit =
         try
@@ -564,15 +635,31 @@ let validateActionabilityAudit
                         | Some path when not (File.Exists path) ->
                             errors.Add(sprintf "audit: %s evidence file is missing: %s" id locator)
                         | Some path ->
-                            match digest with
-                            | None -> errors.Add(sprintf "audit: %s file evidence needs sha256" id)
-                            | Some digest ->
-                                let actual = File.ReadAllText path |> sha256Text
+                            let relative = workspaceRelative workspaceRoot path
 
-                                if digest <> actual then
-                                    errors.Add(
-                                        sprintf "audit: %s evidence digest is stale: %s" id locator
-                                    )
+                            match digestExemption relative with
+                            | Some reason ->
+                                // Reported, never checked. Only the DIGEST has no
+                                // fixed point here: the locator hygiene and file
+                                // existence checks above are stable facts and still
+                                // applied. A pinned sha256 is not required, because
+                                // requiring one would make an author paste a digest
+                                // this validator promises never to compare.
+                                notBound.Add
+                                    { findingId = id
+                                      locator = locator
+                                      path = relative
+                                      reason = reason }
+                            | None ->
+                                match digest with
+                                | None -> errors.Add(sprintf "audit: %s file evidence needs sha256" id)
+                                | Some digest ->
+                                    let actual = File.ReadAllText path |> sha256Text
+
+                                    if digest <> actual then
+                                        errors.Add(
+                                            sprintf "audit: %s evidence digest is stale: %s" id locator
+                                        )
                     elif not (String.IsNullOrWhiteSpace locator) && Path.IsPathRooted locator then
                         errors.Add(sprintf "audit: %s evidence locator exposes an absolute path" id)
 
@@ -586,7 +673,27 @@ let validateActionabilityAudit
             elif not (Set.contains findingId expectedIds) then
                 errors.Add(sprintf "audit: unknown finding '%s'" findingId)
 
-    List.ofSeq errors
+    // One audit routinely cites the same unbindable file from several findings.
+    // Report each distinct citation once.
+    let distinctNotBound =
+        notBound
+        |> Seq.distinctBy (fun citation -> citation.findingId, citation.locator)
+        |> Seq.sortBy (fun citation -> citation.findingId, citation.locator)
+        |> List.ofSeq
+
+    { errors = List.ofSeq errors
+      notBound = distinctNotBound }
+
+/// Errors only. Retained so a consumer of an older kit keeps compiling; new
+/// callers should use `validateActionabilityAuditDetailed`, which also reports
+/// the citations that were deliberately not checked.
+let validateActionabilityAudit
+    (workspaceRoot: string)
+    (reportPath: string)
+    (reportText: string)
+    (auditText: string)
+    =
+    (validateActionabilityAuditDetailed workspaceRoot reportPath reportText auditText).errors
 
 type Checkpoint =
     { timestampUtc: string

@@ -26,6 +26,20 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.302
+      # The feedback-report validator decides whether a merged cycle report is
+      # still evidence. It carries a deliberate one-path exemption (rogue3#40):
+      # the audit-binding excuse ledger, whose digest has no fixed point. This
+      # selftest proves the exemption is still exactly that one path and that an
+      # ordinary stale digest is still an error, so the exemption cannot quietly
+      # widen into "the validator checks nothing".
+      #
+      # Deliberately NOT in audit-bindings.yml, even though that is where its
+      # sibling `check-audit-bindings.py --selftest` runs: that workflow file is
+      # itself cited by feedback/audits/2026-08-02-Rogue3-7.audit.json and -9,
+      # so editing it makes both of those accepted reports fail validate -- the
+      # exact breakage this item exists to remove.
+      - name: Self-test the feedback-report validator
+        run: dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- selftest
       - name: Restore
         run: >-
           dotnet restore Rogue3.slnx
