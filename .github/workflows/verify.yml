@@ -87,11 +87,19 @@ jobs:
       # is a bug in this comment:
       #   * The full `Verify` target (TemplateDrift + GeneratedGuidanceCheck, then
       #     the EvidenceGraph -> EvidenceAudit merge-gate audit, plus ADR-0056's
-      #     fail-closed lifecycle guard). Verify rewrites TRACKED readiness
-      #     artifacts; rogue3#26 (the exit-0-on-a-falsified-graph half) landed in
-      #     #54, but rogue3#56 is OPEN -- those roll-ups are still derived from a
-      #     partly-untracked tree. A job that ran Verify and then checked for a
-      #     dirty tree would fail for reasons unrelated to the PR under test.
+      #     fail-closed lifecycle guard). THE OLD REASON HERE IS GONE: it said
+      #     Verify rewrites TRACKED readiness artifacts so a dirty-tree job would
+      #     fail for reasons unrelated to the PR, and rogue3#56 removed those
+      #     artifacts from the index -- a full Verify now exits 0 leaving
+      #     `git status --porcelain` empty, measured twice consecutively on that
+      #     item's candidate. The remaining reason is narrower and is the SECOND
+      #     bullet below: Verify runs the measured performance gate, whose pass
+      #     depends on runner contention rather than on the PR. A dirty-tree job
+      #     over Verify would therefore be gating merges on latency again. The
+      #     part of Verify that rogue3#56 DID make enforceable -- that the derived
+      #     roll-ups stay out of the index -- is wired as its own step below, and
+      #     it needs no build.
+      #     Wiring the rest is tracked by rogue3#52.
       #   * The fail-closed normal-play PERFORMANCE gate (`PerformanceIntent` +
       #     `PerformanceEvidence`, which `Test` and `Verify` both run and which raw
       #     `dotnet test` does not). Both exit 0 on this tree, so this is not a red
@@ -100,8 +108,10 @@ jobs:
       #     host produced different p50/p95/p99 values and a different
       #     artifactDigest in readiness/performance-evidence.json, and neither
       #     matched the committed bytes. On a shared runner that is worse, so
-      #     requiring it would gate merges on runner contention. Tracked by
-      #     rogue3#56 for the tracked-artifact churn.
+      #     requiring it would gate merges on runner contention. rogue3#56 removed
+      #     the CHURN half of this (the artifacts are no longer tracked, so the run
+      #     leaves no diff); the non-reproducibility that makes the gate unsuitable
+      #     for CI is unchanged, because it was never about tracking.
       #   * The feedback-report validator CORPUS -- `validate` over every
       #     feedback/*.md against its audit. Measured at bfd1288 over all 23
       #     pairs: 3 pass, 20 fail. Audits legitimately cite files that later
@@ -161,6 +171,51 @@ jobs:
       # injected -- requiring the child to exit non-zero AND to record exactly one
       # more case and one more failure than the parent. This step asserts the
       # structured result, so a forged transcript is simply not read.
+      # rogue3#56. The three roll-ups below are run outputs, and `.gitignore` plus
+      # scripts/check-audit-bindings.py both say so -- the checker stops checking the
+      # merged-audit digests pinned over them on the strength of that declaration.
+      # Neither file can notice the one change that would falsify it: a `.gitignore`
+      # rule has no effect on a path already in the index, so `git add -f` puts the
+      # bytes back under version control, restores the committable-diff-every-run
+      # defect, and leaves the checker still refusing to check them. Only the index
+      # answers that, and only CI has both the index and no reason to lie about it.
+      # This step is the enforcement for the acceptance of rogue3#56; it runs before
+      # the build because it needs nothing built.
+      - name: Derived roll-ups stay out of the index
+        run: |
+          set -euo pipefail
+          fail=0
+          for p in readiness/evidence-graph.md \
+                   readiness/performance-evidence.json \
+                   readiness/m7-ui-performance.json; do
+            if git ls-files --error-unmatch "$p" >/dev/null 2>&1; then
+              echo "::error file=$p::$p is TRACKED. rogue3#56 removed it from the index because it is a build-target output no checkout can reproduce, and scripts/check-audit-bindings.py exempts the merged-audit digests pinned over it on that basis. Run: git rm --cached $p"
+              fail=1
+            fi
+            if ! git check-ignore -q "$p"; then
+              echo "::error file=.gitignore::$p is no longer ignored by .gitignore. Restore the rule, or remove the path from DERIVED_ROLLUP_RELPATHS in scripts/check-audit-bindings.py so its audit bindings are checked again."
+              fail=1
+            fi
+          done
+          # The list above is duplicated from .gitignore and from the checker on
+          # purpose -- three independent statements that must agree. Prove the pair
+          # this job can see really do agree, so a path silently dropped from the
+          # checker's constant cannot leave this step passing over a shorter list.
+          # PYTHONDONTWRITEBYTECODE: importing the checker as a module would
+          # otherwise leave scripts/__pycache__/ behind, which is neither tracked nor
+          # ignored -- a step that proves the tree is clean must not dirty it.
+          declared="$(PYTHONDONTWRITEBYTECODE=1 python3 -c 'import importlib.util; s=importlib.util.spec_from_file_location("c", "scripts/check-audit-bindings.py"); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); print("\n".join(sorted(m.DERIVED_ROLLUP_RELPATHS)))')"
+          expected="$(printf '%s\n' readiness/evidence-graph.md readiness/m7-ui-performance.json readiness/performance-evidence.json)"
+          if [ "$declared" != "$expected" ]; then
+            echo "::error file=scripts/check-audit-bindings.py::DERIVED_ROLLUP_RELPATHS and this job's list disagree."
+            diff <(echo "$expected") <(echo "$declared") || true
+            fail=1
+          fi
+          if [ "$fail" -eq 0 ]; then
+            echo "All three derived roll-ups are untracked, ignored, and agree with DERIVED_ROLLUP_RELPATHS."
+          fi
+          exit "$fail"
+
       - name: Self-test the build.fsx merge gate
         run: |
           set -euo pipefail

@@ -265,13 +265,31 @@ let private runGeneratedEvidence (target: string) : int =
 //   * It names every input the run could not sense, which is the diagnostic #26 was
 //     really about and is the only place that list is printed.
 //   * On a genuinely fresh checkout there is no previous graph, so the first emission
-//     publishes unconditionally and the graph is exactly what THIS tree can sense —
-//     which is what "reproducible from that checkout" means and what #56 asked for.
+//     publishes unconditionally, with no committed number to be measured against.
+//
+// What #56 did NOT fix, stated here because the obvious summary of it is wrong. The graph
+// is still not reproducible from a checkout: it is a function of the checkout AND of what
+// has run in it. `Verify` emits the graph after `TemplateDrift`/`GeneratedGuidanceCheck`
+// have written their logs but before `Test`/`PerformanceIntent`/`PerformanceEvidence` and
+// `writeLog "Verify"` write theirs, so run n absorbs run n−1's outputs and a standalone
+// `-t EvidenceGraph` senses a different set again — measured on one checkout of one
+// commit: first Verify 94 sensed files, second Verify 101. #26 measured the same shape
+// from the other side (96 under Verify, 94 standalone). The ratchet is intact; what
+// changed is its audience, from the repository to one working copy, and that is enough to
+// satisfy #56's acceptance (no run produces a committable diff) without satisfying the
+// word "reproducible". Emission ORDER is the issue's root cause 2 and belongs to the
+// engine emitter; it is untaken.
 //
 // The bounded route out of a refusal is therefore no longer `FSGG_EVIDENCE_GRAPH_PUBLISH=1`
-// alone: deleting `readiness/evidence-graph.md` and re-running gives a graph derived
-// wholly from this checkout. The override is kept for the case where a lifecycle
-// checkout wants to publish a smaller graph deliberately without deleting first.
+// alone: deleting `readiness/evidence-graph.md` and re-running gives a graph derived from
+// this checkout at that point in the run. The override is kept for the case where a
+// lifecycle checkout wants to publish a smaller graph deliberately without deleting first.
+//
+// The trade this makes, named rather than implied: under #26 a stale graph was visible as
+// a tracked-file diff a reviewer could see. Now the only signal is stderr inside a run
+// that exits 0, and `git status` is clean by construction. A partial clean of the ignored
+// tree (`rm -rf readiness/logs`) leaves a checkout whose every subsequent Verify refuses,
+// quietly and greenly, until someone deletes the graph.
 //
 // `readiness/evidence-audit.md` is still TRACKED and still unguarded — deliberately,
 // and it is the control case that makes the diagnosis above falsifiable. It records a
@@ -471,19 +489,35 @@ let private runEvidenceGraphEmission (graphPath: string) (publishSmaller: bool) 
                 ()
         | None -> ()
 
+/// Wraps an emitter so the heading check reads what the EMITTER wrote.
+///
+/// The ordering is the whole point and it is subtle enough to be worth a named
+/// function: the check must run after the emitter returns and BEFORE the publication
+/// rule, which may restore the previous bytes over the emitted ones. Run afterwards, it
+/// would read the restored copy while claiming to describe this run's output — a report
+/// about bytes other than the ones it names, which is the shape of the defect #26 exists
+/// to stop.
+///
+/// `emit` and `warn` are parameters rather than hard-wired calls so `SelfTest` can drive
+/// this composition. #26's own lesson, in this same file, is that the predicate being
+/// correct and the predicate being INSTALLED are two claims and a suite that proves the
+/// first says nothing about the second: three mutants of the runner each reinstated the
+/// original defect with a fully green suite. A check hung off an unparameterised call
+/// site is exactly that hole, so this one is not.
+let private emitWithHeadingCheck (graphPath: string) (emit: unit -> int) (warn: string -> unit) () =
+    let exitCode = emit ()
+
+    // A failed emission is reported by the caller, which raises; warning about the
+    // graph it did not finish writing would bury that under noise about a file whose
+    // state nobody has claimed anything about.
+    if exitCode = 0 then
+        emittedGraphSectionWarning graphPath |> List.iter warn
+
+    exitCode
+
 let private runEvidenceGraph () =
-    // The heading check must read what the EMITTER wrote, so it runs inside the emit
-    // callback — after the emitter returns and before the rule, which may restore the
-    // previous bytes over them. Reading the graph after the rule has run would report on
-    // the restored copy while claiming to describe this run's output, which is the shape
-    // of the defect #26 exists to stop.
-    let emitAndCheckHeading () =
-        let exitCode = runGeneratedEvidence "EvidenceGraph"
-
-        if exitCode = 0 then
-            emittedGraphSectionWarning evidenceGraphPath |> List.iter (eprintfn "%s")
-
-        exitCode
+    let emitAndCheckHeading =
+        emitWithHeadingCheck evidenceGraphPath (fun () -> runGeneratedEvidence "EvidenceGraph") (eprintfn "%s")
 
     runEvidenceGraphEmission evidenceGraphPath (evidenceGraphPublishRequested ()) emitAndCheckHeading
     |> evidenceGraphPublicationReport evidenceGraphPath
@@ -1800,6 +1834,114 @@ let private runSelfTest () =
             ((emittedGraphSectionWarning (path [ headingRoot; "never-written.md" ]) |> String.concat "\n")
                 .Contains "does not exist after an emission that exited 0")
 
+        // #56: the cases above prove the PREDICATE. These prove it is INSTALLED, and
+        // installed in the right ORDER — the distinction #26 paid a re-implementation
+        // round to learn in this same file. Each drives `emitWithHeadingCheck` through
+        // the real runner with a fake emitter and a capturing sink.
+        //
+        // The ordering case is the load-bearing one and it is built so that it can only
+        // pass one way. A graph WITH the heading is published; the fake emitter then
+        // overwrites it with a headingless graph; the publication rule sees an emission
+        // that sensed nothing, refuses, and RESTORES the heading. So a check running
+        // before the rule sees the headingless bytes and warns, and a check running
+        // after it sees the restored heading and stays silent. Moving the call site out
+        // of the emit callback flips this case red.
+        let orderingRoot = path [ sandbox; "heading-install" ]
+        Directory.CreateDirectory orderingRoot |> ignore
+
+        // Returns the captured warnings, the publication outcome as an option (None when
+        // the runner raised, which it does for a non-zero emitter), and the file's final
+        // bytes. Capturing the warnings OUTSIDE the try means a raising run still reports
+        // whether it warned first.
+        let drive (publishedBody: string) (emittedBody: string) (emitExit: int) =
+            let file = path [ orderingRoot; Guid.NewGuid().ToString("N") + ".md" ]
+            File.WriteAllText(file, publishedBody)
+            let captured = ResizeArray<string>()
+
+            let outcome =
+                try
+                    Some(
+                        runEvidenceGraphEmission
+                            file
+                            false
+                            (emitWithHeadingCheck
+                                file
+                                (fun () ->
+                                    File.WriteAllText(file, emittedBody)
+                                    emitExit)
+                                captured.Add)
+                    )
+                with _ ->
+                    None
+
+            List.ofSeq captured, outcome, File.ReadAllText file
+
+        let withHeading = $"# Evidence graph\n\n{sensedSectionHeading}\n\n- `readiness/layout-evidence.txt`\n"
+        let withoutHeading = "# Evidence graph\n\n## Something the engine renamed\n\n- `readiness/layout-evidence.txt`\n"
+
+        let orderedWarnings, orderedOutcome, orderedFinalBytes = drive withHeading withoutHeading 0
+
+        expect
+            "the heading check runs on the EMITTED graph, before the rule restores over it"
+            (orderedWarnings |> List.exists (fun line -> line.Contains "ABSTAIN"))
+
+        // Without this, the case above would also pass if the rule had simply left the
+        // headingless graph in place — and then it would prove nothing about ordering.
+        expect
+            "...and that run really did restore the heading afterwards, so a later check would have seen it"
+            ((match orderedOutcome with
+              | Some(Restored _) -> true
+              | _ -> false)
+             && orderedFinalBytes.Contains sensedSectionHeading)
+
+        let cleanWarnings, cleanOutcome, _ = drive withHeading withHeading 0
+
+        expect
+            "a clean emission installs the check and it stays silent"
+            (List.isEmpty cleanWarnings
+             && (match cleanOutcome with
+                 | Some Published -> true
+                 | _ -> false))
+
+        let failedWarnings, failedOutcome, _ = drive withHeading withoutHeading 3
+
+        expect
+            "a failed emission still fails the gate and warns about nothing"
+            (failedOutcome = None && List.isEmpty failedWarnings)
+
+        // The cases above drive `emitWithHeadingCheck` directly, so they prove the
+        // composition and NOT the production call site — `runEvidenceGraph` calls the real
+        // engine and cannot be driven from here. A mutant that rewires `runEvidenceGraph`
+        // to call the bare emitter and then warn AFTER the publication rule passed every
+        // case above: the composition was still correct, it just was not used. This scan
+        // closes that, and it is honest about what it is — the same text-scan convention
+        // `GovernanceTests` already applies to this file. It proves the wiring is WRITTEN,
+        // not that it runs; the cases above are what prove it behaves.
+        let runEvidenceGraphBody =
+            let source = File.ReadAllText(path [ currentRoot (); "build.fsx" ])
+            let marker = "let private runEvidenceGraph () ="
+
+            match source.IndexOf(marker, StringComparison.Ordinal) with
+            | -1 -> None
+            | start ->
+                let rest = source.Substring(start + marker.Length)
+                // The next top-level binding or comment block ends the body.
+                match rest.IndexOf("\n// ", StringComparison.Ordinal) with
+                | -1 -> Some rest
+                | stop -> Some(rest.Substring(0, stop))
+
+        expect
+            "build.fsx still declares runEvidenceGraph, so this scan has a subject"
+            runEvidenceGraphBody.IsSome
+
+        expect
+            "runEvidenceGraph reaches the heading check ONLY through emitWithHeadingCheck"
+            (match runEvidenceGraphBody with
+             | Some body ->
+                 body.Contains "emitWithHeadingCheck evidenceGraphPath"
+                 && not (body.Contains "emittedGraphSectionWarning")
+             | None -> false)
+
         let clean, _ = freshFixture ()
         expect "a faithful fixture is clean" (List.isEmpty (templateDriftViolations clean) && List.isEmpty (generatedGuidanceViolations clean))
 
@@ -2859,11 +3001,12 @@ let helpBanner =
     + "           The evidence graph is only PUBLISHED by a run that sensed at least everything the\n"
     + "           graph already on disk records (#26); a run that sensed less names what it missed and\n"
     + "           restores the previous bytes. Set FSGG_EVIDENCE_GRAPH_PUBLISH=1 to publish a smaller\n"
-    + "           graph, or delete readiness/evidence-graph.md to re-derive it from this checkout alone.\n"
-    + "           Since #56 that graph, readiness/performance-evidence.json, m7-ui-performance.json and\n"
-    + "           performance-critic-request.json are NOT tracked: they are run outputs no checkout can\n"
-    + "           reproduce, so a green Verify now leaves git status clean. The tracked, reproducible\n"
-    + "           evidence a reviewer reads is readiness/performance-intent.yml and evidence-audit.md.\n\n"
+    + "           graph, or delete readiness/evidence-graph.md to re-derive it from this checkout.\n"
+    + "           Since #56 the three roll-ups Verify rewrites — readiness/evidence-graph.md,\n"
+    + "           performance-evidence.json and m7-ui-performance.json — are NOT tracked: they are run\n"
+    + "           outputs no checkout can reproduce, so a green Verify leaves git status clean and you\n"
+    + "           do not stage them. The tracked evidence a reviewer reads is\n"
+    + "           readiness/performance-intent.yml and readiness/evidence-audit.md.\n\n"
     + "  Restore | Build | Run | Pack   Pass-through to stock `dotnet` over the single root .slnx.\n"
     + "           Run inherits this console, so the product's output is live and it stays up until the\n"
     + "           product exits; set FSGG_RUN_TIMEOUT_SECONDS to bound an unattended launch.\n\n"

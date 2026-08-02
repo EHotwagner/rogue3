@@ -61,31 +61,40 @@ citations were not bound -- so a reader can always tell the difference between
 NOT BOUND: the derived readiness roll-ups
 -----------------------------------------
 
-The second exemption, and the last (rogue3#56).  `readiness/evidence-graph.md`,
-`readiness/performance-evidence.json`, `readiness/m7-ui-performance.json` and
-`readiness/performance-critic-request.json` are outputs of the merge gate over
-inputs no checkout can reproduce -- the graph enumerates a tree that is partly
-regenerable output, and the rest carry measured timings, allocations and digests
-over them.  rogue3#56 removed all four from the index, so an audit that cited one
-of them pinned a sha256 over a run output.
+The OTHER exemption (rogue3#56).  `readiness/evidence-graph.md`,
+`readiness/performance-evidence.json` and `readiness/m7-ui-performance.json` are
+outputs of the merge gate over inputs no checkout can reproduce -- the graph
+enumerates a tree that is partly regenerable output, and the other two carry
+measured timings, allocations and digests over them.  rogue3#56 removed all three
+from the index, so an audit that cited one of them pinned a sha256 over a run
+output.
 
 Unlike an ordinary deleted file, the ledger cannot settle these, because they do
 not observe the same thing twice: in a checkout that has run the gate the file is
 PRESENT with churning bytes, and in one that has not it is ABSENT.  An exception
 pins exactly one observed digest, so an entry written from a developer's tree
 fails in CI and an entry written from CI fails on the developer's tree.  Measured
-at the rogue3#56 candidate: `check` reported 22 stale bindings locally while
-`readiness/evidence-graph.md` sat on disk still holding its last committed bytes,
-so its four bindings looked FRESH in the very checkout where they were about to
-read `<missing>` in CI.
+on the FIRST commit of rogue3#56 -- db5ee2e, which untracked the artifacts and left
+this checker unchanged: `check` reported 22 stale bindings in a worktree that had
+just run the gate, and the four bindings onto `readiness/evidence-graph.md` were
+among the FRESH ones, because the publication rule had restored the exact bytes the
+file carried while tracked.  Fresh in the very checkout where CI was about to read
+`<missing>`.  (With this exemption in place the same tree reports 17 stale and 19
+not bound.  22 is the pre-fix number and belongs to that commit, not to the
+finished candidate -- said explicitly because an unattributed measurement in a
+comment is how the previous cycle's figures went stale.)
 
 So these citations are reported, not checked, through the same `notBound` channel
 as the ledger.  The set is ENUMERATED in `DERIVED_ROLLUP_RELPATHS` and each member
-must ALSO be declared in `.gitignore`; a path the constant claims is derived while
-the repository has resumed tracking it is a structural violation, not a silent
-pass.  Nothing here consults git: a checker that asked git what is tracked would
-exempt everything in an export with no repository, and a check that can vanish is
-the failure mode this file exists to catch.
+must ALSO be declared in `.gitignore`; a CITED path the constant calls derived
+while `.gitignore` does not declare it is a structural violation, not a silent
+pass, and a `!` negation withdraws the declaration exactly as deleting the line
+does.  That coupling catches a rule removed or negated.  It does NOT catch a
+RE-TRACKED artifact: `.gitignore` has no effect on a file already in the index, and
+nothing here consults git -- a checker that asked git what is tracked would exempt
+everything in an export with no repository, and a check that can vanish is the
+failure mode this file exists to catch.  The index check lives in CI instead, in
+`.github/workflows/verify.yml` under "Derived roll-ups stay out of the index".
 
 Why an audit citing ANOTHER audit is NOT exempt
 -----------------------------------------------
@@ -263,23 +272,41 @@ DERIVED_ROLLUP_RELPATHS: dict[str, str] = {
     "readiness/evidence-graph.md": DERIVED_EXEMPTION,
     "readiness/performance-evidence.json": DERIVED_EXEMPTION,
     "readiness/m7-ui-performance.json": DERIVED_EXEMPTION,
-    "readiness/performance-critic-request.json": DERIVED_EXEMPTION,
 }
 
 
 def gitignore_declarations(root: str) -> set[str]:
-    """Every non-comment, non-blank line of the workspace `.gitignore`, trimmed."""
+    """The paths the workspace `.gitignore` declares ignored, as written.
+
+    Comments and blanks are dropped, and a `!path` NEGATION removes `path` from the
+    result rather than being returned as a literal. Without that, negating a rule --
+    one `!` line, which un-ignores the artifact and is what a reader would reach for
+    to put it back -- would leave the positive rule in the set and the exemption
+    standing over a file the repository has resumed treating as ordinary.
+
+    This matches whole lines only. It is a declaration reader, not a gitignore
+    matcher: it answers "does this file say this exact path is ignored", which is
+    the question `derived_exemptions` asks, and it deliberately does not try to
+    resolve globs, directory rules or precedence.
+    """
     path = os.path.join(root, GITIGNORE_RELPATH)
     if not os.path.isfile(path):
         return set()
     with open(path, "rb") as handle:
         raw = handle.read().decode("utf-8-sig", errors="replace")
     raw = raw.replace("\r\n", "\n").replace("\r", "\n")
-    return {
-        line.strip()
-        for line in raw.split("\n")
-        if line.strip() and not line.strip().startswith("#")
-    }
+
+    positive: set[str] = set()
+    negated: set[str] = set()
+    for line in raw.split("\n"):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("!"):
+            negated.add(line[1:].strip())
+        else:
+            positive.add(line)
+    return positive - negated
 
 
 def derived_exemptions(root: str) -> tuple[dict[str, str], list[str]]:
@@ -288,14 +315,20 @@ def derived_exemptions(root: str) -> tuple[dict[str, str], list[str]]:
     The exemption is keyed on `.gitignore` rather than on this list alone, because
     a hard-coded list is a hole that widens silently: anyone could add a path to it
     and a stale binding would stop being reported. Requiring the repository to say
-    the same thing in the file that MAKES it a run output means the two statements
-    have to agree, and a path that stops being ignored stops being exempt and is
-    named as a structural violation instead of quietly keeping its pass.
+    the same thing in the file that DECLARES it a run output means the two statements
+    have to agree, and a path that stops being ignored -- by deletion or by an `!`
+    negation -- stops being exempt and is named as a structural violation instead of
+    quietly keeping its pass.
 
-    This deliberately does not shell out to git. A checker that asks git which files
-    are tracked answers "none" in an export with no repository, which would exempt
-    every binding in the gate -- a vanishing check is the failure mode one level up
-    from the one this whole file exists to catch.
+    What this does NOT do, stated because the obvious reading is wrong: it does not
+    detect that the artifact has been RE-TRACKED. A `.gitignore` rule has no effect
+    on a file already in the index, so `git add -f` puts the bytes back under version
+    control with every line here unchanged and this exemption still standing. That
+    check cannot live here, because it needs the index -- and a checker that shelled
+    out to git would answer "nothing is tracked" in an export with no repository and
+    exempt every binding in the gate, a vanishing check being the failure mode one
+    level up from the one this whole file exists to catch. It lives in CI instead:
+    `.github/workflows/verify.yml`, "Derived roll-ups stay out of the index".
     """
     declared = gitignore_declarations(root)
     live = {rel: why for rel, why in DERIVED_ROLLUP_RELPATHS.items() if rel in declared}
@@ -315,7 +348,7 @@ def exemption(rel: str, derived: dict[str, str] | None = None) -> str | None:
     derived readiness roll-ups `derived` names (see `derived_exemptions`, which
     decides that set from `.gitignore` and not from a bare constant). In particular
     a citation onto another `*.audit.json` is still NOT exempt: see the module
-    docstring for why that obvious third exemption is wrong. `derived` defaults to
+    docstring for why the audit-to-audit exemption is wrong. `derived` defaults to
     empty, so a caller that forgets it under-exempts -- which is a loud stale
     binding, never a silent pass.
     """
@@ -964,8 +997,8 @@ def selftest_exemptions(check) -> None:
         )
 
         # ...and it settles through the ledger in ONE pass and stays settled.
-        # This is why the second exemption is unnecessary: excusing writes only
-        # the ledger, which is exempt, so there is nothing left to chase.
+        # This is why an audit-to-audit exemption is unnecessary: excusing writes
+        # only the ledger, which is exempt, so there is nothing left to chase.
         grandfather(root, "selftest: audit-to-audit settles via the ledger")
         first = digest_file(ledger_path(root))
         check("an audit-to-audit violation settles in one --grandfather pass", evaluate(root)["ok"])
@@ -1197,7 +1230,12 @@ def selftest_derived_rollups(check) -> None:
         _write(root, ".gitignore", "".join(f"{rel}\n" for rel in DERIVED_ROLLUP_RELPATHS))
         check("restoring the .gitignore line clears it", evaluate(root)["ok"])
 
-        # A commented-out ignore rule is not a declaration.
+        # A commented-out ignore rule is not a declaration. Both halves matter, and
+        # the second is the one with teeth: asserting only that the path is
+        # undeclared would pass even with the comment filter removed, because
+        # "# readiness/x" never equals "readiness/x" under an equality test. The
+        # filter earns its place only if NOTHING comment-shaped survives into the
+        # declaration set, so that is what is asserted.
         _write(
             root,
             ".gitignore",
@@ -1207,6 +1245,36 @@ def selftest_derived_rollups(check) -> None:
             ),
         )
         check("a commented-out ignore rule does not declare the path", not evaluate(root)["ok"])
+        check(
+            "...and no comment line reaches the declaration set at all",
+            not any(line.startswith("#") for line in gitignore_declarations(root)),
+        )
+
+        # An `!` NEGATION withdraws the declaration. This is the one-line mutant: the
+        # positive rule is still present and still says the path is ignored, but git
+        # no longer ignores it, and neither may this checker.
+        _write(
+            root,
+            ".gitignore",
+            "".join(f"{rel}\n" for rel in DERIVED_ROLLUP_RELPATHS) + f"!{other_derived}\n",
+        )
+        check(
+            "an ! negation removes the path from the declaration set",
+            other_derived not in gitignore_declarations(root),
+        )
+        negated = evaluate(root)
+        check(
+            "a negated declaration withdraws the exemption and is a structural violation",
+            not negated["ok"]
+            and any(
+                v["kind"] == "structure" and v["locator"] == f"file:{other_derived}"
+                for v in negated["violations"]
+            ),
+        )
+        check(
+            "a negation does not disturb the OTHER declared roll-ups",
+            all(rel in gitignore_declarations(root) for rel in DERIVED_ROLLUP_RELPATHS if rel != other_derived),
+        )
 
         # And a workspace with no .gitignore at all exempts NOTHING -- the default
         # direction of every unknown here is "keep checking".
