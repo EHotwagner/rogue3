@@ -45,12 +45,13 @@ jobs:
       # remembering to run it locally. `GovernanceTests.fs` reads build.fsx as
       # TEXT and asserts required/forbidden substrings, so a *textual* regression
       # is caught by `dotnet test` -- but nothing executed its logic, and a check
-      # that quietly stops checking passed green.
+      # that quietly stops checking passed green. (`grep -rn` over tests/ finds no
+      # reference to SelfTest, TemplateDrift or GeneratedGuidanceCheck at all.)
       #
-      # Measured at bfd1288, not argued: making `templateDriftViolations` return
+      # Measured at 09895b9, not argued: making `templateDriftViolations` return
       # [] unconditionally leaves `dotnet test -c Release` completely green
       # (Failed: 0, Passed: 235) while `./fake.sh -t SelfTest` exits 1 with
-      # "SelfTest: 30 case(s), 15 failure(s)". This step is what kills that mutant.
+      # "SelfTest: 77 case(s), 15 failure(s)". This step is what kills that mutant.
       #
       # SelfTest plants a violation for each check and requires it to be reported,
       # and additionally asserts TemplateDrift and GeneratedGuidanceCheck are clean
@@ -69,23 +70,43 @@ jobs:
       # runs BEFORE Restore, where it fails fastest. Its only write is
       # readiness/logs/SelfTest.txt, which .gitignore already excludes.
       #
-      # Two gates this repository mandates are DELIBERATELY still not wired here,
-      # each blocked on a specific open defect. This job does not claim to enforce
-      # them:
+      # THREE gates this repository mandates are DELIBERATELY still not wired
+      # here. This job does NOT enforce every mandated gate and does not claim to;
+      # the list below is meant to be exhaustive, so that anything missing from it
+      # is a bug in this comment:
       #   * The full `Verify` target (TemplateDrift + GeneratedGuidanceCheck, then
-      #     the EvidenceGraph -> EvidenceAudit merge-gate audit). Verify rewrites
-      #     TRACKED readiness artifacts and still exits 0 (rogue3#26), and those
-      #     roll-ups are derived from a partly-untracked tree (rogue3#56). A job
-      #     that ran Verify and then checked for a dirty tree would fail for
-      #     reasons unrelated to the PR under test.
+      #     the EvidenceGraph -> EvidenceAudit merge-gate audit, plus ADR-0056's
+      #     fail-closed lifecycle guard). Verify rewrites TRACKED readiness
+      #     artifacts; rogue3#26 (the exit-0-on-a-falsified-graph half) landed in
+      #     #54, but rogue3#56 is OPEN -- those roll-ups are still derived from a
+      #     partly-untracked tree. A job that ran Verify and then checked for a
+      #     dirty tree would fail for reasons unrelated to the PR under test.
+      #   * The fail-closed normal-play PERFORMANCE gate (`PerformanceIntent` +
+      #     `PerformanceEvidence`, which `Test` and `Verify` both run and which raw
+      #     `dotnet test` does not). Both exit 0 on this tree, so this is not a red
+      #     gate -- it is a NON-REPRODUCIBLE one. Its artifacts are measured
+      #     latencies: two consecutive `-t PerformanceEvidence` runs on an idle
+      #     host produced different p50/p95/p99 values and a different
+      #     artifactDigest in readiness/performance-evidence.json, and neither
+      #     matched the committed bytes. On a shared runner that is worse, so
+      #     requiring it would gate merges on runner contention. Tracked by
+      #     rogue3#56 for the tracked-artifact churn.
       #   * The feedback-report validator CORPUS -- `validate` over every
       #     feedback/*.md against its audit. Measured at bfd1288 over all 23
       #     pairs: 3 pass, 20 fail. Audits legitimately cite files that later
       #     change and `validate` has no excuse ledger (rogue3#49), so requiring
       #     it as-is would red every open PR. The validator's own `selftest`
       #     directly above is a different check and IS required.
-      # Scope limit worth naming: TemplateDrift itself covers 64 of 190 kit
-      # files (rogue3#46), so a green SelfTest is not "no kit file drifted".
+      #
+      # Scope limits worth naming, so a green result is not over-read:
+      #   * TemplateDrift covers 64 of 190 kit files (rogue3#46), so a green
+      #     SelfTest is not "no kit file drifted".
+      #   * SelfTest does not fully self-certify: 7 of 23 single-edit mutants
+      #     survive it, including one that exempts the real repository from the
+      #     drift check while all fixture cases still pass (rogue3#57). The output
+      #     guard below closes the two worst; the rest need a build.fsx fix.
+      #   * main is not branch-protected, so no check here is a REQUIRED status
+      #     check -- these gates block by turning a job red, not by blocking merge.
       # The exit code alone is NOT sufficient, and this is measured, not cautious.
       # SelfTest tracks its own result in one mutable counter, so DELETING THE ONE
       # LINE `failures <- failures + 1` makes it print every `FAIL` and still exit
