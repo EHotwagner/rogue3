@@ -1,0 +1,249 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-22.md",
+  "reportSha256": "03d74274d77cd80000a494247a84d24d592304320009b30bc43bee211a8dc02a",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#62",
+          "result": "verified"
+        },
+        {
+          "locator": "command:a probe over a copied kit tree runs `dotnet fsi <script> -t TemplateDrift` for each route against ccff119's build.fsx and the candidate's, recording the exit code of each run separately — ccff119 exits 0 on the symlinked-root, symlinked-owner, symlinked-file and manifest-boundary routes, printing \"190 of 190 ... plus 95 mirror(s)\" (and \"Manifest entries carrying a digest: 34\" on the boundary route), and dies with an unhandled UnauthorizedAccessException and no violation line on the unreadable-file route, while the candidate exits 1 on all of them with the coverage line printed first, and both print an identical \"190 of 190 ... 0 uncovered\" at exit 0 on the untouched control",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3"
+        }
+      ],
+      "confidenceLimits": [
+        "The nested-link route is described in Observed but is no longer carried by a locator; I constructed it myself (a relative link at .claude/skills/check-board) and confirmed ccff119 exits 0 printing '190 of 190 ... plus 95 mirror(s)' while the candidate exits 1 naming the link."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:grep -n \"File.ReadAll\\|Directory.Get\" build.fsx at ccff119 returns unguarded reads at the manifest parse in templateDriftViolations, the manifest parse in agentsManifestPins, the provenance parse in scaffoldProfile, the tree walk in kitTreeFiles and the agents.yml read in generatedGuidanceViolations",
+          "result": "verified"
+        },
+        {
+          "locator": "command:dotnet fsi build.fsx -t SelfTest exits 0 with \"SelfTest: 164 case(s), 0 failure(s), 0 group(s) SKIPPED\", including cases for an unreadable kit file, an unreadable manifest, an unlistable kit directory, an unreadable .fsgg/agents.yml, a malformed manifest, a malformed provenance and three wrong-shape JSON inputs",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3"
+        }
+      ],
+      "confidenceLimits": [
+        "That the grep was run before the first edit ('Avoidable cost: none') rests on the author's account; nothing in the tree timestamps it."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3"
+        },
+        {
+          "locator": "command:dotnet fsi build.fsx -t SelfTest exits 0 with \"SelfTest: 164 case(s), 0 failure(s), 0 group(s) SKIPPED\" on this host, over trySymlink and tryMakeUnreadable helpers that both read back the effect they just produced before any case is recorded",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.github/workflows/verify.yml",
+          "result": "verified",
+          "sha256": "54a9af4b88e13f6a8b81bad23dd1de2a3d498b15072af8085d30efdc65a9d5e9"
+        }
+      ],
+      "confidenceLimits": [
+        "The head figures reproduce exactly: forcing each probe gives 164 -> 156 (8 cases, 4 skipped groups) and 164 -> 153 (11 cases, 8 skipped groups), both exit 0.",
+        "The '2 more under a real root run' is confirmed structurally - two unlistable-directory cases, each behind its own read-back probe at build.fsx:3170 and :3211 - but not measured, since forcing those probes was outside what I patched.",
+        "Windows and root behaviour is reasoned about, not measured, as the finding states."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh -t Verify exits 1 with \"Failed: 1, Passed: 275, Total: 276\" and the message \"generated evidence workflow does not repair executable mode. Actual value was true but had expected it to be false\"",
+          "result": "verified"
+        },
+        {
+          "locator": "file:tests/Rogue3.Tests/GovernanceTests.fs",
+          "result": "verified",
+          "sha256": "77d1e6960028d9c4e6d52862eadb0bdeac2df0ad812092c1dda5fb83384bb0de"
+        },
+        {
+          "locator": "command:./fake.sh -t Verify exits 0 with \"Failed: 0, Passed: 276\" after rewording the comment sites and one diagnostic string that used the token, with no change to the test",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The red run is reproduced by construction, not by executing it: e9bd0a1's build.fsx carries 7 case-insensitive 'chmod' hits, the assertion at GovernanceTests.fs:441 forbids any, and the head passes 276/276 - so exactly one failure of 276 follows. The corrected 'five comment sites and one printfn' matches my own count of commit 0a5d61c's diff."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:dotnet fsi build.fsx -t SelfTest on the unmodified ccff119 checkout exits 0 and prints \"SelfTest: 125 case(s), 0 failure(s)\"",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-20.md",
+          "result": "verified",
+          "sha256": "995c4c5b508d85fde2c7ab365b195c1201c6edcea37d86f9b4f0d094c1ce9b03"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#81",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The worker brief is not a repository artefact and no locator can point at it - stated in §1's limits. The 111 figure's circulation is corroborated independently by report-20 §10 and §12 and by a stale comment at .github/workflows/verify.yml line 56."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py exited 1 with \"11 STALE BINDING(S)\" after the first build.fsx commit, all of them file:build.fsx, and 18 once .github/workflows/verify.yml changed too, after which python3 scripts/check-audit-bindings.py --grandfather --cycle item-62-templatedrift-symlink-boundary-robustness reports \"wrote scripts/audit-binding-exceptions/item-62-templatedrift-symlink-boundary-robustness.json with 18 exception(s)\" and, after the semicolon this locator cannot carry, that it pruned 0, names the three ledger files holding dormant entries as left untouched, and returns the checker to exit 0 — so a re-derivation AT THE BRANCH HEAD sees exit 0, not the 1 quoted first",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/audit-binding-exceptions/item-62-templatedrift-symlink-boundary-robustness.json",
+          "result": "verified",
+          "sha256": "1a9b7526d1a165abc666ac5331f4d5e8e484b7b81edd04398102b98aab9b7b25"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-20.md",
+          "result": "verified",
+          "sha256": "995c4c5b508d85fde2c7ab365b195c1201c6edcea37d86f9b4f0d094c1ce9b03"
+        }
+      ],
+      "confidenceLimits": [
+        "Reproduced twice on throwaway `git archive` exports. The previous cycle's ledger against the head tree gives exit 1 with exactly 11 STALE BINDING(S), all file:build.fsx - #53 §4.4's residual arriving as that report describes, and a second independent derivation of the 11. A fresh remedy on the head tree gives 18, writes only its own file, names three ledger files as dormant-and-untouched, and returns the checker to exit 0.",
+        "The quoted span now matches the tool character for character: 'wrote scripts/audit-binding-exceptions/item-62-templatedrift-symlink-boundary-robustness.json with 18 exception(s)' is a verbatim prefix of the remedy's line, and the next characters in the real output are '; pruned 0.' - which is exactly what the locator states outside the quotation marks.",
+        "The committed ledger is entry-for-entry identical to what a fresh --grandfather writes, and its observed digests are the current build.fsx and verify.yml bytes."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:dotnet fsi build.fsx -t KitPins followed by git diff scripts/kit-pins.json reported \"1 file changed, 4 insertions(+), 4 deletions(-)\" with every moved line carrying an unchanged sha256, while dotnet fsi build.fsx -t TemplateDrift and -t SelfTest both exited 0",
+          "result": "verified"
+        },
+        {
+          "locator": "command:after the sort, the same sequence leaves git status --porcelain reporting no change to scripts/kit-pins.json",
+          "result": "verified"
+        },
+        {
+          "locator": "command:dotnet fsi build.fsx -t SelfTest exits 0 with \"SelfTest: 164 case(s), 0 failure(s)\" including \"the kit enumeration is SORTED, so the ledger it writes has a stable order\" and \"scripts/kit-pins.json is byte-for-byte what KitPins would write for this tree right now\"",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3"
+        }
+      ],
+      "confidenceLimits": [
+        "All figures reproduce: running KitPins with the pre-sort walk (build.fsx at d0274b2) against the committed ledger yields exactly 4 moved pins / 4 insertions / 4 deletions with every sha256 unchanged. The three reorderings are fs-gg-symbol-design/reference vs reference.fsx, fs-gg-symbology/reference vs reference.fsx, and work-board vs work-board-best/-normal.",
+        "scripts/kit-pins.json is cited by one merged audit twice (feedback/audits/2026-08-02-Rogue3-15.audit.json), matching the corrected Impact and Avoidable-cost lines."
+      ]
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3"
+        },
+        {
+          "locator": "command:dotnet fsi build.fsx -t SelfTest exits 0 with \"SelfTest: 164 case(s), 0 failure(s)\" including the cases \"a path the link probe cannot classify is a REASON, not an exception\", \"an UNREADABLE published evidence graph makes the publication rule ABSTAIN rather than abort Verify\" and \"an UNREADABLE freshly emitted evidence graph WARNS rather than aborting Verify\", over a tryLinkTarget that returns Result and an applyEvidenceGraphPublicationRule and emittedGraphSectionWarning that both read through tryReadText",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Supporting claims verified independently on main: sensedReadinessFiles (File.ReadAllText ...) appears exactly three times on the Verify path, runEvidenceGraphEmission catches and re-raises, and commit e9bd0a1's message does say 'four more producers' and then enumerates five.",
+        "That the Windows reparse-point read actually throws is reasoned about, not measured on this Linux host."
+      ]
+    },
+    {
+      "id": "§4.9",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:dotnet fsi build.fsx -t SelfTest exits 0 with \"SelfTest: 164 case(s), 0 failure(s), 0 group(s) SKIPPED\", and FOUR of the five survivors this finding names are killed by a case that fails on the mutant it was written for, the fifth being the redundant-by-construction clause this finding itself records as unkillable by any case",
+          "result": "verified"
+        },
+        {
+          "locator": "command:forcing tryMakeUnreadable to answer false gives \"SelfTest: 153 case(s), 0 failure(s), 8 group(s) SKIPPED\" at exit 0 and forcing trySymlink to throw gives 156 with 4 group(s) skipped, also at exit 0 — the losses the skip record now makes visible and .github/workflows/verify.yml turns into a failure",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.github/workflows/verify.yml",
+          "result": "verified",
+          "sha256": "54a9af4b88e13f6a8b81bad23dd1de2a3d498b15072af8085d30efdc65a9d5e9"
+        }
+      ],
+      "confidenceLimits": [
+        "The four-of-five claim is measured, not accepted: I built all five survivor mutants against the head and ran the suite on each. Survivors 1-4 are killed - exit 1, with the case that names each one FAILing (the unreadable-source mirror case, the manifest-credit case, the two KitPins-unpinnable cases, the non-string-profile case). Survivor 5, templateDriftCoverage's ledgerPinned boundary clause, survives at 'SelfTest: 164 case(s), 0 failure(s), 0 group(s) SKIPPED', exit 0 - which is what the finding itself records as unkillable by any case.",
+        "The second locator reproduces exactly at the head: forcing tryMakeUnreadable false gives 'SelfTest: 153 case(s), 0 failure(s), 8 group(s) SKIPPED' at exit 0, and forcing trySymlink to throw gives 'SelfTest: 156 case(s), 0 failure(s), 4 group(s) SKIPPED', also exit 0. verify.yml turns a non-zero skip count into exit 1, as the locator says.",
+        "The 33-mutant matrix is no longer cited as evidence, which is the right call - it leaves no artefact in the tree and belongs in Observed and in §1's limits, where it is. Its survivor count remains the code critic's word, and that is now stated rather than carried by a locator."
+      ]
+    },
+    {
+      "id": "§4.10",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:a kit file named with a quote character makes ./fake.sh -t KitPins exit 0 on ccff119 and leaves scripts/kit-pins.json unparseable, after which TemplateDrift reports \"64 of 192 kit files pinned ... 128 uncovered\"",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "5b8bdbdacc494b9a1088a92214acbe80b0d73b88429296f07dff621de64a67a3"
+        },
+        {
+          "locator": "command:dotnet fsi build.fsx -t SelfTest includes the cases \"a kit file whose NAME needs escaping still yields a ledger that parses, and pins it\" and \"...and the tree is clean afterwards, so the remedy the gate names really works on it\"",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The named-pipe sibling defect was not re-tested (it hangs by construction); I confirmed only that issue:EHotwagner/rogue3#87 exists, is open, and describes it."
+      ]
+    }
+  ]
+}
