@@ -225,21 +225,21 @@
     {
       "id": "work-board",
       "scope": "driver",
-      "sha256": "0e44ecccfb46537cdb40296c7351dd08a0e5494ea6144ff13ceefd27872a8855",
+      "sha256": "ada43bae72bd34be7b9b9ee37a0bb542e6dcf8786eb5b08af4d4dba00c720240",
       "resolvablePath": ".agents/skills/work-board/SKILL.md",
       "materializes-when": "always"
     },
     {
       "id": "work-board-best",
       "scope": "driver",
-      "sha256": "2b0577726f7cab6aa27169888c0f47370ad26ddadbcb6fda300acf1a00e754e3",
+      "sha256": "ae7d332dca5c79db50b6a3489c17a05a571faf47909b09b453d91a9009be6ae4",
       "resolvablePath": ".agents/skills/work-board-best/SKILL.md",
       "materializes-when": "always"
     },
     {
       "id": "work-board-normal",
       "scope": "driver",
-      "sha256": "4649b17f1e05e2302626927b77462eee91ba41ceb3eb7b72df8d933fbd5863db",
+      "sha256": "fa3a7bbfe0c8d18aa57f1704b3e55acfeb945c9715fc763f45051866effb2fc1",
       "resolvablePath": ".agents/skills/work-board-normal/SKILL.md",
       "materializes-when": "always"
     },

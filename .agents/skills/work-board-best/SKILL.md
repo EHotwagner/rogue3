@@ -20,3 +20,9 @@ subagent spawn:
 Never let a host default choose the model or effort. If the active runtime cannot request this exact
 model and effort, report the unsupported route and stop before dispatching a worker; do not downgrade,
 fall back, or continue a partial wave.
+
+`work-board`'s concurrency model is inherited unchanged: two concurrent waves of three item workers,
+two dedicated review subagents, and the three-or-fewer consolidation rule. **The route above applies to
+the two review subagents as well as the six item workers** — a reviewer running on a host default is
+the same unrouted dispatch this variant exists to prevent, and it is the dispatch whose judgement the
+host relies on most.

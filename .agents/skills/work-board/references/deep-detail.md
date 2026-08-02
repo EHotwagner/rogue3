@@ -281,8 +281,15 @@ per request, un-batchable — and **five workers looping `take` drained GraphQL 
 (#418). So concurrency is a cap, and the cap is a rate-limit decision. Three rules keep the fan-out from
 taking the board down (identical discipline to drive-board §3):
 
-- **Cap in-flight workers conservatively** (`$work-board --workers N`, default low). A board with 40
-  schedulable items does not mean 40 workers; it means the cap's worth, then the next wave.
+- **The cap is fixed, not discretionary** (SKILL.md §*Concurrency model*): two concurrent waves of three
+  item workers — six in flight — plus two dedicated review subagents that hold no claim and take no
+  item, for eight concurrent agents. A board with 40 schedulable items does not mean 40 workers; it
+  means six, then the refill. When items in flight across both waves fall to three or fewer,
+  consolidate and start the second wave from a fresh reconcile rather than draining first.
+  **Six is materially more aggressive than the conservative cap this section was written for** — five
+  workers looping `take` drained GraphQL in ~15 minutes once (#418), and the two reviewers add read
+  traffic on top. The back-off below is therefore the thing keeping this model viable; if `EX_RATE`
+  starts appearing every wave, the honest response is to run one wave of three, not to keep retrying.
 - **Let the workers share the 90s scan cache.** The host's own planning reads (`check-board`, `batch`)
   scan **fresh** — a reconciler on a stale board invents drift — but the *workers'* `take`/`next` reads
   must **not** add `--fresh`, or N workers cost N board reads instead of one.
