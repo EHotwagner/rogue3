@@ -263,8 +263,8 @@
       "kind": "evidence",
       "locator": "file:build.fsx",
       "boundSha256": "e01bfecef3158d4ed79dffbd17021d8b7bca68c9162ec2f476e83df26146a303",
-      "observedSha256": "1acae987b6643464764bdff31134e00c1b992413320deeec726a4b9fdd367ae8",
-      "reason": "rogue3#15 baseline: this binding was already stale when the audit-binding check was introduced, and no record survives of which commit broke it. Excused as-is rather than rebound, because rebinding an accepted cycle audit would pin bytes its critic never read. Any FURTHER change to this file fails again."
+      "observedSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
+      "reason": "Item #14 rewrote build.fsx's runProcess drain and replaced the Run target's capture with an inherited console. Both audits verified build.fsx as it stood before that fix: 2026-08-02-Rogue3.audit.json cited it as evidence that the Run target stalls, and 2026-08-01-Rogue3-8.audit.json bound it for an unrelated earlier claim. Rebinding either would silently repoint a completed check at bytes it never examined, and would erase the very evidence 2026-08-02-Rogue3 \u00a74.4 recorded. Excused instead; the pre-fix bytes remain reachable at git show 1f19809:build.fsx."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
@@ -369,6 +369,14 @@
       "boundSha256": "a33834dcd4fefce96e9663742fbdef5cb7c28909f5bc1349e49d7a3bc6445108",
       "observedSha256": "0dcbff46ea2f4a44e7053f338b8239289465e6e337355df7bd454feefa74d7d1",
       "reason": "rogue3#15 baseline: this binding was already stale when the audit-binding check was introduced, and no record survives of which commit broke it. Excused as-is rather than rebound, because rebinding an accepted cycle audit would pin bytes its critic never read. Any FURTHER change to this file fails again."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "1acae987b6643464764bdff31134e00c1b992413320deeec726a4b9fdd367ae8",
+      "observedSha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3",
+      "reason": "Item #14 rewrote build.fsx's runProcess drain and replaced the Run target's capture with an inherited console. Both audits verified build.fsx as it stood before that fix: 2026-08-02-Rogue3.audit.json cited it as evidence that the Run target stalls, and 2026-08-01-Rogue3-8.audit.json bound it for an unrelated earlier claim. Rebinding either would silently repoint a completed check at bytes it never examined, and would erase the very evidence 2026-08-02-Rogue3 \u00a74.4 recorded. Excused instead; the pre-fix bytes remain reachable at git show 1f19809:build.fsx."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
