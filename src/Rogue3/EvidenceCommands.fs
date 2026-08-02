@@ -1478,8 +1478,79 @@ let private performanceCriticRequestWithCurrentUi (path:string) =
     let uiExit=m7UiPerformanceEvidence uiPath
     if uiExit<>0 then uiExit else Rogue3.PerformanceEvidence.writePerformanceCriticRequest path
 
+/// M12 (013-m12-audio-assets, DEC-005): what the SHIPPED BINARY can actually resolve.
+///
+/// The M12 guard test proves resolution inside the test host. This command proves it from the
+/// product itself, through the exact expression `Program.fs` uses to build the live audio sink —
+/// `FS.GG.Audio.Host.OpenAlBackend.create Rogue3.AudioCues.resolver` — so the reported facts are the
+/// running game's facts, not a re-creation of them. It reports:
+///
+///   backend-kind   `Backend.kindOf`. `RecordOnly` means the device was unavailable and OpenAlBackend
+///                  SUBSTITUTED the null recorder, which is the state in which every playback claim
+///                  is vacuous (#34). It is reported rather than assumed either way, because CI has
+///                  no sound card and a developer machine does.
+///   one line per declared cue id, with its resolution, byte length and the channels/bits/rate that
+///   `Wav.tryParse` — the same structural parse the device backend applies before upload — reads back.
+///   unresolved=N   the number that would play as silence. Non-zero is a failure exit.
+let audioAssetEvidence (path: string) =
+    use backend = FS.GG.Audio.Host.OpenAlBackend.create Rogue3.AudioCues.resolver
+    let backendKind = FS.GG.Audio.Host.Backend.kindOf backend
+
+    let describe (kind: string) (id: string) (bytes: byte[] option) =
+        match bytes with
+        | None -> id, false, sprintf "%s id=%s resolved=false reason=unresolved" kind id
+        | Some raw ->
+            match FS.GG.Audio.Host.Wav.tryParse raw with
+            | Some pcm when
+                pcm.FormatTag = FS.GG.Audio.Host.Wav.FormatPcm
+                && pcm.Channels = 1
+                && pcm.BitsPerSample = 16
+                && pcm.Data.Length > 0
+                ->
+                id,
+                true,
+                sprintf
+                    "%s id=%s resolved=true bytes=%d format=pcm channels=%d bits=%d rate=%d samples=%d"
+                    kind id raw.Length pcm.Channels pcm.BitsPerSample pcm.SampleRate (pcm.Data.Length / 2)
+            | Some pcm ->
+                id,
+                false,
+                sprintf
+                    "%s id=%s resolved=true bytes=%d format=%d channels=%d bits=%d rate=%d reason=unplayable"
+                    kind id raw.Length pcm.FormatTag pcm.Channels pcm.BitsPerSample pcm.SampleRate
+            | None -> id, false, sprintf "%s id=%s resolved=true bytes=%d reason=not-wav" kind id raw.Length
+
+    let soundRows =
+        Rogue3.AudioCueIds.sounds
+        |> List.map (fun id -> describe "sound" id (Rogue3.AudioCues.resolver.ResolveSound(FS.GG.Audio.Core.SoundId id)))
+
+    let trackRows =
+        Rogue3.AudioCueIds.tracks
+        |> List.map (fun id -> describe "track" id (Rogue3.AudioCues.resolver.ResolveTrack(FS.GG.Audio.Core.TrackId id)))
+
+    let rows = soundRows @ trackRows
+    let unresolved = rows |> List.filter (fun (_, ok, _) -> not ok)
+    let status = if List.isEmpty unresolved then "ok" else "failed"
+
+    let lines =
+        [ sprintf
+            "status=%s audio-asset-evidence asset-root=%s working-directory=%s base-directory=%s backend-kind=%A"
+            status Rogue3.AudioCues.assetRoot (Directory.GetCurrentDirectory()) AppContext.BaseDirectory backendKind
+          sprintf
+            "declared sounds=%d tracks=%d total=%d resolved=%d unresolved=%d"
+            Rogue3.AudioCueIds.sounds.Length
+            Rogue3.AudioCueIds.tracks.Length
+            rows.Length
+            (rows.Length - unresolved.Length)
+            unresolved.Length
+          yield! rows |> List.map (fun (_, _, line) -> line) ]
+
+    writeGeneratedEvidenceLines path true (if List.isEmpty unresolved then 0 else 1) lines
+
 let tryRunEvidenceCommand args =
     match args with
+    | "--audio-asset-evidence" :: path :: _ -> Some(audioAssetEvidence path)
+    | "--audio-asset-evidence" :: _ -> Some(audioAssetEvidence "readiness/audio-asset-evidence.txt")
     | "--layout-evidence" :: path :: width :: height :: _ ->
         match Int32.TryParse width, Int32.TryParse height with
         | (true, parsedWidth), (true, parsedHeight) -> Some(layoutEvidenceCommand path parsedWidth parsedHeight)

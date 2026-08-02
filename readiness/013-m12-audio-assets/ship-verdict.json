@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "viewVersion": "1.0",
+  "workId": "013-m12-audio-assets",
+  "stage": "ship",
+  "status": "shipReady",
+  "generator": "FS.GG.SDD.Artifacts/0.32.0",
+  "sourcesDigest": {
+    "algorithm": "sha256",
+    "value": "07d6fe8619fc4ad892b6b746bab0409977c7f3770f64ddfb89358fb83db5aaaa"
+  },
+  "verificationReadiness": {
+    "status": "verificationReady",
+    "evidenceSupportedCount": 45,
+    "evidenceSelfAttestedCount": 0,
+    "evidenceObservedCount": 45
+  },
+  "disposition": {
+    "state": "shipReady",
+    "blockingFindingIds": []
+  },
+  "readiness": "shipReady"
+}
