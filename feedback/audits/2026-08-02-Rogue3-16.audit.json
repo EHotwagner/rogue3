@@ -1,0 +1,300 @@
+{
+ "auditSchema": 1,
+ "report": "feedback/2026-08-02-Rogue3-16.md",
+ "reportSha256": "cf257a344ee2b5106d1c18c497e7fe038d6e4391ba7bc4975b5642948f68bcb8",
+ "criticMode": "fresh-context-subagent",
+ "criticPromptVersion": "actionability-v1",
+ "findings": [
+  {
+   "id": "§4.1",
+   "status": "actionable",
+   "missingFacts": [],
+   "checkedEvidence": [
+    {
+     "locator": "issue:EHotwagner/rogue3#61",
+     "result": "verified"
+    },
+    {
+     "locator": "command:./fake.sh build -t Verify at origin/main -> EXIT=1",
+     "result": "verified"
+    },
+    {
+     "locator": "file:src/Rogue3/EvidenceCommands.fs",
+     "result": "verified",
+     "sha256": "17391e420286843ac186d3163ffa879fe731a95c8f09cfb3b6c4326af52507aa"
+    },
+    {
+     "locator": "file:.github/workflows/verify.yml",
+     "result": "verified",
+     "sha256": "257798a7cb1afbd8574091fd220c97af368aadbbadefbdb868a21e0c2b2244a6"
+    },
+    {
+     "locator": "commit:95b1170",
+     "result": "verified"
+    }
+   ],
+   "confidenceLimits": [
+    "skeleton"
+   ]
+  },
+  {
+   "id": "§4.2",
+   "status": "actionable",
+   "missingFacts": [],
+   "checkedEvidence": [
+    {
+     "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+     "result": "verified",
+     "sha256": "7fe9befcdf1f3e94cf620ded16886fba6068f12313060d98373f507395eb77f5"
+    },
+    {
+     "locator": "file:src/Rogue3/Model.fs",
+     "result": "verified",
+     "sha256": "82ffaaff9f7886e6aa2690b2d9006f13358dbc18b01949b79cf65b388ca0e4a8"
+    },
+    {
+     "locator": "command:dotnet test at f4b65da -> 269 passed",
+     "result": "verified"
+    }
+   ],
+   "confidenceLimits": [
+    "skeleton"
+   ]
+  },
+  {
+   "id": "§4.3",
+   "status": "actionable",
+   "missingFacts": [],
+   "checkedEvidence": [
+    {
+     "locator": "issue:EHotwagner/rogue3#70",
+     "result": "verified"
+    },
+    {
+     "locator": "command:dotnet test after wiring and before test edits -> 253 passed 0 failed",
+     "result": "verified"
+    },
+    {
+     "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+     "result": "verified",
+     "sha256": "7fe9befcdf1f3e94cf620ded16886fba6068f12313060d98373f507395eb77f5"
+    },
+    {
+     "locator": "file:tests/Rogue3.Tests/M10AcceptanceDeterminismTests.fs",
+     "result": "verified",
+     "sha256": "2a039a3885e61ea99e68bb96eeabf483affcbb9e2451cef5641ab2df816b7039"
+    },
+    {
+     "locator": "file:feedback/2026-08-02-Rogue3-13.md",
+     "result": "verified",
+     "sha256": "325013cc0708ed44712c5a6c6dd68dda4aca5bd8935c49e64ca416374a9ffa56"
+    }
+   ],
+   "confidenceLimits": [
+    "skeleton"
+   ]
+  },
+  {
+   "id": "§4.4",
+   "status": "actionable",
+   "missingFacts": [],
+   "checkedEvidence": [
+    {
+     "locator": "file:src/Rogue3/Model.fs",
+     "result": "verified",
+     "sha256": "82ffaaff9f7886e6aa2690b2d9006f13358dbc18b01949b79cf65b388ca0e4a8"
+    },
+    {
+     "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+     "result": "verified",
+     "sha256": "7fe9befcdf1f3e94cf620ded16886fba6068f12313060d98373f507395eb77f5"
+    },
+    {
+     "locator": "command:dotnet test with `Floor=withShopStock …` replaced by `Floor=model.Floor` -> `Failed: 1, Passed: 271, Total: 272`, naming that test",
+     "result": "verified"
+    }
+   ],
+   "confidenceLimits": [
+    "skeleton"
+   ]
+  },
+  {
+   "id": "§4.5",
+   "status": "actionable",
+   "missingFacts": [],
+   "checkedEvidence": [
+    {
+     "locator": "issue:EHotwagner/rogue3#69",
+     "result": "verified"
+    },
+    {
+     "locator": "file:src/Rogue3/Model.fs",
+     "result": "verified",
+     "sha256": "82ffaaff9f7886e6aa2690b2d9006f13358dbc18b01949b79cf65b388ca0e4a8"
+    },
+    {
+     "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+     "result": "verified",
+     "sha256": "7fe9befcdf1f3e94cf620ded16886fba6068f12313060d98373f507395eb77f5"
+    }
+   ],
+   "confidenceLimits": [
+    "skeleton"
+   ]
+  },
+  {
+   "id": "§4.6",
+   "status": "actionable",
+   "missingFacts": [],
+   "checkedEvidence": [
+    {
+     "locator": "issue:EHotwagner/rogue3#53",
+     "result": "verified"
+    },
+    {
+     "locator": "file:scripts/check-audit-bindings.py",
+     "result": "verified",
+     "sha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3"
+    },
+    {
+     "locator": "command:python3 scripts/check-audit-bindings.py",
+     "result": "verified"
+    }
+   ],
+   "confidenceLimits": [
+    "skeleton"
+   ]
+  },
+  {
+   "id": "§4.7",
+   "status": "actionable",
+   "missingFacts": [],
+   "checkedEvidence": [
+    {
+     "locator": "command:./fake.sh build -t Verify",
+     "result": "verified"
+    },
+    {
+     "locator": "file:src/Rogue3/PerformanceEvidence.fs",
+     "result": "verified",
+     "sha256": "c2fbf43ba7bbff50a63c9381f4bf2adf501f72b7e6fe38afeee31beabf8a69a9"
+    },
+    {
+     "locator": "file:src/Rogue3/GameplayVisualInventory.fs",
+     "result": "verified",
+     "sha256": "67ce6e2eae8d29073eee54b9bab49ead2d562fe975c6f767addad8561a412bf2"
+    },
+    {
+     "locator": "file:tests/Rogue3.Tests/element-visuals.catalog",
+     "result": "verified",
+     "sha256": "9a075ad34710452a929577d0bc18f74f2db5c8a92bb0c8559fda8f548160e39f"
+    }
+   ],
+   "confidenceLimits": [
+    "skeleton"
+   ]
+  },
+  {
+   "id": "§4.8",
+   "status": "actionable",
+   "missingFacts": [],
+   "checkedEvidence": [
+    {
+     "locator": "file:load-Rogue3.fsx",
+     "result": "verified",
+     "sha256": "f69bd363091ddbbd680666e489ff5444369b65a9c69322a2f2a82f82b91ffe43"
+    },
+    {
+     "locator": "command:dotnet fsi over `#load \"load-Rogue3.fsx\"` then `Rogue3.Model.initialModel.LayoutRng` -> FS0074 naming FS.GG.Game.Core.Rng",
+     "result": "verified"
+    }
+   ],
+   "confidenceLimits": [
+    "skeleton"
+   ]
+  },
+  {
+   "id": "§4.9",
+   "status": "actionable",
+   "missingFacts": [],
+   "checkedEvidence": [
+    {
+     "locator": "command:gh issue view 61 --repo EHotwagner/rogue3 --json createdAt -> 2026-08-02T10:08:59Z",
+     "result": "verified"
+    },
+    {
+     "locator": "issue:EHotwagner/rogue3#67 (closed as duplicate of #61)",
+     "result": "verified"
+    },
+    {
+     "locator": "command:ps -p 2270316 -> no such process",
+     "result": "verified"
+    },
+    {
+     "locator": "command:ps -eo pid,args | grep Rogue3.dll -> empty",
+     "result": "verified"
+    }
+   ],
+   "confidenceLimits": [
+    "skeleton"
+   ]
+  },
+  {
+   "id": "§4.10",
+   "status": "actionable",
+   "missingFacts": [],
+   "checkedEvidence": [
+    {
+     "locator": "file:src/Rogue3/Model.fs",
+     "result": "verified",
+     "sha256": "82ffaaff9f7886e6aa2690b2d9006f13358dbc18b01949b79cf65b388ca0e4a8"
+    },
+    {
+     "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+     "result": "verified",
+     "sha256": "7fe9befcdf1f3e94cf620ded16886fba6068f12313060d98373f507395eb77f5"
+    },
+    {
+     "locator": "command:dotnet test with the old gate restored -> `Failed: 1, Passed: 271, Total: 272`, naming that test",
+     "result": "verified"
+    },
+    {
+     "locator": "command:dotnet test at the candidate -> `Passed: 272`",
+     "result": "verified"
+    }
+   ],
+   "confidenceLimits": [
+    "skeleton"
+   ]
+  },
+  {
+   "id": "§4.11",
+   "status": "actionable",
+   "missingFacts": [],
+   "checkedEvidence": [
+    {
+     "locator": "file:src/Rogue3/Model.fs",
+     "result": "verified",
+     "sha256": "82ffaaff9f7886e6aa2690b2d9006f13358dbc18b01949b79cf65b388ca0e4a8"
+    },
+    {
+     "locator": "file:src/Rogue3/Render.fs",
+     "result": "verified",
+     "sha256": "9c09468882200602246524683977962e4309109d91a265b72622f8cfd1437ebe"
+    },
+    {
+     "locator": "file:tests/Rogue3.Tests/M14ItemGrantTests.fs",
+     "result": "verified",
+     "sha256": "7fe9befcdf1f3e94cf620ded16886fba6068f12313060d98373f507395eb77f5"
+    },
+    {
+     "locator": "command:dotnet test with the landing guard removed -> `Failed: 1, Passed: 271, Total: 272`, naming that test",
+     "result": "verified"
+    }
+   ],
+   "confidenceLimits": [
+    "skeleton"
+   ]
+  }
+ ]
+}
