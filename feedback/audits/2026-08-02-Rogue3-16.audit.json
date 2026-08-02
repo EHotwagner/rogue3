@@ -1,7 +1,7 @@
 {
  "auditSchema": 1,
  "report": "feedback/2026-08-02-Rogue3-16.md",
- "reportSha256": "7efc8f3a453e06aa21e794c7a8c9e0baf8081f13d98873eb5d68ee91359f4701",
+ "reportSha256": "c596b77f909a70eae25f1517ebafc8ef277f7097da50c13f4d89b99f3e39aa53",
  "criticMode": "fresh-context-subagent",
  "criticPromptVersion": "actionability-v1",
  "findings": [
@@ -26,7 +26,7 @@
     {
      "locator": "file:.github/workflows/verify.yml",
      "result": "verified",
-     "sha256": "257798a7cb1afbd8574091fd220c97af368aadbbadefbdb868a21e0c2b2244a6"
+     "sha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa"
     },
     {
      "locator": "commit:95b1170",
@@ -38,7 +38,8 @@
     "The finding is STRONGER than it first claimed, and was corrected upward after audit rather than down. It scoped the red baseline to 95b1170; the critic also ran Verify at the current origin/main tip 48b3a6a, two merges later: still exit 1, still `status=failed m7-ui-performance routes=4`, still 253 tests. main is red today, not historically.",
     "The digest pair was read out of the artifact rather than taken on trust: hud-playing declares 0350d3a7ee6e… and computes c09c299cddeb…, main-menu declares and computes 89c6080c3acf… and is the one route with authorshipPassed=true. Three of four routes fail, exactly as stated.",
     "`git show 95b1170:.github/workflows/verify.yml` has exactly three `run:` steps — feedback-tool selftest, dotnet restore, dotnet test -c Release — and no fake.sh invocation, confirming the mid-cycle-move claim. The current workflow's exclusion comment names rogue3#26 and rogue3#56, as the finding says.",
-    "issue:EHotwagner/rogue3#67 is deliberately not cited here (it is this author's own duplicate); it is checked under §4.9 instead."
+    "issue:EHotwagner/rogue3#67 is deliberately not cited here (it is this author's own duplicate); it is checked under §4.9 instead.",
+    "Re-pinned after rebasing onto main at 3cd9ab5: EHotwagner/rogue3#57 (PR #71) rewrote .github/workflows/verify.yml, which this finding cites, and the audit-binding gate correctly reddened on the stale digest. The claim was re-checked against the NEW bytes rather than the digest merely refreshed: the workflow still has no `fake.sh -t Verify` step -- its five run-steps are the feedback-tool selftest, the build.fsx SelfTest gate, checkpoint-state validation, restore, and `dotnet test -c Release` -- so CI still does not run the target that owns this gate and the finding stands unchanged. Worth recording as the same single-observed-digest trap §4.6 describes, hit once more by a sibling's merge rather than by this cycle's own edits."
    ]
   },
   {
