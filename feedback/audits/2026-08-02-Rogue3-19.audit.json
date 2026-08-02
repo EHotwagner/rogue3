@@ -1,0 +1,214 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-19.md",
+  "reportSha256": "e9110cc937437e169a84c133dbbfc1f16aafab44a9c79f323e695c4ef3472521",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git add -f readiness/evidence-graph.md readiness/performance-evidence.json readiness/m7-ui-performance.json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.github/workflows/verify.yml",
+          "result": "verified",
+          "sha256": "78b072330cf1e5fb7a271761b72c21609e1ab4c97897468997ca86e1dea771bb"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "c05adc4ac820c53a3beccced63ae5c7f2aee33990e5e83d13f45a6e5cd3eda3e"
+        }
+      ],
+      "confidenceLimits": [
+        "The mutant's `dotnet test -c Release` 272/0 is inferred rather than shown: `git add -f` does not touch the product tree, so the critic confirmed 272/272 at HEAD and reasoned the mutant leaves it unchanged.",
+        "The 'code critic with mutation licence' is not sourced by an artifact in the tree; the critic verified the fix, not the original survival.",
+        "The finding bundles a documentation defect (two files asserting a false thing about `.gitignore` semantics) that belongs to §4.5's class with a different owner.",
+        "'Recurrence: new' was over-claimed in an earlier draft and is corrected: `feedback/2026-08-02-Rogue3-6.md` §4.2/§7 and `feedback/2026-08-02-Rogue3-12.md` §4.6 each carry half of it."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t SelfTest",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "1ef477799c13a80e64b56d5e5c554e6598373c49b10b9e3170f1e53736a1000c"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-12.md",
+          "result": "verified",
+          "sha256": "da00e0eae167e7faa0227bf74352ce70f7cdc4ae0fdf31dd51dd2c01af2bfbf1"
+        }
+      ],
+      "confidenceLimits": [
+        "The two originally-surviving installation mutants are attributed to a critic report not committed to the tree; the critic verified the fix rather than the survival.",
+        "The sentence quoted in Expected lives in `build.fsx`, not in report -12; -12 §4.6 is the instance the code comment paraphrases.",
+        "A PR reviewer later found two FURTHER mutants inside this finding's own fix (neutering the warn sink, and a dead `let _checked` binding). Both are killed in the shipped candidate; the finding's claim that the first fix did not close the finding is therefore true twice over."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t Verify",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git ls-files readiness/",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#26",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "This is arguably two findings with two owners: the graph's irreproducible enumeration (FS.GG.UI.Build emitter) and the performance artifacts' measured content (inherent, not a defect of any component).",
+        "The EvidenceGraph emitter is a package binary and was not inspected; 'every cycle adding readiness evidence widened the gap' is asserted, not measured.",
+        "Recurrence names three prior reports; a critic found at least seven more carrying the same observation."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git diff --name-only origin/main...HEAD",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#56",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#53",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Re-evidenced after an actionability critic rated the original locators claim-only. The `widen` OVERLAP output and the three coordination messages are transient board state preserved in no artifact, so they were removed as locators; the finding now rests on the landed diff and on #56's amended Paths: line, both durable and both independently checkable.",
+        "Because `widen` wrote the two script paths back into #56's declaration, the issue body no longer shows the AS-FILED touch-set. That the declaration was corrected mid-flight is recorded here and in the board's history, not in the tree.",
+        "The claim that #53 records four prior cycles was FALSE and is corrected in the report: #53 records one bounded fan-out of three workers plus closed #41. The 'fifth cycle running' count is supportable from the reports, not from the issue.",
+        "The Observed field carries a paragraph of praise for the sibling worker's answer, which is closer to a §2 entry than to an observation."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "1ef477799c13a80e64b56d5e5c554e6598373c49b10b9e3170f1e53736a1000c"
+        },
+        {
+          "locator": "file:.gitignore",
+          "result": "verified",
+          "sha256": "42ce03fcd821ba13cae5b409280d07eaa93510c2552b4c44c9c5cd4216eac4ba"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-12.md",
+          "result": "verified",
+          "sha256": "da00e0eae167e7faa0227bf74352ce70f7cdc4ae0fdf31dd51dd2c01af2bfbf1"
+        }
+      ],
+      "confidenceLimits": [
+        "The finding's own first draft said 'two of three' locations; the critic counted four surfaces, of which the self-correction fixed three. Corrected in the report and left visible rather than silently repaired.",
+        "A closer prior instance exists than the one cited: `feedback/2026-08-02-Rogue3-17.md` §4.2, same file and same banner."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "duplicate",
+      "missingFacts": [
+        "A dedupe pass against open issues before filing. The cycle read its inbox at claim time and never re-checked `gh issue list`."
+      ],
+      "checkedEvidence": [
+        {
+          "locator": "command:dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate feedback/2026-08-01-Rogue3-8.md --audit feedback/audits/2026-08-01-Rogue3-8.audit.json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "c05adc4ac820c53a3beccced63ae5c7f2aee33990e5e83d13f45a6e5cd3eda3e"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#53",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "`issue:EHotwagner/rogue3#77` records the identical finding and was filed BEFORE this cycle's own checkpoint of it, naming rogue3#56 in its body. The observation is verified to the message string, but it is not this cycle's to claim.",
+        "The duplicate this cycle filed, #83, is closed as a duplicate and its measurement moved onto #77 as a comment.",
+        "The critic swept all 12 reports whose audits cite a roll-up and confirmed exit 1 on BOTH trees, so 'no green validation turns red' holds beyond the single report cited."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "c05adc4ac820c53a3beccced63ae5c7f2aee33990e5e83d13f45a6e5cd3eda3e"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#38",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "An earlier draft said all four evidence-graph bindings were FRESH; two were fresh and two were ledger-excused at the same bytes. Corrected in the report, and the same false sentence was removed from the checker's own docstring.",
+        "'New as a mechanism finding' was over-claimed: the pin-one-digest mechanism is prior art in `feedback/2026-08-02-Rogue3-17.md` §4.8, `-16` §4.6 and issue #49. Only the local-vs-CI divergence of a run output is new, and the report now says so.",
+        "The 22-stale figure was reproduced by reconstructing a post-gate worktree from an export, not from the original worktree."
+      ]
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t SelfTest",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/checkpoints/item-56-readiness-rollups-derived-tree.jsonl",
+          "result": "verified",
+          "sha256": "7f5071989b19623e6aa060a2c62ac5e7b585965601b942be768849b0e130d0a5"
+        }
+      ],
+      "confidenceLimits": [
+        "This finding was AUTHORED IN RESPONSE to the critic's report and was therefore never graded by it. It is the only finding here whose disposition is the author's own, and it is recorded as such rather than presented as independently reviewed.",
+        "Exists because the critic found two material checkpoint events with no §4 finding and a §11 improvement traceable to neither. Both halves are corroborated by the checkpoint file and by the cycle's three --grandfather passes.",
+        "Half (b) recurred a third time after the finding was written, when answering the PR review edited the same bound file again."
+      ]
+    }
+  ]
+}
