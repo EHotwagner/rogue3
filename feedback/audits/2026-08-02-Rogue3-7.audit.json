@@ -1,0 +1,205 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-7.md",
+  "reportSha256": "8534f033ade722761e2f5450f1e5932c80c8e6d4023a24b891f9625f5ffc63fc",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "duplicate",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Rogue3.fsproj",
+          "result": "verified",
+          "sha256": "72ccca8dff9588a90c06b985c7a5010ea29724db232c97106e817bd9ee5f9adf"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-5.md",
+          "result": "verified",
+          "sha256": "03526c3e1f7d0b9a682799612b00d82decc344c3d2f52558f73b2811804ea38c"
+        },
+        {
+          "locator": "command:git grep -n \"Visibility\" 6b4ed07 -- src tests",
+          "result": "verified"
+        },
+        {
+          "locator": "command:dotnet test tests/Rogue3.Tests/Rogue3.Tests.fsproj -c Release --no-restore",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#19",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#32",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Both critics agree the observation is substantially report-5 §4.1 restated: same defect, same owner, same proposed remedy. It is recorded as a duplicate rather than a new finding, and the report's Recurrence line says so. The only non-duplicate element is that a cycle passed without the remedy and the module report-5 §11 named by hand was still compiled in, which is why it was escalated into issue #32.",
+          "The cited Release test command evidences the 208/208 pass count only. It cannot evidence the finding's headline that no gate reports the gap; that sentence rests on the grep locator and on §4.6's direct reading of the gate's target bodies.",
+        "The full FAKE Verify gate was not run this cycle (report §5), so 'a green gate never mentioned it' is inherited from report-5 rather than re-observed here. The report states this explicitly in §5."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:src/Rogue3/Vec2.fs",
+          "result": "verified",
+          "sha256": "6e93c100495692970d2399f340d48220273ca06ac29bb51bf54dc4a29b28c897"
+        },
+        {
+          "locator": "command:git show 6b4ed07:src/Rogue3/Vec2.fs",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git log --format=%H -- src/Rogue3/Vec2.fs",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-5.md",
+          "result": "verified",
+          "sha256": "03526c3e1f7d0b9a682799612b00d82decc344c3d2f52558f73b2811804ea38c"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#28",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#19",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The draft claimed 'three of the five whole-tree occurrences of Visibility'. Both critics refuted it independently: five is the src/tests line count, and the name occurs many further times in the skills, docs/, .fsgg/scaffold-provenance.json, feedback/ and work/. Corrected in the published report to name the grep scope explicitly, and §1's confidence limit corrected with it. The error mattered because this is a finding about miscounted greps.",
+        "The draft also stated 'those hits were prose' of both modules. Corrected: all three Visibility hits are prose, but two of Collision's eight are real call sites (Model.fs clampCircleInside and sweepCircle), as both issue #28 and report-5 §4.5 state correctly.",
+        "The mechanism itself is not new — report-5 §4.5 already recorded that the Vec2.fs doc comments disguised both modules. The novelty verified here is ownership: git log over Vec2.fs returns exactly two commits, the scaffold baseline cd0028f and this cycle's 52d9e46, so the misleading text is generator-emitted rather than a local edit, which moves the durable fix upstream. The report's Recurrence line was rewritten to claim only this.",
+        "Causation to #19's scope decision is supported rather than assumed: #19's body carries both the counts and the contrast sentence that scoped it to two modules, and excluding Rogue3.fsproj the only file supplying Visibility hits at 6b4ed07 is Vec2.fs. No provider intent is claimed for why the comments were authored."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:docs/scaffold-map.md",
+          "result": "verified",
+          "sha256": "44a98f3ec4eb6069b247f824896aa48119f3319057b414e2e9b6ea9f3353cd5c"
+        },
+        {
+          "locator": "command:git show --stat cb6621e",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#19",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#28",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#31",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The draft framed this as a Paths-derivation defect that made the fix impossible, and the second critic refuted it: #19 declared Paths of Grids.fs, LineDrawing.fs and Rogue3.fsproj, and cb6621e shows it edited docs/scaffold-map.md regardless. The boundary permitted the fix. The finding was rewritten from 'the boundary prevented it' to 'the deferral was a judgement, and a wrong one', and the product was changed accordingly in ca0c1fc rather than left for #31.",
+        "The residual actionable content is narrower than the draft's: the item's Paths were derived from code alone, so a literal reading produces a false doc. That is supported by #28's own body, which records the identical omission as the reason Visibility.fs survived #19.",
+        "The draft's Recurrence cited only issue #28 and understated prior coverage; corrected to cite report-5 §4.2 and §4.4, making this the third report on the same surface."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:scripts/audit-binding-exceptions.json",
+          "result": "verified",
+          "sha256": "76fa77c3f6b588419e18e7be85d8fb1b08531af02bc5e60220437c0c29ca4538"
+        },
+        {
+          "locator": "command:git diff 6b4ed07 HEAD -- scripts/audit-binding-exceptions.json",
+          "result": "verified"
+        },
+        {
+          "locator": "file:feedback/audits/2026-08-02-Rogue3-5.audit.json",
+          "result": "verified",
+          "sha256": "5ae1851fc76316beae3855c86ea5acac8e32a96f03f482717f6820e4248f45ee"
+        },
+        {
+          "locator": "file:feedback/2026-08-02-Rogue3-3.md",
+          "result": "verified",
+          "sha256": "30f77e8195fc60abc56f3c5803f23b2d94ef8be2e4d9c849e38d7450efab933a"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The draft's arithmetic was wrong and both critics caught it: it claimed '3 of the 50 were added by this PR'. The ledger diff shows 48 entries at 6b4ed07 and 51 at HEAD, with the Rogue3.fsproj entry pre-existing from M12 and rewritten in place rather than added. Corrected throughout the report, including §7.",
+        "The draft's Recurrence claimed the growth was 'not previously recorded'. Refuted: report-3 §7 records this ledger as a standing workaround at 45 entries with the same permanence risk, and report-3 §4.2 records that no rebind command exists, which is why the weaker remedy is the only tooled one. The published Recurrence cites both and narrows the novel claim to the self-referential case plus the in-place rewriting of a prior entry's reason.",
+        "The draft wrote that the report-5 audit 'established' Visibility.fs was dead. Narrowed to 'verified': the audit JSON records per-locator verification results, and report-5 §2 credits the author's grep with finding the third dead module.",
+        "'The ledger only grows' is the observed direction plus the mechanism, not a proof that entries are never pruned. The checker does prune obsolete entries and reported 'pruned 0' on both runs this cycle."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --selftest",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.github/workflows/audit-bindings.yml",
+          "result": "verified",
+          "sha256": "72bdce1d6872444a49c3d4d84ec06bd669b795b1db7ec9d12977230b97294510"
+        }
+      ],
+      "confidenceLimits": [
+        "Both critics independently reproduced the 53-check self-test, confirmed the three named cases appear verbatim, and confirmed the workflow orders the self-test step before the verdict step.",
+        "Added at a critic's request: the self-test proves the checker's mechanics, not that the 51 excuse reasons recorded in the ledger are true. The report now states that limit."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "e5b13fa6947f8993a6a0cf2369fb28d26b6788747ee74142604973237cefcbe3"
+        },
+        {
+          "locator": "file:.fsgg/scaffold-provenance.json",
+          "result": "verified",
+          "sha256": "e5435653245793690fec86b7b8a3e9840a59773e3db8b035030f7af4424a3c68"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#34",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#32",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Surfaced by the second critic and verified independently by the author against build.fsx before filing: the run dispatch maps Dev, GeneratedGuidanceCheck and TemplateDrift to writeLog, and the Verify branch runs the same three through List.iter writeLog. writeLog writes a success line to readiness/logs and prints it.",
+        "The provenance consequence is stated as a limitation rather than a defect: producedPaths listing three deleted files is defensible as a record of what the generator emitted. The finding is that nothing distinguishes 'produced then deleted' from 'produced and present', and the step named TemplateDrift cannot.",
+        "No claim is made that the three steps ever performed a check and regressed; the scaffold-emitted bodies are empty as far back as this repository's history shows, and no archaeology beyond the current file was done."
+      ]
+    }
+  ]
+}

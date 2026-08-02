@@ -20,8 +20,8 @@ open FS.GG.UI.Scene
 ///
 /// TWO framework vocabularies exist and they are LABEL-IDENTICAL: the render one
 /// (`FS.GG.UI.Scene.Point`/`Rect`, opened above) and the simulation one
-/// (`FS.GG.Game.Core.Point`/`Rect`), which is what the shipped `Collision.fs` / `Visibility.fs`
-/// helpers and `SpatialGrid` actually speak. Cross into render space with `toPoint`/`toRect`, and
+/// (`FS.GG.Game.Core.Point`/`Rect`), which is what the shipped `Collision.fs` helper and
+/// `SpatialGrid` actually speak. Cross into render space with `toPoint`/`toRect`, and
 /// into sim space with `toSimPoint`/`ofSimPoint`/`toSimRect`/`ofSimRectCenter`. This file deliberately does NOT
 /// `open FS.GG.Game.Core`: that would put two identically-labelled `Point`s (and two `Rect`s) in one
 /// scope and re-create the very ambiguity `Vx`/`Vy` exists to prevent. The sim crossings go through
@@ -133,13 +133,13 @@ module Geometry =
         { X = x; Y = y; Width = w; Height = h }
 
     /// Cross into the SIMULATION vocabulary: a `Vec2` position becomes a `Game.Core.Point` — the type
-    /// `SpatialGrid.build` keys on, and the one `Collision.Body.Velocity` and `Visibility.Segment`
-    /// carry. Without this you cannot call the collision/visibility helpers this scaffold ships.
+    /// `SpatialGrid.build` keys on, and the one `Collision.Body.Velocity` carries. Without this you
+    /// cannot call the collision helper this scaffold ships.
     let toSimPoint (v: Vec2) : SimPoint = { X = v.Vx; Y = v.Vy }
 
     /// Cross BACK out of the simulation vocabulary: a `Game.Core.Point` handed to you by a helper —
-    /// a `Collision.Contact.Penetration`, a `Visibility.VisibilityPolygon` vertex — becomes a `Vec2`
-    /// your model can store without ever declaring an `X`/`Y` label of its own.
+    /// a `Collision.Contact.Penetration`, say — becomes a `Vec2` your model can store without ever
+    /// declaring an `X`/`Y` label of its own.
     let ofSimPoint (p: SimPoint) : Vec2 = { Vx = p.X; Vy = p.Y }
 
     /// The sim-space twin of `toRect`: a centered axis-aligned rectangle of size `w` x `h` about

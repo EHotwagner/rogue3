@@ -28,19 +28,26 @@
          adaptable source — compiled before Model.fs so your update can call Collision.step. The
          Exists guard keeps the build green if you delete the file (Rogue3.fsproj stays "durable"). -->
     <Compile Include="Collision.fs" Condition="Exists('Collision.fs')" />
-    <!-- Feature 247: the import-and-adapt visibility helper (fs-gg-visibility skill). Consumer-owned,
-         adaptable source — compiled before Model.fs so your update/view can call Visibility.polygon.
-         The Exists guard keeps the build green if you delete the file (Rogue3.fsproj stays "durable"). -->
-    <Compile Include="Visibility.fs" Condition="Exists('Visibility.fs')" />
-    <!-- Issue #19: the scaffold's two import-and-adapt grid helpers — Grids.fs (Feature 249,
-         fs-gg-grids) and LineDrawing.fs (Feature 248, fs-gg-line-drawing) — were DELETED, and their
-         compile items with them. This roguelike never adopted them: the simulation is continuous-space
-         (Collision.sweepCircle over Rect room bounds and Vec2 obstacles), and every `Cell` value in the
-         product is a room-graph coordinate produced by FloorGeneration.fs and consumed by Render.fs's
-         minimap and Model.fs's roomPoint — none of which wants the edges/corners BETWEEN cells or a
-         Bresenham sight-line THROUGH them. They compiled 282 unreachable lines into every build.
-         To restore either module, take it from git history at 1f19809: both are product-owned source
-         with no backing package, and the fs-gg-grids / fs-gg-line-drawing skills document the API with
+    <!-- Issue #19 and #28: THREE of the scaffold's four import-and-adapt geometry helpers — Grids.fs
+         (Feature 249, fs-gg-grids), LineDrawing.fs (Feature 248, fs-gg-line-drawing) and Visibility.fs
+         (Feature 247, fs-gg-visibility) — were DELETED, and their compile items with them. This
+         roguelike never adopted any of them: the simulation is continuous-space (Collision.sweepCircle
+         over Rect room bounds and Vec2 obstacles), and every `Cell` value in the product is a
+         room-graph coordinate produced by FloorGeneration.fs and consumed by Render.fs's minimap and
+         Model.fs's roomPoint — none of which wants the edges/corners BETWEEN cells or a Bresenham
+         sight-line THROUGH them. Nothing ever asked for an angular-sweep visibility polygon either:
+         the product has no fog-of-war, no field-of-view cone and no line-of-sight query. Together they
+         compiled 531 unreachable lines into every build.
+         #19 removed the first two; #28 removed Visibility.fs (249 lines) after finding it was left
+         behind only because #19's triage counted DOC COMMENTS as references — the `Visibility.Segment`
+         and `Visibility.VisibilityPolygon` mentions in Vec2.fs named types no code ever constructed,
+         and reading them as call sites is what made a dead module look adopted. Those Vec2.fs comments
+         were corrected with this change; count code references, not grep hits.
+         Collision.fs is the one helper of the four that IS adopted, with two real call sites in
+         Model.fs (clampCircleInside, sweepCircle).
+         To restore any of the three, take it from git history — Grids.fs and LineDrawing.fs at
+         1f19809, Visibility.fs at 6b4ed07. All three are product-owned source with no backing package,
+         and the fs-gg-grids / fs-gg-line-drawing / fs-gg-visibility skills document the API with
          call-site examples but do NOT carry the module source. -->
     <!-- Issue #991: the generic game-shell module (fs-gg-game-shell skill) — a reusable
          menu/start screen + settings (resolution/fullscreen) + key rebinding that composes the

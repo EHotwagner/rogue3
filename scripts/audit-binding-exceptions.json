@@ -357,10 +357,34 @@
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-5.audit.json",
       "kind": "evidence",
+      "locator": "file:docs/scaffold-map.md",
+      "boundSha256": "0fbe934e9125a60664e2b69f6537cdbacde0713031e1f2a7262e67a4d536ab98",
+      "observedSha256": "44a98f3ec4eb6069b247f824896aa48119f3319057b414e2e9b6ea9f3353cd5c",
+      "reason": "Item #28 corrected docs/scaffold-map.md, which described the deleted src/Rogue3/Visibility.fs as a shipped, callable helper. The map is bound by feedback/audits/2026-08-02-Rogue3-5.audit.json, whose critic cited it as evidence for that cycle's finding that the scaffold's documented delete path leaves the map advertising a file that no longer exists. Excused rather than rebound, per the 7e71d71 precedent: rebinding would pin bytes written after that critic reported, and would erase the stale entry that IS the evidence for the finding. The audit remains true of the tree it examined."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-5.audit.json",
+      "kind": "evidence",
       "locator": "file:src/Rogue3/Rogue3.fsproj",
       "boundSha256": "975e92b37e4f80e4e207b38a339b349acc5de6f4c23dd52a2b0fc7addc1c310a",
-      "observedSha256": "10f4ec55d576f9cafa5a57889f8623820494b6123afffb60072b81be8ff7c133",
-      "reason": "M12 (013-m12-audio-assets, PR #25) touched files that eleven earlier cycles' audits bind: src/Rogue3/AudioCues.fs and EvidenceCommands.fs (the cue map now builds every id from Rogue3.AudioCueIds, and a new --audio-asset-evidence command was added), src/Rogue3/Rogue3.fsproj (two compile items and the assets/audio content copy), readiness/performance-evidence.json, m7-ui-performance.json and performance-critic-request.json (regenerated at the candidate; every workload and UI-route DEFINITION digest is byte-identical to origin/main, only run-scoped timings, allocatedBytes, the per-process compositionAuthority GUID and the receipt digests over them moved), and docs/roguelike-dungeon-crawler-roadmap.md (M12 rows flipped to done with their evidence, M15 filed, one Stretch row filed). Excused rather than rebound because rebinding an earlier cycle's audit would rewrite an immutable report's evidence record, which is the defect feedback/2026-08-01-Rogue3-12.md 4.13 filed. M12's own audit, feedback/audits/2026-08-02-Rogue3-2.audit.json, is fresh and is not excused."
+      "observedSha256": "72ccca8dff9588a90c06b985c7a5010ea29724db232c97106e817bd9ee5f9adf",
+      "reason": "Item #28 deleted src/Rogue3/Visibility.fs (249 unreachable lines), removed its compile item from src/Rogue3/Rogue3.fsproj, and corrected the src/Rogue3/Vec2.fs doc comments that named Visibility.Segment / Visibility.VisibilityPolygon. All three files are bound by feedback/audits/2026-08-02-Rogue3-5.audit.json, the audit whose critic ESTABLISHED that Visibility.fs was dead and that those Vec2.fs comments were what disguised it as live. Excused rather than rebound, per the 7e71d71 precedent: Visibility.fs no longer exists so there are no bytes to rebind to, and rebinding Rogue3.fsproj or Vec2.fs would pin post-fix bytes and thereby claim that critic inspected text written after it reported -- for Vec2.fs it would also erase the misleading comments that ARE the finding's evidence. The audit remains true of the tree it examined."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-5.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Vec2.fs",
+      "boundSha256": "4dd1f0e73f5517bf4c3557d61a0434852e147085866e302271fb0db7e6927656",
+      "observedSha256": "6e93c100495692970d2399f340d48220273ca06ac29bb51bf54dc4a29b28c897",
+      "reason": "Item #28 deleted src/Rogue3/Visibility.fs (249 unreachable lines), removed its compile item from src/Rogue3/Rogue3.fsproj, and corrected the src/Rogue3/Vec2.fs doc comments that named Visibility.Segment / Visibility.VisibilityPolygon. All three files are bound by feedback/audits/2026-08-02-Rogue3-5.audit.json, the audit whose critic ESTABLISHED that Visibility.fs was dead and that those Vec2.fs comments were what disguised it as live. Excused rather than rebound, per the 7e71d71 precedent: Visibility.fs no longer exists so there are no bytes to rebind to, and rebinding Rogue3.fsproj or Vec2.fs would pin post-fix bytes and thereby claim that critic inspected text written after it reported -- for Vec2.fs it would also erase the misleading comments that ARE the finding's evidence. The audit remains true of the tree it examined."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-5.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Visibility.fs",
+      "boundSha256": "eb70a22de05a5163b6813767fe97b36838ca93a5753f0340491a0f69ae60efd7",
+      "observedSha256": "<missing>",
+      "reason": "Item #28 deleted src/Rogue3/Visibility.fs (249 unreachable lines), removed its compile item from src/Rogue3/Rogue3.fsproj, and corrected the src/Rogue3/Vec2.fs doc comments that named Visibility.Segment / Visibility.VisibilityPolygon. All three files are bound by feedback/audits/2026-08-02-Rogue3-5.audit.json, the audit whose critic ESTABLISHED that Visibility.fs was dead and that those Vec2.fs comments were what disguised it as live. Excused rather than rebound, per the 7e71d71 precedent: Visibility.fs no longer exists so there are no bytes to rebind to, and rebinding Rogue3.fsproj or Vec2.fs would pin post-fix bytes and thereby claim that critic inspected text written after it reported -- for Vec2.fs it would also erase the misleading comments that ARE the finding's evidence. The audit remains true of the tree it examined."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
