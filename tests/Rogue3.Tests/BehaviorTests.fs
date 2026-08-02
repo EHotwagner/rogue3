@@ -904,6 +904,29 @@ let behaviorTests =
         // `shellSettingsPath` is a fixed per-user platform path, and #63 recorded the resulting gap
         // ("no test drives `loadShellSettings` itself without writing to the real profile
         // directory") as unclosed. These tests close it for every branch a launch depends on.
+        //
+        // WHERE THESE TESTS STOP, stated rather than implied. They end at the
+        // `ViewerWindowBehaviorRequest` handed to the launcher. The last hop — the framework
+        // creating the native window in that request's `StartupState` — is NOT observable from this
+        // product, and that was measured, not assumed: a capability-gated live run of
+        // `ControlsElmish.Live.runScriptWithWindowBehavior` with the restored-Fullscreen request and
+        // a two-idle-frame script produced an EMPTY diagnostic list, across `Startup`, `Window`,
+        // `Renderer`, `Frame` and `EnvironmentSession` alike. `ViewerDiagnosticCategory.Window` is
+        // contracted as "runtime native-window behavior CHANGES and their observable outcomes"
+        // (SkiaViewer.fsi), so a window that was CREATED correctly and never changed reports
+        // nothing. There is no readback of the state a window was created in.
+        //
+        // What covers that hop instead is the #1022/#63 native test above: it hands the framework
+        // the same `ViewerWindowBehaviorRequest` value `GameShell.windowBehavior Fullscreen`
+        // produces and observes `mode=fullscreen` at the real native boundary. The composition is
+        // therefore: restored file -> that exact request (here) -> that request really reaches a
+        // fullscreen native window (there). The unproven link is the framework applying
+        // `StartupState` at CREATION as it does at mutation, which is its own contract.
+        //
+        // A second live-window test is also not available even if there were something to assert:
+        // the SkiaViewer render statics are single-threaded and process-global, so a second live run
+        // on another test's thread fails with "the SkiaViewer render statics are single-threaded
+        // (Issue #180) ... but were touched from thread N; the render loop owns them on thread M".
         let withTemporarySettingsDirectory (body: string -> unit) =
             let root =
                 IO.Path.Combine(IO.Path.GetTempPath(), $"rogue3-75-{Guid.NewGuid():N}")
