@@ -324,21 +324,36 @@ complete stable finding coverage, critic vocabulary/mode, unresolved actionabili
 and evidence digests. Changing or deleting cited evidence invalidates a previously green audit.
 It intentionally does not validate old schema-v1 reports.
 
-One citation is deliberately exempt from the digest check: a `file:` locator that resolves to
-`scripts/audit-binding-exceptions.json`, the audit-binding gate's excuse ledger. Excusing any stale
-binding rewrites that ledger, so pinning its digest is a fixed-point equation with no fixed point —
-a report whose finding is *about* the ledger, and therefore cites it, would be invalidated by the
-documented remedy for an unrelated violation. The exemption is exactly that one path, compared
-case-sensitively on every platform, and decided on the **resolved** location rather than the locator
-text — so `file:feedback/../scripts/audit-binding-exceptions.json` is recognised, while
-`scripts/audit-binding-exceptions.json.bak` and `vendor/scripts/audit-binding-exceptions.json` are
-not. A citation onto another `*.audit.json` is **not** exempt.
+One kind of citation is deliberately exempt from the digest check: a `file:` locator that resolves
+into the audit-binding gate's excuse ledger. Excusing any stale binding rewrites the ledger, so
+pinning its digest is a fixed-point equation with no fixed point — a report whose finding is *about*
+the ledger, and therefore cites it, would be invalidated by the documented remedy for an unrelated
+violation.
+
+The ledger is a **directory**, `scripts/audit-binding-exceptions/`, holding one `<cycle-id>.json`
+per cycle: `check-audit-bindings.py --grandfather --cycle <id>` writes that one path and nothing
+else, so two concurrent cycles excusing the same binding never share a path. The exempt set is
+therefore any `*.json` under that directory, plus the single file
+`scripts/audit-binding-exceptions.json` the ledger was before that change, which is a frozen archive
+that merged audits still cite.
+
+Citing your own cycle's ledger file — reasonable when the finding is *about* what you excused — is
+safe: that tool never deletes a ledger file, so a cited one cannot vanish under a later cycle. It is
+the reason the deletion rule is unconditional rather than usual, since an exempt citation is still
+required to resolve to a file that exists (below).
+
+The exemption is compared case-sensitively on every platform and decided on the **resolved**
+location rather than the locator text — so `file:feedback/../scripts/audit-binding-exceptions.json`
+is recognised, while `scripts/audit-binding-exceptions.json.bak`,
+`vendor/scripts/audit-binding-exceptions.json`, `scripts/audit-binding-exceptions-other/x.json` and
+`scripts/audit-binding-exceptions/notes.md` are not. A citation onto another `*.audit.json` is
+**not** exempt.
 
 Exempt citations are reported, never silently skipped:
 
 ```
 feedback-tool: 1 citation(s) NOT BOUND -- reported rather than checked:
-  §4.4 file:scripts/audit-binding-exceptions.json
+  §4.4 file:scripts/audit-binding-exceptions/item-53-per-cycle-ledger.json
     this is the audit-binding excuse ledger itself: ...
 feedback-tool: valid actionability-bound schema-v2 report: feedback/2026-08-02-Rogue3-7.md
 feedback-tool: 1 citation(s) were not checked (listed above).
@@ -346,11 +361,11 @@ feedback-tool: 1 citation(s) were not checked (listed above).
 
 so a reader can always tell "this citation is exempt" apart from "the validator missed it". The
 locator still has to resolve inside the workspace and the file still has to exist — only the digest
-is unbindable. A pinned `sha256` on that one locator is optional and is never compared, though if
+is unbindable. A pinned `sha256` on such a locator is optional and is never compared, though if
 present it is still format-checked as 64 lowercase hex characters.
 
 **This validator has no excuse ledger.** The gate can excuse an aged binding via
-`check-audit-bindings.py --grandfather`; `validate` has no counterpart, so a stale citation onto any
+`check-audit-bindings.py --grandfather --cycle <id>`; `validate` has no counterpart, so a stale citation onto any
 *other* file has no remedy here short of rebinding a merged audit. Most historical reports in a
 long-lived repository therefore do not re-validate against a moved tree. That is a known gap, not a
 property of this exemption.

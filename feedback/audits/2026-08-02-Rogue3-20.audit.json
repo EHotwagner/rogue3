@@ -1,0 +1,177 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-20.md",
+  "reportSha256": "995c4c5b508d85fde2c7ab365b195c1201c6edcea37d86f9b4f0d094c1ce9b03",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#53",
+          "result": "verified"
+        },
+        {
+          "locator": "command:a two-branch git harness over scripts/check-audit-bindings.py reports at 715bef9 \"A touched [scripts/audit-binding-exceptions.json src/X.fs]\", \"B touched [scripts/audit-binding-exceptions.json src/Y.fs]\", \"merge exit: 1\", \"conflicted paths: [scripts/audit-binding-exceptions.json]\", \"post-merge check exit: 2\", and on the candidate \"A touched [scripts/audit-binding-exceptions/item-a.json src/X.fs]\", \"merge exit: 0\", \"conflicted paths: []\", \"post-merge check exit: 0\"",
+          "result": "verified"
+        },
+        {
+          "locator": "command:the same-file variant of that harness reports \"conflicted paths: [scripts/audit-binding-exceptions.json src/X.fs]\" and check exit 2 at 715bef9, versus \"conflicted paths: [src/X.fs]\" and check exit 0 after resolving to either side on the candidate",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045"
+        }
+      ],
+      "confidenceLimits": [
+        "The concurrency claims are measured over synthetic two-branch git harnesses, not over two real board workers; the contrast between 715bef9 and the candidate is evidence, the inference to real waves is not."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
+          "result": "verified",
+          "sha256": "3c9e86805a685d9392e50d4c6e9bbad59c79f9810d88407d09c52f76623d83b9"
+        },
+        {
+          "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
+          "result": "verified",
+          "sha256": "52b6eab3cdccb52b540968d21fca7515eaaae0b96b37ea159152973024d7f800"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --json reports notBound=4 naming file:scripts/audit-binding-exceptions.json from feedback/audits/2026-08-02-Rogue3-7, -8, -11 and -17.audit.json",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#77",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t TemplateDrift reported \"3 violation(s)\" naming .agents/skills/skill-manifest.json, .claude/skills/skill-manifest.json and the mirror after one SKILL.md edit, with no remedy named",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t KitPins reported \"pinned 63 kit file(s)\" and left the three violations standing",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#78",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "486fd8012c4dba5a23e4e0270eec14d70a36ea3c474c9740e610445d87c1180c"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --selftest exits 0 with the cases \"re-excusing replaces this cycle's entry rather than accumulating\" and \"an unchanged re-run carries every entry forward verbatim\"",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": []
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#53",
+          "result": "verified"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py --json at 715bef9 reports audits=29 bindings=271 fresh=175 excused=96 notBound=4 and exit 0",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#81",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic returned this incomplete on the draft: its recurrence pointer named feedback/2026-08-02-Rogue3-17.md §1, which records a different failure, and its disposition claimed an existing issue that did not exist. Both were corrected before this audit was written -- the recurrence now cites -17 §4.7, the complementary case, and the issue was filed as EHotwagner/rogue3#81."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:a git harness in which a merged cycle's excuse goes dormant reports, on the pre-critic build, \"with a dormant entry in a MERGED cycle's file, check exit: 1\" and \"the merged cycle's cited ledger file still exists: NO\", versus \"check exit: 0\" and \"still exists: yes\" on the shipped build, both ending \"post-merge check exit: 0\"",
+          "result": "verified"
+        },
+        {
+          "locator": "command:a 21-mutant matrix over scripts/check-audit-bindings.py leaves 0 survivors, including mutants that reintroduce the foreign delete, the foreign prune and the archive rewrite",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git show 9879757:scripts/check-audit-bindings.py contains the phrase \"The ONE exception is pruning\" and an os.remove of a ledger file the running cycle does not own, and git show 998bd02:scripts/check-audit-bindings.py contains neither",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "This finding is about a candidate that was rejected, not about the shipped tree, so it is evidenced by git show 9879757: rather than by the path at the branch head -- the critic called the bare file: locator claim-only for exactly that reason and the report was changed rather than the result downgraded.",
+        "The 21-mutant matrix decides a kill solely by check-audit-bindings.py --selftest exiting non-zero, so it exercises neither the git harnesses nor the F# validator; three of the 21 are the code critic's own findings re-encoded by the author. §1 records both limits."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git show 9879757:scripts/check-audit-bindings.py prints the SUPERSEDED block as \"another cycle's excuse for a binding that is excused at the digest the file now has\" and the OBSOLETE block as \"under scripts/audit-binding-exceptions/\", neither of which is true of every entry those blocks receive",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/check-audit-bindings.py",
+          "result": "verified",
+          "sha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py prints \"5 dormant exception(s) (5 superseded, 0 obsolete) over 2 ledger file(s)\" and lists each with the ledger file it came from",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/audit-binding-exceptions/item-53-per-cycle-audit-exception-ledger.json",
+          "result": "verified",
+          "sha256": "a1788c4496a73b3c9b4bbadeab1f5f97a580523700dbfa614a879fcfdb27bd17"
+        }
+      ],
+      "confidenceLimits": [
+        "The critic returned this incomplete on the draft, because 'All are corrected' was false: two further false lines survived in the shipped tree. Both were corrected before this audit was written and the finding now records five false statements written and five removed."
+      ]
+    }
+  ]
+}
