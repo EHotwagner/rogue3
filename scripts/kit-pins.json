@@ -49,7 +49,7 @@
     { "path": ".agents/skills/pnext-item/references/independent-review.md", "sha256": "945c40e6a2b5100317ef485a232f0079ace47ccdc97b444638e042b9b3e6468b" },
     { "path": ".agents/skills/pnext-item/references/merge-and-release.md", "sha256": "0c068c56f40c968133a417cfbcda443cc5def942f59c0b99517c4f9e4d4b7d1a" },
     { "path": ".agents/skills/pnext-item/references/performance-first.md", "sha256": "323937cc50305259a1b93f1b67c035206af64a658a3f845eaca31f6db5c96529" },
-    { "path": ".agents/skills/skill-manifest.json", "sha256": "a9e86b4ec1b65c964eb07be767a3b0757d8687295d6a92724f238327adb8c630" },
+    { "path": ".agents/skills/skill-manifest.json", "sha256": "a24bd1fab262d5495c2fdaa7cca636c2bf6b840e377a3e7b5b10bf22d436d0e3" },
     { "path": ".agents/skills/work-board-best/agents/openai.yaml", "sha256": "9d85ffa0636c28f3d4a6713217640b3572bb003ec5759ac5a00a3851a10ff548" },
     { "path": ".agents/skills/work-board-normal/agents/openai.yaml", "sha256": "2058fafb85ceaf1b6bed448a4cb4f6b51bfdbee05c9eb062af0647cb27dc1ec0" },
     { "path": ".agents/skills/work-board/agents/openai.yaml", "sha256": "a4d2b19cde3fd490c669da9a007b16620a106586efc30c32a02efd92f58d0433" },
