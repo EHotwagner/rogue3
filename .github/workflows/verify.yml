@@ -106,15 +106,24 @@ jobs:
       #     kit file the gate knows about matched its pin. It does NOT mean the
       #     inventory is complete -- rogue3#62 records that a symlinked kit root
       #     still reports 190 when only 95 distinct files exist.
-      #   * Before rogue3#57, 17 of 24 mutants survived SelfTest (not the 7 of 23
-      #     in that issue's body, which predates rogue3#46). After it, 4 of 39
-      #     survive and only ONE is a gate defeat: an edit that exempts any root it
+      #   * Mutation results, stated over a FIXED mutant set so the two sides are
+      #     comparable. On the SAME 24 mutants, 17 survived SelfTest before
+      #     rogue3#57 and 2 survive after. (Not the "7 of 23" in rogue3#57's body:
+      #     that sweep predates rogue3#46 and was re-derived here at 48b3a6a.)
+      #     Both remaining survivors of that set are measured NON-defeats -- they
+      #     make the printed ok/FAIL labels lie without changing the verdict, and
+      #     their drift-carrying counterparts are killed.
+      #   * A further 15 mutants were written specifically against the new design
+      #     (39 rows in total). Two of those survive. One is a real GATE DEFEAT and
+      #     the only one in the whole set: a single edit that exempts any root it
       #     recognises AS this repository by a MARKER FILE rather than by the
       #     current directory. SelfTest cannot certify it is still bound to the real
-      #     tree; that residual is named in build.fsx's own help banner. The other
-      #     three survivors are measured non-defeats -- two make the printed labels
-      #     lie without changing the verdict, and one disables a single probe
-      #     channel that the other channel independently kills.
+      #     tree -- evaluating the check from a different working directory closes
+      #     the cwd-keyed forms and not the class -- and that residual is named in
+      #     build.fsx's own help banner. The other disables ONE of the child probe's
+      #     two channels and is killed independently by the other channel (measured:
+      #     with the exit-code channel off, the structured-result cross-check still
+      #     kills both disarming edits tried against it).
       #   * main is not branch-protected, so no check here is a REQUIRED status
       #     check -- these gates block by turning a job red, not by blocking merge.
       #
