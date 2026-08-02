@@ -1,6 +1,6 @@
 {
   "grandfatherSchema": 1,
-  "note": "Explicit exceptions to the audit-binding check (scripts/check-audit-bindings.py). Each entry excuses ONE stale binding at ONE observed digest: change the file again and it fails again. Prefer rebinding the audit over adding an entry here.",
+  "note": "Explicit exceptions to the audit-binding check (scripts/check-audit-bindings.py). Each entry excuses ONE stale binding at ONE observed digest: change the file again and it fails again. Adding an entry here is the PREFERRED remedy; rebinding a MERGED audit rewrites what that audit records its critic as having verified (see 7e71d71) and is right only for an audit you re-verified yourself.",
   "entries": [
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-10.audit.json",
@@ -407,8 +407,8 @@
       "kind": "evidence",
       "locator": "file:scripts/check-audit-bindings.py",
       "boundSha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1",
-      "observedSha256": "7464416715bd1573bb2b99b69a47448e39668f40faf9c0360ca4d3cf82265615",
-      "reason": "rogue3#38: scripts/check-audit-bindings.py rewritten to exempt the checker's own remedy surfaces (the exceptions ledger, and other audits) from the binding scan, so --grandfather converges instead of chasing a digest it rewrites itself. Excused rather than rebound per the 7e71d71 precedent: the -3 and -6 audits' critics examined the pre-rewrite checker, and their findings about its behaviour are unchanged by this narrowing."
+      "observedSha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3",
+      "reason": "rogue3#38: scripts/check-audit-bindings.py rewritten so a citation onto the excuse ledger is reported rather than checked, which is the one binding no remedy can satisfy (excusing writes the ledger). Excused rather than rebound per the 7e71d71 precedent: the -3 and -6 audits' critics examined the pre-rewrite checker, and their findings about its behaviour are unchanged by this narrowing."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-4.audit.json",
@@ -479,8 +479,8 @@
       "kind": "evidence",
       "locator": "file:scripts/check-audit-bindings.py",
       "boundSha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1",
-      "observedSha256": "7464416715bd1573bb2b99b69a47448e39668f40faf9c0360ca4d3cf82265615",
-      "reason": "rogue3#38: scripts/check-audit-bindings.py rewritten to exempt the checker's own remedy surfaces (the exceptions ledger, and other audits) from the binding scan, so --grandfather converges instead of chasing a digest it rewrites itself. Excused rather than rebound per the 7e71d71 precedent: the -3 and -6 audits' critics examined the pre-rewrite checker, and their findings about its behaviour are unchanged by this narrowing."
+      "observedSha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3",
+      "reason": "rogue3#38: scripts/check-audit-bindings.py rewritten so a citation onto the excuse ledger is reported rather than checked, which is the one binding no remedy can satisfy (excusing writes the ledger). Excused rather than rebound per the 7e71d71 precedent: the -3 and -6 audits' critics examined the pre-rewrite checker, and their findings about its behaviour are unchanged by this narrowing."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
