@@ -55,7 +55,7 @@
       "kind": "evidence",
       "locator": "file:scripts/check-audit-bindings.py",
       "boundSha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3",
-      "observedSha256": "af589b28e4496aa61816f96279cd0dd763ceeec5b550eb0b9670eb211e9e143b",
+      "observedSha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045",
       "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
     },
     {
@@ -87,7 +87,7 @@
       "kind": "evidence",
       "locator": "file:scripts/check-audit-bindings.py",
       "boundSha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3",
-      "observedSha256": "af589b28e4496aa61816f96279cd0dd763ceeec5b550eb0b9670eb211e9e143b",
+      "observedSha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045",
       "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
     },
     {
@@ -103,7 +103,7 @@
       "kind": "evidence",
       "locator": "file:scripts/check-audit-bindings.py",
       "boundSha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1",
-      "observedSha256": "af589b28e4496aa61816f96279cd0dd763ceeec5b550eb0b9670eb211e9e143b",
+      "observedSha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045",
       "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
     },
     {
@@ -111,7 +111,7 @@
       "kind": "evidence",
       "locator": "file:scripts/check-audit-bindings.py",
       "boundSha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1",
-      "observedSha256": "af589b28e4496aa61816f96279cd0dd763ceeec5b550eb0b9670eb211e9e143b",
+      "observedSha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045",
       "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
     },
     {
@@ -119,7 +119,7 @@
       "kind": "evidence",
       "locator": "file:scripts/check-audit-bindings.py",
       "boundSha256": "5d095bd123c63f26f0421d26b359b27817a8d8154e6abee2b5e19f113c8f7bd3",
-      "observedSha256": "af589b28e4496aa61816f96279cd0dd763ceeec5b550eb0b9670eb211e9e143b",
+      "observedSha256": "c094d9d89c4e0125a921cb2f956fdc879b0364df8dae73de65092016757b7045",
       "reason": "rogue3#53 gave the excuse ledger one file per cycle: the checker, the feedback-tool exemption, the parallel-work skill and both kit mirrors changed, and the kit manifests and pins were refreshed for the deliberate SKILL.md edits"
     }
   ]

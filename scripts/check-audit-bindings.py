@@ -19,8 +19,10 @@ the file actually has.  An exception that names a digest the file no longer has
 does not excuse anything, so a second edit to an already-excused file fails
 again; and because the pinned digest is part of the exception's identity,
 rebinding an audit retires the exception rather than silently reusing it.
-Exceptions that no longer correspond to a violation are reported as obsolete
-and also fail, which stops the ledger from rotting the way the digests did.
+Exceptions that no longer correspond to a violation are reported as obsolete.
+They do NOT fail the check -- see APPLYING AND DORMANT ENTRIES below for why
+that stopped being safe once the ledger became one file per cycle, and for what
+replaced it.
 
 Remedies, in preference order:
 
