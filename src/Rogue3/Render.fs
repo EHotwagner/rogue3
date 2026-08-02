@@ -574,17 +574,19 @@ let shopSlotScene (at: Vec2) (slot: Rogue3.Entities.ShopSlot) =
 
 /// Board item #55: the shop's answer to `trapdoorReadyScene`.
 ///
-/// A slot a player can BUY is now a slot a player can stand at and press a key at, and this is the
-/// only thing that says so. Deliberately the same idiom as the trapdoor's `E  DESCEND` halo — a ring
-/// around the fixture plus a verb keyed to the same interact button — because the two are the same
-/// gesture and teaching them as two would be a worse product than teaching them as one.
+/// `shopSlotScene` already says what a slot SELLS and what it costs. Nothing said that the player is
+/// standing where the purchase can be made, or which button makes it — and #55 is the item that gives
+/// a button that meaning at all. Deliberately the same idiom as the trapdoor's `E  DESCEND` halo — a
+/// ring around the fixture plus a verb keyed to the same interact button — because the two are the
+/// same gesture, and teaching them as two would be a worse product than teaching them as one.
 ///
 /// It also carries the REFUSAL. `Entities.purchase` returns `ok=false` for an unaffordable or
 /// key-locked slot and `purchaseM5ShopSlot` then returns the model UNCHANGED, so a refused purchase
-/// moves nothing a player could otherwise perceive: no currency, no offer, no counter, no audio.
-/// Before this, pressing interact at a slot you could not afford was indistinguishable from pressing
-/// it at nothing at all. The affordable and refused frames differ in colour, in ring style and in
-/// words, so the answer is legible BEFORE the press as well as after it.
+/// moves no currency, no offer, no counter and no audio event. The player could always compare the
+/// price under the plinth against the HUD's coin count and work it out; what they could not do is
+/// tell a refused press apart from a press at empty floor, because both change nothing. The
+/// affordable and refused frames differ in colour, in ring stroke and in words, so the answer is
+/// legible BEFORE the press as well as after it.
 let shopSlotReadyScene (at: Vec2) (affordable: bool) (slot: Rogue3.Entities.ShopSlot) =
     let halo = if affordable then color 255uy 226uy 150uy 255uy else color 226uy 96uy 96uy 255uy
     let ring = { X=at.Vx-30.0; Y=at.Vy-46.0; Width=60.0; Height=58.0 }

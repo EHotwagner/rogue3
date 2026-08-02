@@ -1430,7 +1430,7 @@ let m7UiPerformanceEvidence (path:string) =
               // the source moved and nowhere else. Every scale verdict is unchanged: hud-playing still
               // reports 12 scene elements at both outputs and the same five named regions, because the
               // shop prompt is a WORLD-SPACE element and this route measures the HUD.
-              "hud-playing", "b90de279bf828d59cd3906b90ba8f197668dfd804db6ebb9c3cf6cdd80907907"
+              "hud-playing", "92f12cba629a4722763743540258d3b472c92562c3d27f967bd9ec54565b1381"
               "run-result", "b9bae075c3a533ae2ee7a5fd09c9ab49f60f0fe8bd3a538488ee3d5491f4e662"
               "stats-charts", "eb71d62d6181d99eff7c6dc00eae0aea4e44c02d0c805c98522b2a685fb44b3f" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
