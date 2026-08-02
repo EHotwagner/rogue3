@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-23.md",
-  "reportSha256": "0912044713c14a0f7a1a76a867110be0ff31bc04211320e93e385a8367ac5627",
+  "reportSha256": "a5cf079708af4a78246e13b89656e97510a1df7c4328b7b76abca57b91c64938",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -106,7 +106,7 @@
         {
           "locator": "file:.github/workflows/verify.yml",
           "result": "verified",
-          "sha256": "fea2fd656571aff797932df84eda220c561bb0b32423913dfb62cf864c781ec8"
+          "sha256": "08d4ef8db053ddd2e831820e3961f3613c6e2c7c27605e90b030b9e758f1a5e4"
         },
         {
           "locator": "file:.agents/skills/fs-gg-feedback-report/scripts/FeedbackReportTool.fs",
@@ -229,7 +229,7 @@
         {
           "locator": "file:feedback/2026-08-02-Rogue3-23.md",
           "result": "verified",
-          "sha256": "0912044713c14a0f7a1a76a867110be0ff31bc04211320e93e385a8367ac5627"
+          "sha256": "a5cf079708af4a78246e13b89656e97510a1df7c4328b7b76abca57b91c64938"
         },
         {
           "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
@@ -241,7 +241,7 @@
           "result": "verified"
         },
         {
-          "locator": "command:a corpus sweep over the 33 pre-existing report/audit pairs, excluding this cycle's own, reports pass=2 fail=31 on main at 14fd9eb (green: Rogue3-19, Rogue3-21) and pass=1 fail=32 on the candidate (green: Rogue3-21), against the \"2 green to 0\" an earlier draft quoted at base ccff119 and the \"34 pairs, pass=2\" a later one asserted",
+          "locator": "command:a corpus sweep over the pre-existing report/audit pairs, excluding this cycle's own, reports pass=2 fail=32 on main at d2c4e2f (green: Rogue3-21, Rogue3-22) and pass=1 fail=33 on the candidate (green: Rogue3-21), where at the earlier base 14fd9eb the same sweep reported pass=2 (green: Rogue3-19, Rogue3-21) and pass=1 -- the count this cycle reds is invariant at one, the identity is not",
           "result": "verified"
         },
         {
