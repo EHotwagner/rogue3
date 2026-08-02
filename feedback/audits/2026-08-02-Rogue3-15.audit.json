@@ -1,0 +1,273 @@
+{
+  "auditSchema": 1,
+  "report": "feedback/2026-08-02-Rogue3-15.md",
+  "reportSha256": "4caf4023bcf41b135f2d49da0673fae61758a88555a7cef2e2c4c17dcc11f597",
+  "criticMode": "fresh-context-subagent",
+  "criticPromptVersion": "actionability-v1",
+  "findings": [
+    {
+      "id": "§4.1",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t TemplateDrift",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t SelfTest",
+          "result": "verified"
+        },
+        {
+          "locator": "file:scripts/kit-pins.json",
+          "result": "verified",
+          "sha256": "1cde4f5cb52ca687145bb94d181db56ee73a5f927ac6eb4502b0261e8bebc408"
+        },
+        {
+          "locator": "file:.agents/skills/skill-manifest.json",
+          "result": "verified",
+          "sha256": "a9e86b4ec1b65c964eb07be767a3b0757d8687295d6a92724f238327adb8c630"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#46",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Critic independently recounted 95+95=190, all 95 mirror pairs byte-identical, 63 unnamed sources, and reproduced route 1 as green at 09895b9.",
+        "The .claude manifest locator was moved off this finding to §4.2 on the critic's advice: §4.1's arithmetic comes from the .agents manifest plus a disk enumeration, so citing the mirror here was the weakest locator on the line."
+      ]
+    },
+    {
+      "id": "§4.2",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:git grep -l skill-manifest.json 09895b9 -- feedback/audits/",
+          "result": "verified"
+        },
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        },
+        {
+          "locator": "file:.fsgg/scaffold-provenance.json",
+          "result": "verified",
+          "sha256": "e5435653245793690fec86b7b8a3e9840a59773e3db8b035030f7af4424a3c68"
+        },
+        {
+          "locator": "file:.claude/skills/skill-manifest.json",
+          "result": "verified",
+          "sha256": "a9e86b4ec1b65c964eb07be767a3b0757d8687295d6a92724f238327adb8c630"
+        },
+        {
+          "locator": "file:feedback/audits/2026-08-02-Rogue3-11.audit.json",
+          "result": "verified",
+          "sha256": "6dba0eac5ad9effebda1619661dbf419620471805a5d45c1f89a0026ed5b376d"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#46",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Critic reproduced the route-1/route-2 split on clean git archive 09895b9 exports: route 2 exits 1 with 2 stale bindings, both on file:.agents/skills/skill-manifest.json and none on the .claude mirror.",
+        "Critic independently recomputed the provenance staleness as 110 sha-bearing entries, 18 stale, 0 missing — producedPaths 4, mirroredPaths 4, driverPaths 10 — matching the figures stated.",
+        "The '12' figure originates in feedback/2026-08-02-Rogue3-10.md §4.3 and a build.fsx comment measured at d8d0024; the finding attributes it to the worker brief, which is where this cycle received it."
+      ]
+    },
+    {
+      "id": "§4.3",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:python3 scripts/check-audit-bindings.py",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#46",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#53",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#41",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Returned `incomplete` on first pass: the finding claimed this was the first simultaneous three-way collision, which feedback/2026-08-02-Rogue3-13.md §4.5 falsifies from the previous wave, and the session was four-way (curlew-cd9c on #55 at 10:11Z). The novelty claim was withdrawn and the Recurrence line now cites -13 §4.5; re-dispositioned actionable on the corrected text.",
+        "The `widen` invocation is deliberately NOT cited: it is state-changing, notifies live workers and is not safely re-runnable, so a reader cannot verify it. That follows the convention feedback/2026-08-02-Rogue3-11.md records for the same command. The durable evidence is the coordination trail on #46 and the binding state the checker reports."
+      ]
+    },
+    {
+      "id": "§4.4",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "file:tests/Rogue3.Tests/GovernanceTests.fs",
+          "result": "verified",
+          "sha256": "77d1e6960028d9c4e6d52862eadb0bdeac2df0ad812092c1dda5fb83384bb0de"
+        },
+        {
+          "locator": "command:inserting the token python3 into a COMMENT in build.fsx makes dotnet test -c Release fail `generated evidence graph and audit do not shell the decommissioned scripts`",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+        }
+      ],
+      "confidenceLimits": [
+        "Returned `incomplete` on first pass for two reasons, both now fixed: the Recurrence line said `new`, which feedback/2026-08-02-Rogue3-12.md §8 falsifies (File.WriteAllBytes tripping the same whole-file substring ban at GovernanceTests.fs:453), and no reproduction route was given. Re-dispositioned actionable.",
+        "The draft cited a bare `dotnet test -c Release`, which the critic correctly marked non-reproducing: the token was removed, so the shipped tree is green. Replaced with the reproduction itself, re-run on a copy - inserting the token into a comment only gives DOTNET_TEST_EXIT=1, `Failed: 1, Passed: 252`, and the message `generated evidence workflow excludes the decommissioned python3`."
+      ]
+    },
+    {
+      "id": "§4.5",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "issue:EHotwagner/rogue3#57",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t SelfTest",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+        }
+      ],
+      "confidenceLimits": [
+        "Returned `incomplete` on first pass: the new-case delta was stated as 19 against a measured 77 -> 98. Corrected to the final 77 -> 106 (29) throughout §1, §4.5, §10 and §12; §10 retains 18 where it is correct for the first commit alone.",
+        "#57 was measured at bfd1288, which predates #54, so its 235/235 suite figure is not this branch's baseline and is not carried across."
+      ]
+    },
+    {
+      "id": "§4.6",
+      "status": "positive-pattern",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t Verify",
+          "result": "verified"
+        },
+        {
+          "locator": "command:git status --porcelain",
+          "result": "verified"
+        },
+        {
+          "locator": "file:readiness/evidence-graph.md",
+          "result": "verified",
+          "sha256": "866418d923c2febea7975d70aef99222108d38b497db95966035ca98b410dc54"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+        }
+      ],
+      "confidenceLimits": [
+        "Returned `incomplete` on first pass because the decisive number did not reproduce: the draft claimed 10 dropped inputs across two categories, and the critic measured 6, all `(absent from this checkout)`. An independent set-difference over the graph's 102 sensed entries gives 6, and both of the author's own logs say 6. Corrected in §4.6 and §2, with the error recorded as a finding rather than silently fixed.",
+        "The `(PRESENT but not sensed)` arm is tested but was NOT exercised by this run, so this cycle observed only half the distinction it credits. The finding now says so.",
+        "After the rebase onto 95b1170, `./fake.sh build -t Verify` no longer exits 0 — it fails at PerformanceEvidence for the reason in §4.8 — so the exit-0 observation is scoped to the branch point and the finding is worded that way.",
+        "feedback/2026-08-02-Rogue3-13.md §4.6 files the same two-artifact churn as friction under open issue #56; the finding now records that framing as at least as defensible."
+      ]
+    },
+    {
+      "id": "§4.7",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t SelfTest",
+          "result": "verified"
+        },
+        {
+          "locator": "command:./fake.sh build -t TemplateDrift",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+        }
+      ],
+      "confidenceLimits": [
+        "Critic judged this not inflated: the defect is real, the mechanism explained, the regression case asserts agreement rather than either side, and the cost is booked honestly as one critic round with no durable cost.",
+        "Version SHAs were stale after the rebase (728898d -> e779533 are not on the branch); corrected to name both the pre-rebase and post-rebase equivalents.",
+        "The converse direction — a file the enumeration names being counted as covered — was still open at the audited commit and is closed in §4.9's restructure, not here."
+      ]
+    },
+    {
+      "id": "§4.8",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t PerformanceEvidence on a clean `git archive` export exits 0 at 09895b9 and 1 at 95b1170",
+          "result": "verified"
+        },
+        {
+          "locator": "file:readiness/m7-ui-performance.json",
+          "result": "verified",
+          "sha256": "628a75a11b362e977f7b1d04d9dd9944ee1ee818a2fae2ceb70f518dbb3dac6d"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#52",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Critic reproduced both exits independently on clean exports and confirmed the three failing routes and their digest pairs, and confirmed via `git rev-list --parents` that 95b1170's sole parent is 09895b9 — so attribution to PR #59 is a measurement, not an inference. The draft's 'bisected across the two merges' understated this and was corrected.",
+        "The critic corrected the fourth route's name: it is `main-menu`, not `menu-root`. That error had already been published in issue #61 and on #47; corrections are posted on both (#61 issuecomment-5157128313, #47 issuecomment-5157128885).",
+        "The draft's 'latencies all improved' compared a figure committed in the artifact against a fresh measurement and was not like-for-like; re-measured on one host only two of three improved and hud-playing was flat. The surviving argument is the host-independent budget comparison (worst p95 0.5219 against 16.67).",
+        "issue:EHotwagner/rogue3#61 is deliberately NOT cited as evidence: it is self-filed by this author from this same measurement, so it would restate the finding rather than corroborate it. It is named in the Disposition instead."
+      ]
+    },
+    {
+      "id": "§4.9",
+      "status": "actionable",
+      "missingFacts": [],
+      "checkedEvidence": [
+        {
+          "locator": "command:./fake.sh build -t SelfTest",
+          "result": "verified"
+        },
+        {
+          "locator": "file:build.fsx",
+          "result": "verified",
+          "sha256": "3592857db4f13cccc04f1c7d419b03e34da90b938a3cad7202d417c75e84871a"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#62",
+          "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#57",
+          "result": "verified"
+        }
+      ],
+      "confidenceLimits": [
+        "Added after the actionability pass, from a second critic with a different rubric (hostile code review with licence to mutation-test). Its eight survivors were each re-run against the shipped tree by the author and are each now killed by a named failing case; the re-run is reproducible from the same sweep.",
+        "'0 survivors' means none among 59 attempted mutations (35 from the critic, 24 from the author), not that none exist. Two of the author's own mutations were equivalent mutants that still returned Error and were initially misread as survivors.",
+        "The residual routes this finding declines to close — symlinked kit roots, the manifest's missing path boundary, an unreadable file crashing the gate, and no .gitattributes — are filed as issue #62 rather than fixed, and are coverage/robustness gaps rather than ways to hide content drift: the same critic appended a line to each of the 190 kit files in 190 separate runs with zero green results."
+      ]
+    }
+  ]
+}
