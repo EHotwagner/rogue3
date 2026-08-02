@@ -340,10 +340,12 @@ let shellConfig: Rogue3.GameShell.Config =
           { Command = "map"; Label = "Map"; Order = 120; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'M')) } ]
       // #63: `Borderless` is deliberately NOT offered. Selecting it moved the window half off
       // screen and killed every pointer interaction (keyboard kept working) with no recovery but a
-      // restart — a framework defect in `ViewerWindowStartupState.WindowedFullscreen`, filed
-      // upstream and unfixable here. `GameShell.windowBehavior` additionally maps a RESTORED
-      // `Borderless` (from a settings file written before this) onto exclusive `Fullscreen`, so
-      // withdrawing the button is the second of two independent guards, not the only one.
+      // restart — a framework defect in `ViewerWindowStartupState.WindowedFullscreen`, filed as
+      // FS-GG/FS.GG.Rendering#1196 and unfixable here. Withdrawing the button is ONE of three
+      // guards: `GameShell.windowBehavior` remaps any `Borderless` that still reaches the seam,
+      // and `retireWithdrawnDisplayMode` above normalises one restored from an older settings
+      // file so the menu does not show a selection this list cannot mark. Restore this entry
+      // when #1196 is fixed.
       DisplayModes = [ Rogue3.GameShell.Windowed; Rogue3.GameShell.Fullscreen ]
       Resolutions = [ { Width = 1280; Height = 720 }; { Width = 1920; Height = 1080 } ]
       InitialDisplay = { Resolution = { Width = 1280; Height = 720 }; Mode = Rogue3.GameShell.Windowed } }
@@ -389,9 +391,31 @@ let private persistShellSettings (model: Rogue3.GameShell.Model) : bool =
         true
     with _ -> false
 
+/// #63, third guard: RETIRE a restored `Borderless` rather than merely tolerating it.
+///
+/// `modeOfToken` still decodes `"borderless"`, so a settings file written before the withdrawal
+/// restores `Mode = Borderless` — a mode this product no longer offers. Left alone that is
+/// incoherent in three ways at once, none of which the other two guards reach: the settings screen
+/// marks the selected mode by comparing against `Config.DisplayModes`, so NEITHER offered button
+/// is marked and the player sees no selection; the marked state disagrees with the window, which
+/// `windowBehavior` is really running as exclusive fullscreen; and every later `DisplayChanged`
+/// re-persists the retired token, so the state is sticky until the player happens to click a mode.
+///
+/// Normalising at the load seam collapses all three: the model carries the mode that actually
+/// serves it, the menu shows it selected, and the next persist writes the current token. This is
+/// deliberately a PRODUCT-side normalisation, not a shell one — `GameShell` is game-agnostic and a
+/// different game may still offer `Borderless` (it stays decodable, and the seam still guards it).
+/// Public, like `viewerEffectsForShellEffect` and for the same reason: a generated-rogue3 test can
+/// assert the restore normalisation without writing to the player's real settings path.
+let retireWithdrawnDisplayMode (shell: Rogue3.GameShell.Model) : Rogue3.GameShell.Model =
+    match shell.Display.Mode with
+    | Rogue3.GameShell.Borderless ->
+        { shell with Display = { shell.Display with Mode = Rogue3.GameShell.Fullscreen } }
+    | _ -> shell
+
 let private loadShellSettings (model: Rogue3.GameShell.Model) : Rogue3.GameShell.Model =
     let decode path fallback =
-        try Rogue3.GameShell.decodeSettings (File.ReadAllBytes path) fallback
+        try Rogue3.GameShell.decodeSettings (File.ReadAllBytes path) fallback |> retireWithdrawnDisplayMode
         with _ -> fallback
 
     try

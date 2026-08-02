@@ -219,27 +219,40 @@ let update (msg: Msg) (model: Model) : Model * Effect list =
 /// The `ViewerWindowBehaviorRequest` for a display setting: the window's presentation mode maps
 /// onto a `ViewerWindowStartupState`; the rest of the request keeps the framework defaults.
 ///
-/// MITIGATION (EHotwagner/rogue3#63): `Borderless` maps onto EXCLUSIVE `Fullscreen`, not onto
-/// `ViewerWindowStartupState.WindowedFullscreen`. The framework's `WindowedFullscreen` must DERIVE
-/// a target rectangle from "the monitor work area" (`SkiaViewer.fsi`), and on a multi-output host
-/// that derivation disagrees with the surface the viewer then fits against: the window lands half
-/// off screen AND every pointer sample inverts through the wrong fit, so it misses every control's
-/// bounds and no `OnClick` fires. Keyboard survives (`MapKey` is coordinate-free), which is the
-/// signature that identifies it. Exclusive `Fullscreen` is handed a definite surface by the
-/// compositor and is unaffected — and product code took the SAME path for both, so the fault is
-/// the enum value, not this repository.
+/// MITIGATION (EHotwagner/rogue3#63; root cause filed as FS-GG/FS.GG.Rendering#1196).
+/// `Borderless` maps onto EXCLUSIVE `Fullscreen`, not onto
+/// `ViewerWindowStartupState.WindowedFullscreen`.
 ///
-/// `InteractiveAppHost` has no surface-changed notification (its `View` receives the LOGICAL size;
-/// `CaptureOutputSize`/`InitialOutputSize` belong to the bounded-run evidence workflow), so a
-/// product cannot re-fit after the mode change. `SkiaViewer.fsi` is also explicit that the host
-/// owns both directions of the transform and product code must not apply a second one. Requesting
-/// a state that works is therefore the only correct product-side move; the root cause is filed
-/// upstream. Revert this arm when the framework fixes `WindowedFullscreen`.
+/// OBSERVED, from real play on a multi-output Wayland host: selecting Borderless moved the window
+/// half off screen and left every button dead while `Esc` kept working. That asymmetry is the
+/// diagnosis — `MapKey` is coordinate-free, whereas a pointer sample is inverted through the
+/// logical-canvas fit and hit-tested against the render tree, so a fit taken against the wrong
+/// surface misses every control's bounds and no authored `OnClick` fires. Exclusive `Fullscreen`
+/// on the IDENTICAL product path works, and `windowBehavior` diverged in exactly one match arm, so
+/// the fault is the enum value rather than anything in this repository.
 ///
-/// The `Borderless` CASE ITSELF IS RETAINED: `modeOfToken` still decodes the `"borderless"` token,
-/// so a settings file written before this mitigation restores a `Borderless` display — and it must
-/// not brick the window on the next launch. Mapping the seam (rather than only withdrawing the
-/// menu button) is what closes that path.
+/// INFERRED mechanism, not contract: `SkiaViewer.fsi` describes `WindowedFullscreen` as "borderless
+/// coverage of the monitor work area", so it must DERIVE a rectangle, and on two stacked outputs
+/// that derivation is ambiguous; exclusive fullscreen plausibly avoids it by being handed a surface
+/// outright. Recorded as the leading explanation — the OBSERVATION above is what this arm rests on.
+///
+/// WHY NOT FIX IT HERE. `InteractiveAppHost` has no surface-changed notification (its `View`
+/// receives the LOGICAL size; `CaptureOutputSize`/`InitialOutputSize` belong to the bounded-run
+/// evidence workflow), so a product cannot observe the new surface, let alone re-fit against it.
+/// `SkiaViewer.fsi` also gives the host both directions of the transform and expects products to
+/// author, lay out and hit-test in the logical size only. Requesting a state that works is
+/// therefore the only correct product-side move.
+///
+/// REVERT THIS ARM when FS-GG/FS.GG.Rendering#1196 is fixed and the pin is raised past it.
+///
+/// The `Borderless` CASE ITSELF IS RETAINED: `modeOfToken` still decodes the `"borderless"` token.
+/// Note the path this arm actually closes — it is NOT launch. `Program.fs` builds the launch
+/// request from `shellConfig.InitialDisplay`, and the host's `Init` emits only `ApplyLogicalCanvas`,
+/// so a restored mode never reaches the window at boot at all (a separate defect, filed). The
+/// reachable brick was mid-session: `SetResolution` emits `DisplayChanged` carrying the UNCHANGED
+/// mode, so a restored-Borderless player merely changing resolution shipped `WindowedFullscreen`.
+/// `EvidenceCommands.retireWithdrawnDisplayMode` now also normalises the restored mode at load, so
+/// this arm is the backstop for any `Borderless` that reaches the seam by another route.
 let windowBehavior (display: DisplaySettings) : ViewerWindowBehaviorRequest =
     let startupState, resizePolicy =
         match display.Mode with

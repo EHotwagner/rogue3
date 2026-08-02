@@ -306,15 +306,17 @@ let shellDisplayTests =
 
         // ---- #63 -----------------------------------------------------------------------------
         //
-        // The seam-level half of the Borderless mitigation. `EvidenceCommands.shellConfig` no
-        // longer OFFERS Borderless, but `modeOfToken` still decodes the `"borderless"` token, so a
-        // settings file written before the mitigation restores `Mode = Borderless` on the next
-        // launch. Withdrawing the button does not reach that path; `windowBehavior` does.
+        // The seam-level guard of the Borderless mitigation. `EvidenceCommands.shellConfig` no
+        // longer OFFERS Borderless and `retireWithdrawnDisplayMode` normalises one restored from an
+        // older settings file, but `modeOfToken` still decodes the `"borderless"` token and this
+        // module is game-AGNOSTIC — a different game may legitimately still offer the mode. So the
+        // seam itself must refuse the state, independently of either product-side guard.
         //
         // This asserts a NEGATIVE on the framework enum, which is unusual and deliberate: the
-        // defect is that `ViewerWindowStartupState.WindowedFullscreen` derives a work-area
-        // rectangle that disagrees with the surface the viewer fits against, so the request must
-        // never be issued while that is true. Re-introducing the old arm reds this test.
+        // request must never be issued while FS-GG/FS.GG.Rendering#1196 is open. Re-introducing the
+        // old arm reds this test — it is the assertion that actually pins the mitigation, because
+        // the boundary it protects (what the HOST derives from the request) cannot be reached from
+        // a headless test at all.
         test "no display mode requests WindowedFullscreen, including a Borderless restored from an older settings file (#63)" {
             let allModes = [ Windowed; Borderless; Fullscreen ]
 
@@ -333,10 +335,19 @@ let shellDisplayTests =
 
             Expect.equal restored.Display.Mode Borderless "the persisted token still restores Borderless — the case is retained, not deleted"
 
+            // The reachable brick this closes is MID-SESSION, not launch: `SetResolution` emits a
+            // `DisplayChanged` carrying the unchanged mode, so a restored-Borderless player merely
+            // changing resolution used to ship `WindowedFullscreen` at the seam. Asserted through
+            // that route rather than by calling `windowBehavior` on a hand-built display.
+            let _, resolutionEffects = update (SetResolution res1080) restored
+
+            let requestedStates =
+                displayEffects resolutionEffects |> List.map (fun display -> (windowBehavior display).StartupState)
+
             Expect.equal
-                (windowBehavior restored.Display).StartupState
-                ViewerWindowStartupState.Fullscreen
-                "a restored Borderless is served by EXCLUSIVE fullscreen, which the compositor hands a definite surface, so an older settings file cannot brick the window (#63)"
+                requestedStates
+                [ ViewerWindowStartupState.Fullscreen ]
+                "a restored Borderless changing RESOLUTION re-issues its window request, and that request is exclusive fullscreen — the mid-session path that used to brick the window (#63)"
         }
     ]
 
