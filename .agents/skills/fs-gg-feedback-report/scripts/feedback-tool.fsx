@@ -307,6 +307,17 @@ let private seedWorkspace (root: string) (ledgerSalt: string) =
     let insideButNotJson =
         Path.Combine(root, "scripts", "audit-binding-exceptions", "notes.md")
 
+    // The ledger DIRECTORY name somewhere else entirely: a substring match
+    // rather than a path prefix would exempt it.
+    let vendoredDirectory =
+        Path.Combine(root, "vendor", "scripts", "audit-binding-exceptions", "x.json")
+
+    // Case variant of the DIRECTORY. The gate compares case-sensitively on every
+    // platform and this validator is required to agree; folding case here would
+    // exempt a path the gate still binds.
+    let casedDirectory =
+        Path.Combine(root, "scripts", "Audit-Binding-Exceptions", "x.json")
+
     writeFile ledger (ledgerBody ledgerSalt)
     writeFile source "let thing = 1\n"
     writeFile sibling "# checker\n"
@@ -319,6 +330,8 @@ let private seedWorkspace (root: string) (ledgerSalt: string) =
     writeFile cycleLedger (ledgerBody ledgerSalt)
     writeFile siblingDirectory "sibling directory\n"
     writeFile insideButNotJson "notes\n"
+    writeFile vendoredDirectory "vendored directory\n"
+    writeFile casedDirectory "cased directory\n"
 
     {| ledger = sha256Text (File.ReadAllText ledger)
        cycleLedger = sha256Text (File.ReadAllText cycleLedger)
@@ -601,6 +614,14 @@ let private selftest () =
         stillBound
             "file:scripts/audit-binding-exceptions/notes.md"
             "a NON-.json file inside the ledger directory is still bound -- dropping the suffix test would exempt it"
+
+        stillBound
+            "file:vendor/scripts/audit-binding-exceptions/x.json"
+            "the ledger DIRECTORY name in another directory is still bound -- a substring match would exempt it"
+
+        stillBound
+            "file:scripts/Audit-Binding-Exceptions/x.json"
+            "a CASE variant of the ledger DIRECTORY is still bound -- the gate compares case-sensitively on every platform, so this validator must too"
 
         let deepOrdinary = runCase root [ cite "file:src/deep/nested/Thing.fs" (Some staleDigest) ]
 

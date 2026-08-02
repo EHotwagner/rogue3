@@ -331,10 +331,16 @@ the ledger, and therefore cites it, would be invalidated by the documented remed
 violation.
 
 The ledger is a **directory**, `scripts/audit-binding-exceptions/`, holding one `<cycle-id>.json`
-per cycle: `check-audit-bindings.py --grandfather --cycle <id>` writes exactly one of them, so two
-concurrent cycles excusing the same binding never share a path. The exempt set is therefore any
-`*.json` under that directory, plus the single file `scripts/audit-binding-exceptions.json` the
-ledger was before that change, which is a frozen archive that merged audits still cite.
+per cycle: `check-audit-bindings.py --grandfather --cycle <id>` writes that one path and nothing
+else, so two concurrent cycles excusing the same binding never share a path. The exempt set is
+therefore any `*.json` under that directory, plus the single file
+`scripts/audit-binding-exceptions.json` the ledger was before that change, which is a frozen archive
+that merged audits still cite.
+
+Citing your own cycle's ledger file — reasonable when the finding is *about* what you excused — is
+safe: that tool never deletes a ledger file, so a cited one cannot vanish under a later cycle. It is
+the reason the deletion rule is unconditional rather than usual, since an exempt citation is still
+required to resolve to a file that exists (below).
 
 The exemption is compared case-sensitively on every platform and decided on the **resolved**
 location rather than the locator text — so `file:feedback/../scripts/audit-binding-exceptions.json`

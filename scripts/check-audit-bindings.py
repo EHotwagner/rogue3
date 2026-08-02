@@ -47,45 +47,77 @@ ONE LEDGER FILE PER CYCLE
 
 The ledger is a DIRECTORY, `scripts/audit-binding-exceptions/`, holding one
 `<cycle-id>.json` per cycle.  The checker reads every file in it and evaluates
-their union; `--grandfather --cycle <id>` writes exactly ONE of them.
+their union.
+
+`--grandfather --cycle <id>` writes exactly ONE path,
+`scripts/audit-binding-exceptions/<id>.json`, and DELETES NOTHING.  That is a
+hard rule, not a description of the common case: a remedy that can touch another
+cycle's file is the shared write this exists to remove, and a remedy that can
+DELETE one can strand a merged audit citing it with no way back -- the rogue3#38
+shape, and worse, because the gate would stay green while the validator stayed
+red.  A ledger file, once written, is never removed by this tool; an emptied one
+is left holding `"entries": []`.
 
 It was a single shared file until rogue3#53.  Because remedy (1) is the only
 non-destructive remedy, and because the heavily-cited files are exactly the ones
 work lands in, every concurrent worker that touched a bound file was funnelled
 onto that one path -- while no board item declared it, so nothing could sequence
 them.  Three workers in one bounded fan-out collided on it and negotiated an
-append order by hand.  Per-cycle files remove the shared path from the routine
-remedy: two cycles editing the same bound file now write two different files.
+append order by hand.  Per-cycle files remove the shared path from the remedy:
+two cycles editing the same bound file now write two different files.
 
-That alone is not enough, because the union still has to converge no matter
-which order the two land in.  So an entry is matched by its binding key AND the
-digest it observed, and a stale binding is excused when ANY entry in the union
-observes the digest the file actually has:
+APPLYING AND DORMANT ENTRIES
+----------------------------
 
-  * excused    -- some entry for this binding observes the current digest.
-  * SUPERSEDED -- an entry for a binding another entry excuses, pinned at a
-                  digest the file no longer has.  Reported, never fatal.  This
-                  is what makes the merge of two cycles order-independent: the
-                  loser's excuse becomes a record of what it excused, not a
-                  failure.  Its reason text is still the reviewable line saying
-                  somebody excused that binding and why.
-  * OBSOLETE   -- an entry whose binding is not stale at all (the file went back
-                  to the bytes the audit pins, or the audit was rebound or
-                  removed).  Still fatal, still pruned by `--grandfather`, so
-                  the ledger cannot rot the way the digests did.
+The union has to converge no matter which order two cycles land in, so an entry
+is matched by its binding key AND the digest it observed, and a stale binding is
+excused when ANY entry in the union observes the digest the file actually has.
+Every entry is therefore in one of two states:
 
-Supersession does NOT weaken "an exception excuses one observed digest".  Edit
-an excused file again and no entry observes the new digest, so it fails again --
-exactly as before.  What changed is only that a superseded entry is no longer
-mistaken for rot.
+  * APPLYING -- its binding is stale and it observes the digest the file has.
+                It excuses that binding.
+  * DORMANT  -- it excuses nothing right now.  Reported and counted, NEVER
+                fatal.  Two shapes, reported separately because they mean
+                different things:
+                  SUPERSEDED -- the binding is still stale, but the file is at a
+                    digest this entry did not observe.  Another entry may be
+                    excusing it, or the binding may be failing.
+                  OBSOLETE -- the binding is not stale at all: the file went
+                    back to the bytes the audit pins, or the audit was rebound
+                    or removed.
+
+Two things about DORMANT are deliberate and are weakenings of what this gate did
+before rogue3#53.  Both are stated here rather than left to be discovered.
+
+FIRST: an obsolete entry used to FAIL the check, on the ground that it stopped
+the ledger rotting the way the digests did.  It cannot fail it now.  With one
+shared file, the worker who saw the failure could always clear it.  With one file
+per cycle, an obsolete entry usually sits in a MERGED cycle's file, and a fatal
+condition that only a finished cycle can clear is a gate with no bounded route to
+green.  Rot is instead made loud and attributable: the count is on the summary
+line and on the verdict line, every dormant entry is listed with the cycle file
+it came from, and `--grandfather --cycle <id>` drops the dormant entries in
+`<id>.json` -- so a cycle that runs the remedy always commits a clean file of its
+own, and nothing accumulates in a file anyone is still writing.
+
+SECOND: the digests a binding tolerates now only ever GROW.  Under one shared
+file, `--grandfather` replaced the entry for a binding, so the digest an earlier
+cycle excused was forgotten.  Under the union, that entry is still there and
+still applies if the file returns to that digest.  So reverting a merged change
+can be green under a closed cycle's recorded reason rather than demanding a fresh
+one.  That is the price of order-independence and it is paid knowingly: two
+cycles' entries must both survive the merge, or the verdict depends on which
+landed second.  What is NOT weakened is the property the ledger exists for -- a
+digest NO cycle ever excused still fails, so editing an excused file again fails
+again, exactly as before.  The excuse that fires is a diffable line in the tree
+naming its cycle, its digest and its reason; it is a reviewed permission, just
+not one reviewed this week.
 
 The single file the ledger used to be, `scripts/audit-binding-exceptions.json`,
-is a FROZEN ARCHIVE: still read, still honoured, never written by the remedy.
+is a FROZEN ARCHIVE: still read, still honoured, never written by anything here.
 Its entries are the record of what earlier cycles excused and why, and four
 merged audits cite the path, so deleting it would both discard that record and
-break evidence this repository already accepted.  The one thing that can still
-write it is a prune of an entry that excuses nothing -- see OBSOLETE above --
-and `--grandfather` names every foreign file it prunes.
+break evidence this repository already accepted.
 
 NOT BOUND: the excuse ledger
 ----------------------------
@@ -174,15 +206,19 @@ CYCLE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]{0,99}$")
 
 LEDGER_NOTE = (
     "Explicit exceptions to the audit-binding check "
-    "(scripts/check-audit-bindings.py) written by ONE cycle. Each entry excuses "
-    "ONE stale binding at ONE observed digest: change the file again and it "
-    "fails again. The checker evaluates the UNION of every file in this "
-    "directory, so two concurrent cycles excuse the same binding without "
-    "sharing a path; whichever digest the file ends up with wins and the other "
-    "entry is reported as superseded, not as rot. Adding an entry here is the "
-    "PREFERRED remedy; rebinding a MERGED audit rewrites what that audit "
-    "records its critic as having verified (see 7e71d71) and is right only for "
-    "an audit you re-verified yourself."
+    "(scripts/check-audit-bindings.py) written by ONE cycle: "
+    "`--grandfather --cycle <id>` writes this file and nothing else, ever. Each "
+    "entry excuses ONE stale binding at ONE observed digest, so a digest no "
+    "cycle ever excused still fails. The checker evaluates the UNION of every "
+    "file in this directory, so two concurrent cycles excuse the same binding "
+    "without sharing a path -- and because both entries survive the merge, the "
+    "digests a binding tolerates only ever GROW: returning a file to a digest "
+    "some earlier cycle excused is green under that cycle's recorded reason. An "
+    "entry that excuses nothing right now is reported as dormant, never as a "
+    "failure, and only the cycle that owns this file prunes it. Adding an entry "
+    "here is the PREFERRED remedy; rebinding a MERGED audit rewrites what that "
+    "audit records its critic as having verified (see 7e71d71) and is right "
+    "only for an audit you re-verified yourself."
 )
 
 
@@ -529,39 +565,51 @@ def validate_cycle(cycle: str) -> str:
     return cleaned
 
 
+LEDGER_REPAIR = (
+    "repair the JSON, or DELETE the file -- a ledger file is exempt from binding, so "
+    "deleting it turns its excuses back into ordinary violations you can excuse again"
+)
+
+
 def _load_ledger_file(root: str, relpath: str) -> list[dict[str, str]]:
-    """Every entry in one ledger file, each tagged with the file it came from."""
+    """Every entry in one ledger file, each tagged with the file it came from.
+
+    A file this cannot read is a UsageError (exit 2, "input the checker cannot
+    interpret"), not a violation, and it stops `--grandfather` too. That is a
+    hand-repair route rather than a one-command one, and it is left that way
+    deliberately: the alternative is a remedy that silently discards a cycle's
+    recorded excuses because their file did not parse. Every message therefore
+    names both repairs.
+    """
     path = ledger_path(root, relpath)
     with open(path, "rb") as handle:
         try:
             doc = json.loads(handle.read().decode("utf-8-sig"))
         except (ValueError, UnicodeDecodeError) as exc:
-            raise UsageError(f"{relpath}: not readable as JSON: {exc}")
+            raise UsageError(f"{relpath}: not readable as JSON: {exc} -- {LEDGER_REPAIR}")
     if not isinstance(doc, dict):
-        raise UsageError(f"{relpath}: root must be a JSON object")
+        raise UsageError(f"{relpath}: root must be a JSON object -- {LEDGER_REPAIR}")
 
-    # A `cycle` that disagrees with the filename would make the ledger's own
-    # provenance a lie -- and `--grandfather --cycle X` writes by filename, so
-    # the disagreement would never be repaired by using the tool.
-    declared = doc.get("cycle")
-    if declared is not None:
-        expected = os.path.basename(relpath)[: -len(LEDGER_SUFFIX)]
-        if not isinstance(declared, str) or declared.strip() != expected:
-            raise UsageError(
-                f"{relpath}: 'cycle' is {declared!r} but the filename says {expected!r}"
-            )
+    # No `cycle` field: the FILENAME is the cycle, and a second copy of it inside
+    # the file could only ever disagree. A redundant field that can disagree buys
+    # provenance nothing -- every report line already names the file an entry came
+    # from -- and costs a hard-stop state, because renaming a file to fix a typo
+    # would then brick the remedy that has to repair it.
 
     entries = doc.get("entries")
     if entries is None:
         entries = []
     if not isinstance(entries, list):
-        raise UsageError(f"{relpath}: 'entries' must be a list")
+        raise UsageError(
+            f"{relpath}: 'entries' must be a list, found {_typename(entries)} -- a ledger whose "
+            f"entries cannot be read excuses nothing and would pass silently. {LEDGER_REPAIR}"
+        )
 
     out: list[dict[str, str]] = []
     seen: set[tuple[str, str, str, str]] = set()
     for index, entry in enumerate(entries):
         if not isinstance(entry, dict):
-            raise UsageError(f"{relpath}: entry {index} must be an object")
+            raise UsageError(f"{relpath}: entry {index} must be an object -- {LEDGER_REPAIR}")
         missing = [field for field in ENTRY_FIELDS if not entry.get(field)]
         if missing:
             raise UsageError(
@@ -584,9 +632,10 @@ def ledger_files(root: str) -> list[str]:
     """Every ledger file, legacy first, then the per-cycle files in path order.
 
     Walks rather than lists: a ledger file filed in a subdirectory must not be
-    silently ignored, or an excuse would be written and never applied. The walk
-    matches `exemption`, which exempts `*.json` at any depth under the
-    directory, so no path is exempt from binding yet invisible as an exception.
+    silently ignored, or an excuse would be written and never applied. Every
+    candidate is put through `exemption` itself rather than through a second copy
+    of its rule, so "a path exempt from binding" and "a path read as an
+    exception" are the same set by construction rather than by agreement.
     """
     found: list[str] = []
     if os.path.isfile(ledger_path(root, LEGACY_LEDGER_RELPATH)):
@@ -594,10 +643,19 @@ def ledger_files(root: str) -> list[str]:
     directory = ledger_path(root, LEDGER_DIR)
     if os.path.isdir(directory):
         nested: list[str] = []
+        root_real = os.path.realpath(root)
         for current, _dirs, names in os.walk(directory):
             for name in names:
-                if name.endswith(LEDGER_SUFFIX):
-                    nested.append(_rel(root, os.path.join(current, name)))
+                if not name.endswith(LEDGER_SUFFIX):
+                    continue
+                # Relativise the REALPATH against the REALPATH'd root, exactly as
+                # `exemption`'s call site does. Relativising the symlinked form
+                # instead would let a symlinked ledger directory be READ here and
+                # not EXEMPT there -- the two must decide the same paths, or an
+                # excuse could live somewhere a citation is still bound.
+                rel = _rel(root_real, os.path.realpath(os.path.join(current, name)))
+                if exemption(rel) is not None:
+                    nested.append(rel)
         found.extend(sorted(nested))
     return found
 
@@ -631,40 +689,21 @@ def _entry_sort_key(entry: dict[str, str]) -> tuple[str, str, str, str, str]:
     return entry_key(entry) + (entry.get("observedSha256", ""),)
 
 
-def read_ledger_note(root: str, relpath: str) -> str | None:
-    """The `note` a ledger file already carries, or None when it has none."""
-    path = ledger_path(root, relpath)
-    if not os.path.isfile(path):
-        return None
-    with open(path, "rb") as handle:
-        try:
-            doc = json.loads(handle.read().decode("utf-8-sig"))
-        except (ValueError, UnicodeDecodeError):
-            return None
-    if isinstance(doc, dict) and isinstance(doc.get("note"), str):
-        return doc["note"]
-    return None
+def write_ledger(root: str, relpath: str, entries: list[dict[str, str]]) -> None:
+    """Write ONE cycle's ledger file. The only writer in this module.
 
-
-def write_ledger(
-    root: str,
-    relpath: str,
-    entries: list[dict[str, str]],
-    cycle: str | None,
-    note: str | None = None,
-) -> None:
+    Callers must never point this at a path the running cycle does not own: see
+    the hard rule in the module docstring.
+    """
     ordered = [
         {field: entry[field] for field in ENTRY_FIELDS}
         for entry in sorted(entries, key=_entry_sort_key)
     ]
-    doc: dict[str, Any] = {"grandfatherSchema": LEDGER_SCHEMA}
-    if cycle is not None:
-        doc["cycle"] = cycle
-    # A file this run did not author keeps the note it already carried. Pruning
-    # a dead entry out of the frozen archive must not also replace the paragraph
-    # explaining that it IS the frozen archive.
-    doc["note"] = LEDGER_NOTE if note is None else note
-    doc["entries"] = ordered
+    doc: dict[str, Any] = {
+        "grandfatherSchema": LEDGER_SCHEMA,
+        "note": LEDGER_NOTE,
+        "entries": ordered,
+    }
     path = ledger_path(root, relpath)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     # Temp + rename: an interrupted rewrite must not truncate a ledger file,
@@ -687,10 +726,11 @@ def evaluate(root: str) -> dict[str, Any]:
     grouped = group_by_key(entries)
 
     fresh: list[Binding] = []
-    excused: list[dict[str, str]] = []
+    excused_bindings: list[Binding] = []
+    applying: list[dict[str, str]] = []
     superseded: list[dict[str, str]] = []
     violations: list[dict[str, Any]] = list(malformed)
-    used_keys: set[tuple[str, str, str, str]] = set()
+    live_keys: set[tuple[str, str, str, str]] = set()
 
     for binding in bindings:
         if binding.bound is None:
@@ -702,23 +742,21 @@ def evaluate(root: str) -> dict[str, Any]:
 
         candidates = grouped.get(binding.key)
         if candidates:
-            # The binding is live and stale, so every entry for it is doing its
-            # job or has been overtaken -- neither is rot, and neither is
-            # obsolete.
-            used_keys.add(binding.key)
+            # The binding is live and stale, so an entry for it is either
+            # applying or superseded -- never obsolete, whatever else is true.
+            live_keys.add(binding.key)
             matching = [e for e in candidates if e["observedSha256"] == binding.observed]
-            stale_entries = [e for e in candidates if e["observedSha256"] != binding.observed]
+            others = [e for e in candidates if e["observedSha256"] != binding.observed]
+            superseded.extend(dict(entry) for entry in others)
             if matching:
                 # Excused by whichever cycle observed the digest the file
-                # actually has. The rest are superseded: a record of what
-                # another cycle excused, not a failure -- see the module
-                # docstring.
-                excused.extend(dict(entry) for entry in matching)
-                superseded.extend(dict(entry) for entry in stale_entries)
+                # actually has, whichever cycle that is and whenever it ran --
+                # see APPLYING AND DORMANT ENTRIES in the module docstring.
+                excused_bindings.append(binding)
+                applying.extend(dict(entry) for entry in matching)
                 continue
             # No entry observes the current bytes, so an excuse still pins ONE
-            # digest and a further edit fails again, exactly as before.
-            superseded.extend(dict(entry) for entry in stale_entries)
+            # digest and an edit to a digest nobody excused fails, as before.
             observed_before = ", ".join(sorted({_short(e["observedSha256"]) for e in candidates}))
             violations.append(
                 _violation(
@@ -736,7 +774,7 @@ def evaluate(root: str) -> dict[str, Any]:
             violations.append(_violation(binding, "file changed since the audit bound it"))
 
     obsolete = sorted(
-        (dict(entry) for entry in entries if entry_key(entry) not in used_keys),
+        (dict(entry) for entry in entries if entry_key(entry) not in live_keys),
         key=_entry_sort_key,
     )
 
@@ -750,14 +788,20 @@ def evaluate(root: str) -> dict[str, Any]:
         "bindings": len(bindings),
         "malformed": len(malformed),
         "fresh": len(fresh),
-        "excused": len(excused),
-        "excusedEntries": excused,
-        # An entry for a live stale binding pinned at a digest the file no
-        # longer has. Never a violation: this is how the union of two cycles'
-        # ledgers converges regardless of merge order (rogue3#53). Counted and
-        # listed so it is visible rather than an invisible tolerance.
+        # BINDINGS excused, not entries -- so `fresh + excused + violations`
+        # accounts for every binding even when two cycles' files happen to hold
+        # byte-identical entries for one of them.
+        "excused": len(excused_bindings),
+        "excusedEntries": applying,
+        # DORMANT: an entry that excuses nothing right now. Never a violation --
+        # an obsolete entry usually sits in a MERGED cycle's file, and a fatal
+        # condition only a finished cycle could clear is a gate with no bounded
+        # route to green. Counted and listed instead, so a tolerance nobody can
+        # see cannot be mistaken for a hole. See the module docstring.
         "superseded": len(superseded),
         "supersededEntries": sorted(superseded, key=_entry_sort_key),
+        "obsolete": len(obsolete),
+        "dormant": len(superseded) + len(obsolete),
         "violations": violations,
         "obsoleteExceptions": obsolete,
         # Which files the union was read from, so a reader can tell an empty
@@ -769,7 +813,7 @@ def evaluate(root: str) -> dict[str, Any]:
         # the other scalars so a dashboard built from them cannot miss it.
         "notBound": len(exempt),
         "notBoundCitations": exempt,
-        "ok": not violations and not obsolete,
+        "ok": not violations,
     }
 
 
@@ -792,17 +836,23 @@ def _violation(binding: Binding, why: str) -> dict[str, Any]:
 def grandfather(root: str, cycle: str, reason: str) -> dict[str, Any]:
     """Rewrite ONE cycle's ledger file from the current violations.
 
-    The routine remedy writes exactly one path, `scripts/audit-binding-
-    exceptions/<cycle>.json`, which is what stops two concurrent cycles from
-    colliding on the excuse ledger (rogue3#53). Another cycle's entries are read
-    and honoured but never copied into this file and never re-worded: their
-    reason text is that cycle's record, not this one's to rewrite.
+    Writes exactly one path, `scripts/audit-binding-exceptions/<cycle>.json`, and
+    touches NOTHING else -- no other cycle's file, not the frozen archive, no
+    deletions. That is what stops two concurrent cycles colliding on the excuse
+    ledger (rogue3#53), and it is unconditional rather than usual: a remedy with
+    even a rare cross-cycle write is a path no item can declare, and one that
+    could delete a file a merged audit cites would strand that audit for good.
 
-    The ONE exception is pruning: an OBSOLETE entry excuses nothing anywhere and
-    is a hard failure wherever it lives, so leaving foreign obsolete entries in
-    place would be a red gate with no single-command route to green -- the
-    rogue3#38 shape. Those are deleted, and the files they were deleted from are
-    named in the result so the cross-cycle write is never silent.
+    Another cycle's entries are read and honoured but never copied here and never
+    re-worded: their reason text is that cycle's record, not this one's to
+    rewrite. Dormant entries in OTHER files are left exactly where they are; they
+    fail nothing, and the cycle that owns them prunes them by running this.
+
+    Reusing a cycle id ADOPTS the file of that name: entries still applying are
+    carried forward verbatim, dormant ones are dropped. That is right when a cycle
+    re-runs its own remedy and wrong when an id is reused by accident, which
+    nothing here can tell apart -- so the count of entries this run inherited is
+    reported and the CLI prints it.
     """
     cycle = validate_cycle(cycle)
     own_relpath = cycle_ledger_relpath(cycle)
@@ -842,23 +892,38 @@ def grandfather(root: str, cycle: str, reason: str) -> dict[str, Any]:
                 "sourceFile": own_relpath,
             }
         )
-    write_ledger(root, own_relpath, entries, cycle)
-
-    foreign_pruned = _prune_obsolete_elsewhere(root, own_relpath, result["obsoleteExceptions"])
+    # Nothing to say and nothing already said: a cycle that excuses nothing must
+    # not leave an empty file behind just for having run the command. A file that
+    # ALREADY exists is rewritten even when it empties, because this tool never
+    # deletes a ledger file -- something may be citing it.
+    existed = os.path.isfile(ledger_path(root, own_relpath))
+    if entries or existed:
+        write_ledger(root, own_relpath, entries)
 
     kept = {entry_key(entry) for entry in entries}
     after = evaluate(root)
     return {
-        "written": own_relpath,
+        "written": own_relpath if (entries or existed) else None,
         "cycle": cycle,
         "entries": len(entries),
+        # Entries that were in <cycle>.json before this run: 0 for a fresh cycle,
+        # non-zero when this id is being re-run or reused.
+        "adopted": len(previous),
         "carriedForward": sum(
             1
             for entry in entries
             if _without_source(previous.get(entry_key(entry))) == _without_source(entry)
         ),
         "pruned": len([key for key in previous if key not in kept]),
-        "prunedElsewhere": foreign_pruned,
+        # Dormant entries in files this cycle does not own, listed so the reader
+        # knows they exist and were deliberately left alone rather than missed.
+        "dormantElsewhere": sorted(
+            {
+                entry["sourceFile"]
+                for entry in after["supersededEntries"] + after["obsoleteExceptions"]
+                if entry["sourceFile"] != own_relpath
+            }
+        ),
         "notExcusable": unexcusable,
         # rogue3#38's second lesson, and feedback/2026-08-02-Rogue3-9.md §11.3:
         # the remedy must report the VERDICT, not the write. Exiting 0 while the
@@ -871,44 +936,6 @@ def _without_source(entry: dict[str, str] | None) -> dict[str, str] | None:
     if entry is None:
         return None
     return {field: entry[field] for field in ENTRY_FIELDS}
-
-
-def _prune_obsolete_elsewhere(
-    root: str, own_relpath: str, obsolete: list[dict[str, str]]
-) -> list[dict[str, Any]]:
-    """Delete obsolete entries from ledger files this cycle does not own.
-
-    A file left with no entries is removed rather than kept as an empty husk, so
-    a finished cycle that excused nothing leaves no path behind.
-    """
-    by_file: dict[str, set[tuple[str, str, str, str, str]]] = {}
-    for entry in obsolete:
-        source = entry["sourceFile"]
-        if source == own_relpath:
-            continue  # already dropped by the rewrite above
-        by_file.setdefault(source, set()).add(_entry_sort_key(entry))
-
-    pruned: list[dict[str, Any]] = []
-    for relpath in sorted(by_file):
-        remaining = [
-            entry
-            for entry in _load_ledger_file(root, relpath)
-            if _entry_sort_key(entry) not in by_file[relpath]
-        ]
-        removed = len(by_file[relpath])
-        if remaining:
-            declared = os.path.basename(relpath)[: -len(LEDGER_SUFFIX)]
-            write_ledger(
-                root,
-                relpath,
-                remaining,
-                declared if relpath != LEGACY_LEDGER_RELPATH else None,
-                note=read_ledger_note(root, relpath),
-            )
-        else:
-            os.remove(ledger_path(root, relpath))
-        pruned.append({"file": relpath, "removed": removed, "deleted": not remaining})
-    return pruned
 
 
 # --------------------------------------------------------------------------
@@ -926,13 +953,14 @@ def report_text(result: dict[str, Any], stream) -> None:
 
     # The not-bound count belongs on the summary line: without it, four
     # citations simply vanish between `main` and a branch and a reader diffing
-    # CI logs sees the binding count drop with no accounting. The superseded
-    # count is on it for the same reason -- it is a tolerance, and a tolerance
-    # nobody can see is indistinguishable from a hole.
+    # CI logs sees the binding count drop with no accounting. The dormant count
+    # is on it for the same reason -- it is a tolerance, and a tolerance nobody
+    # can see is indistinguishable from a hole.
     print(
         "audit-bindings: {audits} audits, {bindings} bindings, {fresh} fresh, "
-        "{excused} explicitly excused, {superseded} superseded, "
-        "{notBoundCount} not bound, over {ledgerFileCount} ledger file(s)".format(
+        "{excused} explicitly excused, {notBoundCount} not bound; "
+        "{dormant} dormant exception(s) ({superseded} superseded, {obsolete} obsolete) "
+        "over {ledgerFileCount} ledger file(s)".format(
             notBoundCount=len(not_bound),
             ledgerFileCount=len(result.get("ledgerFiles", [])),
             **result,
@@ -995,9 +1023,10 @@ def report_text(result: dict[str, Any], stream) -> None:
 
     if superseded:
         print(
-            f"\naudit-bindings: {len(superseded)} SUPERSEDED EXCEPTION(S) -- another cycle's "
-            "excuse for a\nbinding that is excused at the digest the file now has. Reported, "
-            "not a failure:",
+            f"\naudit-bindings: {len(superseded)} SUPERSEDED EXCEPTION(S) -- an excuse for a "
+            "binding that is\nstill stale, pinned at a digest the file no longer has. Another "
+            "entry may be excusing\nthat binding, or it may be failing above. Never a failure "
+            "in itself:",
             file=stream,
         )
         for entry in superseded:
@@ -1009,8 +1038,9 @@ def report_text(result: dict[str, Any], stream) -> None:
 
     if obsolete:
         print(
-            f"\naudit-bindings: {len(obsolete)} OBSOLETE EXCEPTION(S) under {LEDGER_DIR}/ "
-            "-- these no longer excuse anything and must be pruned:",
+            f"\naudit-bindings: {len(obsolete)} OBSOLETE EXCEPTION(S) -- these excuse nothing: "
+            "the binding is\nnot stale at all. Never a failure. The cycle that owns the file "
+            "prunes them by running\nthe remedy for its own id; nobody else may touch it:",
             file=stream,
         )
         for entry in obsolete:
@@ -1019,16 +1049,17 @@ def report_text(result: dict[str, Any], stream) -> None:
                 file=stream,
             )
 
-    if violations or obsolete:
+    if violations:
         print(
             "\naudit-bindings: fix by REBINDING the audit -- recompute each stale sha256 so it\n"
             "pins the bytes that now exist (feedback-tool.fsx has no rebind subcommand; use\n"
             "`-- digest <file>` per file) -- or by excusing each one EXPLICITLY:\n"
             "    python3 scripts/check-audit-bindings.py --grandfather \\\n"
             '        --cycle <cycle-id> --reason "<why>"\n'
-            f"then commit {LEDGER_DIR}/<cycle-id>.json. That file is yours: a concurrent cycle\n"
-            "writes its own and the two never conflict. An exception is pinned to one observed\n"
-            "digest, so the next change to the same file fails again -- run this LAST.",
+            f"then commit {LEDGER_DIR}/<cycle-id>.json. That is the ONLY path the remedy writes,\n"
+            "and it is yours: a concurrent cycle writes its own and the two never conflict. An\n"
+            "exception is pinned to one observed digest, so the next change to the same file\n"
+            "fails again -- run this LAST.",
             file=stream,
         )
     elif not malformed:
@@ -1320,6 +1351,19 @@ def selftest_exemptions(check) -> None:
                 "scripts/audit-binding-exceptions/notes.md",
                 "a non-.json file inside the ledger directory is still bound",
             ),
+            # Same directory name somewhere else entirely. A SUBSTRING match
+            # rather than a prefix would exempt this.
+            (
+                "vendor/scripts/audit-binding-exceptions/x.json",
+                "the ledger directory name in another directory is still bound",
+            ),
+            # The gate compares case-sensitively on every platform, and the F#
+            # validator is required to agree with it. Case-folding either side
+            # would exempt a path the other still binds.
+            (
+                "scripts/Audit-Binding-Exceptions/x.json",
+                "a CASE variant of the ledger directory is still bound",
+            ),
             ("feedback/audits/notes.md", "a non-audit file under feedback/audits/ is still bound"),
         ):
             _write(root, rel, "one\n")
@@ -1329,6 +1373,44 @@ def selftest_exemptions(check) -> None:
             r = evaluate(root)
             check(label, not r["ok"] and any(v["locator"] == f"file:{rel}" for v in r["violations"]))
             grandfather(root, SELFTEST_CYCLE, "selftest: after the narrowness probe")
+
+        # The ledger DIRECTORY itself is not a file, so a citation onto it is an
+        # ordinary missing-file violation. Exempting the bare directory path
+        # would turn a typo'd locator silently green.
+        _make_audit(root, "bare-dir", "feedback/bare-dir.md", ["src/thing.fs"])
+        _write(
+            root,
+            "feedback/audits/bare-dir.audit.json",
+            json.dumps(
+                {
+                    "auditSchema": 1,
+                    "report": "feedback/bare-dir.md",
+                    "reportSha256": digest_file(os.path.join(root, "feedback", "bare-dir.md")),
+                    "findings": [
+                        {
+                            "id": "§4.1",
+                            "checkedEvidence": [
+                                {
+                                    "locator": f"file:{LEDGER_DIR}",
+                                    "result": "verified",
+                                    "sha256": "0" * 64,
+                                }
+                            ],
+                        }
+                    ],
+                },
+                indent=2,
+            )
+            + "\n",
+        )
+        r = evaluate(root)
+        check(
+            "a citation onto the bare ledger DIRECTORY is bound, not exempt",
+            any(v["locator"] == f"file:{LEDGER_DIR}" for v in r["violations"])
+            and not any(c["locator"] == f"file:{LEDGER_DIR}" for c in r["notBoundCitations"]),
+        )
+        os.remove(os.path.join(root, "feedback", "audits", "bare-dir.audit.json"))
+        grandfather(root, SELFTEST_CYCLE, "selftest: after the bare-directory probe")
 
         # The invariant that was FALSE before the fix, and the reason the dead
         # end was so hard to read from the tool: --grandfather kept exiting 0
@@ -1351,6 +1433,19 @@ def selftest_exemptions(check) -> None:
         check("--grandfather exiting 0 means check exits 0", settled == 0 and cli() == 0)
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def _entries_or_missing(root: str, relpath: str) -> list[dict[str, str]] | None:
+    """A ledger file's entries, or None when it does not exist.
+
+    So a case asserting "this file still holds nothing" FAILS when the file was
+    deleted instead of crashing on the open -- a crash still exits non-zero, but
+    it reports no case name, and the name is what tells a reader which claim
+    broke.
+    """
+    if not os.path.isfile(ledger_path(root, relpath)):
+        return None
+    return _load_ledger_file(root, relpath)
 
 
 def _stale_binding_tree(prefix: str) -> str:
@@ -1391,7 +1486,7 @@ def selftest_per_cycle(check) -> None:
             "a second cycle excusing the same binding writes only its own file",
             outcome["written"] == beta
             and digest_file(ledger_path(root, alpha)) == alpha_before
-            and outcome["prunedElsewhere"] == [],
+            and outcome["adopted"] == 0,
         )
         result = evaluate(root)
         check(
@@ -1448,71 +1543,139 @@ def selftest_per_cycle(check) -> None:
             )
             and len(_load_ledger_file(root, alpha)) == 1,
         )
+
+        # The same claim where it can actually be violated: with the file back at
+        # ALPHA's digest, alpha's entry is APPLYING, so a naive rewrite that took
+        # every excusing entry rather than its own would copy alpha's reason into
+        # beta's file. The case above cannot catch that -- it runs at a third
+        # digest, where there is nothing to copy.
+        _write(root, "src/thing.fs", "let a = 2\n")
+        grandfather(root, "item-beta", "selftest: beta re-runs while ALPHA is excusing")
+        check(
+            "a file emptied by its own cycle stays, because something may cite it",
+            os.path.isfile(ledger_path(root, beta)),
+        )
+        check(
+            "a rewrite does not adopt another cycle's APPLYING entry",
+            evaluate(root)["ok"]
+            and _entries_or_missing(root, beta) == []
+            and [entry["reason"] for entry in _entries_or_missing(root, alpha)]
+            == ["selftest: alpha excused it"],
+        )
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
-    # --- obsolete entries anywhere still fail, and still have a one-command
-    #     route to green: the rogue3#38 shape must not come back ---------------
-    root = _stale_binding_tree("audit-bindings-selftest-obsolete-")
+    # --- NOTHING but this cycle's own file is ever written -------------------
+    #
+    # The hard rule. A remedy that touches a foreign ledger file is a path no
+    # item can declare -- rogue3#53 verbatim -- and one that can DELETE a file a
+    # merged audit cites strands that audit with no way back, which is rogue3#38
+    # at a new address and worse, because the gate would stay green while the
+    # feedback validator stayed red.
+    root = _stale_binding_tree("audit-bindings-selftest-no-foreign-write-")
     try:
         grandfather(root, "item-alpha", "selftest: alpha excused it")
         alpha = cycle_ledger_relpath("item-alpha")
+        # An audit whose finding is ABOUT alpha's excuse cites alpha's file. The
+        # kit's SKILL.md teaches exactly this citation.
+        _make_audit(root, "cycle-cites-alpha", "feedback/cycle-cites-alpha.md", [alpha])
         # Restoring the bytes the audit pins makes alpha's entry excuse nothing.
         _write(root, "src/thing.fs", "let a = 1\n")
         stranded = evaluate(root)
         check(
-            "an obsolete entry in ANOTHER cycle's file is still a failure",
-            not stranded["ok"]
+            "an obsolete entry is reported, and is NOT a failure",
+            stranded["ok"]
             and len(stranded["obsoleteExceptions"]) == 1
-            and stranded["obsoleteExceptions"][0]["sourceFile"] == alpha,
+            and stranded["obsoleteExceptions"][0]["sourceFile"] == alpha
+            and stranded["dormant"] == 1,
         )
-        outcome = grandfather(root, "item-beta", "selftest: beta cleans up")
+
+        before = {rel: digest_file(ledger_path(root, rel)) for rel in ledger_files(root)}
+        outcome = grandfather(root, "item-beta", "selftest: beta must not touch alpha's file")
         check(
-            "one --grandfather run by a DIFFERENT cycle reaches green",
-            outcome["checkOk"] and evaluate(root)["ok"],
+            "another cycle's obsolete entry is left exactly where it is",
+            digest_file(ledger_path(root, alpha)) == before[alpha],
         )
         check(
-            "the foreign prune is reported, never silent",
-            outcome["prunedElsewhere"] == [{"file": alpha, "removed": 1, "deleted": True}],
+            "a cited cycle file is never deleted by another cycle's remedy",
+            os.path.isfile(ledger_path(root, alpha)) and evaluate(root)["ok"],
         )
         check(
-            "a cycle file emptied by pruning is removed, not left as a husk",
-            not os.path.exists(ledger_path(root, alpha)),
+            "the dormant entries left alone are named, never silently skipped",
+            outcome["dormantElsewhere"] == [alpha],
+        )
+        check(
+            "a cycle with nothing to excuse writes no file at all",
+            outcome["written"] is None
+            and not os.path.exists(ledger_path(root, cycle_ledger_relpath("item-beta"))),
+        )
+        # And the cycle that OWNS the dormant entry prunes it by running its own
+        # remedy -- the only route, and one command.
+        pruned = grandfather(root, "item-alpha", "selftest: alpha prunes its own dormant entry")
+        check(
+            "the owning cycle prunes its own dormant entry in one command",
+            pruned["checkOk"]
+            and pruned["pruned"] == 1
+            and _load_ledger_file(root, alpha) == []
+            and os.path.isfile(ledger_path(root, alpha)),
+        )
+
+        # An EMPTY foreign file is the one most tempting to tidy away, and the
+        # one whose deletion strands a merged audit for good: `cycle-cites-alpha`
+        # above cites this exact path. Another cycle's remedy must leave it.
+        _write(root, "src/thing.fs", "let a = 5\n")
+        grandfather(root, "item-beta", "selftest: beta runs beside an EMPTY foreign file")
+        check(
+            "an EMPTY foreign ledger file is not tidied away by another cycle",
+            os.path.isfile(ledger_path(root, alpha)) and evaluate(root)["ok"],
         )
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
-    # --- pruning a file this cycle does not own keeps that file's own note ----
-    #
-    # The frozen archive's note is the paragraph saying it IS the frozen archive.
-    # A prune that replaced it with the generic per-cycle note would delete the
-    # only instruction telling the next worker not to append there.
-    root = _stale_binding_tree("audit-bindings-selftest-foreign-note-")
+    # --- the frozen archive is never written, in any state -------------------
+    root = _stale_binding_tree("audit-bindings-selftest-archive-")
     try:
-        grandfather(root, "item-alpha", "selftest: alpha excused it")
-        alpha = cycle_ledger_relpath("item-alpha")
-        kept = [dict(entry) for entry in _load_ledger_file(root, alpha)]
-        # A second, independent binding so the file is not emptied by the prune.
-        _write(root, "src/other.fs", "let o = 1\n")
-        _make_audit(root, "cycle-2", "feedback/cycle-2.md", ["src/other.fs"])
-        _write(root, "src/other.fs", "let o = 2\n")
-        grandfather(root, "item-alpha", "selftest: alpha excused both")
-        write_ledger(
+        result = evaluate(root)
+        violation = result["violations"][0]
+        archive_note = "FROZEN ARCHIVE. Do not add entries here."
+        _write(
             root,
-            alpha,
-            _load_ledger_file(root, alpha),
-            "item-alpha",
-            note="ALPHA'S OWN NOTE, which a foreign prune must not replace.",
+            LEGACY_LEDGER_RELPATH,
+            json.dumps(
+                {
+                    "grandfatherSchema": 1,
+                    "note": archive_note,
+                    "entries": [
+                        {
+                            "audit": violation["audit"],
+                            "kind": violation["kind"],
+                            "locator": violation["locator"],
+                            "boundSha256": violation["boundSha256"],
+                            "observedSha256": violation["observedSha256"],
+                            "reason": "selftest: excused before the migration",
+                        }
+                    ],
+                },
+                indent=2,
+            )
+            + "\n",
         )
-        # Retire exactly one of alpha's two entries, so item-beta must rewrite
-        # alpha's file rather than delete it.
+        archive_before = digest_file(ledger_path(root, LEGACY_LEDGER_RELPATH))
+        # Retire the archive's only entry, so a prune would have emptied and
+        # deleted the file, taking its schema and its note with it.
         _write(root, "src/thing.fs", "let a = 1\n")
-        grandfather(root, "item-beta", "selftest: beta prunes one of alpha's entries")
+        after_revert = evaluate(root)
         check(
-            "a foreign prune keeps the pruned file's own note",
-            evaluate(root)["ok"]
-            and read_ledger_note(root, alpha) == "ALPHA'S OWN NOTE, which a foreign prune must not replace."
-            and len(_load_ledger_file(root, alpha)) == len(kept),
+            "an obsolete entry in the ARCHIVE is reported and is not a failure",
+            after_revert["ok"]
+            and [e["sourceFile"] for e in after_revert["obsoleteExceptions"]]
+            == [LEGACY_LEDGER_RELPATH],
+        )
+        grandfather(root, "item-alpha", "selftest: must not touch the archive")
+        check(
+            "--grandfather never writes the frozen archive, even to prune it",
+            os.path.isfile(ledger_path(root, LEGACY_LEDGER_RELPATH))
+            and digest_file(ledger_path(root, LEGACY_LEDGER_RELPATH)) == archive_before,
         )
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -1678,46 +1841,115 @@ def selftest_per_cycle(check) -> None:
         )
         os.replace(ledger_path(root, nested), ledger_path(root, alpha))
 
-        # A `cycle` that disagrees with the filename is a lie about provenance,
-        # and `--grandfather --cycle` writes by filename, so it would never be
-        # repaired by using the tool.
-        _write(
-            root,
-            alpha,
-            json.dumps(
-                {
-                    "grandfatherSchema": LEDGER_SCHEMA,
-                    "cycle": "item-somebody-else",
-                    "entries": [{k: v for k, v in entries[0].items() if k != "sourceFile"}],
-                },
-                indent=2,
-            )
-            + "\n",
+        # Renaming a ledger file is an ordinary thing to do -- a cycle-id typo,
+        # a board renumber -- and must not brick the tool. It cannot, because the
+        # filename IS the cycle and nothing inside the file restates it.
+        renamed = f"{LEDGER_DIR}/item-alpha-renamed.json"
+        os.replace(ledger_path(root, alpha), ledger_path(root, renamed))
+        check(
+            "renaming a ledger file changes nothing about the verdict",
+            evaluate(root)["ok"] and evaluate(root)["ledgerFiles"] == [renamed],
         )
-        mismatched = False
-        try:
-            evaluate(root)
-        except UsageError:
-            mismatched = True
-        check("a cycle field disagreeing with the filename is rejected", mismatched)
+        os.replace(ledger_path(root, renamed), ledger_path(root, alpha))
+
+        entry = {k: v for k, v in entries[0].items() if k != "sourceFile"}
+
+        def rejected(doc: Any) -> bool:
+            _write(root, alpha, json.dumps(doc, indent=2) + "\n")
+            try:
+                evaluate(root)
+            except UsageError:
+                return True
+            return False
 
         # Two entries for the same binding at the same digest in ONE file is a
         # broken write, not the concurrency the union absorbs.
-        entry = {k: v for k, v in entries[0].items() if k != "sourceFile"}
-        _write(
-            root,
-            alpha,
-            json.dumps(
-                {"grandfatherSchema": LEDGER_SCHEMA, "entries": [entry, dict(entry)]}, indent=2
-            )
-            + "\n",
+        check(
+            "a duplicate entry within one cycle file is rejected",
+            rejected({"grandfatherSchema": LEDGER_SCHEMA, "entries": [entry, dict(entry)]}),
         )
-        duplicated = False
-        try:
-            evaluate(root)
-        except UsageError:
-            duplicated = True
-        check("a duplicate entry within one cycle file is rejected", duplicated)
+        # A ledger whose shape cannot be read excuses nothing and would otherwise
+        # pass silently -- the same failure the audit-shape checks exist for.
+        check(
+            "a ledger whose 'entries' is not a list is rejected",
+            rejected({"grandfatherSchema": LEDGER_SCHEMA, "entries": {"a": entry}}),
+        )
+        check(
+            "a ledger whose root is not an object is rejected",
+            rejected([entry]),
+        )
+        check(
+            "a ledger entry that is not an object is rejected",
+            rejected({"grandfatherSchema": LEDGER_SCHEMA, "entries": ["not an object"]}),
+        )
+        # Every one of those messages must name the way out, or a corrupt ledger
+        # file is a dead end the reader has to guess their way off.
+        for doc in ("{not json\n",):
+            _write(root, alpha, doc)
+            message = ""
+            try:
+                evaluate(root)
+            except UsageError as error:
+                message = str(error)
+            check(
+                "an unreadable ledger file names both repairs",
+                "DELETE the file" in message and "repair the JSON" in message,
+            )
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    # --- the ledger's write shape is canonical, so a diff is a real diff ------
+    root = _stale_binding_tree("audit-bindings-selftest-write-shape-")
+    try:
+        _write(root, "src/b.fs", "let b = 1\n")
+        _write(root, "src/a.fs", "let a = 1\n")
+        _make_audit(root, "cycle-2", "feedback/cycle-2.md", ["src/b.fs", "src/a.fs"])
+        _write(root, "src/b.fs", "let b = 2\n")
+        _write(root, "src/a.fs", "let a = 2\n")
+        grandfather(root, "item-alpha", "selftest: write shape")
+        alpha = cycle_ledger_relpath("item-alpha")
+        written = _load_ledger_file(root, alpha)
+        # Fed in REVERSED, so insertion order and canonical order differ: reading
+        # back whatever order it was given would pass a check that only asserts
+        # the file agrees with itself.
+        write_ledger(root, alpha, list(reversed(written)))
+        reread = _load_ledger_file(root, alpha)
+        check(
+            "entries are written in canonical key order, not insertion order",
+            len(reread) > 1
+            and [_entry_sort_key(e) for e in reread]
+            == sorted(_entry_sort_key(e) for e in written),
+        )
+        # `carriedForward` is reported, so it has to be true: a re-run that
+        # changes nothing must report every entry as carried, not as rewritten.
+        again = grandfather(root, "item-alpha", "selftest: a different reason entirely")
+        check(
+            "an unchanged re-run carries every entry forward verbatim",
+            again["carriedForward"] == len(written)
+            and again["adopted"] == len(written)
+            and all(
+                entry["reason"] == "selftest: write shape"
+                for entry in _load_ledger_file(root, alpha)
+            ),
+        )
+        # A deleted bound file is excusable, but only by an entry that observed
+        # its ABSENCE -- an entry pinned at some earlier digest must not excuse
+        # a file that is now gone, and one pinned at <missing> must not excuse a
+        # file that came back.
+        os.remove(os.path.join(root, "src", "a.fs"))
+        deleted = evaluate(root)
+        check(
+            "an entry pinned at a digest does NOT excuse the file's disappearance",
+            not deleted["ok"]
+            and any(v["observedSha256"] == MISSING for v in deleted["violations"]),
+        )
+        grandfather(root, "item-alpha", "selftest: excuse the deletion")
+        check("a deleted bound file is excused at <missing>", evaluate(root)["ok"])
+        _write(root, "src/a.fs", "let a = 3\n")
+        check(
+            "an entry that observed <missing> does not excuse a file that came back",
+            not evaluate(root)["ok"],
+        )
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -1770,15 +2002,19 @@ def selftest() -> int:
             not r["ok"] and "changed again" in r["violations"][0]["reason"],
         )
 
-        # 5. restoring the bytes makes the binding fresh, and the exception obsolete
+        # 5. restoring the bytes makes the binding fresh, and the exception
+        #    obsolete: reported, counted, and NOT a failure -- an obsolete entry
+        #    usually sits in a merged cycle's file, and a fatal condition only a
+        #    finished cycle could clear is a gate with no bounded route to green.
         _write(root, "src/thing.fs", "let a = 1\n")
         r = evaluate(root)
         check(
-            "an exception that no longer excuses anything is obsolete",
-            not r["ok"] and len(r["obsoleteExceptions"]) == 1 and not r["violations"],
+            "an exception that no longer excuses anything is obsolete, and is reported",
+            len(r["obsoleteExceptions"]) == 1 and not r["violations"],
         )
+        check("an obsolete exception does not fail the check", r["ok"] and r["dormant"] == 1)
 
-        # 6. --grandfather prunes obsolete entries
+        # 6. --grandfather prunes obsolete entries out of its OWN file
         grandfather(root, SELFTEST_CYCLE, "selftest: prune")
         r = evaluate(root)
         check("--grandfather prunes obsolete entries", r["ok"] and not r["obsoleteExceptions"])
@@ -1868,7 +2104,7 @@ def selftest() -> int:
         r = evaluate(root)
         check(
             "rebinding retires the exception instead of reusing it",
-            not r["ok"] and len(r["obsoleteExceptions"]) == 1 and not r["violations"],
+            len(r["obsoleteExceptions"]) == 1 and not r["violations"],
         )
         grandfather(root, SELFTEST_CYCLE, "selftest: prune after rebind")
         check(
@@ -2117,16 +2353,27 @@ def main(argv: list[str]) -> int:
         if args.json:
             print(json.dumps(outcome, indent=2))
         else:
-            print(
-                f"audit-bindings: wrote {outcome['written']} with {outcome['entries']} "
-                f"exception(s); pruned {outcome['pruned']}."
-            )
-            for pruned in outcome["prunedElsewhere"]:
+            if outcome["written"] is None:
                 print(
-                    f"audit-bindings: pruned {pruned['removed']} obsolete exception(s) from "
-                    f"{pruned['file']}"
-                    + (" and removed the now-empty file" if pruned["deleted"] else "")
-                    + " -- that file belongs to another cycle; review the deletion."
+                    "audit-bindings: nothing to excuse; no exceptions file written for "
+                    f"{outcome['cycle']}."
+                )
+            else:
+                print(
+                    f"audit-bindings: wrote {outcome['written']} with {outcome['entries']} "
+                    f"exception(s); pruned {outcome['pruned']}."
+                )
+            if outcome["adopted"]:
+                print(
+                    f"audit-bindings: {outcome['adopted']} exception(s) were already in that file "
+                    f"-- this run ADOPTED {outcome['cycle']}'s file. Correct when this cycle is "
+                    "re-running its own remedy; check the diff if the id was reused."
+                )
+            if outcome["dormantElsewhere"]:
+                print(
+                    "audit-bindings: dormant exception(s) remain in "
+                    + ", ".join(outcome["dormantElsewhere"])
+                    + " -- left untouched deliberately: this command writes no file but its own."
                 )
             for entry in outcome["notExcusable"]:
                 print(
@@ -2140,11 +2387,13 @@ def main(argv: list[str]) -> int:
                     "for the reason.",
                     file=sys.stderr,
                 )
-        # A malformed audit is not something the ledger can absorb, and neither
-        # is anything else the rewrite failed to clear, so the remedy reports
-        # the VERDICT rather than the fact that it wrote a file (rogue3#38,
-        # feedback/2026-08-02-Rogue3-9.md 4.2).
-        return 0 if outcome["checkOk"] and not outcome["notExcusable"] else 1
+        # The remedy reports the VERDICT, not the fact that it wrote a file
+        # (rogue3#38, feedback/2026-08-02-Rogue3-9.md 4.2). `checkOk` is the whole
+        # verdict: anything the rewrite could not clear -- a malformed audit, an
+        # audit pinning no digest -- is still a violation when it re-evaluates,
+        # so a second `and not notExcusable` term would be unreachable and would
+        # read as a guard that is doing work.
+        return 0 if outcome["checkOk"] else 1
 
     result = evaluate(root)
     if args.json:
