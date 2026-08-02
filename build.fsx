@@ -1456,8 +1456,10 @@ let private selfTestResultField (contents: string) (field: string) =
 /// bare literal, which is what #57 asks for (and what keeps #54-style case-set changes from
 /// needing a magic number updated by hand).
 /// Bounds the probe. The merge gate must not be able to hang: a wedged child would otherwise burn
-/// the whole CI job timeout with no diagnosis. Generous relative to the ~2s the child really takes.
-let private selfTestProbeTimeoutMs = 300_000
+/// the whole CI job timeout with no diagnosis. ~45x the ~2s the child really takes, and deliberately
+/// not more: this deadline is also the last line of defence against a runaway spawn chain, which
+/// grows one nested process every couple of seconds until it trips.
+let private selfTestProbeTimeoutMs = 90_000
 
 let private probeSelfTestFailurePath () =
     let resultPath =
