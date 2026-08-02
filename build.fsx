@@ -815,7 +815,7 @@ let private lowerHex (bytes: byte array) = (Convert.ToHexString bytes).ToLowerIn
 // #62 (4): a digest that cannot throw.
 //
 // `fileDigest` was `File.ReadAllBytes |> SHA256`, and a kit file the gate can SEE
-// but cannot OPEN — `chmod 000`, a lock, a symlink whose target moved between the
+// but cannot OPEN — mode bits set to 000, a lock, a symlink whose target moved between the
 // `File.Exists` test and the read — threw an unhandled exception out of the
 // target: "Stopped due to error", NO violation line, and no report on the one
 // tree the gate most needs to report on. That directly contradicts the doctrine
@@ -1585,7 +1585,8 @@ let generatedGuidanceViolations (root: string) =
 
     // #62 (4), the neighbouring seam. The item names `fileDigest`, but the same defect class — an
     // unhandled filesystem exception aborting a gate with no violation line — was one unguarded
-    // `File.ReadAllLines` away in the target that runs beside it. `chmod 000 .fsgg/agents.yml`
+    // `File.ReadAllLines` away in the target that runs beside it. Clearing the mode bits on
+    // `.fsgg/agents.yml`
     // stopped `GeneratedGuidanceCheck` dead. Enumerating the producers of a defect class rather
     // than the ones an issue happens to name is the whole point of fixing it here.
     let read =
@@ -2774,8 +2775,8 @@ let private runSelfTest () =
         // #62 (4): every read that feeds a verdict returns a line instead of throwing.
         //
         // This first case needs no permissions and no platform: `File.ReadAllBytes` on a DIRECTORY
-        // throws exactly as it did on a `chmod 000` file, so the total reader is pinned everywhere
-        // the suite runs, including the platforms where the `chmod` cases below announce a skip.
+        // throws exactly as it did on a mode-000 file, so the total reader is pinned everywhere the
+        // suite runs, including the platforms where the mode-bit cases below announce a skip.
         expect
             "a digest of something that cannot be read is a REASON, not an exception"
             (match tryDigest sandbox with
@@ -2784,7 +2785,7 @@ let private runSelfTest () =
 
         /// Makes a path unreadable and answers whether it really became unreadable. A run as root
         /// ignores the mode entirely, and a case that quietly proves nothing is the defect this
-        /// target exists to stop — so the probe READS BACK rather than trusting the `chmod`.
+        /// target exists to stop — so the probe READS BACK rather than trusting the mode it just set.
         let tryMakeUnreadable (target: string) =
             if OperatingSystem.IsWindows() then
                 printfn "  note this platform has no POSIX mode bits; the #62 unreadable-input cases below prove nothing here"
@@ -2795,7 +2796,7 @@ let private runSelfTest () =
 
                     try
                         File.ReadAllBytes target |> ignore
-                        printfn "  note %s is still readable after chmod 000 (running as root?); the #62 unreadable-input cases prove nothing here" target
+                        printfn "  note %s is still readable with its mode bits cleared (running as root?); the #62 unreadable-input cases prove nothing here" target
                         false
                     with _ ->
                         true
@@ -2897,7 +2898,7 @@ let private runSelfTest () =
                  | Ok violations -> violations |> List.exists (fun v -> v.Contains "agents.yml" && v.Contains "cannot be read"))
 
         // Malformed, not unreadable — the same class, reachable on every platform and with no
-        // permissions involved, so these run where the `chmod` cases above cannot.
+        // permissions involved, so these run where the mode-bit cases above cannot.
         let malformedManifest, _ = freshFixture ()
 
         for owner in skillManifests do
