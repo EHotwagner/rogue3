@@ -357,6 +357,14 @@
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-5.audit.json",
       "kind": "evidence",
+      "locator": "file:docs/scaffold-map.md",
+      "boundSha256": "0fbe934e9125a60664e2b69f6537cdbacde0713031e1f2a7262e67a4d536ab98",
+      "observedSha256": "44a98f3ec4eb6069b247f824896aa48119f3319057b414e2e9b6ea9f3353cd5c",
+      "reason": "Item #28 corrected docs/scaffold-map.md, which described the deleted src/Rogue3/Visibility.fs as a shipped, callable helper. The map is bound by feedback/audits/2026-08-02-Rogue3-5.audit.json, whose critic cited it as evidence for that cycle's finding that the scaffold's documented delete path leaves the map advertising a file that no longer exists. Excused rather than rebound, per the 7e71d71 precedent: rebinding would pin bytes written after that critic reported, and would erase the stale entry that IS the evidence for the finding. The audit remains true of the tree it examined."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-5.audit.json",
+      "kind": "evidence",
       "locator": "file:src/Rogue3/Rogue3.fsproj",
       "boundSha256": "975e92b37e4f80e4e207b38a339b349acc5de6f4c23dd52a2b0fc7addc1c310a",
       "observedSha256": "72ccca8dff9588a90c06b985c7a5010ea29724db232c97106e817bd9ee5f9adf",

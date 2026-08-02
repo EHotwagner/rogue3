@@ -36,20 +36,22 @@ These call/define the starter game model directly — they are yours to replace:
   `Collision.step`. Edit the response rule, add layers, or delete the file: its compile item is
   `Exists`-guarded, so deleting it keeps the build green and you never touch the durable
   `Product.fsproj`.
-- `<ProductDir>/Visibility.fs` *(game / sample-pack only)* — the adaptable 2D-visibility helper (see the
-  `fs-gg-visibility` skill). It compiles **before** `Model.fs` so your `update`/`view` can call
-  `Visibility.polygon`. Edit the sight radius, cone the field of view, swap the polygon output for a
-  fog-of-war mask, or delete the file: its compile item is `Exists`-guarded, so deleting it keeps the
-  build green and you never touch the durable `Product.fsproj`.
-- `<ProductDir>/Grids.fs` and `<ProductDir>/LineDrawing.fs` *(game / sample-pack only)* — the adaptable
-  grid-parts and grid line-drawing helpers (the `fs-gg-grids` / `fs-gg-line-drawing` skills). **This
-  product deleted both** (issue #19): it is continuous-space, so nothing here ever referenced them and
-  they compiled 282 unreachable lines into every build. Exercising the documented delete path is what
-  the `Exists`-guarded compile items are for. Note the one thing this map's delete advice does not say:
-  deleting the file leaves an orphan compile item plus its comment block behind, so we removed those
-  from `Rogue3.fsproj` too. To restore either module, take it from git history at `1f19809` — the
-  `fs-gg-grids` / `fs-gg-line-drawing` skills document the API but do **not** carry the module source,
-  so "just re-add it from the skill" is not a route.
+- `<ProductDir>/Visibility.fs`, `<ProductDir>/Grids.fs` and `<ProductDir>/LineDrawing.fs`
+  *(game / sample-pack only)* — the adaptable 2D-visibility, grid-parts and grid line-drawing helpers
+  (the `fs-gg-visibility` / `fs-gg-grids` / `fs-gg-line-drawing` skills). **This product deleted all
+  three** (issues #19 and #28): it is continuous-space, so nothing here ever referenced them, and it
+  has no fog-of-war, no field-of-view cone and no line-of-sight query, so nothing ever wanted an
+  angular-sweep visibility polygon either. Together they compiled 531 unreachable lines into every
+  build. Exercising the documented delete path is what the `Exists`-guarded compile items are for.
+  Note the one thing this map's delete advice does not say: deleting the file leaves an orphan compile
+  item plus its comment block behind, so we removed those from `Rogue3.fsproj` too. To restore a
+  module, take it from git history — `Grids.fs` and `LineDrawing.fs` at `1f19809`, `Visibility.fs` at
+  `6b4ed07`. The `fs-gg-visibility` / `fs-gg-grids` / `fs-gg-line-drawing` skills document the APIs
+  but do **not** carry the module source, so "just re-add it from the skill" is not a route.
+  `Collision.fs` above is the one helper of the four this product did adopt.
+  Why `Visibility.fs` outlived the other two by an item: #19's triage counted the `Visibility.Segment`
+  and `Visibility.VisibilityPolygon` mentions in `Vec2.fs`'s doc comments as references, and they name
+  types no code ever constructed. When you audit a guarded helper, count code references, not grep hits.
 - `tests/Product.Tests/BehaviorTests.fs` — the replaceable scaffold-behaviour tests that drive
   the starter's `view`/`update`/`tick`/host directly (the test-split detail is below).
 
