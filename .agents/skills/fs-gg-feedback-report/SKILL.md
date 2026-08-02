@@ -380,7 +380,9 @@ reach it. Both tools now state it. Before rogue3#77 this validator encoded the o
 the cost was concrete: a path any merged audit cited could never be deleted again, so an exemption
 forbade the one change that cannot mislead a reader (removing a file nothing is checking) while
 permitting the one that can (editing it). Do **not** re-add an existence test upstream of the
-exemption; `selftest` fails on ten cases if you do.
+exemption; `selftest` fails on **13 of its 88 cases** if you do, four of them driving the real CLI.
+(If that number does not match what you observe, the suite has moved and this sentence is the stale
+one — `selftest` prints its own total, and the total is exact, not a floor.)
 
 **This validator has no excuse ledger.** The gate can excuse an aged binding via
 `check-audit-bindings.py --grandfather --cycle <id>`; `validate` has no counterpart, so a stale citation onto any
