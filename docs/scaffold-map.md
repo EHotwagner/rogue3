@@ -205,13 +205,21 @@ before you design against it; when they disagree, the `.fsi` wins.
 > with this boundary in mind before wiring input. See the `fs-gg-keyboard-input` skill and the note
 > at the `paddleForKey` mapping in `Model.fs`.
 
-## Resolution-independent rendering: windowed-fullscreen blur (feature 085, FR-010)
+## Resolution-independent rendering: scaling blur (feature 085, FR-010)
 
-The default window startup is **windowed fullscreen**, which scales a fixed-resolution scene
-up to the monitor work area and **blurs** it. Two fixes: render with a **size-aware view**
-(`InteractiveAppHost.View: Size -> 'model -> Control<'msg>`, content laid out to the actual
-swapchain extent — the preferred path), **or** launch with exactly one flag —
-`--window-startup normal` — for a 1:1 sharp normal window. See the `fs-gg-skiaviewer` skill.
+A fixed-resolution scene scaled up to a larger surface **blurs**. The fix is to render with a
+**size-aware view** (`InteractiveAppHost.View: Size -> 'model -> Control<'msg>`, content laid out to
+the actual swapchain extent). See the `fs-gg-skiaviewer` skill.
+
+> **Updated by rogue3#63.** This section used to say the default window startup is *windowed
+> fullscreen*, and offered `--window-startup normal` as the one-flag remedy. Both are now wrong.
+> With no `--window-*` flag the launch uses the shell's own `InitialDisplay` (1280x720, **Windowed**),
+> and `parseWindowBehavior`'s startup default is now `normal` rather than `windowed-fullscreen` —
+> that default was only ever consulted when some *other* window flag was present, so
+> `--window-backend vulkan` alone used to launch borderless-fullscreen. Windowed-fullscreen is also
+> currently **mapped onto exclusive fullscreen** at both producers while
+> `FS-GG/FS.GG.Rendering#1196` is open, because on a multi-output host it lands the window half off
+> screen with every button dead. See `src/Rogue3/WindowOptions.fs` and `src/Rogue3/GameShell.fs`.
 
 ## Pre-design pointer: record-label collision (fs-gg-scene)
 

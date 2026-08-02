@@ -338,7 +338,15 @@ let shellConfig: Rogue3.GameShell.Config =
           { Command = "active"; Label = "Use active / interact"; Order = 100; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'E')) }
           { Command = "bomb"; Label = "Drop bomb"; Order = 110; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'Q')) }
           { Command = "map"; Label = "Map"; Order = 120; Binding = None; DefaultBinding = Some(ViewerKeyboard.toKeyId (Letter 'M')) } ]
-      DisplayModes = [ Rogue3.GameShell.Windowed; Rogue3.GameShell.Borderless; Rogue3.GameShell.Fullscreen ]
+      // #63: `Borderless` is deliberately NOT offered. Selecting it moved the window half off
+      // screen and killed every pointer interaction (keyboard kept working) with no recovery but a
+      // restart — a framework defect in `ViewerWindowStartupState.WindowedFullscreen`, filed as
+      // FS-GG/FS.GG.Rendering#1196 and unfixable here. Withdrawing the button is ONE of three
+      // guards: `GameShell.windowBehavior` remaps any `Borderless` that still reaches the seam,
+      // and `retireWithdrawnDisplayMode` (below, on the settings load path) normalises one
+      // restored from an older settings file so the menu does not show a selection this list
+      // cannot mark. Restore this entry when #1196 is fixed.
+      DisplayModes = [ Rogue3.GameShell.Windowed; Rogue3.GameShell.Fullscreen ]
       Resolutions = [ { Width = 1280; Height = 720 }; { Width = 1920; Height = 1080 } ]
       InitialDisplay = { Resolution = { Width = 1280; Height = 720 }; Mode = Rogue3.GameShell.Windowed } }
 
@@ -383,9 +391,55 @@ let private persistShellSettings (model: Rogue3.GameShell.Model) : bool =
         true
     with _ -> false
 
+/// #63, third guard: RETIRE a restored `Borderless` rather than merely tolerating it.
+///
+/// `modeOfToken` still decodes `"borderless"`, so a settings file written before the withdrawal
+/// restores `Mode = Borderless` — a mode this product no longer offers. Left alone that is
+/// incoherent in three ways at once, none of which the other two guards reach: the settings screen
+/// marks the selected mode by comparing against `Config.DisplayModes`, so NEITHER offered button
+/// is marked and the player sees no selection; the marked state disagrees with the window, which
+/// `windowBehavior` is really running as exclusive fullscreen; and every later `DisplayChanged`
+/// re-persists the retired token, so the state is sticky until the player happens to click a mode.
+///
+/// Normalising at the load seam collapses all three: the model carries the mode that actually
+/// serves it, the menu shows it selected, and the next persist writes the current token. This is
+/// deliberately a PRODUCT-side normalisation, not a shell one — `GameShell` is game-agnostic and a
+/// different game may still offer `Borderless` (it stays decodable, and the seam still guards it).
+///
+/// KNOWN ONE-WAY DOOR, accepted deliberately. The retirement rewrites the model, and the next
+/// `DisplayChanged`/`KeymapChanged` persists it — so the player's `"borderless"` token is
+/// overwritten with `"fullscreen"` and does not come back when #1196 is fixed. Retaining the DU
+/// case preserves the ability to READ an old settings file, not the player's preference. The
+/// alternative — carrying the original token forward so it could be restored later — means
+/// persisting a preference the product cannot honour and must keep specially-casing, for a mode
+/// most players never chose deliberately. Recorded because it is a real loss, not an oversight.
+/// Public, like `viewerEffectsForShellEffect` and for the same reason: a generated-rogue3 test can
+/// assert the restore normalisation without writing to the player's real settings path.
+let retireWithdrawnDisplayMode (shell: Rogue3.GameShell.Model) : Rogue3.GameShell.Model =
+    match shell.Display.Mode with
+    | Rogue3.GameShell.Borderless ->
+        { shell with Display = { shell.Display with Mode = Rogue3.GameShell.Fullscreen } }
+    | _ -> shell
+
+/// The product's settings DECODER — the shell's own total decode followed by the #63 retirement —
+/// as one named seam rather than a pipe buried in a local function.
+///
+/// It is factored out and public because a mutation critic showed the difference matters: asserting
+/// `retireWithdrawnDisplayMode` by calling it directly proves the FUNCTION is correct and proves
+/// nothing about it being REACHED. Deleting the retirement from the load path left the whole suite
+/// green and quietly turned the third guard into dead code. Driving this seam over real
+/// `encodeSettings` bytes is what closes that.
+///
+/// Residual gap, stated rather than papered over: `shellSettingsPath` is a fixed per-user platform
+/// path, so no test drives `loadShellSettings` itself without writing to the real profile
+/// directory. A change that bypassed this function inside `loadShellSettings` would still not be
+/// caught. Narrowing that further needs an injectable path, which is a wider change than #63.
+let decodeShellSettings (bytes: byte[]) (fallback: Rogue3.GameShell.Model) : Rogue3.GameShell.Model =
+    Rogue3.GameShell.decodeSettings bytes fallback |> retireWithdrawnDisplayMode
+
 let private loadShellSettings (model: Rogue3.GameShell.Model) : Rogue3.GameShell.Model =
     let decode path fallback =
-        try Rogue3.GameShell.decodeSettings (File.ReadAllBytes path) fallback
+        try decodeShellSettings (File.ReadAllBytes path) fallback
         with _ -> fallback
 
     try
@@ -1382,7 +1436,24 @@ let m7UiPerformanceEvidence (path:string) =
         SHA256.HashData bytes |> Convert.ToHexString |> fun value -> value.ToLowerInvariant()
     let declared =
         Map.ofList
-            [ "main-menu", "89c6080c3acf3bd3a15975455de7e1a4ba5504c8befb2acb3588ed5d3908e174"
+            [ // Board item #63 (EIGHTH derivation, and the FIRST that moves this route). Every
+              // previous re-derivation recorded below moved the three routes that hash `Model.fs`
+              // and `Render.fs`, and each one noted that `main-menu` — which hashes `GameShell.fs`
+              // and `M7Ui.fs` — was byte-identical, using that as the check that the digest set
+              // moved where the source moved and nowhere else. This cycle is the mirror image: the
+              // Borderless mitigation edits `GameShell.fs` (the `windowBehavior` arm and its
+              // rationale) and `EvidenceCommands.fs` (the withdrawn mode and the load-seam
+              // retirement), so `main-menu` moves and the other THREE are byte-identical. Note
+              // `EvidenceCommands.fs` is not itself hashed by any route; only `GameShell.fs` is,
+              // which is why exactly one digest moved rather than none or four.
+              //
+              // Every scale verdict is unchanged, which is the check that matters here: `main-menu`
+              // still reports 9 control nodes and 7 bound controls. That is the evidence that
+              // withdrawing a display mode from the SETTINGS screen changed nothing about the MAIN
+              // MENU this route measures — the two screens share the shell's view function, so a
+              // careless edit to one is entirely capable of moving the other. Latency is unchanged
+              // within noise (p95 0.274 -> 0.282 ms against a 16.67 ms budget).
+              "main-menu", "f3475b94572e5b4ef6b4b55cdffd645b0b1d80bef0ff90766363b6c4d575f4cf"
               // M11: re-reviewed and copied after Model.fs gained the fixed-step door intents, the
               // guarded descent, the loaded boot room and the door-sensor counter, and Render.fs gained
               // room walls and per-wall directional doors. Exactly the three routes that hash those two
@@ -1451,6 +1522,12 @@ let m7UiPerformanceEvidence (path:string) =
               // unchanged: hud-playing still reports 12 scene elements at both outputs and the same
               // five named regions, because the shop prompt is a WORLD-SPACE element and this route
               // measures the HUD.
+              //
+              // (Read the paragraph above as a record of the #55 cycle, which is what "this cycle"
+              // means there. It is no longer true of the CURRENT declaration: #63 -- the eighth
+              // derivation, noted at the top of this map -- did touch `GameShell.fs`, and
+              // `main-menu` moved for the first time. The three digests below are the ones that are
+              // byte-identical now.)
               "hud-playing", "cb44115fce35a1166e3602a65a6819681bdcdb704d65d4348ea41b4e95d03478"
               "run-result", "2e5355872d5533ee31d04c2d20f6e125d82ce8095fa0ce04679a9666faa75f30"
               "stats-charts", "363fe2735fbcf73275ac7e29e0de862f21ca4635bc55da3217999149c64439ae" ]

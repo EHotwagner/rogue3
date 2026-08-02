@@ -81,9 +81,17 @@ let parseWindowBehavior args =
         args
         { Resize = "resizable"
           Maximize = "maximizable"
-          // Windowed fullscreen is the no-flag default; an explicit --window-startup
-          // selection overrides it (the last-specified value wins on conflict).
-          Startup = "windowed-fullscreen"
+          // #63: this default USED to be "windowed-fullscreen", and that was the live half of the
+          // defect. It is only ever consulted when SOME `--window-*` flag is present (with none,
+          // `Program.main` launches from the shell's own `InitialDisplay`, which is Windowed) — and
+          // five of the six flags that trigger that path say nothing about startup state. So
+          // `--window-backend vulkan` alone silently launched the window into the state that bricks
+          // the UI, invisibly from the flag the operator typed. A default that only takes effect in
+          // combination with an unrelated flag must be the SAFE one.
+          //
+          // `normal` also makes the flagged and unflagged launches agree, which they never did.
+          // An explicit --window-startup selection still overrides it (last value wins).
+          Startup = "normal"
           Position = "centered"
           Backend = "default" }
 
@@ -98,7 +106,14 @@ let toViewerLaunchRequest behavior : ViewerWindowBehaviorRequest =
         | "maximized" -> ViewerWindowStartupState.Maximized
         | "minimized" -> ViewerWindowStartupState.Minimized
         | "fullscreen" -> ViewerWindowStartupState.Fullscreen
-        | "windowed-fullscreen" -> ViewerWindowStartupState.WindowedFullscreen
+        // #63 / FS-GG/FS.GG.Rendering#1196: the SECOND producer of this request, and the one the
+        // first pass of the mitigation missed. `GameShell.windowBehavior` refuses
+        // `WindowedFullscreen` for the settings screen; refusing it here too is what makes the
+        // claim "this product never asks for that state" actually true. An explicit
+        // `--window-startup windowed-fullscreen` is served by exclusive fullscreen — the closest
+        // state that works — rather than by a window that lands half off screen with dead buttons.
+        // Restore the direct mapping when #1196 is fixed.
+        | "windowed-fullscreen" -> ViewerWindowStartupState.Fullscreen
         | _ -> Viewer.defaultWindowBehavior.StartupState
 
     let startupPosition =
@@ -125,10 +140,14 @@ let toViewerLaunchRequest behavior : ViewerWindowBehaviorRequest =
         | "software" -> Some ViewerBackendPreference.Software
         | _ -> Some ViewerBackendPreference.DefaultBackend }
 
-/// True when any explicit --window-* selection flag is present. When false the
-/// generated app launches through the durable runApp path and inherits the
-/// framework's windowed-fullscreen default; when true the launch is routed through
-/// runAppWithWindowBehavior so the live window honors the request.
+/// True when any explicit --window-* selection flag is present. When false the launch uses the
+/// SHELL's own `InitialDisplay` (1280x720, Windowed) rather than any framework default; when true
+/// the launch is routed through `runAppWithWindowBehavior` so the live window honors the request.
+///
+/// #63: note the sharp edge this creates, which is why `parseWindowBehavior`'s startup default is
+/// now `normal`. Five of the six flags below say nothing about startup state, yet any one of them
+/// switches the launch onto the parsed request wholesale — so every unspecified field falls back to
+/// a default the operator never chose. Widening this list widens that blast radius.
 let windowFlagSupplied (args: string list) =
     args
     |> List.exists (fun arg ->

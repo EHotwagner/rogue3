@@ -471,40 +471,411 @@ let behaviorTests =
         // emission assertion. On a desktop host it drives the generated shell's DisplayChanged path
         // through ControlsElmish, the shared ViewerEffect interpreter, and the real native-window
         // mutation boundary; on a headless host it records the irreducible native tier as skipped.
-        test "DisplayChanged reaches the live native window-mode boundary (#1022)" {
+        //
+        // Issue #63 EXTENDS this test rather than adding a second native launch. `Borderless` is now
+        // served by exclusive fullscreen, and this is the ONLY tier that can observe what the
+        // framework actually did with the request — the pure seam can only say what was asked for.
+        // Both modes are therefore driven here and both must be observed as `mode=fullscreen`; an
+        // observation of `mode=windowedfullscreen` is the state that bricked the window and reds.
+        //
+        // Honest limit, since the loop looks like it doubles the evidence and does not: once the
+        // seam maps `Borderless` onto `Fullscreen`, the two iterations are observationally
+        // IDENTICAL by construction, and a mutant that drives `Fullscreen` twice survives. The
+        // Borderless iteration therefore confirms the composed product path is accepted natively;
+        // it adds no discrimination the Fullscreen iteration does not already provide. It is kept
+        // because it is the composition that would break if the mapping were rewired, not because
+        // it independently tests the framework.
+        test "DisplayChanged reaches the live native window-mode boundary (#1022), and Borderless lands as exclusive fullscreen there (#63)" {
             if not (Viewer.runtimeCapability().PersistentWindow) then
                 skiptest "SKIPPED(tier=T2 native-window/GL): no persistent desktop window is available"
 
-            let observed = ResizeArray<ViewerDiagnosticEvent>()
-            let host =
-                { Rogue3.Program.interactiveHost with
-                    Tick =
-                        fun _ ->
-                            Some(
-                                Rogue3.EvidenceCommands.ShellDispatch(
-                                    Rogue3.GameShell.SetDisplayMode Rogue3.GameShell.Fullscreen))
-                    Diagnostics =
-                        { Viewer.defaultDiagnostics with
-                            Categories = Set.add ViewerDiagnosticCategory.Window Viewer.defaultDiagnostics.Categories
-                            Sink = Some observed.Add } }
+            let driveMode mode =
+                let observed = ResizeArray<ViewerDiagnosticEvent>()
+                let host =
+                    { Rogue3.Program.interactiveHost with
+                        Tick = fun _ -> Some(Rogue3.EvidenceCommands.ShellDispatch(Rogue3.GameShell.SetDisplayMode mode))
+                        Diagnostics =
+                            { Viewer.defaultDiagnostics with
+                                Categories = Set.add ViewerDiagnosticCategory.Window Viewer.defaultDiagnostics.Categories
+                                Sink = Some observed.Add } }
 
-            let result =
-                FS.GG.UI.Controls.Elmish.ControlsElmish.Live.runScriptWithWindowBehavior
-                    Rogue3.Program.viewerOptions
-                    (Rogue3.GameShell.windowBehavior Rogue3.EvidenceCommands.shellConfig.InitialDisplay)
-                    host
-                    [ FS.GG.UI.Controls.Elmish.FrameInput.Idle
-                      FS.GG.UI.Controls.Elmish.FrameInput.Idle ]
+                let result =
+                    FS.GG.UI.Controls.Elmish.ControlsElmish.Live.runScriptWithWindowBehavior
+                        Rogue3.Program.viewerOptions
+                        (Rogue3.GameShell.windowBehavior Rogue3.EvidenceCommands.shellConfig.InitialDisplay)
+                        host
+                        [ FS.GG.UI.Controls.Elmish.FrameInput.Idle
+                          FS.GG.UI.Controls.Elmish.FrameInput.Idle ]
 
-            match result with
-            | Result.Error failure -> failtestf "live generated host failed: %s" failure.Message
-            | Result.Ok _ -> ()
+                match result with
+                | Result.Error failure -> failtestf "live generated host failed for %A: %s" mode failure.Message
+                | Result.Ok _ -> ()
 
-            Expect.exists observed
-                (fun diagnostic ->
-                    diagnostic.Category = ViewerDiagnosticCategory.Window
-                    && diagnostic.Message.Contains "Runtime window behavior applied: mode=fullscreen")
-                "the generated DisplayChanged request is observed after real native mutation, not only at emission"
+                observed
+                |> Seq.filter (fun diagnostic -> diagnostic.Category = ViewerDiagnosticCategory.Window)
+                |> Seq.map _.Message
+                |> List.ofSeq
+
+            for mode in [ Rogue3.GameShell.Fullscreen; Rogue3.GameShell.Borderless ] do
+                let windowDiagnostics = driveMode mode
+
+                Expect.exists
+                    windowDiagnostics
+                    (fun message -> message.Contains "Runtime window behavior applied: mode=fullscreen")
+                    $"{mode}'s generated DisplayChanged request is observed after real native mutation, not only at emission"
+
+                Expect.isFalse
+                    (windowDiagnostics |> List.exists (fun message -> message.Contains "mode=windowedfullscreen"))
+                    $"{mode} never reaches the native boundary as the work-area-derived windowedfullscreen state (#63)"
+        }
+
+        // Issue #63: BORDERLESS BRICKED THE UI, AND NO TEST NOTICED.
+        //
+        // Reported from real play: selecting Borderless moved the window half off screen and left
+        // every button dead. `Esc` still worked. That asymmetry is the whole diagnosis — `MapKey`
+        // is coordinate-free, while a pointer sample is hit-tested against the render tree after
+        // being inverted through the logical-canvas fit. A fit taken against the WRONG surface
+        // inverts every sample to a point outside every control's bounds, no authored `OnClick`
+        // matches, and `MapPointer` (which the shell menu does not implement) has no fallback to
+        // catch it. The click is silently discarded.
+        //
+        // WHY THE EXISTING COVERAGE DID NOT CATCH IT. The `#1014` block above asserts that a mode
+        // change EMITS `ApplyWindowOptions` and `ApplyLogicalCanvas`. Both were emitted correctly
+        // the entire time the bug shipped; the effect wiring was never the fault. An emission
+        // assertion cannot distinguish a request that works from one that bricks the window.
+        //
+        // WHAT THIS TEST CAN AND CANNOT PROVE — stated plainly, because it is easy to overclaim.
+        //
+        //   CANNOT: it cannot fail because of the `WindowedFullscreen`-versus-`Fullscreen` choice.
+        //   The defect lives in the HOST's derivation of the output surface from the request, and
+        //   nothing headless can observe that: this test must supply a surface, and it supplies the
+        //   same one to the forward fit and the inverse, which `SkiaViewer.fsi` documents as exact
+        //   inverses. `display.Mode` is not an input to either. A reviewer who reverts the
+        //   mitigation and neutralises the two shape assertions below will find the pointer
+        //   assertions still green, and that is expected rather than a bug in them.
+        //
+        //   CAN: (1) pin the mitigation's SHAPE — that Borderless is not offered and that no
+        //   offered mode asks for `WindowedFullscreen`; these are the assertions that red on a
+        //   revert, together with the seam test in ShellBehaviorTests. (2) Exercise the whole
+        //   production pointer route for every offered mode end to end, so a mode change that
+        //   broke authored bindings, layout or the settings tree would be caught.
+        //
+        //   The negative control below is deliberately NOT listed as a third capability. It
+        //   demonstrates a property of `LogicalCanvas` — that a mis-taken fit really does land a
+        //   sample off the control, rather than the miss being an out-of-range rejection — but no
+        //   product code applies that fit, so no single-edit change to `src/` can make it red. It
+        //   documents the failure mode; it does not guard against it.
+        //
+        // The boundary itself is evidenced elsewhere: by the native-window test above, which
+        // observes what the framework was actually asked for, and by the play session and
+        // FS-GG/FS.GG.Rendering#1196 upstream.
+        test "every offered display mode keeps the menu clickable through the POST-change surface fit (#63)" {
+            let host = Rogue3.Program.interactiveHost
+            let logical = Rogue3.EvidenceCommands.shellConfig.InitialDisplay.Resolution
+
+            // Three surfaces. The numbers are borrowed from the reporter's host for readability,
+            // but do NOT read significance into them: a mutation critic set `postChangeSurface` to
+            // 999x4001 and this test stayed green, because the forward fit and the inverse are
+            // taken against the SAME surface and cancel for any value. What the three do provide is
+            // magnitude — the negative control below separates only because the stale surfaces
+            // differ from the post-change one by roughly a factor of two. Bring either within a
+            // pixel of it and it stops discriminating, which is a limit of the control, not a bug.
+            let preChangeSurface: FS.GG.UI.Scene.Size = logical
+            let postChangeSurface: FS.GG.UI.Scene.Size = { Width = 2560; Height = 1440 }
+            let boundingBoxSurface: FS.GG.UI.Scene.Size = { Width = 3440; Height = 2880 }
+
+            let pointer phase x y : ViewerPointerInput =
+                { Phase = phase
+                  X = x
+                  Y = y
+                  Button = Some ViewerPointerButtonKind.Primary
+                  DeltaX = 0.0
+                  DeltaY = 0.0 }
+
+            let foldMessages model messages =
+                messages |> List.fold (fun current msg -> fst (host.Update msg current)) model
+
+            /// The logical centre of an authored, BOUND control — the guard is the point: an
+            /// unbound id would make every "the click fired" claim below unfalsifiable.
+            let logicalCentre controlId model =
+                let frame = FS.GG.UI.Controls.Control.renderTree host.Theme logical (host.View logical model)
+
+                Expect.isTrue
+                    (Set.contains controlId frame.BoundIds)
+                    $"{controlId} is an authored bound control, not a silent test target"
+
+                let available: FS.GG.UI.Layout.AvailableSpace =
+                    { Width = float logical.Width
+                      WidthMode = FS.GG.UI.Layout.Exactly
+                      Height = float logical.Height
+                      HeightMode = FS.GG.UI.Layout.Exactly }
+
+                let layout = FS.GG.UI.Layout.Layout.evaluate available frame.Layout
+                let bounds = (layout.Bounds |> List.find (fun b -> b.NodeId = controlId)).Bounds
+                bounds.X + bounds.Width / 2.0, bounds.Y + bounds.Height / 2.0
+
+            /// Press+release a physical (on-screen) sample, inverting it through the fit for
+            /// `surface` — the same `LogicalCanvas` inverse the host owns. Handing a DIFFERENT
+            /// surface here is precisely how the defect is modelled.
+            let clickPhysicalThrough (surface: FS.GG.UI.Scene.Size) physicalX physicalY model =
+                let routedX, routedY = LogicalCanvas.toLogicalPoint logical surface physicalX physicalY
+
+                let state, down =
+                    FS.GG.UI.Controls.Elmish.ControlsElmish.routeInteractivePointer
+                        host (Pointer.init ()) logical model
+                        (pointer ViewerPointerPhaseKind.Pressed routedX routedY)
+
+                let afterDown = foldMessages model down
+
+                let proof =
+                    FS.GG.UI.Controls.Elmish.ControlsElmish.captureRespondsProof
+                        host state logical afterDown
+                        (pointer ViewerPointerPhaseKind.Released routedX routedY)
+
+                let _, up =
+                    FS.GG.UI.Controls.Elmish.ControlsElmish.routeInteractivePointer
+                        host state logical afterDown
+                        (pointer ViewerPointerPhaseKind.Released routedX routedY)
+
+                proof, foldMessages afterDown up
+
+            /// A control's true on-screen position on `surface`, via the forward fit.
+            let physicalOn (surface: FS.GG.UI.Scene.Size) controlId model =
+                let logicalX, logicalY = logicalCentre controlId model
+                let fit = LogicalCanvas.fit logical surface
+                logicalX * fit.Scale + fit.OffsetX, logicalY * fit.Scale + fit.OffsetY
+
+            // Reach Settings through the production route, not by injecting a message.
+            let model0 = fst (host.Init())
+            let settingsX, settingsY = physicalOn preChangeSurface "config" model0
+            let configProof, settings = clickPhysicalThrough preChangeSurface settingsX settingsY model0
+
+            Expect.equal configProof.Verdict FS.GG.UI.Controls.Elmish.Responsive "the settings screen is reached by a real click, before any mode change"
+            Expect.equal settings.Shell.Screen Rogue3.GameShell.Settings "the pointer route opened Settings"
+
+            // The withdrawal itself. A regression that re-adds the button reds here, and the loop
+            // below then also exercises it — so the mitigation cannot rot silently in either half.
+            Expect.isFalse
+                (List.contains Rogue3.GameShell.Borderless Rogue3.EvidenceCommands.shellConfig.DisplayModes)
+                "Borderless is not offered while the framework's WindowedFullscreen derivation bricks the window (#63)"
+
+            for mode in Rogue3.EvidenceCommands.shellConfig.DisplayModes do
+                // Change the mode by CLICKING its own settings button, through the pointer route.
+                let modeId =
+                    match mode with
+                    | Rogue3.GameShell.Windowed -> "mode-windowed"
+                    | Rogue3.GameShell.Borderless -> "mode-borderless"
+                    | Rogue3.GameShell.Fullscreen -> "mode-fullscreen"
+
+                let modeX, modeY = physicalOn preChangeSurface modeId settings
+                let _, changed = clickPhysicalThrough preChangeSurface modeX modeY settings
+
+                Expect.equal changed.Shell.Display.Mode mode $"clicking {modeId} selects {mode} through the production pointer route"
+
+                // The request that reaches the framework must not be the one that bricks the
+                // window. This is the assertion the emission-only coverage above cannot make.
+                let requested = (Rogue3.GameShell.windowBehavior changed.Shell.Display).StartupState
+
+                Expect.notEqual
+                    requested
+                    ViewerWindowStartupState.WindowedFullscreen
+                    $"{mode} must not ask for the work-area-derived WindowedFullscreen state (#63)"
+
+                // After the change, a sample at Back's on-screen point on the POST-change surface
+                // still fires Back's OnClick and leaves Settings. See the CAN/CANNOT note above:
+                // this exercises the route, it does not pin the host's surface derivation.
+                let backX, backY = physicalOn postChangeSurface "back" changed
+                let backProof, left = clickPhysicalThrough postChangeSurface backX backY changed
+
+                Expect.equal backProof.Verdict FS.GG.UI.Controls.Elmish.Responsive $"after switching to {mode}, a click at Back's on-screen centre visibly responds"
+                Expect.equal left.Shell.Screen Rogue3.GameShell.MainMenu $"after switching to {mode}, Back's authored OnClick still fires — the UI is not dead (#63)"
+
+                // NEGATIVE CONTROL. Invert that same on-screen sample through the surfaces a stale
+                // fit would use. Both must fail to reach Back, or the assertion above proves
+                // nothing about which surface the fit was taken against.
+                for staleSurface, label in
+                    [ preChangeSurface, "the pre-change window surface"
+                      boundingBoxSurface, "the bounding box of both outputs" ] do
+                    let _, misrouted = clickPhysicalThrough staleSurface backX backY changed
+
+                    Expect.equal
+                        misrouted.Shell.Screen
+                        Rogue3.GameShell.Settings
+                        $"a sample inverted through {label} misses Back entirely — this is the dead-button failure mode, and it is what makes the assertion above load-bearing (#63)"
+        }
+
+        // Issue #63, the third guard: a player whose saved settings still say `borderless` must not
+        // be left looking at a settings screen with NO display mode selected.
+        //
+        // `modeOfToken` still decodes the retired token, and the settings view marks a mode by
+        // comparing `model.Display.Mode` against `Config.DisplayModes` — so an un-normalised
+        // restore matches neither offered button, the menu disagrees with the window the product is
+        // actually running, and every later `DisplayChanged` re-persists the retired token. This
+        // asserts the rendered marker, not the model field, because the marker is the thing the
+        // player sees and the model field is one refactor away from not implying it.
+        test "a settings file restoring the withdrawn Borderless mode still shows exactly one selected mode (#63)" {
+            let host = Rogue3.Program.interactiveHost
+            let size = Rogue3.EvidenceCommands.shellConfig.InitialDisplay.Resolution
+            let model0 = fst (host.Init())
+
+            let settingsScreenFor (mode: Rogue3.GameShell.DisplayMode) =
+                let shell, _ = Rogue3.GameShell.update Rogue3.GameShell.OpenSettings model0.Shell
+                { model0 with Shell = { shell with Display = { shell.Display with Mode = mode } } }
+
+            /// The mode labels the settings screen draws, with the "> " selection marker intact.
+            /// Compared for EQUALITY against each candidate, never by substring: "> Windowed"
+            /// contains "Windowed", so a substring test could never tell selected from unselected.
+            let modeLabelsOn model =
+                let scene = FS.GG.UI.Controls.Control.renderTree host.Theme size (host.View size model) |> _.Scene
+
+                let drawn =
+                    scene.Nodes
+                    |> Seq.collect collectSceneNodes
+                    |> Seq.choose (function
+                        | Text(_, value, _) -> Some value
+                        | TextRun run -> Some run.Text
+                        | SizedText(_, value, _, _) -> Some value
+                        | GlyphRun run -> Some run.Data.Text
+                        | _ -> None)
+                    |> List.ofSeq
+
+                [ for label in [ "Windowed"; "Borderless"; "Fullscreen" ] do
+                      for text in drawn do
+                          if text = label || text = "> " + label then yield text ]
+
+            let selected labels = labels |> List.filter (fun (text: string) -> text.StartsWith "> ")
+
+            // The un-normalised state, shown first so the guard is not asserting a vacuous truth.
+            let unnormalised = modeLabelsOn (settingsScreenFor Rogue3.GameShell.Borderless)
+
+            Expect.isNonEmpty unnormalised "the settings screen draws its display-mode rows"
+            Expect.isEmpty (selected unnormalised) "an un-normalised restored Borderless marks NO offered mode — this is the state the load-seam guard exists to prevent (#63)"
+
+            // What `loadShellSettings` actually hands the host — driven through the SAME decoder it
+            // uses, over real `encodeSettings` bytes, so this covers the guard's WIRING and not just
+            // the guard. A mutation critic showed the difference: calling the retirement directly
+            // left `loadShellSettings` free to drop it entirely with the suite still green.
+            let borderlessBlob =
+                Rogue3.GameShell.encodeSettings (settingsScreenFor Rogue3.GameShell.Borderless).Shell
+
+            Expect.equal
+                (Rogue3.GameShell.decodeSettings borderlessBlob model0.Shell).Display.Mode
+                Rogue3.GameShell.Borderless
+                "the blob really does carry the retired token — otherwise the assertion below would pass for the wrong reason"
+
+            let restored = Rogue3.EvidenceCommands.decodeShellSettings borderlessBlob model0.Shell
+
+            Expect.equal restored.Display.Mode Rogue3.GameShell.Fullscreen "a settings file carrying the retired token is retired onto the mode that now serves it, by the decoder the load path uses"
+
+            let normalised = modeLabelsOn (settingsScreenFor restored.Display.Mode)
+
+            Expect.equal
+                (selected normalised)
+                [ "> Fullscreen" ]
+                "after normalisation exactly one offered mode is marked, and it is the one the window is really running (#63)"
+
+            // Every other mode is untouched by the retirement — this is a targeted retirement of one
+            // withdrawn value, not a reset of the player's display preference. Driven through the
+            // same real decoder, so an over-broad retirement reds here.
+            for mode in Rogue3.EvidenceCommands.shellConfig.DisplayModes do
+                let blob = Rogue3.GameShell.encodeSettings (settingsScreenFor mode).Shell
+                let kept = Rogue3.EvidenceCommands.decodeShellSettings blob model0.Shell
+                Expect.equal kept.Display.Mode mode $"{mode} is an offered mode and survives the restore decode unchanged"
+
+            // The resolution must survive the retirement too: it is a different field of the same
+            // record, and a retirement written as a whole-record replacement would silently reset it.
+            let borderlessAt1080 =
+                let shell, _ = Rogue3.GameShell.update (Rogue3.GameShell.SetResolution { Width = 1920; Height = 1080 }) (settingsScreenFor Rogue3.GameShell.Borderless).Shell
+                Rogue3.EvidenceCommands.decodeShellSettings (Rogue3.GameShell.encodeSettings shell) model0.Shell
+
+            Expect.equal borderlessAt1080.Display.Resolution { Width = 1920; Height = 1080 } "retiring the withdrawn MODE preserves the player's chosen RESOLUTION"
+            Expect.equal borderlessAt1080.Display.Mode Rogue3.GameShell.Fullscreen "and still retires the mode"
+        }
+
+        // Issue #63, the SECOND producer. Found by a mutation critic, not by the fix.
+        //
+        // The three guards above cover the settings screen, the shell seam and the settings file.
+        // They do not cover the COMMAND LINE, which reaches `ViewerWindowBehaviorRequest` by an
+        // entirely separate route — `Program.main` -> `windowFlagSupplied` -> `toViewerLaunchRequest`
+        // — and which had no test of any kind.
+        //
+        // Two facts combined to make that route brick the window at launch:
+        //   * `parseWindowBehavior` defaults `Startup = "windowed-fullscreen"`, and
+        //   * `windowFlagSupplied` is true for SIX flags, five of which say nothing about startup
+        //     state (`--window-resize`, `--window-maximize`, `--window-position`, `--window-backend`,
+        //     `--window-options-file`).
+        //
+        // So `--window-backend vulkan` alone opted the launch into the exact state that bricks the
+        // UI. That is not hypothetical: the work-board guidance launches this product with
+        // `--window-options-file`, and a file containing only `position=` would have triggered it.
+        // A default that takes effect ONLY in combination with an unrelated flag is the worst shape
+        // this could have — it is invisible from the flag the operator actually typed.
+        //
+        // The assertion is exhaustive over the flag vocabulary rather than sampled, because the
+        // defect was in a DEFAULT: any test that named the startup values would have missed it.
+        test "no command-line flag combination launches into WindowedFullscreen while #1196 is open (#63)" {
+            let startupValues = [ "normal"; "maximized"; "minimized"; "fullscreen"; "windowed-fullscreen" ]
+
+            let flagCombinations =
+                [ []
+                  [ "--window-resize"; "fixed-size" ]
+                  [ "--window-resize"; "resizable" ]
+                  [ "--window-maximize"; "maximizable" ]
+                  [ "--window-maximize"; "not-maximizable" ]
+                  [ "--window-position"; "centered" ]
+                  [ "--window-position"; "10,20" ]
+                  [ "--window-backend"; "vulkan" ]
+                  [ "--window-backend"; "opengl" ]
+                  [ "--window-backend"; "software" ]
+                  [ "--window-backend"; "default" ]
+                  [ "--window-options-file"; "/nonexistent-window-options.txt" ]
+                  for value in startupValues -> [ "--window-startup"; value ] ]
+
+            for flags in flagCombinations do
+                let behaviour = Rogue3.WindowOptions.parseWindowBehavior flags
+                let request = Rogue3.WindowOptions.toViewerLaunchRequest behaviour
+
+                Expect.notEqual
+                    request.StartupState
+                    ViewerWindowStartupState.WindowedFullscreen
+                    $"launching with %A{flags} must not request the work-area-derived WindowedFullscreen state that bricks the window (#63)"
+
+            // The flags that do NOT mention startup must not silently change it either. This is the
+            // assertion that actually names the defect: it was the DEFAULT reaching the launch
+            // request through an unrelated flag, not the explicit selection.
+            let normalRequest =
+                Rogue3.WindowOptions.toViewerLaunchRequest (Rogue3.WindowOptions.parseWindowBehavior [])
+
+            for flags in
+                [ [ "--window-backend"; "vulkan" ]
+                  [ "--window-position"; "centered" ]
+                  [ "--window-resize"; "resizable" ]
+                  [ "--window-maximize"; "maximizable" ] ] do
+                let request =
+                    Rogue3.WindowOptions.toViewerLaunchRequest (Rogue3.WindowOptions.parseWindowBehavior flags)
+
+                Expect.equal
+                    request.StartupState
+                    normalRequest.StartupState
+                    $"%A{flags} says nothing about startup state, so it must not change the startup state the launch requests (#63)"
+
+            // And the guard's own precondition: these flags really do route the launch through
+            // `toViewerLaunchRequest` rather than the shell default, which is what makes the
+            // assertions above load-bearing rather than vacuous.
+            for flags in
+                [ [ "--window-backend"; "vulkan" ]
+                  [ "--window-position"; "centered" ]
+                  [ "--window-resize"; "resizable" ]
+                  [ "--window-maximize"; "maximizable" ]
+                  [ "--window-options-file"; "/nonexistent-window-options.txt" ]
+                  [ "--window-startup"; "normal" ] ] do
+                Expect.isTrue
+                    (Rogue3.WindowOptions.windowFlagSupplied flags)
+                    $"%A{flags} routes the launch through toViewerLaunchRequest, so the request it builds is the one the window gets"
+
+            Expect.isFalse
+                (Rogue3.WindowOptions.windowFlagSupplied [])
+                "with no window flag the launch uses the shell's own InitialDisplay instead"
         }
 
         // Issue #912: PLAYED THROUGH THE HOST — the one altitude the host tests above never reach.

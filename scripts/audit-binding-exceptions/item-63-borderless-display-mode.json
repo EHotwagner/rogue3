@@ -1,0 +1,86 @@
+{
+  "grandfatherSchema": 2,
+  "note": "Explicit exceptions to the audit-binding check (scripts/check-audit-bindings.py) written by ONE cycle: `--grandfather --cycle <id>` writes this file and nothing else, ever. Each entry excuses ONE stale binding at ONE observed digest, so a digest no cycle ever excused still fails. The checker evaluates the UNION of every file in this directory, so two concurrent cycles excuse the same binding without sharing a path -- and because both entries survive the merge, the digests a binding tolerates only ever GROW: returning a file to a digest some earlier cycle excused is green under that cycle's recorded reason. An entry that excuses nothing right now is reported as dormant, never as a failure, and only the cycle that owns this file prunes it. Adding an entry here is the PREFERRED remedy; rebinding a MERGED audit rewrites what that audit records its critic as having verified (see 7e71d71) and is right only for an audit you re-verified yourself.",
+  "entries": [
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-10.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "a442d54963784216462f229e28aa7e9798f2282810940ac197c521545671dee1",
+      "observedSha256": "3446b7eeb2ccc76564281b194d66d95cbda6f52dbbff022fc6c5729d65b04557",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it at the GameShell seam AND at the CLI launch path a mutation critic found, retire a restored one at the settings decode seam, change parseWindowBehavior's startup default from windowed-fullscreen to normal, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is the framework defect FS-GG/FS.GG.Rendering#1196; adjacent defects filed as EHotwagner/rogue3#75, #80 and #82. Moves src/Rogue3/{GameShell,EvidenceCommands,WindowOptions}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and docs/scaffold-map.md, none of which the citing audits' findings depend on. Verify exit 0 and 276 tests green at the excused bytes. First cycle to use the per-cycle ledger #84 introduced."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-7.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "c7a7ebfc45e89c07968952fe3154effe1151c561347aae996ef2fa831660a787",
+      "observedSha256": "3446b7eeb2ccc76564281b194d66d95cbda6f52dbbff022fc6c5729d65b04557",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it at the GameShell seam AND at the CLI launch path a mutation critic found, retire a restored one at the settings decode seam, change parseWindowBehavior's startup default from windowed-fullscreen to normal, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is the framework defect FS-GG/FS.GG.Rendering#1196; adjacent defects filed as EHotwagner/rogue3#75, #80 and #82. Moves src/Rogue3/{GameShell,EvidenceCommands,WindowOptions}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and docs/scaffold-map.md, none of which the citing audits' findings depend on. Verify exit 0 and 276 tests green at the excused bytes. First cycle to use the per-cycle ledger #84 introduced."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "37b034184cfbac2147b5b585806757297faa04a5f92b0859b62415279e308536",
+      "observedSha256": "3446b7eeb2ccc76564281b194d66d95cbda6f52dbbff022fc6c5729d65b04557",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it at the GameShell seam AND at the CLI launch path a mutation critic found, retire a restored one at the settings decode seam, change parseWindowBehavior's startup default from windowed-fullscreen to normal, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is the framework defect FS-GG/FS.GG.Rendering#1196; adjacent defects filed as EHotwagner/rogue3#75, #80 and #82. Moves src/Rogue3/{GameShell,EvidenceCommands,WindowOptions}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and docs/scaffold-map.md, none of which the citing audits' findings depend on. Verify exit 0 and 276 tests green at the excused bytes. First cycle to use the per-cycle ledger #84 introduced."
+    },
+    {
+      "audit": "feedback/audits/2026-08-01-Rogue3-9.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "860cfc4e1015a395c29df0f65d69050774ce5f84f3d277026e435ff35c8f340c",
+      "observedSha256": "3446b7eeb2ccc76564281b194d66d95cbda6f52dbbff022fc6c5729d65b04557",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it at the GameShell seam AND at the CLI launch path a mutation critic found, retire a restored one at the settings decode seam, change parseWindowBehavior's startup default from windowed-fullscreen to normal, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is the framework defect FS-GG/FS.GG.Rendering#1196; adjacent defects filed as EHotwagner/rogue3#75, #80 and #82. Moves src/Rogue3/{GameShell,EvidenceCommands,WindowOptions}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and docs/scaffold-map.md, none of which the citing audits' findings depend on. Verify exit 0 and 276 tests green at the excused bytes. First cycle to use the per-cycle ledger #84 introduced."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "17391e420286843ac186d3163ffa879fe731a95c8f09cfb3b6c4326af52507aa",
+      "observedSha256": "3446b7eeb2ccc76564281b194d66d95cbda6f52dbbff022fc6c5729d65b04557",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it at the GameShell seam AND at the CLI launch path a mutation critic found, retire a restored one at the settings decode seam, change parseWindowBehavior's startup default from windowed-fullscreen to normal, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is the framework defect FS-GG/FS.GG.Rendering#1196; adjacent defects filed as EHotwagner/rogue3#75, #80 and #82. Moves src/Rogue3/{GameShell,EvidenceCommands,WindowOptions}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and docs/scaffold-map.md, none of which the citing audits' findings depend on. Verify exit 0 and 276 tests green at the excused bytes. First cycle to use the per-cycle ledger #84 introduced."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "729510e7eda14798f7f766eb235c52f06417b4b68e08fa470cb28554b54dc948",
+      "observedSha256": "3446b7eeb2ccc76564281b194d66d95cbda6f52dbbff022fc6c5729d65b04557",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it at the GameShell seam AND at the CLI launch path a mutation critic found, retire a restored one at the settings decode seam, change parseWindowBehavior's startup default from windowed-fullscreen to normal, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is the framework defect FS-GG/FS.GG.Rendering#1196; adjacent defects filed as EHotwagner/rogue3#75, #80 and #82. Moves src/Rogue3/{GameShell,EvidenceCommands,WindowOptions}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and docs/scaffold-map.md, none of which the citing audits' findings depend on. Verify exit 0 and 276 tests green at the excused bytes. First cycle to use the per-cycle ledger #84 introduced."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/GameShell.fs",
+      "boundSha256": "f18e94f1a8a8b4acc1eec4f4c84f5405f372fdd94bfa21ac4bd1ca5342e8f993",
+      "observedSha256": "a4ea26e1fc9a6f0b9e230603bee906b39b2572954a39aa89dff4b5b48a26331f",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it at the GameShell seam AND at the CLI launch path a mutation critic found, retire a restored one at the settings decode seam, change parseWindowBehavior's startup default from windowed-fullscreen to normal, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is the framework defect FS-GG/FS.GG.Rendering#1196; adjacent defects filed as EHotwagner/rogue3#75, #80 and #82. Moves src/Rogue3/{GameShell,EvidenceCommands,WindowOptions}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and docs/scaffold-map.md, none of which the citing audits' findings depend on. Verify exit 0 and 276 tests green at the excused bytes. First cycle to use the per-cycle ledger #84 introduced."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-5.audit.json",
+      "kind": "evidence",
+      "locator": "file:docs/scaffold-map.md",
+      "boundSha256": "0fbe934e9125a60664e2b69f6537cdbacde0713031e1f2a7262e67a4d536ab98",
+      "observedSha256": "31efa21fbea4714d00ed877e55a5515c6c2d3236ca9418f150bf6aa1dbf05dd2",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it at the GameShell seam AND at the CLI launch path a mutation critic found, retire a restored one at the settings decode seam, change parseWindowBehavior's startup default from windowed-fullscreen to normal, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is the framework defect FS-GG/FS.GG.Rendering#1196; adjacent defects filed as EHotwagner/rogue3#75, #80 and #82. Moves src/Rogue3/{GameShell,EvidenceCommands,WindowOptions}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and docs/scaffold-map.md, none of which the citing audits' findings depend on. Verify exit 0 and 276 tests green at the excused bytes. First cycle to use the per-cycle ledger #84 introduced."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-7.audit.json",
+      "kind": "evidence",
+      "locator": "file:docs/scaffold-map.md",
+      "boundSha256": "44a98f3ec4eb6069b247f824896aa48119f3319057b414e2e9b6ea9f3353cd5c",
+      "observedSha256": "31efa21fbea4714d00ed877e55a5515c6c2d3236ca9418f150bf6aa1dbf05dd2",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it at the GameShell seam AND at the CLI launch path a mutation critic found, retire a restored one at the settings decode seam, change parseWindowBehavior's startup default from windowed-fullscreen to normal, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is the framework defect FS-GG/FS.GG.Rendering#1196; adjacent defects filed as EHotwagner/rogue3#75, #80 and #82. Moves src/Rogue3/{GameShell,EvidenceCommands,WindowOptions}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and docs/scaffold-map.md, none of which the citing audits' findings depend on. Verify exit 0 and 276 tests green at the excused bytes. First cycle to use the per-cycle ledger #84 introduced."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "9bcca9582b936a1b03e9f180cbe677af2cdebd0b09dc7634650b9d54c7eec105",
+      "observedSha256": "3446b7eeb2ccc76564281b194d66d95cbda6f52dbbff022fc6c5729d65b04557",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it at the GameShell seam AND at the CLI launch path a mutation critic found, retire a restored one at the settings decode seam, change parseWindowBehavior's startup default from windowed-fullscreen to normal, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is the framework defect FS-GG/FS.GG.Rendering#1196; adjacent defects filed as EHotwagner/rogue3#75, #80 and #82. Moves src/Rogue3/{GameShell,EvidenceCommands,WindowOptions}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and docs/scaffold-map.md, none of which the citing audits' findings depend on. Verify exit 0 and 276 tests green at the excused bytes. First cycle to use the per-cycle ledger #84 introduced."
+    }
+  ]
+}
