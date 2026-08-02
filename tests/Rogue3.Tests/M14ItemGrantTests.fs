@@ -683,6 +683,38 @@ let m14ItemGrantTests =
               Expect.equal (update (InteractM5Shop 0) flush |> fst).PlayerCurrency.Coins 99 "and leaves the purse where it was"
           }
 
+          test "buying one slot does not MOVE the plinths the player is not standing at" {
+              // A surviving mutant found this hole: `shopSlotPositions` counts `M5ShopSlots.Length`,
+              // and counting only the still-stocked slots instead passes every other test in this
+              // file. It would also make every remaining plinth slide sideways the instant a
+              // neighbour was bought, under the player's feet and under the renderer at once — and
+              // because sensor and renderer read the SAME function, they would agree with each other
+              // while both lied about where the shop is. Agreement is not correctness; the positions
+              // have to be pinned as STABLE across a purchase, which nothing else here does.
+              let model = inShop 50
+              let before = shopSlotPositions model
+              let target =
+                  model.M5ShopSlots
+                  |> List.find (fun slot -> slot.Offer <> Rogue3.Entities.ShopOffer.Empty && not slot.KeyLocked)
+              let bought = update (InteractM5Shop target.Id) model |> fst
+              Expect.notEqual (bought.M5ShopSlots |> List.map _.Offer) (model.M5ShopSlots |> List.map _.Offer) "the purchase really happened"
+              Expect.equal (shopSlotPositions bought) before "every slot is still drawn and sensed where it was"
+
+              // And the renderer agrees, at the position rather than merely in count — the same
+              // property one level out, read through the production scene rather than the helper.
+              // Only the slots that were NOT bought are compared: the bought one legitimately redraws
+              // as a bare plinth with no stock and no price label, so its bounds are supposed to
+              // change. Its NEIGHBOURS are what must not move.
+              let untouched (m: Model) =
+                  Render.renderedElements m
+                  |> List.filter (fun element -> element.ElementId = "ShopItem")
+                  |> List.indexed
+                  |> List.filter (fun (index, _) -> List.tryItem index m.M5ShopSlots |> Option.map _.Id <> Some target.Id)
+                  |> List.map (fun (_, element) -> boundsOf element.Scene)
+              Expect.isNonEmpty (untouched bought) "there is a neighbouring slot to compare"
+              Expect.equal (untouched bought) (untouched model) "and the renderer draws the untouched slots in the same places"
+          }
+
           test "a bought slot stays bought when the player leaves and comes back" {
               // Found by making the purchase reachable. `loadM5Room` re-reads a room's stock from
               // `FloorGeneration.ShopStock` on every entry, and nothing wrote the emptied offers back

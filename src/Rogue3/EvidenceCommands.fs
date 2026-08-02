@@ -1431,30 +1431,29 @@ let m7UiPerformanceEvidence (path:string) =
               // reports 12 scene elements at both outputs and the same five named regions, because the
               // shop prompt is a WORLD-SPACE element and this route measures the HUD.
               //
-              // Board item #55 (SEVENTH derivation), same cycle as the sixth. A critic pass over the
-              // candidate found that the shop/trapdoor tie-break gated the descent on whether a shop
-              // slot was SENSED rather than on whether the press would transact, so an unaffordable
-              // slot on a hatch swallowed the interact edge forever. `playerRoomIntentsIn` now gates
-              // on `purchaseTransacts`, which moves `Model.fs` again and therefore moves exactly the
-              // same three routes a second time. `main-menu` is byte-identical for the third cycle
-              // running — it hashes `GameShell.fs` and `M7Ui.fs`, which this did not touch — and that
-              // is the check that the digest set moved where the source moved and nowhere else. Every
-              // scale verdict is unchanged; the fix is one predicate inside the fixed step and draws
-              // nothing.
+              // Board item #55 (SEVENTH derivation), by the second worker on the same cycle. The
+              // branch was adopted after its first worker's session ended mid-repair, and two critic
+              // passes over the adopted candidate found two real defects in it, both fixed here:
+              // the shop/trapdoor tie-break gated the descent on whether a slot was SENSED rather
+              // than on whether the press would TRANSACT, so an unaffordable slot on a hatch
+              // swallowed the interact edge forever; and the shop charged for a consumable that
+              // could not land -- a heart at full health, a key at the 99 cap -- emptying the offer
+              // and playing the acquisition cue for a player it left identical. `Model.fs` gained
+              // `purchaseOutcome` and `shopSlotRefusal` and lost the false claim in the descent
+              // comment; `Render.fs` now takes the prompt's words from the model instead of
+              // re-deriving them. Those edits moved these three routes three times between them and
+              // this is the settled result, declared once rather than as three numbered steps that
+              // only ever existed inside one unmerged branch.
               //
-              // Board item #55 (EIGHTH derivation), same cycle again, and the last. The second critic
-              // pass found that the shop charged for a consumable that could not land — a heart at
-              // full health, a key at the 99 cap — emptying the offer, playing the acquisition cue and
-              // returning an identical player. `purchaseM5ShopSlot` now routes through
-              // `purchaseOutcome`, which refuses that sale, and `Render.shopSlotReadyScene` takes its
-              // words from `Model.shopSlotRefusal` instead of re-deriving them from `KeyLocked` and
-              // `Price`. `Model.fs` and `Render.fs` both move, so the same three routes move a third
-              // time in this cycle. `main-menu` is byte-identical for the fourth cycle running. The
-              // scale verdicts are unchanged: the prompt is one text run either way, and the refusal
-              // reads `FULL` where it used to read a coin price the player could already meet.
-              "hud-playing", "50d01cb29a17e56aab699700eb3330fe128fb1a65ee5a73ad7f23cc7451c8c4c"
-              "run-result", "3eae752bfb2cba19189f13088fb345465615eeaa93852ac754043047980213bd"
-              "stats-charts", "61974e1a5b91635a9a9dff4399c3b974d90f7ac3e57c9ddc42b97abae85202e6" ]
+              // `main-menu` above is byte-identical through all of it -- it hashes `GameShell.fs`
+              // and `M7Ui.fs`, which this cycle never touched -- and that is the check that the
+              // digest set moved where the source moved and nowhere else. Every scale verdict is
+              // unchanged: hud-playing still reports 12 scene elements at both outputs and the same
+              // five named regions, because the shop prompt is a WORLD-SPACE element and this route
+              // measures the HUD.
+              "hud-playing", "cb44115fce35a1166e3602a65a6819681bdcdb704d65d4348ea41b4e95d03478"
+              "run-result", "2e5355872d5533ee31d04c2d20f6e125d82ce8095fa0ce04679a9666faa75f30"
+              "stats-charts", "363fe2735fbcf73275ac7e29e0de862f21ca4635bc55da3217999149c64439ae" ]
     let routes=[measure "main-menu" menu;measure "hud-playing" playing;measure "run-result" runResult;measure "stats-charts" stats]
     let runResultFrame=Control.renderTree host.Theme size (host.View size runResult)
     let expectedResultActions=Set["result-new-run";"result-retry-seed";"result-title"]

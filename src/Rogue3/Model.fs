@@ -2415,13 +2415,22 @@ let playerRoomIntentsIn isFirstStep pressedThisTick (model: Model) : Model * Msg
         // `DescendFloor` replaces every room-local collection but does not load a room, so the route
         // follows it with the production room-entry message. Both are guarded reducers.
         //
-        // A TRANSACTING SHOP PRESS WINS A TIE; A REFUSED ONE DOES NOT. `placementAccepts` rejects any
-        // fixture position inside `trapdoorContains`, so stock is never placed ON the hatch — but
-        // `shopSlotRadius` plus `playerRadius` reaches past the plinth, so one press can satisfy both
-        // predicates at the margin. Descending is a one-way trip that abandons the room's remaining
-        // stock; buying is local and repeatable, and the player can press again to descend. Resolving
-        // the tie the other way would make a shop built beside a trapdoor unbuyable, which is the
-        // defect this item exists to close.
+        // A TRANSACTING SHOP PRESS WINS A TIE; A REFUSED ONE DOES NOT.
+        //
+        // Be honest about how the tie arises, because the first draft of this comment was not. It
+        // said the two predicates can meet "at the margin" of an authored placement, and that is
+        // FALSE and asserted false: `placementAccepts` rejects any candidate inside
+        // `trapdoorContains`, and "no AUTHORED slot placement can contest the trapdoor" measures the
+        // whole authored candidate list at 56.3 units from the hatch against an interact reach of
+        // 33.0. Generated content cannot produce the tie at all — `FloorGeneration` adds `Trapdoor`
+        // only on a boss clear, and a boss room carries `BossReward`, never `ShopStock`. The tie is
+        // reachable only through the fallback lattice of EHotwagner/rogue3#69, which never runs
+        // `placementAccepts`. So this arm is defence in depth against a hole in another function, and
+        // it is written to hold rather than to be relied upon.
+        //
+        // Given the tie: descending is a one-way trip that abandons the room's remaining stock;
+        // buying is local and repeatable. Resolving it the other way would make a shop built beside a
+        // trapdoor unbuyable, which is the defect this item exists to close.
         //
         // The gate is `purchaseTransacts` and NOT `List.isEmpty shopIntents`, which is what it said
         // first. A slot the player cannot afford is still sensed — it must be, or the refusal prompt
