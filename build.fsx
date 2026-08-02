@@ -1050,20 +1050,33 @@ let private runSelfTest () =
         // not by this repository, so an engine upgrade that renames it would leave the
         // rule abstaining forever behind a green gate. Assert the literal against the
         // real committed artifact, so the drift fails HERE rather than silently.
+        // Both cases are UNCONDITIONAL: guarding them behind `File.Exists` would let
+        // the check DISAPPEAR on a tree with no graph yet, and a vanishing case is
+        // the same failure mode one level up. A scaffold that has never emitted a
+        // graph is a legitimate state, so absence passes — but it says so out loud
+        // instead of silently shrinking the suite.
         let committedGraph = path [ currentRoot (); "readiness"; "evidence-graph.md" ]
+        let committedGraphExists = File.Exists committedGraph
 
-        if File.Exists committedGraph then
-            let committedSensed = sensedReadinessFiles (File.ReadAllText committedGraph)
+        if not committedGraphExists then
+            printfn "  note %s does not exist yet; the two heading-drift cases pass vacuously" committedGraph
 
-            expect
-                $"the committed evidence graph still has the `{sensedSectionHeading}` section the rule matches"
-                committedSensed.IsSome
+        let committedSensed =
+            if committedGraphExists then
+                sensedReadinessFiles (File.ReadAllText committedGraph)
+            else
+                None
 
-            expect
-                "the rule reads a non-empty sensed-file list from the committed evidence graph"
-                (match committedSensed with
+        expect
+            $"the committed evidence graph still has the `{sensedSectionHeading}` section the rule matches"
+            (not committedGraphExists || committedSensed.IsSome)
+
+        expect
+            "the rule reads a non-empty sensed-file list from the committed evidence graph"
+            (not committedGraphExists
+             || (match committedSensed with
                  | Some entries -> not (Set.isEmpty entries)
-                 | None -> false)
+                 | None -> false))
 
         let clean, _ = freshFixture ()
         expect "a faithful fixture is clean" (List.isEmpty (templateDriftViolations clean) && List.isEmpty (generatedGuidanceViolations clean))

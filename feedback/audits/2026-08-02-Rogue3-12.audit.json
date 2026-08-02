@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-12.md",
-  "reportSha256": "b7b450a6f9d72c2aa82bc2734da4b7e3a81dce1475045ea0e31e65579f990f9e",
+  "reportSha256": "da00e0eae167e7faa0227bf74352ce70f7cdc4ae0fdf31dd51dd2c01af2bfbf1",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -21,7 +21,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "676ebaa0d6b0cf501bdb17a43284ec739119ab37e5bdd94b8dc99296f361a7eb"
+          "sha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490"
         },
         {
           "locator": "file:.gitignore",
@@ -157,7 +157,7 @@
         {
           "locator": "file:build.fsx",
           "result": "verified",
-          "sha256": "676ebaa0d6b0cf501bdb17a43284ec739119ab37e5bdd94b8dc99296f361a7eb"
+          "sha256": "4cfd7841b6f2004b76b5484d77c8e74e2c483c73803414f00d4bb4a24ad5e490"
         },
         {
           "locator": "file:feedback/checkpoints/item-26-verify-rewrites-tracked-evidence.jsonl",
