@@ -1498,6 +1498,12 @@ let m7UiPerformanceEvidence (path:string) =
               // unchanged: hud-playing still reports 12 scene elements at both outputs and the same
               // five named regions, because the shop prompt is a WORLD-SPACE element and this route
               // measures the HUD.
+              //
+              // (Read the paragraph above as a record of the #55 cycle, which is what "this cycle"
+              // means there. It is no longer true of the CURRENT declaration: #63 -- the eighth
+              // derivation, noted at the top of this map -- did touch `GameShell.fs`, and
+              // `main-menu` moved for the first time. The three digests below are the ones that are
+              // byte-identical now.)
               "hud-playing", "cb44115fce35a1166e3602a65a6819681bdcdb704d65d4348ea41b4e95d03478"
               "run-result", "2e5355872d5533ee31d04c2d20f6e125d82ce8095fa0ce04679a9666faa75f30"
               "stats-charts", "363fe2735fbcf73275ac7e29e0de862f21ca4635bc55da3217999149c64439ae" ]

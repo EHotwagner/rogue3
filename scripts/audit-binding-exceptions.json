@@ -7,8 +7,8 @@
       "kind": "evidence",
       "locator": "file:src/Rogue3/EvidenceCommands.fs",
       "boundSha256": "a442d54963784216462f229e28aa7e9798f2282810940ac197c521545671dee1",
-      "observedSha256": "17391e420286843ac186d3163ffa879fe731a95c8f09cfb3b6c4326af52507aa",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "34b1377e8466aefd16db4ab836a6d8a2b07aca95c1e6d1b0777426f5e5c7051d",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-11.audit.json",
@@ -119,8 +119,8 @@
       "kind": "evidence",
       "locator": "file:readiness/performance-evidence.json",
       "boundSha256": "ca29ee69ac42c3cbbe347eb8563d972f219b3e7c30a62e789a8a22d631bf5044",
-      "observedSha256": "a47018247e1d41922ba0a839e14323ee5ab7026553adb428de91de3adda12db9",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "c8070c06afb8cf9a5503293229a23a383f562e7638e29001cb3df7976b6c8939",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-2.audit.json",
@@ -143,8 +143,8 @@
       "kind": "evidence",
       "locator": "file:readiness/performance-evidence.json",
       "boundSha256": "30cc7cdf5d0537e5adab8189bb0642e9bfd7f019b7ba0e487ecebdfd21f8a151",
-      "observedSha256": "a47018247e1d41922ba0a839e14323ee5ab7026553adb428de91de3adda12db9",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "c8070c06afb8cf9a5503293229a23a383f562e7638e29001cb3df7976b6c8939",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-3.audit.json",
@@ -175,8 +175,8 @@
       "kind": "evidence",
       "locator": "file:readiness/performance-evidence.json",
       "boundSha256": "ac2ca0581e3cf2cd8ab91e67385bad460a67ffddf881012e40d2dc65c8e3ca0a",
-      "observedSha256": "a47018247e1d41922ba0a839e14323ee5ab7026553adb428de91de3adda12db9",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "c8070c06afb8cf9a5503293229a23a383f562e7638e29001cb3df7976b6c8939",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-4.audit.json",
@@ -207,8 +207,8 @@
       "kind": "evidence",
       "locator": "file:readiness/performance-evidence.json",
       "boundSha256": "3bb8d49432300f65c8617cf8e4206c45dbdcb7094faf533afedf92ec9572b9bc",
-      "observedSha256": "a47018247e1d41922ba0a839e14323ee5ab7026553adb428de91de3adda12db9",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "c8070c06afb8cf9a5503293229a23a383f562e7638e29001cb3df7976b6c8939",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-5.audit.json",
@@ -239,8 +239,8 @@
       "kind": "evidence",
       "locator": "file:readiness/performance-evidence.json",
       "boundSha256": "f6e74a4c250dfbbdc3ece07e2df6806eecbfed991d9626c40d366a0c272e62e4",
-      "observedSha256": "a47018247e1d41922ba0a839e14323ee5ab7026553adb428de91de3adda12db9",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "c8070c06afb8cf9a5503293229a23a383f562e7638e29001cb3df7976b6c8939",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-6.audit.json",
@@ -271,8 +271,8 @@
       "kind": "evidence",
       "locator": "file:readiness/performance-evidence.json",
       "boundSha256": "3da97ac4eff3250dee8cd16f40db4a0d4bdbbdbefb2a90eefafec6f277ecedbd",
-      "observedSha256": "a47018247e1d41922ba0a839e14323ee5ab7026553adb428de91de3adda12db9",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "c8070c06afb8cf9a5503293229a23a383f562e7638e29001cb3df7976b6c8939",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-7.audit.json",
@@ -287,8 +287,8 @@
       "kind": "evidence",
       "locator": "file:src/Rogue3/EvidenceCommands.fs",
       "boundSha256": "c7a7ebfc45e89c07968952fe3154effe1151c561347aae996ef2fa831660a787",
-      "observedSha256": "17391e420286843ac186d3163ffa879fe731a95c8f09cfb3b6c4326af52507aa",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "34b1377e8466aefd16db4ab836a6d8a2b07aca95c1e6d1b0777426f5e5c7051d",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-7.audit.json",
@@ -335,16 +335,16 @@
       "kind": "evidence",
       "locator": "file:readiness/m7-ui-performance.json",
       "boundSha256": "b9ca1481e2f5531a6ecce2020b4db2c25f68526e92faced517d716d03fcbc610",
-      "observedSha256": "cc49b7108369635928abd04a95b3e59190e468403eefcddf24a43c7083b7e5ab",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "000376f210ac7bb1c28e7fdf1dd923b8996be8a7272c2a9cc4b566f73a33a5cd",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
       "kind": "evidence",
       "locator": "file:readiness/performance-evidence.json",
       "boundSha256": "40ed273416a0f01bb7c70d91808890450f1f56b5cb4f6d15c20a06a78c17c36a",
-      "observedSha256": "a47018247e1d41922ba0a839e14323ee5ab7026553adb428de91de3adda12db9",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "c8070c06afb8cf9a5503293229a23a383f562e7638e29001cb3df7976b6c8939",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
@@ -359,8 +359,8 @@
       "kind": "evidence",
       "locator": "file:src/Rogue3/EvidenceCommands.fs",
       "boundSha256": "37b034184cfbac2147b5b585806757297faa04a5f92b0859b62415279e308536",
-      "observedSha256": "17391e420286843ac186d3163ffa879fe731a95c8f09cfb3b6c4326af52507aa",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "34b1377e8466aefd16db4ab836a6d8a2b07aca95c1e6d1b0777426f5e5c7051d",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-8.audit.json",
@@ -407,8 +407,8 @@
       "kind": "evidence",
       "locator": "file:src/Rogue3/EvidenceCommands.fs",
       "boundSha256": "860cfc4e1015a395c29df0f65d69050774ce5f84f3d277026e435ff35c8f340c",
-      "observedSha256": "17391e420286843ac186d3163ffa879fe731a95c8f09cfb3b6c4326af52507aa",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "34b1377e8466aefd16db4ab836a6d8a2b07aca95c1e6d1b0777426f5e5c7051d",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-01-Rogue3-9.audit.json",
@@ -483,22 +483,6 @@
       "reason": "rogue3#57: build.fsx SelfTest no longer infers its verdict from its own transcript - the verdict is carried by readiness/logs/selftest-result.json and by a child-process self-probe - and .github/workflows/verify.yml's guard moves off stdout scraping onto that structured result. Both files are necessarily rewritten by the item whose entire declared path they are."
     },
     {
-      "audit": "feedback/audits/2026-08-02-Rogue3-14.audit.json",
-      "kind": "evidence",
-      "locator": "file:.github/workflows/verify.yml",
-      "boundSha256": "257798a7cb1afbd8574091fd220c97af368aadbbadefbdb868a21e0c2b2244a6",
-      "observedSha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa",
-      "reason": "rogue3#57: build.fsx SelfTest no longer infers its verdict from its own transcript - the verdict is carried by readiness/logs/selftest-result.json and by a child-process self-probe - and .github/workflows/verify.yml's guard moves off stdout scraping onto that structured result. Both files are necessarily rewritten by the item whose entire declared path they are."
-    },
-    {
-      "audit": "feedback/audits/2026-08-02-Rogue3-15.audit.json",
-      "kind": "evidence",
-      "locator": "file:build.fsx",
-      "boundSha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea",
-      "observedSha256": "486fd8012c4dba5a23e4e0270eec14d70a36ea3c474c9740e610445d87c1180c",
-      "reason": "rogue3#57: build.fsx SelfTest no longer infers its verdict from its own transcript - the verdict is carried by readiness/logs/selftest-result.json and by a child-process self-probe - and .github/workflows/verify.yml's guard moves off stdout scraping onto that structured result. Both files are necessarily rewritten by the item whose entire declared path they are."
-    },
-    {
       "audit": "feedback/audits/2026-08-02-Rogue3-13.audit.json",
       "kind": "evidence",
       "locator": "file:src/Rogue3/Model.fs",
@@ -515,12 +499,36 @@
       "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
     },
     {
+      "audit": "feedback/audits/2026-08-02-Rogue3-14.audit.json",
+      "kind": "evidence",
+      "locator": "file:.github/workflows/verify.yml",
+      "boundSha256": "257798a7cb1afbd8574091fd220c97af368aadbbadefbdb868a21e0c2b2244a6",
+      "observedSha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa",
+      "reason": "rogue3#57: build.fsx SelfTest no longer infers its verdict from its own transcript - the verdict is carried by readiness/logs/selftest-result.json and by a child-process self-probe - and .github/workflows/verify.yml's guard moves off stdout scraping onto that structured result. Both files are necessarily rewritten by the item whose entire declared path they are."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-15.audit.json",
+      "kind": "evidence",
+      "locator": "file:build.fsx",
+      "boundSha256": "f5e4b125fec0bb14ac7f8fab29cef3a6fd2281946d5fccfe2acc5c94fa45dfea",
+      "observedSha256": "486fd8012c4dba5a23e4e0270eec14d70a36ea3c474c9740e610445d87c1180c",
+      "reason": "rogue3#57: build.fsx SelfTest no longer infers its verdict from its own transcript - the verdict is carried by readiness/logs/selftest-result.json and by a child-process self-probe - and .github/workflows/verify.yml's guard moves off stdout scraping onto that structured result. Both files are necessarily rewritten by the item whose entire declared path they are."
+    },
+    {
       "audit": "feedback/audits/2026-08-02-Rogue3-15.audit.json",
       "kind": "evidence",
       "locator": "file:readiness/m7-ui-performance.json",
       "boundSha256": "628a75a11b362e977f7b1d04d9dd9944ee1ee818a2fae2ceb70f518dbb3dac6d",
-      "observedSha256": "cc49b7108369635928abd04a95b3e59190e468403eefcddf24a43c7083b7e5ab",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "000376f210ac7bb1c28e7fdf1dd923b8996be8a7272c2a9cc4b566f73a33a5cd",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-16.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/EvidenceCommands.fs",
+      "boundSha256": "17391e420286843ac186d3163ffa879fe731a95c8f09cfb3b6c4326af52507aa",
+      "observedSha256": "34b1377e8466aefd16db4ab836a6d8a2b07aca95c1e6d1b0777426f5e5c7051d",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
@@ -535,8 +543,16 @@
       "kind": "evidence",
       "locator": "file:src/Rogue3/EvidenceCommands.fs",
       "boundSha256": "729510e7eda14798f7f766eb235c52f06417b4b68e08fa470cb28554b54dc948",
-      "observedSha256": "17391e420286843ac186d3163ffa879fe731a95c8f09cfb3b6c4326af52507aa",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "34b1377e8466aefd16db4ab836a6d8a2b07aca95c1e6d1b0777426f5e5c7051d",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/GameShell.fs",
+      "boundSha256": "f18e94f1a8a8b4acc1eec4f4c84f5405f372fdd94bfa21ac4bd1ca5342e8f993",
+      "observedSha256": "a4ea26e1fc9a6f0b9e230603bee906b39b2572954a39aa89dff4b5b48a26331f",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-2.audit.json",
@@ -703,16 +719,16 @@
       "kind": "evidence",
       "locator": "file:readiness/performance-evidence.json",
       "boundSha256": "b27ded9bc6dd6ece93f4c7a1402d8176aafd24e73b56c579a7da77ba17eec5be",
-      "observedSha256": "a47018247e1d41922ba0a839e14323ee5ab7026553adb428de91de3adda12db9",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "c8070c06afb8cf9a5503293229a23a383f562e7638e29001cb3df7976b6c8939",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
       "kind": "evidence",
       "locator": "file:src/Rogue3/EvidenceCommands.fs",
       "boundSha256": "9bcca9582b936a1b03e9f180cbe677af2cdebd0b09dc7634650b9d54c7eec105",
-      "observedSha256": "17391e420286843ac186d3163ffa879fe731a95c8f09cfb3b6c4326af52507aa",
-      "reason": "Board item EHotwagner/rogue3#55 (worker rook-d1ae, adopting curlew-cd9c's reaped branch): wiring a production interact route to InteractM5Shop, plus the three defects that made live -- shop restock on re-entry, a refused press swallowing the descent, and a sale charged for goods that could not land. Moves src/Rogue3/{Model,AudioCues,Render,GameplayVisualInventory,EvidenceCommands,PerformanceEvidence}.fs, tests/Rogue3.Tests/{M10AcceptanceDeterminismTests,M14ItemGrantTests}.fs, tests/Rogue3.Tests/element-visuals.catalog and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 272 tests green at the excused bytes."
+      "observedSha256": "34b1377e8466aefd16db4ab836a6d8a2b07aca95c1e6d1b0777426f5e5c7051d",
+      "reason": "Board item EHotwagner/rogue3#63 (worker curlew-39d8): withdraw the Borderless display mode that bricked the pointer UI, remap it onto exclusive Fullscreen at the windowBehavior seam, retire a restored one at the load seam, and re-declare the main-menu M7 route digest that GameShell.fs moved. Root cause is a framework defect in ViewerWindowStartupState.WindowedFullscreen, filed as FS-GG/FS.GG.Rendering#1196; an adjacent launch-path defect found in review is filed as EHotwagner/rogue3#75. Moves src/Rogue3/{GameShell,EvidenceCommands}.fs, tests/Rogue3.Tests/{BehaviorTests,ShellBehaviorTests}.fs and the two readiness artifacts, none of which the citing audits' findings depend on. Verify exit 0 and 275 tests green at the excused bytes."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3-8.audit.json",
