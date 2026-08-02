@@ -1,0 +1,39 @@
+name: audit-bindings
+
+# A cycle audit under feedback/audits/ pins a sha256 over every file it cites.
+# Nothing used to notice when a later commit changed one of those files, so a
+# documentation-only PR silently invalidated the evidence binding of an
+# already-merged cycle report (feedback/2026-08-01-Rogue3-12.md 4.13,
+# feedback/2026-08-02-Rogue3.md 4.1). This job makes that failure loud, on the
+# pull request AND on main, so a direct push cannot rot a binding either.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-bindings-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit-bindings:
+    name: Audit bindings are fresh or explicitly excused
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+
+      # The checker is the thing being trusted, so prove it still detects a
+      # stale binding before trusting the verdict it gives about this commit.
+      - name: Self-test the checker
+        run: python3 scripts/check-audit-bindings.py --selftest
+
+      - name: Check every audit binding
+        run: python3 scripts/check-audit-bindings.py
