@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-14.md",
-  "reportSha256": "39e19fd05ccfe8b90ace00c3933ec79b154c982d326c1951992310f7fdf00cd4",
+  "reportSha256": "e55bb1097199df26856d49db75561bddcbf3100c30bb4e487eeab4e4cffc7bce",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -21,7 +21,7 @@
         {
           "locator": "file:.github/workflows/verify.yml",
           "result": "verified",
-          "sha256": "666f040befeadbc926afe14d40e36eaf9702876d74e68f1dd00d50dec8e8b426"
+          "sha256": "564a3443b9f4d62983489b6857721da1da4562be3340cd0b2f21f60e43a3b7e2"
         },
         {
           "locator": "issue:EHotwagner/rogue3#52",
@@ -58,7 +58,11 @@
       "missingFacts": [],
       "checkedEvidence": [
         {
-          "locator": "command:python3 scripts/check-audit-bindings.py exits 0 at bfd1288 reporting 225 bindings, 151 fresh, 74 explicitly excused, 3 not bound, and after editing only .github/workflows/verify.yml exits 1 reporting 1 STALE BINDING(S) on feedback/audits/2026-08-02-Rogue3-11.audit.json file:.github/workflows/verify.yml bound 089b1fdcd2f1 now 3bde3b908c3e",
+          "locator": "command:python3 scripts/check-audit-bindings.py exits 0 at bfd1288 reporting 225 bindings, 151 fresh, 74 explicitly excused, 3 not bound, and after editing only .github/workflows/verify.yml exits 1 reporting 1 STALE BINDING(S) on feedback/audits/2026-08-02-Rogue3-11.audit.json file:.github/workflows/verify.yml",
+          "result": "verified"
+        },
+        {
+          "locator": "command:after rebasing onto 09895b9 the same edit makes the same command exit 1 with 2 STALE BINDING(S), the audits of cycles -11 and -12, both on file:.github/workflows/verify.yml bound 089b1fdcd2f1",
           "result": "verified"
         },
         {
@@ -112,7 +116,11 @@
       "missingFacts": [],
       "checkedEvidence": [
         {
-          "locator": "command:on a git archive export of 09895b9 with templateDriftViolations returning the empty list and the line failures <- failures + 1 deleted, ./fake.sh -t SelfTest exits 0 printing SelfTest: 77 case(s), 0 failure(s) alongside 15 FAIL lines, while the workflow guard script over the same output exits 1",
+          "locator": "command:on a git archive export of 09895b9 with templateDriftViolations returning the empty list and the line failures <- failures + 1 deleted, ./fake.sh -t SelfTest exits 0 printing SelfTest: 77 case(s), 0 failure(s) alongside 15 FAIL lines, while the workflow guard script over the same output exits 1 reporting 62 passing case(s) of 77",
+          "result": "verified"
+        },
+        {
+          "locator": "command:on that same mutated export with eprintfn \"  FAIL %s\" relabelled to \"  [fail] %s\", the FAIL-grep form of the guard exits 0 while the ok-count form exits 1",
           "result": "verified"
         },
         {

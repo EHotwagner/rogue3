@@ -101,35 +101,73 @@ jobs:
       # Scope limits worth naming, so a green result is not over-read:
       #   * TemplateDrift covers 64 of 190 kit files (rogue3#46), so a green
       #     SelfTest is not "no kit file drifted".
-      #   * SelfTest does not fully self-certify: 7 of 23 single-edit mutants
-      #     survive it, including one that exempts the real repository from the
-      #     drift check while all fixture cases still pass (rogue3#57). The output
-      #     guard below closes the two worst; the rest need a build.fsx fix.
+      #   * SelfTest does not fully self-certify, and rogue3#52's acceptance
+      #     criterion ("a PR that makes any build.fsx check unconditionally pass is
+      #     red in CI") is therefore NOT fully met by this job. 7 of 23 single-edit
+      #     mutants survive SelfTest. The guard below closes the two worst, but one
+      #     single-line edit -- returning [] from templateDriftViolations only when
+      #     root = Directory.GetCurrentDirectory() -- exempts the REAL repository
+      #     while every fixture case still passes, so a tree carrying genuine kit
+      #     drift stays green. Measured. That residual needs a build.fsx fix and is
+      #     tracked as rogue3#57; it is out of this item's declared paths.
       #   * main is not branch-protected, so no check here is a REQUIRED status
       #     check -- these gates block by turning a job red, not by blocking merge.
-      # The exit code alone is NOT sufficient, and this is measured, not cautious.
-      # SelfTest tracks its own result in one mutable counter, so DELETING THE ONE
-      # LINE `failures <- failures + 1` makes it print every `FAIL` and still exit
-      # 0; `if failures > 0 then` -> `if false then` does the same. Combined with a
-      # check made vacuous, two single-line edits leave BOTH `-t SelfTest` and
-      # `dotnet test -c Release` (235/235) green. So this step additionally treats
-      # any reported FAIL line as fatal regardless of exit code, and requires the
-      # summary line to have been printed at all -- a target that silently did not
-      # run is not a pass. Root cause is in build.fsx and is tracked separately;
-      # this guard is the part that can live in the workflow.
+      #
+      # Why the guard asserts a positive signal rather than grepping for "FAIL":
+      # SelfTest tracks its result in one mutable counter, so DELETING THE ONE LINE
+      # `failures <- failures + 1` makes it print every failure and still exit 0
+      # (`if failures > 0 then` -> `if false then` does the same). Combined with a
+      # vacuous check, two single-line edits leave BOTH `-t SelfTest` and
+      # `dotnet test -c Release` (235/235) green. A guard that grepped for the FAIL
+      # line would catch that -- but would itself be fail-OPEN: renaming that one
+      # printf label re-greens the same two-edit mutant with 15 failing cases in the
+      # log, measured. So the guard requires ok-count == case-count instead, which
+      # reds on a relabel of either message, on a silenced counter, and on a zeroed
+      # case count. A gate that can be disarmed by a cosmetic edit is the defect
+      # this item exists to remove; it must not be reintroduced by its own fix.
       - name: Self-test the build.fsx merge gate
         run: |
           set -euo pipefail
           log="$(mktemp)"
           ./fake.sh -t SelfTest 2>&1 | tee "$log"
-          if ! grep -q '^SelfTest: ' "$log"; then
-            echo "::error::SelfTest printed no summary line -- the target did not run to completion."
+          # Assert a POSITIVE signal, never the absence of a negative one. Grepping
+          # for "FAIL" would be fail-OPEN: relabelling one printf disarms it
+          # silently, which is the very defect class this step exists to catch.
+          # Requiring ok-count == case-count reds on a relabel of EITHER message,
+          # on a silenced counter, and on a zeroed case count.
+          summary="$(grep -m1 -E '^SelfTest: [0-9]+ case\(s\)' "$log" || true)"
+          if [ -z "$summary" ]; then
+            echo "::error::SelfTest printed no recognisable summary line -- it did not run to completion, or its output format changed (rogue3#57)."
             exit 1
           fi
-          if grep -q '^  FAIL ' "$log"; then
-            echo "::error::SelfTest reported FAIL case(s) -- failing regardless of its exit code."
+          cases="$(printf '%s' "$summary" | sed -E 's/^SelfTest: ([0-9]+) case\(s\).*/\1/')"
+          oks="$(grep -c '^  ok   ' "$log" || true)"
+          if [ "$cases" -lt 1 ]; then
+            echo "::error::SelfTest reported $cases cases -- a gate that asserts nothing is not a pass."
             exit 1
           fi
+          if [ "$oks" != "$cases" ]; then
+            echo "::error::SelfTest reported $oks passing case(s) of $cases -- failing regardless of its exit code."
+            exit 1
+          fi
+          echo "SelfTest: $oks/$cases cases passed."
+      # Every cycle's checkpoint JSONL must still parse and satisfy the schema the
+      # fs-gg-feedback-report skill mandates. Unlike the report/audit CORPUS below,
+      # this one is SAFE to require and is wired: checkpoints pin no digests over
+      # other files, so they cannot rot when an unrelated file changes -- which is
+      # exactly why the corpus is red (rogue3#49) and this is green. Measured over
+      # every checkpoint file at 09895b9: 25 pass, 0 fail.
+      - name: Validate every cycle's checkpoint state
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in feedback/checkpoints/*.jsonl; do
+            if ! dotnet fsi .agents/skills/fs-gg-feedback-report/scripts/feedback-tool.fsx -- validate-checkpoints "$f"; then
+              echo "::error file=$f::checkpoint file failed validation"
+              fail=1
+            fi
+          done
+          exit "$fail"
       - name: Restore
         run: >-
           dotnet restore Rogue3.slnx

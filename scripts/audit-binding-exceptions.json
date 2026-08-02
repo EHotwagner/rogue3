@@ -447,7 +447,7 @@
       "kind": "evidence",
       "locator": "file:.github/workflows/verify.yml",
       "boundSha256": "089b1fdcd2f14e1d7f8ba5cce0435059c204ffa0c0574bb80e229885b40142c3",
-      "observedSha256": "666f040befeadbc926afe14d40e36eaf9702876d74e68f1dd00d50dec8e8b426",
+      "observedSha256": "564a3443b9f4d62983489b6857721da1da4562be3340cd0b2f21f60e43a3b7e2",
       "reason": "rogue3#52 wired the build.fsx merge gate's SelfTest into verify.yml; the audits of cycles -11 and -12 cite the workflow file as it was before that step existed"
     },
     {
@@ -455,7 +455,7 @@
       "kind": "evidence",
       "locator": "file:.github/workflows/verify.yml",
       "boundSha256": "089b1fdcd2f14e1d7f8ba5cce0435059c204ffa0c0574bb80e229885b40142c3",
-      "observedSha256": "666f040befeadbc926afe14d40e36eaf9702876d74e68f1dd00d50dec8e8b426",
+      "observedSha256": "564a3443b9f4d62983489b6857721da1da4562be3340cd0b2f21f60e43a3b7e2",
       "reason": "rogue3#52 wired the build.fsx merge gate's SelfTest into verify.yml; the audits of cycles -11 and -12 cite the workflow file as it was before that step existed"
     },
     {
