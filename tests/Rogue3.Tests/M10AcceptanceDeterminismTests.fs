@@ -791,7 +791,7 @@ let private scenarios: (int * string * (unit -> unit)) list =
                           Bombs = [ { Id = 1; Position = vec2 700.0 390.0; FuseTicks = 60 } ]
                           DodgeCooldownTicks = 40
                           FloorNameTicks = 100
-                          M6CameraTransition = Some { Direction = RoomSlideDirection.East; ElapsedTicks = 3 }
+                          M6CameraTransition = Some { Direction = RoomSlideDirection.East; ElapsedTicks = 3; FromRoom = 0 }
                           ShotSpawns = spawnShots 0 1 (vec2 400.0 300.0) zero (vec2 1.0 0.0) basePlayerStats } }
 
           let escape = host.MapKey ViewerKey.Escape true |> Option.get

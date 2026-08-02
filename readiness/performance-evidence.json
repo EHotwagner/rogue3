@@ -20,15 +20,15 @@
       "secret-reveal"
     ],
     "workloadDefinitionDigests": [
-      "idle=sha256:f6b4dfcaad3a35bb316efeac1a3521dc030f416f46503bf13cd75cecd28fdc7d",
-      "movement-aiming=sha256:4c68efeaed12fd76f29e0eb6bf8d685017c5509345d29b6ed64936965ebf36bf",
-      "firing=sha256:e2ee9a32a081e955a839277443f9fa30326957d401b2f3e75f1ae551e25ba54e",
-      "effects-fog=sha256:bd63d9f43aea827e139c9879278015ccd455d3915967808424a1c04a6238d4ca",
-      "floor-generation=sha256:a3859c77305eedcf0262f5c4e1a85d99d7c43ce939955bc8b70fbad1602cd2bb",
-      "maximum-content=sha256:6f4cdc71dde101672320311a29340c239699e3aec95f3875979898b6dcc87073",
-      "secret-reveal=sha256:8f05af70c7afdee55dbcef94acbbb59d372649a51dda9d3c6c4d4964780c92b4"
+      "idle=sha256:8405af129fc18ce37c53e0af6229e2e68daaef655a4b4ff64058ccbccaa7fa57",
+      "movement-aiming=sha256:e18ded39ee79c7e02e8229b0d30b73074a6d70968a7c070c469ee0a635a27746",
+      "firing=sha256:29d51bc43cc5bf8a921076275e4971cd65102ab2c4c1ed46377287fc767e410f",
+      "effects-fog=sha256:1d000c93b641e1e87919c819f5d3ae175bd51bf72220aa785bb51224d551298c",
+      "floor-generation=sha256:cc1efc9d0e17fce964922de047e8a244b0d6e0ddc787e22c9f32d0dfff0d2a54",
+      "maximum-content=sha256:aee77724076d282859c44ffb5707be5fa2c77a7ece7f23b60b3e8bcd5532ccad",
+      "secret-reveal=sha256:6ce84db32a0abac07d5e6bebfd631356e65a4ffab45abeb0153124311a3698e2"
     ],
-    "maximumExpectedScale": "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 736 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition, four directional doorways per room with one room-wall shell and eight doorway-sensor examinations per frame, and all five pre-M6 visuals",
+    "maximumExpectedScale": "20 generated floor rooms plus 40 live player shots, 8 static AABBs, 30 combat enemies/targets, 120 enemy bullets, 30 M5 AI actors spanning all eight kinds, 60 M5 decisions/frame, five typed obstacles, three deterministic shop slots, 832 wall primitives, 2,400 homing considerations, multishot 3, 600 pooled particles, 8 enemy-kind symbols, 11 ordered layers, one active camera transition carrying a departed-room shell, four directional doorways per room with one room-wall shell of eight solid slabs the player also sweeps and eight doorway-sensor examinations per frame, six positioned floor pickups scanned twice per frame, and all five pre-M6 visuals",
     "maxP95Ms": 16.67,
     "maxP99Ms": 25.0,
     "maxCatchUpFrames": 0,
@@ -48,7 +48,7 @@
   "notAuthoritativeFor": "live-compositor,swapchain,vblank,vsync",
   "uiRouteEvidence": {
     "artifact": "readiness/m7-ui-performance.json",
-    "artifactDigest": "sha256:90909f93b171539e06b5298f8ff2be48908c897313565cb6f8cda36803965aa9"
+    "artifactDigest": "sha256:c851c956a092589873e40995d3872bcee3aff6cb0d95a873f39940faa0a8a56e"
   },
   "hostProfile": "Unix;X64;10.0.10",
   "packageVersions": {
@@ -144,8 +144,8 @@
     {
       "id": "collision.shot-wall-queries",
       "category": "Simulation",
-      "scaleSource": "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once and perform two player-axis casts plus four slide contact folds against 8 stable AABBs",
-      "maximumExpected": 736,
+      "scaleSource": "Model.TotalWallQueries delta: two fixed steps each cast 40 shots once and perform two player-axis casts plus four slide contact folds against 8 stable AABBs and, from M13, the 8 solid wall slabs of the room shell",
+      "maximumExpected": 832,
       "visualElement": null,
       "disposition": "required-in-workloads",
       "requiredWorkloadIds": [
@@ -323,14 +323,121 @@
       ]
     },
     {
-      "id": "ui.hud-score",
+      "id": "ui.hud-hearts",
       "category": "UiControl",
-      "scaleSource": "GameplayVisualInventory.HudScore production renderer binding",
+      "scaleSource": "GameplayVisualInventory.HudHearts production renderer binding",
       "maximumExpected": 1,
-      "visualElement": "HudScore",
+      "visualElement": "HudHearts",
       "disposition": "required-in-workloads",
       "requiredWorkloadIds": [
         "firing",
+        "maximum-content"
+      ]
+    },
+    {
+      "id": "ui.hud-currency",
+      "category": "UiControl",
+      "scaleSource": "GameplayVisualInventory.HudCurrency production renderer binding",
+      "maximumExpected": 1,
+      "visualElement": "HudCurrency",
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "firing",
+        "maximum-content"
+      ]
+    },
+    {
+      "id": "ui.hud-active-charge",
+      "category": "UiControl",
+      "scaleSource": "GameplayVisualInventory.HudActiveCharge production renderer binding",
+      "maximumExpected": 1,
+      "visualElement": "HudActiveCharge",
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "firing",
+        "maximum-content"
+      ]
+    },
+    {
+      "id": "ui.hud-minimap",
+      "category": "UiControl",
+      "scaleSource": "GameplayVisualInventory.HudMinimap production renderer binding",
+      "maximumExpected": 1,
+      "visualElement": "HudMinimap",
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "firing",
+        "maximum-content"
+      ]
+    },
+    {
+      "id": "ui.hud-floor-banner",
+      "category": "UiControl",
+      "scaleSource": "GameplayVisualInventory.HudFloorBanner production renderer binding",
+      "maximumExpected": 1,
+      "visualElement": "HudFloorBanner",
+      "disposition": "non-performance",
+      "reason": "a timed floor announcement (FloorNameTicks) that no steady-state workload frame holds; covered by production raster/catalog evidence"
+    },
+    {
+      "id": "scene.departed-room",
+      "category": "SceneRender",
+      "scaleSource": "GameplayVisualInventory.DepartedRoom production renderer binding while a room crossing is in flight",
+      "maximumExpected": 1,
+      "visualElement": "DepartedRoom",
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "maximum-content"
+      ]
+    },
+    {
+      "id": "scene.player-invulnerable",
+      "category": "SceneRender",
+      "scaleSource": "GameplayVisualInventory.PlayerInvulnerable production renderer binding during dodge i-frames or post-hit invulnerability",
+      "maximumExpected": 1,
+      "visualElement": "PlayerInvulnerable",
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "effects-fog"
+      ]
+    },
+    {
+      "id": "scene.player-dodge-roll",
+      "category": "SceneRender",
+      "scaleSource": "GameplayVisualInventory.PlayerDodgeRoll production renderer binding during the committed roll",
+      "maximumExpected": 1,
+      "visualElement": "PlayerDodgeRoll",
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
+        "effects-fog"
+      ]
+    },
+    {
+      "id": "scene.player-down",
+      "category": "SceneRender",
+      "scaleSource": "GameplayVisualInventory.PlayerDown production renderer binding",
+      "maximumExpected": 1,
+      "visualElement": "PlayerDown",
+      "disposition": "non-performance",
+      "reason": "the downed state is terminal and mutually exclusive with every live-player workload; covered by production raster/catalog evidence"
+    },
+    {
+      "id": "scene.enemy-telegraph",
+      "category": "SceneRender",
+      "scaleSource": "GameplayVisualInventory.EnemyTelegraph production renderer binding, one per enemy committed to a wind-up, dash or dive",
+      "maximumExpected": 30,
+      "visualElement": "EnemyTelegraph",
+      "disposition": "non-performance",
+      "reason": "a wind-up is a transient per-actor state the maximum-content roster does not deterministically hold at a sampled frame; bounded above by the measured state.m5-enemies count and covered by production raster/catalog evidence"
+    },
+    {
+      "id": "simulation.floor-pickup-candidates",
+      "category": "Simulation",
+      "scaleSource": "Model.TotalFloorPickupCandidates delta: player-versus-floor-pickup overlap tests across one sampled production frame \u2014 two 120 Hz steps against the six drops the maximum-content room carries",
+      "maximumExpected": 12,
+      "visualElement": null,
+      "disposition": "required-in-workloads",
+      "requiredWorkloadIds": [
         "maximum-content"
       ]
     },
@@ -869,13 +976,13 @@
       "id": "idle",
       "definition": "M2 idle: production Tick(1/60) drains two 120 Hz movement/projectile steps with no actors, then builds the complete logical view",
       "class": "normal",
-      "definitionDigest": "f6b4dfcaad3a35bb316efeac1a3521dc030f416f46503bf13cd75cecd28fdc7d",
+      "definitionDigest": "8405af129fc18ce37c53e0af6229e2e68daaef655a4b4ff64058ccbccaa7fa57",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/88aa13478d2f8b140618d014526902bb",
+        "compositionAuthority": "Rogue3/18f3ef803fd0b17cba7bc16571b4427c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "idle",
@@ -884,15 +991,15 @@
         "inputIdentity": "idle-one-fixed-step",
         "inputDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
         "scriptDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
-        "traceDigest": "ece181450a274d49f2ebaa085631d07ffbfd1a3b8da7301ff28de76ca2bd5c36",
-        "initialFingerprintDigest": "eda9aaf73f2e678fe3f4c4f99020abec8807e83f8246c21b198a4eb416e606d7",
-        "terminalFingerprintDigest": "ece181450a274d49f2ebaa085631d07ffbfd1a3b8da7301ff28de76ca2bd5c36",
+        "traceDigest": "14ef06d3d3a3609a63bf7d58c21bdb56a07ed7297b04898ee0da75f15b06fbd2",
+        "initialFingerprintDigest": "d17289d3f35641e1fda4c0df50b2f853cd01af2371f28ac4dd21387d51104c15",
+        "terminalFingerprintDigest": "14ef06d3d3a3609a63bf7d58c21bdb56a07ed7297b04898ee0da75f15b06fbd2",
         "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
         "terminalPredicateReached": true,
         "result": "Passed",
         "steps": 1,
         "maxSteps": 4,
-        "receiptDigest": "sha256:3aff5d148f214af9211ea096d5a19c3241632f2cb46eba9fabae4a4b30a83e42"
+        "receiptDigest": "sha256:f6d916d89eaf2bffab6cc888d0210999724defde2abc0133ff732c89e0e1aab4"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -902,13 +1009,13 @@
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "f6b4dfcaad3a35bb316efeac1a3521dc030f416f46503bf13cd75cecd28fdc7d",
+      "declaredDefinitionDigest": "8405af129fc18ce37c53e0af6229e2e68daaef655a4b4ff64058ccbccaa7fa57",
       "blockingDebt": null,
       "warmupFrames": 20,
       "sampleFrames": 120,
-      "p50Ms": 0.0332,
-      "p95Ms": 0.0447,
-      "p99Ms": 0.2279,
+      "p50Ms": 0.0363,
+      "p95Ms": 0.0491,
+      "p99Ms": 0.061,
       "updateCount": 120,
       "presentCount": {
         "status": "unsupported",
@@ -925,14 +1032,14 @@
       "observedPointerEventCount": 0,
       "rawInputSampleCount": 0,
       "shotSpawnHistoryCount": 0,
-      "allocatedBytes": 11767568,
+      "allocatedBytes": 13635656,
       "observedScale": {
         "scene.floor-background": 1,
         "scene.player": 1,
         "simulation.fixed-step": 2
       },
       "sceneNodesByLayer": {
-        "rogue3-scene": 80
+        "rogue3-scene": 84
       },
       "passed": true,
       "reasons": []
@@ -941,13 +1048,13 @@
       "id": "movement-aiming",
       "definition": "M2 movement\u002Baiming: sampled production A-key and pointer messages drive acceleration and independent aim across two 120 Hz steps, then build the complete logical view",
       "class": "normal",
-      "definitionDigest": "4c68efeaed12fd76f29e0eb6bf8d685017c5509345d29b6ed64936965ebf36bf",
+      "definitionDigest": "e18ded39ee79c7e02e8229b0d30b73074a6d70968a7c070c469ee0a635a27746",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/88aa13478d2f8b140618d014526902bb",
+        "compositionAuthority": "Rogue3/18f3ef803fd0b17cba7bc16571b4427c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "movement-aiming",
@@ -956,15 +1063,15 @@
         "inputIdentity": "movement-aiming-one-fixed-step",
         "inputDigest": "460ef91338a5d52f49b4596cf3f5e7b80ee962b98672c3ad6b8a469ac5573704",
         "scriptDigest": "460ef91338a5d52f49b4596cf3f5e7b80ee962b98672c3ad6b8a469ac5573704",
-        "traceDigest": "d48572a152b1d2ebb38c42aef620c1edaacb0a44859d4d87ece8f55c462fd710",
-        "initialFingerprintDigest": "eda9aaf73f2e678fe3f4c4f99020abec8807e83f8246c21b198a4eb416e606d7",
-        "terminalFingerprintDigest": "a14d4fe9d9b5cc8d3a6b2e5911205275e4616bfc5b3c660ca252f8cfdf5d0f76",
+        "traceDigest": "d6f5b3eb2110eb09dad2ed822a3f43da2da23180b83069e2ffb3be853e13ef42",
+        "initialFingerprintDigest": "d17289d3f35641e1fda4c0df50b2f853cd01af2371f28ac4dd21387d51104c15",
+        "terminalFingerprintDigest": "13596fccb177723fb8d14860177dc53c7e6c84683564f2d96e9439644e9ab845",
         "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
         "terminalPredicateReached": true,
         "result": "Passed",
         "steps": 3,
         "maxSteps": 4,
-        "receiptDigest": "sha256:42b132ca74a9af3b018a177371780842635c45eafac2b6b28bc118deef051e22"
+        "receiptDigest": "sha256:bfb9d3f470f3e22f0ac6a0353292295ebc44ed1fbf5bdbc83d479fd10d3297f8"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -975,13 +1082,13 @@
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "4c68efeaed12fd76f29e0eb6bf8d685017c5509345d29b6ed64936965ebf36bf",
+      "declaredDefinitionDigest": "e18ded39ee79c7e02e8229b0d30b73074a6d70968a7c070c469ee0a635a27746",
       "blockingDebt": null,
       "warmupFrames": 20,
       "sampleFrames": 120,
-      "p50Ms": 0.0341,
-      "p95Ms": 0.0385,
-      "p99Ms": 0.0469,
+      "p50Ms": 0.037,
+      "p95Ms": 0.0466,
+      "p99Ms": 0.0668,
       "updateCount": 120,
       "presentCount": {
         "status": "unsupported",
@@ -998,7 +1105,7 @@
       "observedPointerEventCount": 120,
       "rawInputSampleCount": 240,
       "shotSpawnHistoryCount": 0,
-      "allocatedBytes": 12099408,
+      "allocatedBytes": 14103816,
       "observedScale": {
         "input.snapshot-resolution": 2,
         "scene.floor-background": 1,
@@ -1006,7 +1113,7 @@
         "simulation.fixed-step": 2
       },
       "sceneNodesByLayer": {
-        "rogue3-scene": 80
+        "rogue3-scene": 84
       },
       "passed": true,
       "reasons": []
@@ -1015,13 +1122,13 @@
       "id": "firing",
       "definition": "M2 firing: sampled production A-key and primary-pointer messages drive acceleration, centered three-shot multishot, velocity inheritance, and two 120 Hz projectile steps before the complete logical view",
       "class": "normal",
-      "definitionDigest": "e2ee9a32a081e955a839277443f9fa30326957d401b2f3e75f1ae551e25ba54e",
+      "definitionDigest": "29d51bc43cc5bf8a921076275e4971cd65102ab2c4c1ed46377287fc767e410f",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/88aa13478d2f8b140618d014526902bb",
+        "compositionAuthority": "Rogue3/18f3ef803fd0b17cba7bc16571b4427c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "firing",
@@ -1030,15 +1137,15 @@
         "inputIdentity": "firing-one-fixed-step",
         "inputDigest": "4698e557314ea035896614ee5660cbabec94192bd16ca50a5975dd7b9ca14b2c",
         "scriptDigest": "4698e557314ea035896614ee5660cbabec94192bd16ca50a5975dd7b9ca14b2c",
-        "traceDigest": "28a6b3d1cab3c91b9402896adb64b6180fb3e0085a463f290919600043d89b73",
-        "initialFingerprintDigest": "308622e81b216aed01c956c693dd8e8a341534d45b0d714c3bc92314fe3de7d0",
-        "terminalFingerprintDigest": "771ae2b6641a9e3ff338df40281e4452eb73d7d5083cf2df2ee3090ac4faa6bd",
+        "traceDigest": "fffa37ce0263587865acac6796d0f18d4f96cea5839190cd5957d51fe5d26bdb",
+        "initialFingerprintDigest": "84f480d8fe8b24b0f61f79264459cdba528182c69bf84769534e86566e31df1e",
+        "terminalFingerprintDigest": "275ffa6e36cda192ed5477c6a5b35dfce19471df18d982df003564e89259af24",
         "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
         "terminalPredicateReached": true,
         "result": "Passed",
         "steps": 3,
         "maxSteps": 4,
-        "receiptDigest": "sha256:71dfe71886425dcf154da728063cebc35950da2678ffe60959552b67782ec781"
+        "receiptDigest": "sha256:7003dc445a09ecc8423825772ae3e50e8da909bbd4fd88be031c082d7352930f"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -1047,18 +1154,21 @@
         "simulation.shot-spawn",
         "scene.player",
         "scene.player-shot",
-        "ui.hud-score",
+        "ui.hud-hearts",
+        "ui.hud-currency",
+        "ui.hud-active-charge",
+        "ui.hud-minimap",
         "scene.floor-background"
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "e2ee9a32a081e955a839277443f9fa30326957d401b2f3e75f1ae551e25ba54e",
+      "declaredDefinitionDigest": "29d51bc43cc5bf8a921076275e4971cd65102ab2c4c1ed46377287fc767e410f",
       "blockingDebt": null,
       "warmupFrames": 20,
       "sampleFrames": 120,
-      "p50Ms": 0.0823,
-      "p95Ms": 0.1679,
-      "p99Ms": 0.2991,
+      "p50Ms": 0.0585,
+      "p95Ms": 0.0686,
+      "p99Ms": 0.113,
       "updateCount": 120,
       "presentCount": {
         "status": "unsupported",
@@ -1075,7 +1185,7 @@
       "observedPointerEventCount": 120,
       "rawInputSampleCount": 240,
       "shotSpawnHistoryCount": 12,
-      "allocatedBytes": 16638376,
+      "allocatedBytes": 18761848,
       "observedScale": {
         "input.snapshot-resolution": 2,
         "scene.floor-background": 1,
@@ -1083,10 +1193,13 @@
         "scene.player-shot": 1,
         "simulation.fixed-step": 2,
         "simulation.shot-spawn": 3,
-        "ui.hud-score": 1
+        "ui.hud-active-charge": 1,
+        "ui.hud-currency": 1,
+        "ui.hud-hearts": 1,
+        "ui.hud-minimap": 1
       },
       "sceneNodesByLayer": {
-        "rogue3-scene": 92
+        "rogue3-scene": 96
       },
       "passed": true,
       "reasons": []
@@ -1095,13 +1208,13 @@
       "id": "effects-fog",
       "definition": "M2 dodge commitment: a boot-latched Space edge starts one roll, then two production Tick(1/120) messages advance i-frame, roll, and cooldown timers before one complete logical view",
       "class": "normal",
-      "definitionDigest": "bd63d9f43aea827e139c9879278015ccd455d3915967808424a1c04a6238d4ca",
+      "definitionDigest": "1d000c93b641e1e87919c819f5d3ae175bd51bf72220aa785bb51224d551298c",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/88aa13478d2f8b140618d014526902bb",
+        "compositionAuthority": "Rogue3/18f3ef803fd0b17cba7bc16571b4427c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "effects-fog",
@@ -1110,31 +1223,33 @@
         "inputIdentity": "effects-fog-one-fixed-step",
         "inputDigest": "98332b897725dc183c8dc05e7126cda93f42c0f1df263d2fccca58e237fb1d7e",
         "scriptDigest": "98332b897725dc183c8dc05e7126cda93f42c0f1df263d2fccca58e237fb1d7e",
-        "traceDigest": "92fe2dccb82652d7978cd2d15d9cefa0c89b9fafe7a0466d8287b50fcf4a4d23",
-        "initialFingerprintDigest": "76436799d92286b1db329186fee7dc3fc723cc378da0c80aae2ecc8ab3f00527",
-        "terminalFingerprintDigest": "30cbb4e7a4d28c92bff58a2d93377418cac6f9322af7e6bcfa7559f6a5686c88",
+        "traceDigest": "ff740f5482754ba144c835cd12f190f2220841119ce94f012a3a3f8130c85334",
+        "initialFingerprintDigest": "2c4e7085eacaae86095daf3be4d8403973cc844d09a15f76d330e09344c21749",
+        "terminalFingerprintDigest": "46157cdda76dbc219f13fb70fee919764f3848f41812e706037c9b6284b38c2a",
         "terminalPredicateIdentity": "model.SimStepCount\u003E=2",
         "terminalPredicateReached": true,
         "result": "Passed",
         "steps": 2,
         "maxSteps": 4,
-        "receiptDigest": "sha256:4a3def51bccac719b6749d3e9dec98e8370e35cc8b6d1cfca7411b157a42e342"
+        "receiptDigest": "sha256:2360a3fee6f881aafc782b3c0303c8e2c8acfa1a309bfd9b24389ea22432f1ad"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
         "simulation.fixed-step",
         "scene.player",
-        "scene.floor-background"
+        "scene.floor-background",
+        "scene.player-invulnerable",
+        "scene.player-dodge-roll"
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "bd63d9f43aea827e139c9879278015ccd455d3915967808424a1c04a6238d4ca",
+      "declaredDefinitionDigest": "1d000c93b641e1e87919c819f5d3ae175bd51bf72220aa785bb51224d551298c",
       "blockingDebt": null,
       "warmupFrames": 20,
       "sampleFrames": 120,
-      "p50Ms": 0.0334,
-      "p95Ms": 0.0354,
-      "p99Ms": 0.0394,
+      "p50Ms": 0.0366,
+      "p95Ms": 0.0436,
+      "p99Ms": 0.0679,
       "updateCount": 120,
       "presentCount": {
         "status": "unsupported",
@@ -1151,14 +1266,16 @@
       "observedPointerEventCount": 0,
       "rawInputSampleCount": 0,
       "shotSpawnHistoryCount": 0,
-      "allocatedBytes": 11933192,
+      "allocatedBytes": 13976696,
       "observedScale": {
         "scene.floor-background": 1,
         "scene.player": 1,
+        "scene.player-dodge-roll": 1,
+        "scene.player-invulnerable": 1,
         "simulation.fixed-step": 2
       },
       "sceneNodesByLayer": {
-        "rogue3-scene": 80
+        "rogue3-scene": 93
       },
       "passed": true,
       "reasons": []
@@ -1167,13 +1284,13 @@
       "id": "floor-generation",
       "definition": "M4 maximum bounded floor generation through the guarded trapdoor route: production DescendFloor derives MapGen.floorSeed, executes bounded room placement with 20-room cap, assigns templates/threat/specials/fixtures and replaces room-local state, then the next floor\u0027s boss room is cleared and entered so the player again stands on a real trapdoor",
       "class": "normal",
-      "definitionDigest": "a3859c77305eedcf0262f5c4e1a85d99d7c43ce939955bc8b70fbad1602cd2bb",
+      "definitionDigest": "cc1efc9d0e17fce964922de047e8a244b0d6e0ddc787e22c9f32d0dfff0d2a54",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/88aa13478d2f8b140618d014526902bb",
+        "compositionAuthority": "Rogue3/18f3ef803fd0b17cba7bc16571b4427c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "floor-generation",
@@ -1182,15 +1299,15 @@
         "inputIdentity": "floor-generation-one-fixed-step",
         "inputDigest": "dc53ee58279c810dc2842ee4ef90fbfe43dd8c57fed6a520d382c253e6f95fe8",
         "scriptDigest": "dc53ee58279c810dc2842ee4ef90fbfe43dd8c57fed6a520d382c253e6f95fe8",
-        "traceDigest": "5a46c6f96c28325a6347447e8314dac8d4e91cb35dfb899b342042527bf08278",
-        "initialFingerprintDigest": "e9bc7263dab2bb0ab96cf2bffef4b4e822bb1ece40ee946da2cd4cb656a4928b",
-        "terminalFingerprintDigest": "5511718276085fcede4e536a1a162d5503ed4db43f030afa5b6f3c402540cd15",
+        "traceDigest": "92b781f9c59c19742b0ac3f9672e5ca6e2d60e62e38c5e1aa09e3a9d3ead7112",
+        "initialFingerprintDigest": "a60ba75deab8451a6c592d72032519575a9be655b4bd046f5b4efc644270b480",
+        "terminalFingerprintDigest": "063f0933f2bafa713d7bf7619b15591790e848c68781d32b4161abb580cd2da6",
         "terminalPredicateIdentity": "model.FloorIndex\u003E=9",
         "terminalPredicateReached": true,
         "result": "Passed",
         "steps": 2,
         "maxSteps": 4,
-        "receiptDigest": "sha256:ba25d8f6dc1dec4cf63015d1e68e9df7d973cc2fe74ea1ea2de0892720686f02"
+        "receiptDigest": "sha256:9b0af7b7d9b442727207411285c11738a8b791309dc42e46aa6e576558567d91"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -1200,13 +1317,13 @@
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "a3859c77305eedcf0262f5c4e1a85d99d7c43ce939955bc8b70fbad1602cd2bb",
+      "declaredDefinitionDigest": "cc1efc9d0e17fce964922de047e8a244b0d6e0ddc787e22c9f32d0dfff0d2a54",
       "blockingDebt": null,
       "warmupFrames": 0,
       "sampleFrames": 40,
-      "p50Ms": 0.5685,
-      "p95Ms": 0.6357,
-      "p99Ms": 8.2544,
+      "p50Ms": 0.8662,
+      "p95Ms": 0.9962,
+      "p99Ms": 8.212,
       "updateCount": 40,
       "presentCount": {
         "status": "unsupported",
@@ -1223,14 +1340,14 @@
       "observedPointerEventCount": 0,
       "rawInputSampleCount": 0,
       "shotSpawnHistoryCount": 0,
-      "allocatedBytes": 23199272,
+      "allocatedBytes": 23604384,
       "observedScale": {
         "generation.floor-room-budget": 20,
         "scene.floor-background": 1,
         "scene.player": 1
       },
       "sceneNodesByLayer": {
-        "rogue3-scene": 222
+        "rogue3-scene": 226
       },
       "passed": true,
       "reasons": []
@@ -1239,13 +1356,13 @@
       "id": "maximum-content",
       "definition": "M6 canonical maximum fixture through production journey/update/view: inherited M5 maximum combat plus eight live enemy symbols, exactly 600 long-lived retained particles, eleven ordered render layers, and one active 0.35-second room camera transition",
       "class": "normal",
-      "definitionDigest": "6f4cdc71dde101672320311a29340c239699e3aec95f3875979898b6dcc87073",
+      "definitionDigest": "aee77724076d282859c44ffb5707be5fa2c77a7ece7f23b60b3e8bcd5532ccad",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/88aa13478d2f8b140618d014526902bb",
+        "compositionAuthority": "Rogue3/18f3ef803fd0b17cba7bc16571b4427c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "maximum-content",
@@ -1254,15 +1371,15 @@
         "inputIdentity": "maximum-content-one-fixed-step",
         "inputDigest": "9c5ae62e2521b82dc2ea10bc79cac798170a8102f8dec3f25b5b231e09d7d37c",
         "scriptDigest": "9c5ae62e2521b82dc2ea10bc79cac798170a8102f8dec3f25b5b231e09d7d37c",
-        "traceDigest": "d5051a03b7d2b0f05ad8d7158bf69bf0b20dfceac3edfc227291c756ca759fd6",
-        "initialFingerprintDigest": "e693f0d07cc644f1003470238fce5a51ad60de51bcb70b2b7464033e8c70ffd6",
-        "terminalFingerprintDigest": "0ed690a7fdbe015040408416503d55090b3e1b92714a94c6c236d56bdaa7ee15",
+        "traceDigest": "cec198b56e3c7a94f8ad0a472ad8ebac638712cf7064416ab5ab046db5e4c379",
+        "initialFingerprintDigest": "6d90e73d28a0c60738fa7db22deeab29cbf3adde1b336ad5231024949c09d912",
+        "terminalFingerprintDigest": "ff7b3f0a0386110d21b02c3315a8f9fa6ad9984dc5cc03364f18b6bfe173c5d6",
         "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
         "terminalPredicateReached": true,
         "result": "Passed",
         "steps": 4,
         "maxSteps": 4,
-        "receiptDigest": "sha256:65f400be98ee3f4777d0d67d20eecf9b21a410911161afa257c758e6f76c2c23"
+        "receiptDigest": "sha256:82e0063406a8c87352ae6fc96c04f68f175ece1c702f9165d5ed62e6f0222842"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -1297,6 +1414,8 @@
         "scene.boss-maw",
         "scene.shop-item",
         "simulation.door-sensor-candidates",
+        "simulation.floor-pickup-candidates",
+        "scene.departed-room",
         "scene.room-walls",
         "scene.door-open",
         "scene.door-locked-key",
@@ -1323,18 +1442,21 @@
         "scene.player",
         "scene.player-shot",
         "scene.enemy-bullet",
-        "ui.hud-score",
+        "ui.hud-hearts",
+        "ui.hud-currency",
+        "ui.hud-active-charge",
+        "ui.hud-minimap",
         "scene.floor-background"
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "6f4cdc71dde101672320311a29340c239699e3aec95f3875979898b6dcc87073",
+      "declaredDefinitionDigest": "aee77724076d282859c44ffb5707be5fa2c77a7ece7f23b60b3e8bcd5532ccad",
       "blockingDebt": null,
       "warmupFrames": 20,
       "sampleFrames": 720,
-      "p50Ms": 1.8832,
-      "p95Ms": 7.5703,
-      "p99Ms": 9.4841,
+      "p50Ms": 2.2285,
+      "p95Ms": 7.7716,
+      "p99Ms": 8.9235,
       "updateCount": 720,
       "presentCount": {
         "status": "unsupported",
@@ -1351,16 +1473,17 @@
       "observedPointerEventCount": 0,
       "rawInputSampleCount": 720,
       "shotSpawnHistoryCount": 40,
-      "allocatedBytes": 4974954008,
+      "allocatedBytes": 5076340664,
       "observedScale": {
         "ai.m5-decisions": 60,
         "boss.m5-pattern-emissions": 1,
         "collision.combat-candidates": 2520,
-        "collision.shot-wall-queries": 736,
+        "collision.shot-wall-queries": 832,
         "effects.pooled-particles": 600,
         "input.snapshot-resolution": 2,
         "projectiles.m5-boss-emitted": 8,
         "scene.boss-maw": 1,
+        "scene.departed-room": 1,
         "scene.door-boss-door": 1,
         "scene.door-hidden-wall": 1,
         "scene.door-locked-key": 1,
@@ -1401,6 +1524,7 @@
         "scene.trapdoor-ready": 1,
         "simulation.door-sensor-candidates": 8,
         "simulation.fixed-step": 2,
+        "simulation.floor-pickup-candidates": 12,
         "simulation.homing-target-considerations": 2400,
         "simulation.shot-spawn": 3,
         "state.enemy-bullets": 120,
@@ -1411,10 +1535,13 @@
         "state.m5-obstacles": 5,
         "state.m5-shop-slots": 3,
         "state.static-obstacles": 8,
-        "ui.hud-score": 1
+        "ui.hud-active-charge": 1,
+        "ui.hud-currency": 1,
+        "ui.hud-hearts": 1,
+        "ui.hud-minimap": 1
       },
       "sceneNodesByLayer": {
-        "rogue3-scene": 608
+        "rogue3-scene": 704
       },
       "passed": true,
       "reasons": []
@@ -1423,13 +1550,13 @@
       "id": "secret-reveal",
       "definition": "M10 same-step secret reveal: inherited maximum content plus staggered fuses so production Tick(1/120) detonates exactly one bomb per sampled fixed step, scanning the live pending-secret set and carving the reciprocal doors and graph adjacency inside that same step before the complete logical view",
       "class": "normal",
-      "definitionDigest": "8f05af70c7afdee55dbcef94acbbb59d372649a51dda9d3c6c4d4964780c92b4",
+      "definitionDigest": "6ce84db32a0abac07d5e6bebfd631356e65a4ffab45abeb0153124311a3698e2",
       "stateProvenance": "production-journey",
       "provenanceReceipt": {
         "schemaVersion": 1,
         "runnerIdentity": "FS.GG.Game.Harness.Journey",
         "runnerVersion": "0.12.0.0",
-        "compositionAuthority": "Rogue3/88aa13478d2f8b140618d014526902bb",
+        "compositionAuthority": "Rogue3/18f3ef803fd0b17cba7bc16571b4427c",
         "origin": "ProductionJourney",
         "routeId": "rogue3-m3-combat-health-currency-update-view",
         "scenarioId": "secret-reveal",
@@ -1438,15 +1565,15 @@
         "inputIdentity": "secret-reveal-one-fixed-step",
         "inputDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
         "scriptDigest": "2e422ae2b7a17729f13c95894e6328299df40fce2798476ea1de770702c3952f",
-        "traceDigest": "c1f23d51da3140985ffebb59be75d57e95cde8522987518deaf15043f7aceb02",
-        "initialFingerprintDigest": "c30bc52263748cc5d5c4adb5363fc93d8d23e25e67d0da565a0b56bc0dbaa0a8",
-        "terminalFingerprintDigest": "c1f23d51da3140985ffebb59be75d57e95cde8522987518deaf15043f7aceb02",
+        "traceDigest": "3aafbe227528ed6ca1670b6d0fe05f42a47891ef1ce649a737c3f535de50ae62",
+        "initialFingerprintDigest": "905716ce5eff57099da25e5a5e3f0da105c8cd520375528ced38e79e655ddfd1",
+        "terminalFingerprintDigest": "3aafbe227528ed6ca1670b6d0fe05f42a47891ef1ce649a737c3f535de50ae62",
         "terminalPredicateIdentity": "model.SimStepCount\u003E=1",
         "terminalPredicateReached": true,
         "result": "Passed",
         "steps": 1,
         "maxSteps": 4,
-        "receiptDigest": "sha256:4306a780cfe05dafdec5c2dcdf2873509997dd2b6db5234a367543ee9a8b26bd"
+        "receiptDigest": "sha256:3a579b92303fe81582885ea4d6d4baf84daa36af4d3526fab072c19c4d83c702"
       },
       "compositionClaim": "production-composition",
       "costDriverIds": [
@@ -1459,13 +1586,13 @@
       ],
       "authorship": "authored",
       "requiredAuthoringWork": null,
-      "declaredDefinitionDigest": "8f05af70c7afdee55dbcef94acbbb59d372649a51dda9d3c6c4d4964780c92b4",
+      "declaredDefinitionDigest": "6ce84db32a0abac07d5e6bebfd631356e65a4ffab45abeb0153124311a3698e2",
       "blockingDebt": null,
       "warmupFrames": 0,
       "sampleFrames": 48,
-      "p50Ms": 2.0734,
-      "p95Ms": 5.1884,
-      "p99Ms": 6.0454,
+      "p50Ms": 2.0348,
+      "p95Ms": 3.1138,
+      "p99Ms": 4.5988,
       "updateCount": 48,
       "presentCount": {
         "status": "unsupported",
@@ -1482,7 +1609,7 @@
       "observedPointerEventCount": 0,
       "rawInputSampleCount": 0,
       "shotSpawnHistoryCount": 40,
-      "allocatedBytes": 261385736,
+      "allocatedBytes": 265094320,
       "observedScale": {
         "scene.floor-background": 1,
         "scene.player": 1,
@@ -1492,7 +1619,7 @@
         "state.placed-bombs": 48
       },
       "sceneNodesByLayer": {
-        "rogue3-scene": 695
+        "rogue3-scene": 780
       },
       "passed": true,
       "reasons": []
@@ -1500,7 +1627,7 @@
   ],
   "critic": {
     "rubricVersion": "performance-representativeness-v1",
-    "inputDigest": "589dc84c36554aefd6a9c9328a1f13d6cb323bdaeae8723a30101403c2159243",
+    "inputDigest": "936cc2b8cefba6eecfc71dae44b769801e069163b361961c91c6713a261e45e1",
     "status": "external-review-required",
     "reviewBoundary": "attributable review system at the exact landing commit",
     "preferredMode": "fresh-context-subagent",
