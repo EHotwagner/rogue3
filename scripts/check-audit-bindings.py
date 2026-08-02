@@ -73,28 +73,38 @@ Unlike an ordinary deleted file, the ledger cannot settle these, because they do
 not observe the same thing twice: in a checkout that has run the gate the file is
 PRESENT with churning bytes, and in one that has not it is ABSENT.  An exception
 pins exactly one observed digest, so an entry written from a developer's tree
-fails in CI and an entry written from CI fails on the developer's tree.  Measured
-on the FIRST commit of rogue3#56 -- db5ee2e, which untracked the artifacts and left
-this checker unchanged: `check` reported 22 stale bindings in a worktree that had
-just run the gate, and the four bindings onto `readiness/evidence-graph.md` were
-among the FRESH ones, because the publication rule had restored the exact bytes the
-file carried while tracked.  Fresh in the very checkout where CI was about to read
-`<missing>`.  (With this exemption in place the same tree reports 17 stale and 19
-not bound.  22 is the pre-fix number and belongs to that commit, not to the
-finished candidate -- said explicitly because an unattributed measurement in a
-comment is how the previous cycle's figures went stale.)
+fails in CI and an entry written from CI fails on the developer's tree.
+
+The concrete case that showed it, on the FIRST commit of rogue3#56 (db5ee2e, which
+untracked the artifacts and left this checker unchanged): in a worktree that had
+just run the gate, NONE of the four bindings onto `readiness/evidence-graph.md` was
+reported stale -- two were fresh, because the publication rule had restored the
+exact bytes the file carried while tracked, and two were already ledger-excused at
+those same bytes.  In a checkout that had NOT run the gate, all four read
+`<missing>`.  Same commit, two answers, and only one of them can be written into a
+ledger entry.
+
+(No total is quoted here on purpose.  Every total this paragraph could give --
+stale, not-bound, excused -- depends on which commit's checker is run against which
+of those two trees, and an earlier draft shipped one that was true of neither.  Run
+`python3 scripts/check-audit-bindings.py` and read the summary line instead.)
 
 So these citations are reported, not checked, through the same `notBound` channel
 as the ledger.  The set is ENUMERATED in `DERIVED_ROLLUP_RELPATHS` and each member
 must ALSO be declared in `.gitignore`; a CITED path the constant calls derived
 while `.gitignore` does not declare it is a structural violation, not a silent
-pass, and a `!` negation withdraws the declaration exactly as deleting the line
-does.  That coupling catches a rule removed or negated.  It does NOT catch a
-RE-TRACKED artifact: `.gitignore` has no effect on a file already in the index, and
-nothing here consults git -- a checker that asked git what is tracked would exempt
-everything in an export with no repository, and a check that can vanish is the
-failure mode this file exists to catch.  The index check lives in CI instead, in
-`.github/workflows/verify.yml` under "Derived roll-ups stay out of the index".
+pass, and the common `!` negation forms withdraw the declaration as deleting the
+line does (see `gitignore_declarations` for exactly which, and for what this reader
+does not parse).
+
+That coupling is a cheap consistency check between two files, and it is NOT the
+guarantee the acceptance rests on.  It does not catch a RE-TRACKED artifact --
+`.gitignore` has no effect on a file already in the index -- and nothing here
+consults git, because a checker that asked git what is tracked would exempt every
+binding in an export with no repository, and a check that can vanish is the failure
+mode this file exists to catch.  The real check runs real `git ls-files` and real
+`git check-ignore` in CI: `.github/workflows/verify.yml`, "Derived roll-ups stay out
+of the index".
 
 Why an audit citing ANOTHER audit is NOT exempt
 -----------------------------------------------
@@ -260,7 +270,7 @@ DERIVED_EXEMPTION = (
 
 # rogue3#56. Each of these is written by the merge gate over inputs that are not
 # reproducible from a checkout -- the evidence graph enumerates a partly-untracked
-# tree, and the other three carry measured timings, allocations and digests over
+# tree, and the other two carry measured timings, allocations and digests over
 # them. They were removed from the index in that item, so a digest binding onto one
 # of them can never go fresh again and, worse, does not even give the SAME answer
 # twice: in a checkout that has run the gate the file is present with churning
@@ -289,17 +299,30 @@ def gitignore_declarations(root: str) -> set[str]:
     the question `derived_exemptions` asks, and it deliberately does not try to
     resolve globs, directory rules or precedence.
 
-    Where it and git DISAGREE, it disagrees conservatively, and that is chosen
-    rather than accidental. Real gitignore precedence is order-dependent and
-    last-match-wins, while this is order-independent set subtraction, so
-    `!readiness/x` followed by `readiness/x` is IGNORED by git and NOT DECLARED
-    here -- verified both ways on this tree. The result is that the exemption is
-    withdrawn and a structural violation is raised over a file git really does
-    ignore: the checker goes on checking a binding it could have skipped, which
-    costs a stale binding and one obvious fix (drop the stray `!`). The opposite
-    error -- exempting a path the repository has quietly resumed treating as
-    ordinary -- is the one that loses evidence silently, so the ambiguity is
-    resolved towards more checking every time.
+    It is NOT a gitignore engine, and the difference is worth stating precisely
+    because an earlier version of this docstring overstated it and a reviewer
+    was right to reject the claim. Real precedence is order-dependent and
+    last-match-wins; this is order-independent. `!readiness/x` followed by
+    `readiness/x` is therefore IGNORED by git and NOT DECLARED here -- verified
+    both ways on this tree -- so the exemption is withdrawn and a structural
+    violation is raised over a file git really does ignore. That direction is
+    harmless: the checker goes on checking a binding it could have skipped, at
+    the cost of one obvious fix.
+
+    The dangerous direction is the other one, and the first implementation had
+    it: `!/readiness/x` and a bare `!x` both stop git ignoring the path, and
+    matching negations by exact line left this function still declaring it, so
+    the exemption stood over a file the repository had resumed treating as
+    ordinary. `negates` below now withdraws on any of those forms. Globs, nested
+    `.gitignore` files and directory rules are still not interpreted, so this
+    remains a declaration reader whose ONLY safe reading is "the repository
+    wrote this exact line".
+
+    Because that is a weak guarantee, it is not the guarantee the acceptance
+    rests on. `.github/workflows/verify.yml` calls real `git check-ignore` and
+    real `git ls-files`, and that step -- not this function -- is what fails
+    when an artifact is re-tracked or un-ignored by a form this reader cannot
+    parse.
     """
     path = os.path.join(root, GITIGNORE_RELPATH)
     if not os.path.isfile(path):
@@ -318,7 +341,19 @@ def gitignore_declarations(root: str) -> set[str]:
             negated.add(line[1:].strip())
         else:
             positive.add(line)
-    return positive - negated
+
+    # A negation is matched loosely on purpose. `!readiness/x`, `!/readiness/x` and the
+    # bare `!x` all stop git ignoring `readiness/x`, and a reviewer demonstrated that
+    # honouring only the first form left the other two un-ignored by git while this
+    # function still declared the path -- the exemption standing over a file the
+    # repository had resumed treating as ordinary, which is the direction that loses
+    # evidence. Every form that could plausibly negate the path withdraws it.
+    def negates(rule: str, path: str) -> bool:
+        rule = rule.rstrip("/")
+        candidates = {path, "/" + path, path.rsplit("/", 1)[-1], "/" + path.rsplit("/", 1)[-1]}
+        return rule in candidates
+
+    return {p for p in positive if not any(negates(n, p) for n in negated)}
 
 
 def derived_exemptions(root: str) -> tuple[dict[str, str], list[str]]:
@@ -1286,6 +1321,40 @@ def selftest_derived_rollups(check) -> None:
         check(
             "a negation does not disturb the OTHER declared roll-ups",
             all(rel in gitignore_declarations(root) for rel in DERIVED_ROLLUP_RELPATHS if rel != other_derived),
+        )
+
+        # The two forms a reviewer found surviving. Both stop git ignoring the path
+        # while an exact-line match still declared it, which left the exemption
+        # standing over a re-ordinary file -- the direction that loses evidence.
+        # `!x/y` is covered above; these are the anchored and bare-basename forms.
+        for form in (f"!/{other_derived}", "!" + other_derived.rsplit("/", 1)[-1]):
+            _write(
+                root,
+                ".gitignore",
+                "".join(f"{rel}\n" for rel in DERIVED_ROLLUP_RELPATHS) + f"{form}\n",
+            )
+            check(
+                f"the negation form {form!r} withdraws the declaration",
+                other_derived not in gitignore_declarations(root),
+            )
+            check(
+                f"...and {form!r} is therefore a structural violation, not a silent exemption",
+                any(
+                    v["kind"] == "structure" and v["locator"] == f"file:{other_derived}"
+                    for v in evaluate(root)["violations"]
+                ),
+            )
+
+        # ...and a negation of something else entirely must NOT withdraw it, or the
+        # loose matching above would have swallowed the whole declaration set.
+        _write(
+            root,
+            ".gitignore",
+            "".join(f"{rel}\n" for rel in DERIVED_ROLLUP_RELPATHS) + "!unrelated/other.json\n",
+        )
+        check(
+            "an unrelated negation withdraws nothing",
+            all(rel in gitignore_declarations(root) for rel in DERIVED_ROLLUP_RELPATHS),
         )
 
         # And a workspace with no .gitignore at all exempts NOTHING -- the default

@@ -179,8 +179,18 @@ jobs:
       # bytes back under version control, restores the committable-diff-every-run
       # defect, and leaves the checker still refusing to check them. Only the index
       # answers that, and only CI has both the index and no reason to lie about it.
-      # This step is the enforcement for the acceptance of rogue3#56; it runs before
-      # the build because it needs nothing built.
+      # It runs before the build because it needs nothing built.
+      #
+      # What it enforces, stated exactly, because the obvious summary is too generous:
+      # NOT rogue3#56's acceptance ("a full Verify leaves git status --porcelain
+      # empty"). It enforces a PROXY of it -- that these three named paths stay out of
+      # the index and stay ignored. If build.fsx later starts writing a fourth tracked
+      # artifact, the acceptance is violated and this step stays green, because nothing
+      # in CI runs Verify and inspects the tree (deliberately -- see the performance
+      # bullet in the comment above). What this step does buy is that the three paths
+      # the exemption in scripts/check-audit-bindings.py stops checking cannot quietly
+      # become tracked again, which is the failure that would turn the exemption from a
+      # correct statement into a hole.
       - name: Derived roll-ups stay out of the index
         run: |
           set -euo pipefail
@@ -192,7 +202,11 @@ jobs:
               echo "::error file=$p::$p is TRACKED. rogue3#56 removed it from the index because it is a build-target output no checkout can reproduce, and scripts/check-audit-bindings.py exempts the merged-audit digests pinned over it on that basis. Run: git rm --cached $p"
               fail=1
             fi
-            if ! git check-ignore -q "$p"; then
+            # --no-index: git check-ignore consults the index by default and reports a
+            # TRACKED path as not-ignored whatever .gitignore says, so without this the
+            # tracked case above would also fire this branch and tell the reader to
+            # restore a rule that was never removed.
+            if ! git check-ignore --no-index -q "$p"; then
               echo "::error file=.gitignore::$p is no longer ignored by .gitignore. Restore the rule, or remove the path from DERIVED_ROLLUP_RELPATHS in scripts/check-audit-bindings.py so its audit bindings are checked again."
               fail=1
             fi

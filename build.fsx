@@ -502,8 +502,14 @@ let private runEvidenceGraphEmission (graphPath: string) (publishSmaller: bool) 
 /// this composition. #26's own lesson, in this same file, is that the predicate being
 /// correct and the predicate being INSTALLED are two claims and a suite that proves the
 /// first says nothing about the second: three mutants of the runner each reinstated the
-/// original defect with a fully green suite. A check hung off an unparameterised call
-/// site is exactly that hole, so this one is not.
+/// original defect with a fully green suite.
+///
+/// `warn` is a SINK and a sink can be neutered. A PR reviewer proved it: passing `ignore`
+/// here left every gate green and made the production check unobservable for every input,
+/// because `warn` is its only consumer. That is why nothing above `evidenceGraphRun`
+/// passes a sink at all — the warnings are a RETURNED VALUE there, which is #26's own
+/// remedy for the publication report ("returned rather than printed so the wording is
+/// testable") applied to the thing that reports on it.
 let private emitWithHeadingCheck (graphPath: string) (emit: unit -> int) (warn: string -> unit) () =
     let exitCode = emit ()
 
@@ -515,12 +521,26 @@ let private emitWithHeadingCheck (graphPath: string) (emit: unit -> int) (warn: 
 
     exitCode
 
-let private runEvidenceGraph () =
-    let emitAndCheckHeading =
-        emitWithHeadingCheck evidenceGraphPath (fun () -> runGeneratedEvidence "EvidenceGraph") (eprintfn "%s")
+/// Everything `Verify` does for the evidence graph except call the engine, as a value.
+/// The ONLY injected parameter is the emitter; the sink is internal, so there is no
+/// production sink to replace with `ignore`, and the operator-facing lines are a returned
+/// `string list` that `SelfTest` reads directly rather than a side effect it has to
+/// intercept. Warnings precede the publication report because a rule that abstained or
+/// restored everything is explained by the heading warning, and the explanation is
+/// useless printed after the consequence.
+let private evidenceGraphRun (emit: unit -> int) : string list =
+    let warnings = ResizeArray<string>()
 
-    runEvidenceGraphEmission evidenceGraphPath (evidenceGraphPublishRequested ()) emitAndCheckHeading
-    |> evidenceGraphPublicationReport evidenceGraphPath
+    let publication =
+        runEvidenceGraphEmission
+            evidenceGraphPath
+            (evidenceGraphPublishRequested ())
+            (emitWithHeadingCheck evidenceGraphPath emit warnings.Add)
+
+    List.ofSeq warnings @ evidenceGraphPublicationReport evidenceGraphPath publication
+
+let private runEvidenceGraph () =
+    evidenceGraphRun (fun () -> runGeneratedEvidence "EvidenceGraph")
     |> List.iter (eprintfn "%s")
 
 // A redirected pipe reaches EOF when the LAST writer closes it, and that is not necessarily the
@@ -1909,6 +1929,50 @@ let private runSelfTest () =
             "a failed emission still fails the gate and warns about nothing"
             (failedOutcome = None && List.isEmpty failedWarnings)
 
+        // `evidenceGraphRun` is the exact composition `Verify` runs, so drive THAT and
+        // read its returned lines. This is what makes the heading warning observable
+        // without a sink: the mutant that passed `ignore` for `warn` has nothing to
+        // neuter here, because the production path takes no sink at all.
+        //
+        // It runs against the REAL evidenceGraphPath, so it is bracketed by a save and
+        // restore of whatever this checkout has there — SelfTest must not be the thing
+        // that destroys a graph, and `readiness/evidence-graph.md` is untracked since #56,
+        // so git could not put it back.
+        let liveGraph = evidenceGraphPath
+        let liveGraphBackup = path [ sandbox; "live-graph-backup.md" ]
+        let hadLiveGraph = File.Exists liveGraph
+
+        if hadLiveGraph then
+            File.Copy(liveGraph, liveGraphBackup, true)
+
+        try
+            Directory.CreateDirectory(Path.GetDirectoryName liveGraph) |> ignore
+            File.WriteAllText(liveGraph, withHeading)
+
+            let producedLines = evidenceGraphRun (fun () -> File.WriteAllText(liveGraph, withoutHeading); 0)
+
+            expect
+                "the composition Verify runs RETURNS the heading warning, with no sink to discard it"
+                (producedLines |> List.exists (fun line -> line.Contains "ABSTAIN"))
+
+            expect
+                "...and returns the refusal report after it, in that order"
+                (match producedLines |> List.tryFindIndex (fun l -> l.Contains "ABSTAIN"),
+                       producedLines |> List.tryFindIndex (fun l -> l.Contains "NOT published") with
+                 | Some warnAt, Some reportAt -> warnAt < reportAt
+                 | _ -> false)
+
+            File.WriteAllText(liveGraph, withHeading)
+
+            expect
+                "a clean run through that same composition returns nothing to print"
+                (List.isEmpty (evidenceGraphRun (fun () -> File.WriteAllText(liveGraph, withHeading); 0)))
+        finally
+            if hadLiveGraph then
+                File.Copy(liveGraphBackup, liveGraph, true)
+            elif File.Exists liveGraph then
+                File.Delete liveGraph
+
         // The cases above drive `emitWithHeadingCheck` directly, so they prove the
         // composition and NOT the production call site — `runEvidenceGraph` calls the real
         // engine and cannot be driven from here. A mutant that rewires `runEvidenceGraph`
@@ -1917,30 +1981,37 @@ let private runSelfTest () =
         // closes that, and it is honest about what it is — the same text-scan convention
         // `GovernanceTests` already applies to this file. It proves the wiring is WRITTEN,
         // not that it runs; the cases above are what prove it behaves.
+        // A SUBSTRING scan is not enough, and a reviewer proved it: binding the correct
+        // wiring to `let _checked = …` and then calling the bare emitter satisfies every
+        // "contains" test while the check runs on nothing. So this pins the whole body by
+        // EQUALITY, whitespace-normalised. `runEvidenceGraph` is two lines; anything that
+        // makes it longer is a rewiring and should have to say so here.
+        //
+        // The marker is anchored to a line start, so the literal below — which is indented
+        // — cannot be found instead of the definition. The body runs to the first line
+        // that is non-empty and not indented, so an unrelated helper declared after it
+        // does not get swept in.
         let runEvidenceGraphBody =
-            let source = File.ReadAllText(path [ currentRoot (); "build.fsx" ])
-            let marker = "let private runEvidenceGraph () ="
+            let source = (File.ReadAllText(path [ currentRoot (); "build.fsx" ])).Replace("\r\n", "\n")
+            let marker = "\nlet private runEvidenceGraph () =\n"
 
             match source.IndexOf(marker, StringComparison.Ordinal) with
             | -1 -> None
             | start ->
-                let rest = source.Substring(start + marker.Length)
-                // The next top-level binding or comment block ends the body.
-                match rest.IndexOf("\n// ", StringComparison.Ordinal) with
-                | -1 -> Some rest
-                | stop -> Some(rest.Substring(0, stop))
+                source.Substring(start + marker.Length).Split('\n')
+                |> Array.takeWhile (fun line -> line.Trim() = "" || Char.IsWhiteSpace line.[0])
+                |> String.concat " "
+                |> fun body -> body.Split([| ' '; '\t' |], StringSplitOptions.RemoveEmptyEntries)
+                |> String.concat " "
+                |> Some
 
         expect
-            "build.fsx still declares runEvidenceGraph, so this scan has a subject"
+            "build.fsx still declares runEvidenceGraph at a line start, so this scan has a subject"
             runEvidenceGraphBody.IsSome
 
         expect
-            "runEvidenceGraph reaches the heading check ONLY through emitWithHeadingCheck"
-            (match runEvidenceGraphBody with
-             | Some body ->
-                 body.Contains "emitWithHeadingCheck evidenceGraphPath"
-                 && not (body.Contains "emittedGraphSectionWarning")
-             | None -> false)
+            "runEvidenceGraph is EXACTLY the wiring through evidenceGraphRun, with nothing else in it"
+            (runEvidenceGraphBody = Some "evidenceGraphRun (fun () -> runGeneratedEvidence \"EvidenceGraph\") |> List.iter (eprintfn \"%s\")")
 
         let clean, _ = freshFixture ()
         expect "a faithful fixture is clean" (List.isEmpty (templateDriftViolations clean) && List.isEmpty (generatedGuidanceViolations clean))
