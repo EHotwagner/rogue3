@@ -403,6 +403,14 @@
       "reason": "M13 (014-m13-room-transition-pickups-world-state, board item #12) changed files that earlier cycles' audits bind. src/Rogue3/Model.fs gained the room wall-slab geometry the player sweeps (with hidden walls deliberately left solid), the positioned FloorPickup type keyed by room, its fixed-step collection scan, deterministic room fixture placement, and the departed-room id on M6CameraTransition; src/Rogue3/Render.fs gained the departed-room shell, placed shop and reward fixtures with price and key-lock marks, four world-space state visuals, the per-region HUD split, and recoloured pickups after a visual critic measured the bomb as invisible against the floor; src/Rogue3/PerformanceEvidence.fs re-declared all seven workload digests, retired ui.hud-score for five region drivers, and added scene.departed-room and simulation.floor-pickup-candidates; src/Rogue3/EvidenceCommands.fs re-declared three UI-route digests; readiness/ artifacts were regenerated at the candidate; docs/roguelike-dungeon-crawler-roadmap.md flipped the five M13 rows to done with their evidence. Excused rather than rebound, following 7e71d71 and the defect feedback/2026-08-01-Rogue3-12.md 4.13 filed: repointing an earlier cycle's audit would claim its critic examined code that did not exist when that report was written."
     },
     {
+      "audit": "feedback/audits/2026-08-02-Rogue3-3.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1",
+      "observedSha256": "7464416715bd1573bb2b99b69a47448e39668f40faf9c0360ca4d3cf82265615",
+      "reason": "rogue3#38: scripts/check-audit-bindings.py rewritten to exempt the checker's own remedy surfaces (the exceptions ledger, and other audits) from the binding scan, so --grandfather converges instead of chasing a digest it rewrites itself. Excused rather than rebound per the 7e71d71 precedent: the -3 and -6 audits' critics examined the pre-rewrite checker, and their findings about its behaviour are unchanged by this narrowing."
+    },
+    {
       "audit": "feedback/audits/2026-08-02-Rogue3-4.audit.json",
       "kind": "evidence",
       "locator": "file:readiness/evidence-graph.md",
@@ -465,6 +473,14 @@
       "boundSha256": "eb70a22de05a5163b6813767fe97b36838ca93a5753f0340491a0f69ae60efd7",
       "observedSha256": "<missing>",
       "reason": "Item #28 deleted src/Rogue3/Visibility.fs (249 unreachable lines), removed its compile item from src/Rogue3/Rogue3.fsproj, and corrected the src/Rogue3/Vec2.fs doc comments that named Visibility.Segment / Visibility.VisibilityPolygon. All three files are bound by feedback/audits/2026-08-02-Rogue3-5.audit.json, the audit whose critic ESTABLISHED that Visibility.fs was dead and that those Vec2.fs comments were what disguised it as live. Excused rather than rebound, per the 7e71d71 precedent: Visibility.fs no longer exists so there are no bytes to rebind to, and rebinding Rogue3.fsproj or Vec2.fs would pin post-fix bytes and thereby claim that critic inspected text written after it reported -- for Vec2.fs it would also erase the misleading comments that ARE the finding's evidence. The audit remains true of the tree it examined."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-6.audit.json",
+      "kind": "evidence",
+      "locator": "file:scripts/check-audit-bindings.py",
+      "boundSha256": "c075905a517de3027b34c6ff28c85f854a6a3586a2b37fd95d8ac55b9f9e2ae1",
+      "observedSha256": "7464416715bd1573bb2b99b69a47448e39668f40faf9c0360ca4d3cf82265615",
+      "reason": "rogue3#38: scripts/check-audit-bindings.py rewritten to exempt the checker's own remedy surfaces (the exceptions ledger, and other audits) from the binding scan, so --grandfather converges instead of chasing a digest it rewrites itself. Excused rather than rebound per the 7e71d71 precedent: the -3 and -6 audits' critics examined the pre-rewrite checker, and their findings about its behaviour are unchanged by this narrowing."
     },
     {
       "audit": "feedback/audits/2026-08-02-Rogue3.audit.json",
