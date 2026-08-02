@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-18.md",
-  "reportSha256": "9199146b71e1ed60650d6a5fe31f37e6b677f93e6775ee96d39883de081ca27c",
+  "reportSha256": "d418b01ed2440a5eb661bdd8bcce06b5f8513c24427b0d2f676f5acb541504e2",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -92,7 +92,7 @@
         {
           "locator": "file:feedback/checkpoints/item-63-borderless-display-mode.jsonl",
           "result": "verified",
-          "sha256": "370602bdc4864d469b16b9a9e8ba7b4d6e5a578f9461502809689ec27cfb31da"
+          "sha256": "9173964417b587b6224c35901fb087b311aca13a96809453e55247260b946292"
         },
         {
           "locator": "command:git show e0110c8:tests/Rogue3.Tests/BehaviorTests.fs",
@@ -135,7 +135,7 @@
         {
           "locator": "file:.github/workflows/verify.yml",
           "result": "verified",
-          "sha256": "0bd2ebdea692ad1f9d42fe4195469fc99c44b1cbab66c931faa2d6f5cc6083fa"
+          "sha256": "78b072330cf1e5fb7a271761b72c21609e1ab4c97897468997ca86e1dea771bb"
         },
         {
           "locator": "file:src/Rogue3/EvidenceCommands.fs",
@@ -160,7 +160,7 @@
         {
           "locator": "file:scripts/audit-binding-exceptions.json",
           "result": "verified",
-          "sha256": "d78cc5cac08694820b1bfd8142aa38a8036da82b5bb419641ccd607f79b28c11"
+          "sha256": "603ae90ce38f89ed3ceb6e9ac0ce4b1bbebdbf7f1b1a5540647013daa3c94957"
         },
         {
           "locator": "command:python3 scripts/check-audit-bindings.py",
@@ -169,9 +169,16 @@
         {
           "locator": "issue:EHotwagner/rogue3#53",
           "result": "verified"
+        },
+        {
+          "locator": "issue:EHotwagner/rogue3#84",
+          "result": "verified"
         }
       ],
-      "confidenceLimits": []
+      "confidenceLimits": [
+        "The critic verified this finding BEFORE EHotwagner/rogue3#84 landed on main. The observation it checked -- a single shared ledger, order-dependent appends, two appends forced in one cycle -- was true of the tree the cycle worked on and remains verifiable in that history. The finding's FIXED UNDERNEATH THIS REPORT paragraph, the #84 locator, and the changed disposition were added after that pass, on evidence the author verified directly: the merge conflict, the frozen-archive note in scripts/audit-binding-exceptions.json reading 'Do not add entries here', and check-audit-bindings.py --grandfather --cycle writing scripts/audit-binding-exceptions/item-63-borderless-display-mode.json to exit 0.",
+        "The pinned sha256 on scripts/audit-binding-exceptions.json is recorded for the record only. That path is the documented digest-check exemption -- excusing any binding rewrites the file and invalidates the digest just pinned -- so the validator reports it rather than comparing it."
+      ]
     },
     {
       "id": "§4.8",
