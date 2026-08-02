@@ -1,7 +1,7 @@
 {
   "auditSchema": 1,
   "report": "feedback/2026-08-02-Rogue3-23.md",
-  "reportSha256": "355ea853ea32b8f486bdcb24fa6e62111b251d204d0b585e4c4816e1704162f5",
+  "reportSha256": "0912044713c14a0f7a1a76a867110be0ff31bc04211320e93e385a8367ac5627",
   "criticMode": "fresh-context-subagent",
   "criticPromptVersion": "actionability-v1",
   "findings": [
@@ -155,7 +155,7 @@
           "sha256": "75a19b3b9a37435175d5f6fa5300a4e6f40308ebfa004c7988eefb22ac3f9c5d"
         },
         {
-          "locator": "command:replacing the canonicalized containment test with `if true then` fails \"a symlink INSIDE the workspace pointing OUT is rejected\" and disabling the lexical test fails \"a LEXICALLY escaping locator that symlinks back inside is still rejected\", where at commit be74e52 -- before these two cases existed -- both mutants passed 68/68",
+          "locator": "command:replacing the canonicalized containment test with `if true then` fails \"a symlink INSIDE the workspace pointing OUT is rejected\" and disabling the lexical test fails \"a LEXICALLY escaping locator that symlinks back inside is still rejected\", where removing those two cases from the shipped suite and setting expectedCases to 86 lets BOTH mutants pass 86/86 at exit 0, reproducible against the merged tree without reference to any commit",
           "result": "verified"
         }
       ]
@@ -229,7 +229,7 @@
         {
           "locator": "file:feedback/2026-08-02-Rogue3-23.md",
           "result": "verified",
-          "sha256": "355ea853ea32b8f486bdcb24fa6e62111b251d204d0b585e4c4816e1704162f5"
+          "sha256": "0912044713c14a0f7a1a76a867110be0ff31bc04211320e93e385a8367ac5627"
         },
         {
           "locator": "file:.agents/skills/fs-gg-feedback-report/SKILL.md",
@@ -245,7 +245,7 @@
           "result": "verified"
         },
         {
-          "locator": "command:git branch -a --contains b689137 is empty after the rebase while be74e52 is contained by this branch and carries the same subject, the same minimumCases = 66 and byte-identical kit sources 68dab1bff6f26748 and cfdedd7411b17583",
+          "locator": "command:git branch -a --contains b689137 is empty after the rebase, git ls-remote origin matches neither b689137 nor be74e52, and git log --format=%p over origin/main shows every recent commit with exactly one parent -- so no feature-branch sha is citable in this repository",
           "result": "verified"
         },
         {
