@@ -36,11 +36,27 @@ let targetFromArgs args =
 /// because `writeLog` below has to know about it.
 let private selfTestInjectVar = "FSGG_SELFTEST_INJECT_FAILURE"
 
+/// Set on every spawned child INDEPENDENTLY of the inject flag. Two separate variables look
+/// redundant and are not: deleting the single line that sets the inject flag would otherwise make
+/// the child spawn its own child, without bound — measured at 15 live `dotnet fsi` processes and
+/// climbing before this existed. A depth marker the same edit does not remove turns that runaway
+/// into an immediate, cheap red: the child declines to probe, so it passes, and the parent's
+/// exit-code channel reports that a run which must fail did not.
+let private selfTestDepthVar = "FSGG_SELFTEST_DEPTH"
+
 let private selfTestInjecting () =
     match Environment.GetEnvironmentVariable selfTestInjectVar with
     | null
     | "" -> false
     | _ -> true
+
+/// True for ANY run this script spawned, however it was spawned. Only a top-level run probes.
+let private selfTestIsChild () =
+    selfTestInjecting ()
+    || match Environment.GetEnvironmentVariable selfTestDepthVar with
+       | null
+       | "" -> false
+       | _ -> true
 
 let writeLog target =
     // #57: a self-probe CHILD must leave no completion marker in the parent's tree. The child is a
@@ -1454,6 +1470,8 @@ let private probeSelfTestFailurePath () =
     startInfo.WorkingDirectory <- currentRoot ()
     startInfo.Environment[selfTestInjectVar] <- "1"
     startInfo.Environment[selfTestResultVar] <- resultPath
+    // Independent of the line above, on purpose — see `selfTestDepthVar`.
+    startInfo.Environment[selfTestDepthVar] <- "1"
 
     let exitCode, childOut =
         // `Process.Start` THROWS when `dotnet` cannot be resolved — it does not return null — so the
@@ -2524,14 +2542,14 @@ let private runSelfTest () =
         // #57: prove the failure path still works before believing a zero. The child run carries
         // this run's mutations, so if the failure path is disarmed here it is disarmed there too —
         // and there it has a case that MUST fail. Skipped in the child, which would else recurse.
-        if not (selfTestInjecting ()) then
+        if not (selfTestIsChild ()) then
             probeSelfTestFailurePath ()
             probed <- true
 
-        // Independent of the branch above, so that rewriting `if not (selfTestInjecting ())` to
+        // Independent of the branch above, so that rewriting `if not (selfTestIsChild ())` to
         // `if false` — ONE edit that would otherwise remove BOTH probe channels at once and leave
         // a result file byte-identical to an honest run — is itself caught.
-        if not (selfTestInjecting ()) && not probed then
+        if not (selfTestIsChild ()) && not probed then
             failwith "SelfTest did not probe its own failure path, so its verdict is not evidence (#57)."
 
         if failures > 0 then
