@@ -32,10 +32,27 @@ let targetFromArgs args =
 
     loop args
 
+/// #57: set on the CHILD run of `SelfTest`'s self-probe only. Declared here, far above the target,
+/// because `writeLog` below has to know about it.
+let private selfTestInjectVar = "FSGG_SELFTEST_INJECT_FAILURE"
+
+let private selfTestInjecting () =
+    match Environment.GetEnvironmentVariable selfTestInjectVar with
+    | null
+    | "" -> false
+    | _ -> true
+
 let writeLog target =
-    Directory.CreateDirectory("readiness/logs") |> ignore
-    File.WriteAllText(Path.Combine("readiness", "logs", target + ".txt"), $"{target} completed for generated rogue3.{Environment.NewLine}")
-    printfn "%s completed for generated rogue3" target
+    // #57: a self-probe CHILD must leave no completion marker in the parent's tree. The child is a
+    // run that is REQUIRED to fail, and a mutation that makes it pass anyway would otherwise leave
+    // `readiness/logs/SelfTest.txt` saying "completed" while the parent exits non-zero — a forged
+    // green marker, written by the very run whose dishonesty the parent is about to report.
+    if selfTestInjecting () then
+        printfn "%s completed for generated rogue3 (self-probe child; no marker written)" target
+    else
+        Directory.CreateDirectory("readiness/logs") |> ignore
+        File.WriteAllText(Path.Combine("readiness", "logs", target + ".txt"), $"{target} completed for generated rogue3.{Environment.NewLine}")
+        printfn "%s completed for generated rogue3" target
 
 // ADR-0056 §Decision.2: the fail-closed half of the sdd-lane guard. The `sdd` lane (the default)
 // emits the rogue3 only and expects an external SDD lifecycle owner (fsgg-sdd) to re-supply the
@@ -1333,25 +1350,19 @@ let private runTemplateDrift () =
 // through `expect`, so disarming `expect` cannot disarm the check on `expect`.
 // ---------------------------------------------------------------------------
 
-/// Set on the CHILD run only. Its presence means two things: inject one known-false case, and do
-/// not spawn a further child (otherwise the probe would recurse without bound).
-let private selfTestInjectVar = "FSGG_SELFTEST_INJECT_FAILURE"
+// `selfTestInjectVar` / `selfTestInjecting` are declared near `writeLog`, which needs them. Its
+// presence means two things: inject one known-false case, and do not spawn a further child
+// (otherwise the probe would recurse without bound).
 
 /// Where the child is told to write its structured result, so the probe reads a file it named
-/// rather than scraping the child's stdout — and so a child run never overwrites the committed-path
-/// artifact of the parent that spawned it.
+/// rather than scraping the child's stdout — and so a child run never overwrites the parent's own
+/// structured result. (The child writes no `readiness/logs/*.txt` at all; see `writeLog`.)
 let private selfTestResultVar = "FSGG_SELFTEST_RESULT_PATH"
 
 /// The injected case's description, shared by the child that RECORDS it and the parent that
 /// requires to find it. One literal, so the two halves cannot drift apart silently.
 let private selfTestInjectedDescription =
     "INJECTED failing case (the probe's control: this run MUST report a failure)"
-
-let private selfTestInjecting () =
-    match Environment.GetEnvironmentVariable selfTestInjectVar with
-    | null
-    | "" -> false
-    | _ -> true
 
 let private selfTestResultPath () =
     match Environment.GetEnvironmentVariable selfTestResultVar with
@@ -2552,11 +2563,33 @@ let private runSelfTest () =
             let here = Directory.GetCurrentDirectory()
             let realRoot = Path.GetFullPath here
 
+            // A directory this code CREATES, not `Path.GetTempPath()` itself. `GetTempPath` honours
+            // $TMPDIR, so `TMPDIR=$PWD` would relocate the process to the repository root and turn
+            // this entire defence into a silent no-op — measured: the cwd-keyed exemption went from
+            // caught to green, with drift on disk. A fresh subdirectory is a different directory
+            // whatever $TMPDIR says.
+            let elsewhere =
+                path [ Path.GetTempPath(); "rogue3-selftest-elsewhere-" + Guid.NewGuid().ToString("N") ]
+
+            Directory.CreateDirectory elsewhere |> ignore
+
             try
-                Directory.SetCurrentDirectory(Path.GetTempPath())
+                Directory.SetCurrentDirectory elsewhere
+
+                // Fail CLOSED rather than check from the wrong place: if the relocation did not
+                // actually move us, the two calls below would be exactly the ones M21 exempts.
+                if Path.GetFullPath(Directory.GetCurrentDirectory()) = realRoot then
+                    failwith
+                        "SelfTest could not evaluate the repository checks from outside the repository, so the M21 class is unguarded here (#57)."
+
                 templateDriftViolations realRoot, generatedGuidanceViolations realRoot
             finally
                 Directory.SetCurrentDirectory here
+
+                try
+                    Directory.Delete(elsewhere, true)
+                with _ ->
+                    ()
 
         // Called AFTER the directory is restored: the success path calls `writeLog`, which writes to
         // a RELATIVE path and would otherwise land in the temp dir. The coverage line is printed
