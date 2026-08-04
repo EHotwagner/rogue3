@@ -17,7 +17,7 @@ Prose status: planned
 
 ## Source Snapshot
 - spec: work/016-declare-public-api-signature-files/spec.md sha256:38c34f969d53dd8b1fa360d56546cc9149ad18bb5e7a4481e236ae67c0b0c509 schemaVersion:1
-- clarifications: work/016-declare-public-api-signature-files/clarifications.md sha256:6305d924537fe32f7cb33da3f3575482610e558fb8d6838df5f52824016bb6d4 schemaVersion:1
+- clarifications: work/016-declare-public-api-signature-files/clarifications.md sha256:93b5773c38658f6b42dc72f118a431d47acb50a3934b96dd13c8669a33c39858 schemaVersion:1
 - checklist: work/016-declare-public-api-signature-files/checklist.md sha256:075fae3bebb790eebcefb2d501be46e1079174788b06fa3fe13820b0bb65164a schemaVersion:1
 
 ## Plan Scope
@@ -48,13 +48,17 @@ Prose status: planned
   first (preserving string literals). Review round 1 found this missing — the pruning and the
   published inventory both counted comment mentions, the `#19`/`#28` "count code references, not grep
   hits" error `Rogue3.fsproj` warns about. Correcting it moved the inventory's product-reference
-  total from 263 to 236 and revealed 23 declarations named by no code, 13 of which had survived
-  pruning on a comment alone. Those 13 are enumerated in `docs/public-api-surface.md` and left for a
-  follow-up: removing them narrows the declared contract, which is a Tier 1 change of its own.
+  total from 263 to 236 and moved 17 declarations into the last column, which now holds 23.
+  Review round 2 corrected what that column is CALLED: it compares each declaration against every
+  consumer file EXCEPT its own, so it means "not named outside its module", never "named by no code
+  anywhere" — 15 of the 23 carry live intra-module call sites, and exactly one (`Model.shotSpeed`) is
+  named by nothing at all. The counts were unaffected; only the predicate's description was wrong.
+  All 23 are enumerated with their intra-module call-site counts in `docs/public-api-surface.md` and
+  left in place: acting on them narrows the declared contract, which is a Tier 1 change of its own.
 - PD-004 [AC-004] [FR-004] complete: Change no `.fs` implementation file and leave every existing
   test unedited, so the pre-existing suite is an untouched control. If a binding a real consumer
   names were hidden, that suite fails to compile -- which makes "277 pre-existing tests still pass"
-  direct evidence that the pruning removed only unreferenced surface.
+  direct evidence that the pruning removed only surface no consumer names.
 - PD-005 [AC-005] [FR-005] complete: Prove the gate can fail. Every scan is a pure function over
   its input so synthetic violations can drive it directly (the `#111` "guard the guard" discipline),
   and the whole gate is additionally run against a real planted regression: removing one

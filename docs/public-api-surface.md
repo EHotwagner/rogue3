@@ -43,7 +43,7 @@ module look adopted. Those Vec2.fs comments were corrected with this change; **c
 references, not grep hits**."* (#19, #28.) The first version of this table counted grep hits and was
 wrong in exactly that way — see the note under the table.
 
-| module | declared | named by other product modules | named only by tests/scripts | type vocabulary | unreferenced |
+| module | declared | named by other product modules | named only by tests/scripts | type vocabulary | not named outside its module |
 |---|---:|---:|---:|---:|---:|
 | `Rogue3.AudioCueIds` | 28 | 27 | 1 | 0 | 0 |
 | `Rogue3.AudioCues` | 5 | 5 | 0 | 0 | 0 |
@@ -74,7 +74,7 @@ wrong in exactly that way — see the note under the table.
 > `Program.fs` are the last two compile items and F# has no forward references, so no module under
 > `src/Rogue3/` is able to name anything in `Rogue3.Program`. Re-deriving the whole column with
 > comments stripped moved five figures, not one: product references 263 → 236, type vocabulary
-> 51 → 61, and unreferenced 6 → 23. Every row sums to its `declared` count.
+> 51 → 61, and the last column 6 → 23. Every row sums to its `declared` count.
 
 The column meanings, because they are the distinction issue #96 asked the inventory to make:
 
@@ -87,8 +87,12 @@ The column meanings, because they are the distinction issue #96 asked the invent
 - **type vocabulary** — a record or union whose *name* no consumer writes, because it reaches
   consumers through inference (`Entities.definition` returns `EnemyDefinition` without any caller
   naming the type). These cannot be removed: a retained signature in the same module names them.
-- **unreferenced** — declared, and named by no code anywhere today. Enumerated in full below, because
-  a count alone would let this column be read as noise.
+- **not named outside its module** — no *other* file names it. That is the predicate the scan
+  actually measures: it compares each declaration against every consumer file **except the one that
+  defines it**. Most of these have live call sites *inside* their own module; a few have none at all.
+  Enumerated individually below, with the intra-module call-site count, because the difference
+  between "used, but only privately" and "used by nothing" is the whole decision this column informs
+  — and a bare count cannot carry it.
 
 `Rogue3.Program` is worth reading twice. It is the executable entry point, and **none** of its 22
 declarations is named by another product module — nor can one be, since it compiles last. Its
@@ -97,24 +101,50 @@ suite, which drives the production route through `update` (13 call sites), `init
 `interactiveHost` (9), `generatedHost` (8) and the layout-evidence functions. An entry point should
 contract little, and this one now contracts 22 declarations instead of the 36 it exposed before.
 
-### The 23 unreferenced declarations, in full
+### The 23 declarations no other file names, in full
 
-| module | declarations | why they remain |
-|---|---|---|
-| `Rogue3.Collision` | `contact`, `sweptContact`, `collide`, `resolve`, `step`, `slideCircle` | deliberate — adaptable-helper API, see below |
-| `Rogue3.Geometry` | `toPoint`, `toRect`, `ofSimRectCenter` | deliberate — adaptable-helper API, see below |
-| `Rogue3.Program` | `main` | the `[<EntryPoint>]`; the runtime calls it, no source does |
-| `Rogue3.Program` | `init`, `mapKey`, `parseWindowBehavior` | MVU seam and CLI parser, used only inside `Program.fs` |
-| `Rogue3.Model` | `bombRadius`, `placementAccepts`, `movePaddle`, `shotSpeed`, `collectRoomReward`, `playerRoomIntentsIn` | no code reference |
-| `Rogue3.Render` | `roomWallsScene`, `shopSlotReadyScene`, `renderedElementsIn` | no code reference |
-| `Rogue3.EvidenceCommands` | `retireWithdrawnDisplayMode` | no code reference |
+The right-hand column is the **intra-module** call-site count: references inside the declaring file
+itself, with comments stripped, string literals blanked, and the declaration's own line excluded.
 
-Nine of these (`Collision`, `Geometry`) are the deliberate adaptable-helper decision recorded below,
-and `main` is reached by the runtime rather than by source. **The remaining thirteen survived the
-pruning pass only because a comment mentioned them** — the same grep-hit error this table's own
-correction fixed. They are genuinely accidental surface and are the first candidates for a follow-up
-narrowing. They are listed here rather than removed quietly: pruning them changes the declared
-contract, which is a Tier 1 change that belongs in its own reviewed step, not in a documentation
+| module | declaration | intra-module call sites | what it is |
+|---|---|---:|---|
+| `Rogue3.Collision` | `contact` | 1 | adaptable-helper API; used inside `Collision.fs` |
+| `Rogue3.Collision` | `sweptContact` | 1 | adaptable-helper API; used inside `Collision.fs` |
+| `Rogue3.Collision` | `collide` | 1 | adaptable-helper API; used inside `Collision.fs` |
+| `Rogue3.Collision` | `resolve` | 1 | adaptable-helper API; used inside `Collision.fs` |
+| `Rogue3.Collision` | `slideCircle` | 1 | adaptable-helper API; used inside `Collision.fs` |
+| `Rogue3.Collision` | `step` | 0 | adaptable-helper API, declared for the consumer who adapts it |
+| `Rogue3.Geometry` | `toPoint`, `toRect`, `ofSimRectCenter` | 0 | adaptable-helper API, declared for the consumer who adapts it |
+| `Rogue3.Program` | `main` | 0 | the `[<EntryPoint>]` — the .NET runtime calls it, no source does |
+| `Rogue3.Program` | `init`, `mapKey` | 0 | **re-export aliases** (`let init = Rogue3.Model.init`); named by no code |
+| `Rogue3.Program` | `parseWindowBehavior` | 1 | used inside `Program.fs` |
+| `Rogue3.Model` | `bombRadius` | 4 | used inside `Model.fs` |
+| `Rogue3.Model` | `movePaddle` | 2 | used inside `Model.fs` — including the `update` arm for `MovePaddle` |
+| `Rogue3.Model` | `playerRoomIntentsIn` | 2 | used inside `Model.fs` |
+| `Rogue3.Model` | `placementAccepts` | 1 | used inside `Model.fs` |
+| `Rogue3.Model` | `collectRoomReward` | 1 | used inside `Model.fs` |
+| `Rogue3.Model` | `shotSpeed` | 0 | **named by no code anywhere** — the only genuinely dead declaration |
+| `Rogue3.Render` | `renderedElementsIn` | 2 | used inside `Render.fs` |
+| `Rogue3.Render` | `roomWallsScene` | 1 | used inside `Render.fs` |
+| `Rogue3.Render` | `shopSlotReadyScene` | 1 | used inside `Render.fs` |
+| `Rogue3.EvidenceCommands` | `retireWithdrawnDisplayMode` | 1 | used inside `EvidenceCommands.fs` |
+
+So of the 23: **fifteen carry live intra-module call sites**, seven are declared deliberately for a
+consumer that does not exist yet (the six adaptable-helper entries with no local use, plus `main`,
+which the runtime calls), and **exactly one — `Model.shotSpeed` — is named by nothing at all**.
+
+This corrects a claim the previous revision made per-declaration: it labelled ten of these "no code
+reference", of which nine in fact have live intra-module call sites. Round 1 of review fixed a scan
+that counted comment mentions as call sites (over-stating the *product* column); this revision fixes
+the opposite error in the same family — discarding intra-module call sites and publishing the result
+as "named by no code anywhere" (over-stating *this* column). The numbers themselves were never
+affected: the scan always measured "not named outside its own module", every row still sums, and the
+446 total and 236/126/61/23 split are unchanged. What was wrong was what the column was **called**.
+
+None of these is pruned here. They are the trustworthy narrowing list precisely *because* the column
+now says what it measured: an intra-module helper is a candidate for `private`, a re-export alias is a
+candidate for deletion, and `shotSpeed` is dead code. Acting on that list narrows the declared
+contract, which is a Tier 1 change belonging in its own reviewed step rather than in a documentation
 repair.
 
 ## What is deliberately not pruned

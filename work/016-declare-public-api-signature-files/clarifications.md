@@ -81,9 +81,24 @@ first shipped and the record of a wrong decision is part of the decision (round 
   `#19`/`#28`. It credited `Rogue3.Program` with 2 product consumers when the true number is 0 —
   `Program` compiles LAST and F# has no forward references, so no product module can name it at all.
   Re-derived with comments stripped, five figures moved: product 263 → 236, type vocabulary 51 → 61,
-  unreferenced 6 → 23. Thirteen of the newly-visible unreferenced declarations survived pruning only
-  because a comment mentioned them; they are enumerated in `docs/public-api-surface.md` and left for a
-  follow-up narrowing rather than removed inside a documentation repair.
+  last column 6 → 23. All 23 are enumerated in `docs/public-api-surface.md` and left in place rather
+  than removed inside a documentation repair.
+- RC-004 (corrects RC-002's own enumeration, round 2): RC-002 fixed the arithmetic but not the
+  PREDICATE. The scan compares each declaration against every consumer file **except the one that
+  defines it**, so its last column means "not named outside its module" — yet the enumeration
+  published under it labelled ten declarations "no code reference". Nine of those ten have live
+  intra-module call sites (`Model.bombRadius` 4, `movePaddle` 2 including the `update` arm for
+  `MovePaddle`, `playerRoomIntentsIn` 2, `placementAccepts` 1, `collectRoomReward` 1,
+  `Render.renderedElementsIn` 2, `roomWallsScene` 1, `shopSlotReadyScene` 1,
+  `EvidenceCommands.retireWithdrawnDisplayMode` 1); only `Model.shotSpeed` is named by nothing.
+  Round 1 counted comment mentions as call sites and over-stated the *product* column; this was the
+  same error inverted — discarding intra-module call sites and over-stating the *last* column. The
+  column is renamed to what it measures and every entry now carries its intra-module count. Two
+  further labels were wrong and are corrected with it: `Program.init` and `Program.mapKey` are
+  re-export aliases (`let init = Rogue3.Model.init`) named by no code, not "used only inside
+  `Program.fs`" — in the whole raw text of `Program.fs`, comments and strings included, each name
+  occurs only on its own definition line, so there is no reference to attribute and no ambiguity
+  about which module's binding is meant.
 - RC-003 (corrects CD-003): the documented `--allsigs` recipe omitted its precondition. Run verbatim
   on the shipped tree it OVERWRITES all 21 committed signatures (446 declarations → 825) and the next
   build fails inside them. The recipe now requires a scratch copy with the signatures and their
