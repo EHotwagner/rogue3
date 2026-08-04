@@ -129,9 +129,10 @@ itself, with comments stripped, string literals blanked, and the declaration's o
 | `Rogue3.Render` | `shopSlotReadyScene` | 1 | used inside `Render.fs` |
 | `Rogue3.EvidenceCommands` | `retireWithdrawnDisplayMode` | 1 | used inside `EvidenceCommands.fs` |
 
-So of the 23: **fifteen carry live intra-module call sites**, seven are declared deliberately for a
-consumer that does not exist yet (the six adaptable-helper entries with no local use, plus `main`,
-which the runtime calls), and **exactly one — `Model.shotSpeed` — is named by nothing at all**.
+So of the 23: **fifteen carry live intra-module call sites**; seven have no local use either — the
+four adaptable-helper entries declared for a consumer who does not exist yet, `main`, which the
+runtime calls, and the two re-export aliases; and **exactly one — `Model.shotSpeed` — is named by
+nothing at all**.
 
 This corrects a claim the previous revision made per-declaration: it labelled ten of these "no code
 reference", of which nine in fact have live intra-module call sites. Round 1 of review fixed a scan

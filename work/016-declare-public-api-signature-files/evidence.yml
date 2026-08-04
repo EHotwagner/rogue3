@@ -11,7 +11,7 @@ sourceAnalysis: readiness/016-declare-public-api-signature-files/analysis.json
 sourceSnapshots:
   - label: analysis
     path: readiness/016-declare-public-api-signature-files/analysis.json
-    digest: 9e67dcaccd0ef7b1aa22250ac657a21bc9a0360bddeb5e03f1210e78879fc75d
+    digest: 34d3eb0529077e122f8ca092829a0181f2e63ccf11838c19c190185c43a09720
     schemaVersion: 1
   - label: checklist
     path: work/016-declare-public-api-signature-files/checklist.md
