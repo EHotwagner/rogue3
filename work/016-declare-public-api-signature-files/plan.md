@@ -17,7 +17,7 @@ Prose status: planned
 
 ## Source Snapshot
 - spec: work/016-declare-public-api-signature-files/spec.md sha256:38c34f969d53dd8b1fa360d56546cc9149ad18bb5e7a4481e236ae67c0b0c509 schemaVersion:1
-- clarifications: work/016-declare-public-api-signature-files/clarifications.md sha256:87568bcde8330e9b02553655e5f4c60239969417bb5c46943df921c8d3997972 schemaVersion:1
+- clarifications: work/016-declare-public-api-signature-files/clarifications.md sha256:6305d924537fe32f7cb33da3f3575482610e558fb8d6838df5f52824016bb6d4 schemaVersion:1
 - checklist: work/016-declare-public-api-signature-files/checklist.md sha256:075fae3bebb790eebcefb2d501be46e1079174788b06fa3fe13820b0bb65164a schemaVersion:1
 
 ## Plan Scope
@@ -44,6 +44,13 @@ Prose status: planned
   Types are pruned last and most cautiously because a record is built by field name and a union by
   case name, so an absent type NAME is not evidence of an unused type. The compiler is the oracle
   throughout: anything wrongly pruned fails the build of the product, its tests, or its scripts.
+  A "reference" is a reference in CODE: the scan strips `//`, `///` and nested `(* … *)` comments
+  first (preserving string literals). Review round 1 found this missing — the pruning and the
+  published inventory both counted comment mentions, the `#19`/`#28` "count code references, not grep
+  hits" error `Rogue3.fsproj` warns about. Correcting it moved the inventory's product-reference
+  total from 263 to 236 and revealed 23 declarations named by no code, 13 of which had survived
+  pruning on a comment alone. Those 13 are enumerated in `docs/public-api-surface.md` and left for a
+  follow-up: removing them narrows the declared contract, which is a Tier 1 change of its own.
 - PD-004 [AC-004] [FR-004] complete: Change no `.fs` implementation file and leave every existing
   test unedited, so the pre-existing suite is an untouched control. If a binding a real consumer
   names were hidden, that suite fails to compile -- which makes "277 pre-existing tests still pass"
@@ -64,8 +71,8 @@ Prose status: planned
 
 ## Verification Obligations
 - VO-001 [PD-001] [PC-001] semanticTest: `dotnet build Rogue3.slnx -c Release` and
-  `dotnet test Rogue3.slnx -c Release` are green, with the pre-existing 277 tests unmodified and 7
-  new gate tests.
+  `dotnet test Rogue3.slnx -c Release` are green, with the pre-existing 277 tests unmodified and 8
+  new gate tests (285 total).
 - VO-002 [PD-002] [PC-001] semanticTest: reflection over the built `Rogue3.dll` shows, for all 21
   modules, that the public member set equals the declared set (no undeclared public members).
 - VO-003 [PD-005] [PC-001] negativeControl: with `<Compile Include="Program.fsi" />` removed,

@@ -21,7 +21,7 @@
          can express entity positions/velocities as Geometry.Vec2 without reusing Scene.Point/Rect field
          labels. The Exists guard keeps the build green if you delete the file AFTER swapping Model.fs off
          it (Rogue3.fsproj stays "durable"). -->
-    <Compile Include="Vec2.fsi" Condition="Exists('Vec2.fsi')" />
+    <Compile Include="Vec2.fsi" Condition="Exists('Vec2.fs')" />
     <Compile Include="Vec2.fs" Condition="Exists('Vec2.fs')" />
     <!-- M10 (§13, §14.1): the product's canonical, non-truncating structural encoding — the single
          definition of "byte-identical" for floors, models and replays. Depends on nothing in the
@@ -31,7 +31,7 @@
     <!-- Feature 246: the import-and-adapt collision helper (fs-gg-collision skill). Consumer-owned,
          adaptable source — compiled before Model.fs so your update can call Collision.step. The
          Exists guard keeps the build green if you delete the file (Rogue3.fsproj stays "durable"). -->
-    <Compile Include="Collision.fsi" Condition="Exists('Collision.fsi')" />
+    <Compile Include="Collision.fsi" Condition="Exists('Collision.fs')" />
     <Compile Include="Collision.fs" Condition="Exists('Collision.fs')" />
     <!-- Issue #19 and #28: THREE of the scaffold's four import-and-adapt geometry helpers — Grids.fs
          (Feature 249, fs-gg-grids), LineDrawing.fs (Feature 248, fs-gg-line-drawing) and Visibility.fs
@@ -60,7 +60,7 @@
          typed Controls). Game-agnostic and opt-in: compiled before Model.fs so your update/view
          can wire it, and Exists-guarded so deleting it keeps the build green (Rogue3.fsproj stays
          "durable"). See the fs-gg-game-shell skill for the host wiring. -->
-    <Compile Include="GameShell.fsi" Condition="Exists('GameShell.fsi')" />
+    <Compile Include="GameShell.fsi" Condition="Exists('GameShell.fs')" />
     <Compile Include="GameShell.fs" Condition="Exists('GameShell.fs')" />
     <Compile Include="Entities.fsi" />
     <Compile Include="Entities.fs" />

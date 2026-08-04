@@ -33,32 +33,48 @@ signatures, baselines, tests, and docs together is incomplete."*
 
 ## What the surface contains
 
-446 declarations across 21 modules, classified by who actually names them:
+446 declarations across 21 modules, classified by who actually names them.
+
+**A reference here means a reference in CODE.** The scan strips `//`, `///` and nested `(* … *)`
+comments (preserving string literals) before looking, because `Rogue3.fsproj`'s own comment records
+what happens otherwise: *"the `Visibility.Segment` and `Visibility.VisibilityPolygon` mentions in
+Vec2.fs named types no code ever constructed, and reading them as call sites is what made a dead
+module look adopted. Those Vec2.fs comments were corrected with this change; **count code
+references, not grep hits**."* (#19, #28.) The first version of this table counted grep hits and was
+wrong in exactly that way — see the note under the table.
 
 | module | declared | named by other product modules | named only by tests/scripts | type vocabulary | unreferenced |
 |---|---:|---:|---:|---:|---:|
 | `Rogue3.AudioCueIds` | 28 | 27 | 1 | 0 | 0 |
 | `Rogue3.AudioCues` | 5 | 5 | 0 | 0 | 0 |
 | `Rogue3.AudioSynthesis` | 2 | 0 | 2 | 0 | 0 |
-| `Rogue3.Collision` | 12 | 5 | 0 | 2 | 5 |
+| `Rogue3.Collision` | 12 | 2 | 0 | 4 | 6 |
 | `Rogue3.Determinism` | 3 | 3 | 0 | 0 | 0 |
 | `Rogue3.Entities` | 59 | 44 | 8 | 7 | 0 |
-| `Rogue3.EvidenceCommands` | 20 | 13 | 6 | 1 | 0 |
-| `Rogue3.FloorGeneration` | 21 | 14 | 3 | 4 | 0 |
-| `Rogue3.GameShell` | 23 | 13 | 7 | 3 | 0 |
+| `Rogue3.EvidenceCommands` | 20 | 12 | 6 | 1 | 1 |
+| `Rogue3.FloorGeneration` | 21 | 14 | 1 | 6 | 0 |
+| `Rogue3.GameShell` | 23 | 13 | 6 | 4 | 0 |
 | `Rogue3.GameplayVisualInventory` | 9 | 2 | 4 | 3 | 0 |
 | `Rogue3.LayoutEvidence` | 9 | 9 | 0 | 0 | 0 |
 | `Rogue3.M7Ui` | 5 | 5 | 0 | 0 | 0 |
-| `Rogue3.Model` | 142 | 77 | 48 | 17 | 0 |
+| `Rogue3.Model` | 142 | 64 | 52 | 20 | 6 |
 | `Rogue3.PerformanceEvidence` | 17 | 3 | 8 | 6 | 0 |
 | `Rogue3.ProfileStore` | 7 | 2 | 3 | 2 | 0 |
-| `Rogue3.Program` | 22 | 2 | 20 | 0 | 0 |
-| `Rogue3.Render` | 30 | 15 | 11 | 4 | 0 |
+| `Rogue3.Program` | 22 | 0 | 16 | 2 | 4 |
+| `Rogue3.Render` | 30 | 9 | 14 | 4 | 3 |
 | `Rogue3.Replay` | 6 | 0 | 5 | 1 | 0 |
-| `Rogue3.Geometry` (`Vec2.fs`) | 16 | 14 | 0 | 1 | 1 |
+| `Rogue3.Geometry` (`Vec2.fs`) | 16 | 12 | 0 | 1 | 3 |
 | `Rogue3.View` | 1 | 1 | 0 | 0 | 0 |
 | `Rogue3.WindowOptions` | 9 | 9 | 0 | 0 | 0 |
-| **total** | **446** | **263** | **126** | **51** | **6** |
+| **total** | **446** | **236** | **126** | **61** | **23** |
+
+> **Correction (round 1 of independent review).** The first version of this table scanned raw source,
+> so a module member mentioned in a comment counted as a call site. It credited `Rogue3.Program` with
+> 2 product consumers; the true number is **0**, and it cannot be otherwise: `Program.fsi` and
+> `Program.fs` are the last two compile items and F# has no forward references, so no module under
+> `src/Rogue3/` is able to name anything in `Rogue3.Program`. Re-deriving the whole column with
+> comments stripped moved five figures, not one: product references 263 → 236, type vocabulary
+> 51 → 61, and unreferenced 6 → 23. Every row sums to its `declared` count.
 
 The column meanings, because they are the distinction issue #96 asked the inventory to make:
 
@@ -71,13 +87,35 @@ The column meanings, because they are the distinction issue #96 asked the invent
 - **type vocabulary** — a record or union whose *name* no consumer writes, because it reaches
   consumers through inference (`Entities.definition` returns `EnemyDefinition` without any caller
   naming the type). These cannot be removed: a retained signature in the same module names them.
-- **unreferenced** — declared but named by nothing today. All 6 are in `Collision.fs` and `Vec2.fs`,
-  the consumer-owned adaptable helpers, and are deliberate: see below.
+- **unreferenced** — declared, and named by no code anywhere today. Enumerated in full below, because
+  a count alone would let this column be read as noise.
 
-`Rogue3.Program` is worth reading twice. It is the executable entry point, and only **2** of its 22
-declarations are named by another product module. The rest are the MVU seam (`init`, `update`,
-`view`, `mapKey`, `tick`), the two hosts, and the layout-evidence functions — all reached by tests
-that drive the production route. An entry point should contract little, and this one now does.
+`Rogue3.Program` is worth reading twice. It is the executable entry point, and **none** of its 22
+declarations is named by another product module — nor can one be, since it compiles last. Its
+contract exists for two other audiences: the .NET runtime (`main`, the `[<EntryPoint>]`) and the test
+suite, which drives the production route through `update` (13 call sites), `initialModel` (26),
+`interactiveHost` (9), `generatedHost` (8) and the layout-evidence functions. An entry point should
+contract little, and this one now contracts 22 declarations instead of the 36 it exposed before.
+
+### The 23 unreferenced declarations, in full
+
+| module | declarations | why they remain |
+|---|---|---|
+| `Rogue3.Collision` | `contact`, `sweptContact`, `collide`, `resolve`, `step`, `slideCircle` | deliberate — adaptable-helper API, see below |
+| `Rogue3.Geometry` | `toPoint`, `toRect`, `ofSimRectCenter` | deliberate — adaptable-helper API, see below |
+| `Rogue3.Program` | `main` | the `[<EntryPoint>]`; the runtime calls it, no source does |
+| `Rogue3.Program` | `init`, `mapKey`, `parseWindowBehavior` | MVU seam and CLI parser, used only inside `Program.fs` |
+| `Rogue3.Model` | `bombRadius`, `placementAccepts`, `movePaddle`, `shotSpeed`, `collectRoomReward`, `playerRoomIntentsIn` | no code reference |
+| `Rogue3.Render` | `roomWallsScene`, `shopSlotReadyScene`, `renderedElementsIn` | no code reference |
+| `Rogue3.EvidenceCommands` | `retireWithdrawnDisplayMode` | no code reference |
+
+Nine of these (`Collision`, `Geometry`) are the deliberate adaptable-helper decision recorded below,
+and `main` is reached by the runtime rather than by source. **The remaining thirteen survived the
+pruning pass only because a comment mentioned them** — the same grep-hit error this table's own
+correction fixed. They are genuinely accidental surface and are the first candidates for a follow-up
+narrowing. They are listed here rather than removed quietly: pruning them changes the declared
+contract, which is a Tier 1 change that belongs in its own reviewed step, not in a documentation
+repair.
 
 ## What is deliberately not pruned
 
@@ -88,8 +126,31 @@ helper API rather than only this product's current call sites, because the surfa
 reused by whoever adapts them. Narrowing them to today's usage would narrow a contract whose purpose
 is to be broader than today's usage.
 
-Their signature compile items carry the **same** `Condition` as their implementations, so deleting
-an adaptable helper never leaves an orphan signature behind. The gate asserts this.
+Their signature compile items carry their **implementation's** `Condition`, verbatim:
+
+```xml
+<Compile Include="Collision.fsi" Condition="Exists('Collision.fs')" />
+<Compile Include="Collision.fs"  Condition="Exists('Collision.fs')" />
+```
+
+Both guards name the **`.fs`**. That is the whole point, and it is easy to get backwards: a signature
+guarded on its own existence (`Exists('Collision.fsi')`) survives the deletion of `Collision.fs`, and
+F# rejects the orphan with `FS0240: The signature file 'Rogue3.Collision' does not have a
+corresponding implementation file`. This wiring shipped backwards in the first draft of #96 and was
+corrected in review.
+
+Measured on a scratch copy of this tree with `src/Rogue3/Collision.fs` deleted:
+
+| wiring | `dotnet build` errors |
+|---|---|
+| signature guarded on itself | `FS0039` **and `FS0240`** |
+| signature guarded on its implementation | `FS0039` only |
+
+`FS0039` ("Collision is not defined") is pre-existing and unrelated to this wiring — `Model.fs`
+genuinely calls `Collision.clampCircleInside` and `Collision.sweepCircle`, so this helper is adopted
+and is not actually deletable today. `FS0240` is the orphan-signature failure this condition governs,
+and only the correct form removes it. The gate asserts the corrected form and rejects the backwards
+one.
 
 ## How it is enforced
 
@@ -100,14 +161,24 @@ assembly**, never the model or the view — so a scaffold-model swap leaves it c
 1. the configured `src/**/*.fsi` surface is non-empty and every signature names its module;
 2. every compiled implementation declares a signature;
 3. every signature is the compile item **directly** before its implementation;
-4. an `Exists`-guarded implementation carries an equally guarded signature;
+4. a signature carries its implementation's `Condition` verbatim, and never guards on itself;
 5. **the built assembly publishes no module-level binding its signature does not declare** — checked
    by reflection, because the demotion happens in the compiler and source text cannot testify to it;
-6. the scans fail on planted violations (the `#111` "guard the guard" discipline).
+6. the scans fail on planted violations (the `#111` "guard the guard" discipline), including the
+   backwards `Condition` that assertion 4 itself once asserted.
 
 Assertion 5 is the load-bearing one, and it catches a failure the compiler does **not**. Removing a
 single `<Compile Include="Program.fsi" />` item leaves `dotnet build` reporting **zero errors** while
 11 bindings silently return to the public API; the gate fails and names all 11.
+
+### What this gate does not catch
+
+Adding a **new** public `let` or `type` to a `.fs` that its `.fsi` does not declare is invisible here:
+the compiler simply demotes it, the build stays green, and the assembly never publishes it — so there
+is nothing for assertion 5 to find. That is F# semantics working as intended, not a hole in the gate.
+The consequence worth knowing is that a signature file also hides such a binding from *later modules
+in the same assembly*, so a branch that adds one and uses it elsewhere fails its own build with
+`FS0039` rather than merging silently.
 
 ## Changing the surface
 
@@ -118,16 +189,36 @@ single `<Compile Include="Program.fsi" />` item leaves `dotnet build` reporting 
 3. Run `dotnet test Rogue3.slnx -c Release` — the surface gate re-measures the built assembly.
 4. Update this document's table and the work item's SDD evidence in the same change.
 
-To see what a module *currently* exposes without a signature constraining it — the inventory step
-this item used — build with the compiler's own inferred signature and read the result:
+## Re-measuring the unconstrained surface
+
+To see what the modules *would* expose with no signature constraining them — the inventory step this
+item used — ask the compiler for its own inferred signature.
+
+**Do this in a scratch copy, and strip the signatures and their compile items first.** `--allsigs`
+writes an inferred `.fsi` **beside each `.fs`, overwriting whatever is there**. Run against the tree
+as it stands, it destroys all 21 committed signatures (`21 files changed, 1530 insertions`, the
+declared surface inflating 446 → 825) and the next build fails *inside* the regenerated signature
+files — `AudioSynthesis.fsi(100,35): error FS0001/FS0267/FS0837`, because the generator emits
+`[<Literal>] val private TrackSeconds: float = 4` with an `int` literal for a `float`. The signatures
+also cannot be regenerated while they are still in compile order, since each would be checked against
+itself.
 
 ```sh
+# from a scratch copy of the repository -- NEVER the working tree
+rm -f src/Rogue3/*.fsi
+python3 - <<'PY'
+import re
+p = "src/Rogue3/Rogue3.fsproj"
+s = open(p).read()
+open(p, "w").write(re.sub(r'^[ \t]*<Compile Include="[^"]+\.fsi"[^/>]*/>[ \t]*\n', "", s, flags=re.M))
+PY
 dotnet build src/Rogue3/Rogue3.fsproj -c Release -p:OtherFlags="--allsigs" --no-incremental
 ```
 
-That writes an inferred `.fsi` beside each `.fs`. It is ground truth for what *exists* and **not** a
-proposal for what to contract: emitting it verbatim would make the declared surface a rubber stamp.
-Of its 568 non-private declarations, 446 are contracted here and 122 were held out.
+That yields 21 inferred signatures declaring **568 non-private** and 257 private declarations. It is
+ground truth for what *exists* and **not** a proposal for what to contract: emitting it verbatim
+would make the declared surface a rubber stamp. Of its 568, 446 are contracted here and 122 were held
+out.
 
 ## Related
 

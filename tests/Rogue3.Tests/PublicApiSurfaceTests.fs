@@ -202,22 +202,72 @@ let publicApiSurfaceTests =
 
         // The project is documented as "durable": deleting an adaptable helper (Vec2.fs,
         // Collision.fs, GameShell.fs) keeps the build green because its compile item is
-        // Exists-guarded. An unguarded signature beside a guarded implementation would break that
-        // promise on the first deletion — the signature would survive with nothing to constrain.
-        test "an Exists-guarded implementation carries an equally guarded signature" {
+        // Exists-guarded. The signature must be guarded on the EXISTENCE OF ITS IMPLEMENTATION, not
+        // on its own — a signature that guards on `Exists('Vec2.fsi')` survives the deletion of
+        // `Vec2.fs`, and F# then rejects the orphan with FS0240 ("The signature file 'P.Vec2' does
+        // not have a corresponding implementation file").
+        //
+        // This assertion shipped its first version inverted: it asserted the signature's condition
+        // was the implementation's with the filename REWRITTEN to `.fsi`, which is exactly the
+        // self-guarding form that breaks durability. It was green over a false statement of its own
+        // declared subject. Measured on a scratch copy of this tree with `Collision.fs` deleted:
+        // self-guarding gives FS0039 + FS0240, implementation-guarding gives FS0039 alone. FS0039
+        // is the pre-existing consequence of Model.fs genuinely calling `Collision.step`; FS0240 is
+        // the orphan this condition governs, and only the correct form removes it.
+        test "a guarded implementation's signature is guarded on that implementation" {
             let project = projectText ()
 
             for file in compileOrder project |> List.filter (fun f -> f.EndsWith ".fs") do
                 let implementationCondition = compileCondition project file
                 let signatureCondition = compileCondition project (file + "i")
 
-                if implementationCondition <> "" then
-                    Expect.equal
-                        signatureCondition
-                        (implementationCondition.Replace(file, file + "i"))
-                        $"{file}i is guarded exactly as {file} is, so deleting the adaptable helper leaves no orphan signature"
-                else
-                    Expect.equal signatureCondition "" $"{file}i carries no guard, matching its unguarded implementation"
+                Expect.equal
+                    signatureCondition
+                    implementationCondition
+                    $"{file}i carries {file}'s condition VERBATIM, so the signature disappears with the implementation it constrains"
+
+                // Stated separately and positively, because equality alone would also be satisfied
+                // if both items were rewritten to guard on the signature.
+                Expect.isFalse
+                    (signatureCondition.Contains(file + "i", StringComparison.Ordinal))
+                    $"{file}i is not guarded on its own existence — that guard survives the deletion of {file} and orphans the signature (FS0240)"
+        }
+
+        // Guard the guard: the condition scan must reject the self-guarding form this repair fixed,
+        // or its green says nothing about the durability promise it claims to enforce.
+        test "the condition scan rejects a signature guarded on itself" {
+            let selfGuarded =
+                String.concat "\n" [
+                    "<Project><ItemGroup>"
+                    "  <Compile Include=\"Vec2.fsi\" Condition=\"Exists('Vec2.fsi')\" />"
+                    "  <Compile Include=\"Vec2.fs\" Condition=\"Exists('Vec2.fs')\" />"
+                    "</ItemGroup></Project>"
+                ]
+
+            Expect.equal (compileCondition selfGuarded "Vec2.fs") "Exists('Vec2.fs')" "the implementation's condition is read"
+            Expect.equal (compileCondition selfGuarded "Vec2.fsi") "Exists('Vec2.fsi')" "the signature's condition is read"
+            Expect.notEqual
+                (compileCondition selfGuarded "Vec2.fsi")
+                (compileCondition selfGuarded "Vec2.fs")
+                "the self-guarding form is NOT verbatim inheritance — the shipped assertion once treated it as such"
+            Expect.isTrue
+                ((compileCondition selfGuarded "Vec2.fsi").Contains("Vec2.fsi", StringComparison.Ordinal))
+                "the self-guard is detectable by the same check the live assertion applies"
+
+            let correct =
+                String.concat "\n" [
+                    "<Project><ItemGroup>"
+                    "  <Compile Include=\"Vec2.fsi\" Condition=\"Exists('Vec2.fs')\" />"
+                    "  <Compile Include=\"Vec2.fs\" Condition=\"Exists('Vec2.fs')\" />"
+                    "</ItemGroup></Project>"
+                ]
+            Expect.equal
+                (compileCondition correct "Vec2.fsi")
+                (compileCondition correct "Vec2.fs")
+                "the corrected form is accepted"
+            Expect.isFalse
+                ((compileCondition correct "Vec2.fsi").Contains("Vec2.fsi", StringComparison.Ordinal))
+                "the corrected form does not name the signature in its own guard"
         }
 
         // Acceptance 3 and the issue's verification clause, checked against the COMPILED artifact:

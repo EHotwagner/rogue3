@@ -46,10 +46,13 @@ publicOrToolFacingImpact: true
   everything — verified live: removing `<Compile Include="Program.fsi" />` produced 0 build errors
   and returned 11 bindings to the public API. So the gate must read compile order and the built
   assembly, not rely on compilation succeeding.
-- CA-005: Their signatures are declared whole and carry the *same* `Exists` guard as their
-  implementation. An unguarded signature beside a guarded implementation would break the durability
-  promise on the first deletion, leaving a signature with nothing to constrain; the gate asserts the
-  guards match.
+- CA-005: Their signatures are declared whole and carry their implementation's `Exists` guard —
+  `Condition="Exists('Collision.fs')"` on BOTH items. The guard must name the `.fs` on both: a
+  signature guarded on its own existence survives the deletion of its implementation, and F# rejects
+  the orphan with `FS0240`. Measured on a scratch copy with `Collision.fs` deleted: self-guarding
+  gives `FS0039` + `FS0240`, implementation-guarding gives `FS0039` alone (`FS0039` being the
+  pre-existing consequence of `Model.fs` genuinely calling `Collision.clampCircleInside` and
+  `Collision.sweepCircle`).
 
 ## Decisions
 - CD-001 (from CA-001): Ship 21 signature files, one per compiled module.
@@ -59,7 +62,32 @@ publicOrToolFacingImpact: true
   build of product + tests + scripts as the correctness oracle.
 - CD-004 (from CA-004): The gate's load-bearing assertion runs against the built assembly by
   reflection, and is demonstrated against a real planted regression rather than only synthetic input.
-- CD-005 (from CA-005): Signature compile items inherit their implementation's `Condition` verbatim.
+- CD-005 (from CA-005): Signature compile items inherit their implementation's `Condition` verbatim —
+  the guard names the `.fs` on both items.
+
+## Review Corrections
+Recorded here rather than silently rewritten, because three of the statements above were false when
+first shipped and the record of a wrong decision is part of the decision (round 1, critic
+`brant-8e7b`, PR #100):
+
+- RC-001 (corrects CD-005): the wiring shipped BACKWARDS. Each signature guarded on its own
+  existence (`Exists('Vec2.fsi')`), which is not verbatim inheritance and does not survive the
+  deletion it exists to survive. `PublicApiSurfaceTests.fs` asserted that backwards form and was
+  green over a false statement of its own declared subject. Both the wiring and the assertion are
+  corrected, and the assertion now rejects the backwards form — confirmed by reintroducing it: the
+  build reports 0 errors while the gate fails.
+- RC-002 (corrects the CD-002 inventory): the consumer scan counted references inside `//` and `///`
+  comments, the exact "count code references, not grep hits" error `Rogue3.fsproj` records against
+  `#19`/`#28`. It credited `Rogue3.Program` with 2 product consumers when the true number is 0 —
+  `Program` compiles LAST and F# has no forward references, so no product module can name it at all.
+  Re-derived with comments stripped, five figures moved: product 263 → 236, type vocabulary 51 → 61,
+  unreferenced 6 → 23. Thirteen of the newly-visible unreferenced declarations survived pruning only
+  because a comment mentioned them; they are enumerated in `docs/public-api-surface.md` and left for a
+  follow-up narrowing rather than removed inside a documentation repair.
+- RC-003 (corrects CD-003): the documented `--allsigs` recipe omitted its precondition. Run verbatim
+  on the shipped tree it OVERWRITES all 21 committed signatures (446 declarations → 825) and the next
+  build fails inside them. The recipe now requires a scratch copy with the signatures and their
+  compile items stripped first, which reproduces 568/257 exactly.
 
 ## Accepted Deferrals
 - AD-001: `Rogue3.Program` still declares 20 values whose types read as `(unit -> Model * Command)`

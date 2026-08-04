@@ -11,7 +11,7 @@ sourceAnalysis: readiness/016-declare-public-api-signature-files/analysis.json
 sourceSnapshots:
   - label: analysis
     path: readiness/016-declare-public-api-signature-files/analysis.json
-    digest: 3023e414fc7c8e3726601eb6e2f4a08ae3b972f51f0ab6464402e7adb82d592c
+    digest: 01dd4a1b0924a6ca0a4e9e4c018bd267195de267d6260ba8fb38c7a3fc268d2e
     schemaVersion: 1
   - label: checklist
     path: work/016-declare-public-api-signature-files/checklist.md
@@ -19,11 +19,11 @@ sourceSnapshots:
     schemaVersion: 1
   - label: clarifications
     path: work/016-declare-public-api-signature-files/clarifications.md
-    digest: 87568bcde8330e9b02553655e5f4c60239969417bb5c46943df921c8d3997972
+    digest: 6305d924537fe32f7cb33da3f3575482610e558fb8d6838df5f52824016bb6d4
     schemaVersion: 1
   - label: plan
     path: work/016-declare-public-api-signature-files/plan.md
-    digest: f6baaa3b80a5d37572d71556be0f3e5e3ba8ad29d546c258fe7d3016be1076f8
+    digest: cc9a21e6c72c7d69e22711af6fa62629cf467126f7ee1aa360a20860b7a165fb
     schemaVersion: 1
   - label: spec
     path: work/016-declare-public-api-signature-files/spec.md
@@ -31,7 +31,7 @@ sourceSnapshots:
     schemaVersion: 1
   - label: tasks
     path: work/016-declare-public-api-signature-files/tasks.yml
-    digest: d82a83f9e9147f678c90e864e92533c1a997c049d042a9ee20e24096b8d28df6
+    digest: 0e1f158a098d5f58db1688ae54110c8db8e6c7e9df65734f4f2600c4a0e7f3fb
     schemaVersion: 1
 evidence:
   - id: EV001
@@ -52,12 +52,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
-    notes: ["FR-001/AC-001. All 21 compiled modules under `src/Rogue3/` now carry a signature, and each is the compile item DIRECTLY before its implementation. Verified by the gate test 'every compiled implementation declares a signature' and 'every signature compiles immediately before its implementation', which parse `Rogue3.fsproj`'s `<Compile Include=...>` items in order rather than scanning for bare filenames -- the #111 anchoring defect, where a comment or a longer filename satisfied a substring scan. `find src/Rogue3 -name '*.fsi' | wc -l` reports 21, against 0 before this change."]
+    notes: ["FR-001/AC-001. All 21 compiled modules under `src/Rogue3/` now carry a signature, and each is the compile item DIRECTLY before its implementation. Verified by the gate test 'every compiled implementation declares a signature' and 'every signature compiles immediately before its implementation', which parse `Rogue3.fsproj`'s `<Compile Include=...>` items in order rather than scanning for bare filenames -- the #111 anchoring defect, where a comment or a longer filename satisfied a substring scan. `find src/Rogue3 -name '*.fsi' | wc -l` reports 21, against 0 before this change. Round 1 of review corrected the guarded items: each signature had been guarded on ITS OWN existence (`Exists('Vec2.fsi')`), which is not verbatim inheritance -- it survives the deletion of the implementation and F# rejects the orphan with FS0240. Measured on a scratch copy of this tree with `Collision.fs` deleted: self-guarding gives FS0039 + FS0240, implementation-guarding gives FS0039 alone (FS0039 being the pre-existing consequence of `Model.fs` genuinely calling `Collision.clampCircleInside`/`Collision.sweepCircle`). Both items now name the `.fs`, and the gate rejects the backwards form: reintroducing it leaves `dotnet build` at 0 errors while the surface test fails."]
   - id: EV002
     kind: verification
     subject:
@@ -76,9 +76,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
     notes: ["FR-002/AC-002. The gate reflects over the BUILT `Rogue3.dll` -- `typeof<Rogue3.Model.Model>.Assembly` -- and for each of the 21 modules asserts the public static member set is a subset of the `val` names its `.fsi` declares. Measured result: for every module the two sets are EQUAL (e.g. Model 98/98, Program 20/20, Entities 35/35, Determinism 3/3), so nothing is public that the signature does not declare. This is asserted against the compiled artifact rather than source text on purpose: the demotion of an undeclared binding happens in the compiler, so source cannot testify that it happened."]
@@ -100,9 +100,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
     notes: ["FR-003/AC-003. The surface is reduced, not restated. Counting non-private `val`/`type` declarations: the compiler-inferred signature (`--allsigs`) declares 568; the signatures that ship declare 446; 122 declarations (21.5%) were removed as accidental surface, and a further 257 implementation-private bindings are never declared at all. The largest reductions are EvidenceCommands 46 -> 20, Model 178 -> 142, Render 48 -> 30, PerformanceEvidence 33 -> 17 and Program 36 -> 22. This clears the acceptance bound of at most 450."]
@@ -124,12 +124,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
-    notes: ["FR-004/AC-004. No `.fs` implementation file and no pre-existing test was edited by this item, so the existing suite is an untouched control: had any binding a real consumer names been hidden, those tests would fail to COMPILE. 277 pre-existing tests passed before the change and all 277 still pass after it (284 total with the 7 new gate tests), which is the direct evidence that only unreferenced surface was removed. The suite includes the M11 playability journeys driven through the production input route (`KeyChanged`/`Tick`), so the player-reachable behaviour is exercised against the signature-constrained build."]
+    notes: ["FR-004/AC-004. No `.fs` implementation file and no pre-existing test was edited by this item, so the existing suite is an untouched control: had any binding a real consumer names been hidden, those tests would fail to COMPILE. 277 pre-existing tests passed before the change and all 277 still pass after it (285 total with the 8 new gate tests), which is the direct evidence that only unreferenced surface was removed. The suite includes the M11 playability journeys driven through the production input route (`KeyChanged`/`Tick`), so the player-reachable behaviour is exercised against the signature-constrained build."]
   - id: EV005
     kind: verification
     subject:
@@ -148,9 +148,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
     notes: ["FR-005/AC-005. NEGATIVE CONTROL, run live rather than reasoned about. Removing the single item `<Compile Include='Program.fsi' />` from `Rogue3.fsproj` leaves `dotnet build Rogue3.slnx -c Release` reporting **0 errors** -- the compiler cannot see the regression -- while 11 bindings silently return to the public API. The gate fails and names them: appCommandName, defaultCommand, hudRegionForSize, keyName, manualWindowOptionResults, subscriptions, toViewerWindowBehavior, viewerEffectsForModel, windowBehaviorArgsFromFile, windowOptionStatusText, windowOptionsReport. The project file was restored and the suite re-run green. Synthetic 'guard the guard' cases cover the compile-order scans in the same way."]
@@ -172,12 +172,12 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
-    notes: ["PC-001. This item DEFINES the `public-api` surface `.fsgg/capabilities.yml` declares at `src/**/*.fsi` (`owner: platform`, `maturity: block-on-ship`), which matched zero files before it. The change is Tier 1 and deliberately compatibility-REDUCING inside the assembly (122 declarations stop being public) while compatibility-PRESERVING for every consumer that exists, as EV004 measures. `docs/public-api-surface.md` records the resulting surface and separates contracted members from test/evidence-only consumers, which is acceptance criterion 1's inventory obligation."]
+    notes: ["PC-001. This item DEFINES the `public-api` surface `.fsgg/capabilities.yml` declares at `src/**/*.fsi` (`owner: platform`, `maturity: block-on-ship`), which matched zero files before it. The change is Tier 1 and deliberately compatibility-REDUCING inside the assembly (122 declarations stop being public) while compatibility-PRESERVING for every consumer that exists, as EV004 measures. `docs/public-api-surface.md` records the resulting surface and separates contracted members from test/evidence-only consumers, which is acceptance criterion 1's inventory obligation. Round 1 of review corrected that table: the consumer scan had counted references appearing inside `//` and `///` comments -- the 'count code references, not grep hits' error `Rogue3.fsproj` records against #19/#28. Re-derived with line and nested block comments stripped: 236 declarations named by another product module, 126 named only by tests or scripts, 61 type vocabulary reached through inference, 23 named by no code at all (each of the 23 enumerated in the document). `Rogue3.Program`'s product-consumer count is 0, not the 2 first published -- it is the last compile item and F# has no forward references, so no product module is able to name it."]
   - id: EV007
     kind: verification
     subject:
@@ -196,9 +196,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
     notes: ["VO-001. `dotnet build Rogue3.slnx -c Release --no-incremental` succeeds with 0 errors and `dotnet test Rogue3.slnx -c Release` reports 284 passed / 0 failed / 0 skipped, recorded in the observed run below."]
@@ -220,9 +220,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
     notes: ["PM-001. No migration is required and none is shipped. No `.fs` implementation, persisted format, save file, replay log or committed asset changes; `Determinism.encode` is reflective over `Model` and `Model`'s shape is untouched, so every existing replay and evidence digest remains valid -- which the unmodified M10 acceptance/determinism tests confirm in the observed run. A consumer reaching for a removed declaration fails to compile immediately rather than at runtime."]
@@ -244,9 +244,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
     notes: ["GV-001. The SDD-owned generated views for this work item refresh from the current plan sources via `fsgg-sdd`; no generated view is hand-authored. The `--allsigs` output was an authoring INPUT and is NOT committed as a generated view, so no generator digest in this repository tracks it. `docs/api-surface/` holds the vendored baselines of the FS.GG dependency packages and is untouched."]
@@ -268,9 +268,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
     notes: ["VO-002. Reflection over the built assembly, per module, comparing public static members against declared `val`s: 21 modules checked, 0 undeclared public members. The comparison normalises the `get_`/`set_` property accessors a module-level value compiles to and skips compiler-generated names containing `@`, so it compares F# binding names rather than IL artifacts."]
@@ -292,9 +292,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
     notes: ["VO-003. The negative control of EV005, recorded as its own obligation so the gate's green is legible as a measurement rather than as an absence. `dotnet build` = 0 errors while the gate = red, on the same tree, is the precise reason this gate reads the assembly and the project file instead of relying on compilation succeeding."]
@@ -316,9 +316,9 @@ evidence:
     synthetic: false
     observedRun:
       source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
-      digest: "sha256:df79a671fd69857fa130ed064f576967c896a95abf7210891fd799f9e8821e9e"
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
       outcome: passed
-      passed: 284
+      passed: 285
       failed: 0
       skipped: 0
     notes: ["VO-004. `python3 scripts/check-audit-bindings.py` exits 0 and `--selftest` exits 0. The two project files this item edits (`src/Rogue3/Rogue3.fsproj`, `tests/Rogue3.Tests/Rogue3.Tests.fsproj`) carried 3 audit bindings, excused in this cycle's OWN ledger via `--grandfather --cycle item-96-public-api-signature-files`. That is the ledger's stated preferred remedy: rebinding a merged audit would rewrite what that audit records its critic as having verified. The checker was confirmed to exit 0 on a clean tree beforehand, so the 3 stale bindings are attributable to this change and to nothing else."]
