@@ -1,0 +1,30 @@
+{
+  "grandfatherSchema": 2,
+  "note": "Explicit exceptions to the audit-binding check (scripts/check-audit-bindings.py) written by ONE cycle: `--grandfather --cycle <id>` writes this file and nothing else, ever. Each entry excuses ONE stale binding at ONE observed digest, so a digest no cycle ever excused still fails. The checker evaluates the UNION of every file in this directory, so two concurrent cycles excuse the same binding without sharing a path -- and because both entries survive the merge, the digests a binding tolerates only ever GROW: returning a file to a digest some earlier cycle excused is green under that cycle's recorded reason. An entry that excuses nothing right now is reported as dormant, never as a failure, and only the cycle that owns this file prunes it. Adding an entry here is the PREFERRED remedy; rebinding a MERGED audit rewrites what that audit records its critic as having verified (see 7e71d71) and is right only for an audit you re-verified yourself.",
+  "entries": [
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-18.audit.json",
+      "kind": "evidence",
+      "locator": "file:tests/Rogue3.Tests/Rogue3.Tests.fsproj",
+      "boundSha256": "46a4b80b61bbda070d43828e955430cfd82573729c202f2a58b2cc48dadc1539",
+      "observedSha256": "2284f58433ca3ac87dc42b0ace186a78531ac593ad60fd0fe0897bf51995c913",
+      "reason": "rogue3#96: src/Rogue3/Rogue3.fsproj gained a <Compile Include=\"X.fsi\" /> item before each of its 21 implementation items, and tests/Rogue3.Tests/Rogue3.Tests.fsproj gained the PublicApiSurfaceTests.fs gate, so the product declares its public API in signature files instead of publishing every non-private binding (constitution principle III; the .fsgg/capabilities.yml public-api surface at src/**/*.fsi matched zero files before this change). Both cited audits bind these two project files as evidence for unrelated findings about compile ORDER and test registration, and that order is preserved: each signature is inserted directly before the implementation it constrains, and no existing Compile item was reordered or removed. Nothing either audit asserts about this repository is falsified by the change."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-5.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Rogue3.fsproj",
+      "boundSha256": "975e92b37e4f80e4e207b38a339b349acc5de6f4c23dd52a2b0fc7addc1c310a",
+      "observedSha256": "bf0604ae7bf0b16cd7008b685dd7077fd9c38ca9bb94bcf3cb407628ca0fa151",
+      "reason": "rogue3#96: src/Rogue3/Rogue3.fsproj gained a <Compile Include=\"X.fsi\" /> item before each of its 21 implementation items, and tests/Rogue3.Tests/Rogue3.Tests.fsproj gained the PublicApiSurfaceTests.fs gate, so the product declares its public API in signature files instead of publishing every non-private binding (constitution principle III; the .fsgg/capabilities.yml public-api surface at src/**/*.fsi matched zero files before this change). Re-run after review round 1 corrected the three Exists-guarded signature items: each had been guarded on its OWN existence, which orphans the signature when the implementation is deleted (FS0240); all three now carry their implementation's condition verbatim. Both cited audits bind these two project files as evidence for unrelated findings about compile ORDER and test registration, and that order is preserved: each signature is inserted directly before the implementation it constrains, and no existing Compile item was reordered or removed. Nothing either audit asserts about this repository is falsified by the change."
+    },
+    {
+      "audit": "feedback/audits/2026-08-02-Rogue3-7.audit.json",
+      "kind": "evidence",
+      "locator": "file:src/Rogue3/Rogue3.fsproj",
+      "boundSha256": "72ccca8dff9588a90c06b985c7a5010ea29724db232c97106e817bd9ee5f9adf",
+      "observedSha256": "bf0604ae7bf0b16cd7008b685dd7077fd9c38ca9bb94bcf3cb407628ca0fa151",
+      "reason": "rogue3#96: src/Rogue3/Rogue3.fsproj gained a <Compile Include=\"X.fsi\" /> item before each of its 21 implementation items, and tests/Rogue3.Tests/Rogue3.Tests.fsproj gained the PublicApiSurfaceTests.fs gate, so the product declares its public API in signature files instead of publishing every non-private binding (constitution principle III; the .fsgg/capabilities.yml public-api surface at src/**/*.fsi matched zero files before this change). Re-run after review round 1 corrected the three Exists-guarded signature items: each had been guarded on its OWN existence, which orphans the signature when the implementation is deleted (FS0240); all three now carry their implementation's condition verbatim. Both cited audits bind these two project files as evidence for unrelated findings about compile ORDER and test registration, and that order is preserved: each signature is inserted directly before the implementation it constrains, and no existing Compile item was reordered or removed. Nothing either audit asserts about this repository is falsified by the change."
+    }
+  ]
+}

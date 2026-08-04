@@ -16,6 +16,11 @@
          the rogue3's model/view), and game-profile-only inside (`//#if profile == "game"`), so it
          compiles to an empty module and adds nothing on the other profiles. -->
     <Compile Include="CoverageGateTests.fs" />
+    <!-- EHotwagner/rogue3#96: the public-api surface gate. Durable like GovernanceTests (it reads
+         Rogue3.fsproj, the .fsi files and the BUILT assembly, never the model or the view), so a
+         scaffold-model swap leaves it compiling and passing. It compiles here — before the
+         behaviour tests — because it constrains what those tests are even able to reach. -->
+    <Compile Include="PublicApiSurfaceTests.fs" />
     <Compile Include="BehaviorTests.fs" />
     <Compile Include="InputTests.fs" />
     <Compile Include="M2MovementShotTests.fs" />

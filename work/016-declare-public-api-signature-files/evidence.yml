@@ -1,0 +1,326 @@
+schemaVersion: 1
+workId: 016-declare-public-api-signature-files
+stage: evidence
+status: evidenceReady
+sourceSpec: work/016-declare-public-api-signature-files/spec.md
+sourceClarifications: work/016-declare-public-api-signature-files/clarifications.md
+sourceChecklist: work/016-declare-public-api-signature-files/checklist.md
+sourcePlan: work/016-declare-public-api-signature-files/plan.md
+sourceTasks: work/016-declare-public-api-signature-files/tasks.yml
+sourceAnalysis: readiness/016-declare-public-api-signature-files/analysis.json
+sourceSnapshots:
+  - label: analysis
+    path: readiness/016-declare-public-api-signature-files/analysis.json
+    digest: 34d3eb0529077e122f8ca092829a0181f2e63ccf11838c19c190185c43a09720
+    schemaVersion: 1
+  - label: checklist
+    path: work/016-declare-public-api-signature-files/checklist.md
+    digest: 075fae3bebb790eebcefb2d501be46e1079174788b06fa3fe13820b0bb65164a
+    schemaVersion: 1
+  - label: clarifications
+    path: work/016-declare-public-api-signature-files/clarifications.md
+    digest: 93b5773c38658f6b42dc72f118a431d47acb50a3934b96dd13c8669a33c39858
+    schemaVersion: 1
+  - label: plan
+    path: work/016-declare-public-api-signature-files/plan.md
+    digest: 47d93949fd61e5b12bd2dab35a553c52ef0ab6b2ab50ce655ba95f8dd4849c52
+    schemaVersion: 1
+  - label: spec
+    path: work/016-declare-public-api-signature-files/spec.md
+    digest: 38c34f969d53dd8b1fa360d56546cc9149ad18bb5e7a4481e236ae67c0b0c509
+    schemaVersion: 1
+  - label: tasks
+    path: work/016-declare-public-api-signature-files/tasks.yml
+    digest: 2ef38091e2c6cc6174f218c1e00d3c1dd0d17bab6930440bea44ccbb02d645ce
+    schemaVersion: 1
+evidence:
+  - id: EV001
+    kind: verification
+    subject:
+      type: task
+      id: T001
+    taskRefs: [T001]
+    requirementRefs: [FR-001]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV001]
+    artifacts: [src/Rogue3/Entities.fsi, src/Rogue3/Model.fsi, src/Rogue3/Program.fsi, src/Rogue3/Render.fsi, src/Rogue3/Rogue3.fsproj]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["FR-001/AC-001. All 21 compiled modules under `src/Rogue3/` now carry a signature, and each is the compile item DIRECTLY before its implementation. Verified by the gate test 'every compiled implementation declares a signature' and 'every signature compiles immediately before its implementation', which parse `Rogue3.fsproj`'s `<Compile Include=...>` items in order rather than scanning for bare filenames -- the #111 anchoring defect, where a comment or a longer filename satisfied a substring scan. `find src/Rogue3 -name '*.fsi' | wc -l` reports 21, against 0 before this change. Round 1 of review corrected the guarded items: each signature had been guarded on ITS OWN existence (`Exists('Vec2.fsi')`), which is not verbatim inheritance -- it survives the deletion of the implementation and F# rejects the orphan with FS0240. Measured on a scratch copy of this tree with `Collision.fs` deleted: self-guarding gives FS0039 + FS0240, implementation-guarding gives FS0039 alone (FS0039 being the pre-existing consequence of `Model.fs` genuinely calling `Collision.clampCircleInside`/`Collision.sweepCircle`). Both items now name the `.fs`, and the gate rejects the backwards form: reintroducing it leaves `dotnet build` at 0 errors while the surface test fails."]
+  - id: EV002
+    kind: verification
+    subject:
+      type: task
+      id: T002
+    taskRefs: [T002]
+    requirementRefs: [FR-002]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV002]
+    artifacts: [src/Rogue3/Entities.fsi, src/Rogue3/Model.fsi, src/Rogue3/Program.fsi, src/Rogue3/Render.fsi, tests/Rogue3.Tests/PublicApiSurfaceTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["FR-002/AC-002. The gate reflects over the BUILT `Rogue3.dll` -- `typeof<Rogue3.Model.Model>.Assembly` -- and for each of the 21 modules asserts the public static member set is a subset of the `val` names its `.fsi` declares. Measured result: for every module the two sets are EQUAL (e.g. Model 98/98, Program 20/20, Entities 35/35, Determinism 3/3), so nothing is public that the signature does not declare. This is asserted against the compiled artifact rather than source text on purpose: the demotion of an undeclared binding happens in the compiler, so source cannot testify that it happened."]
+  - id: EV003
+    kind: verification
+    subject:
+      type: task
+      id: T003
+    taskRefs: [T003]
+    requirementRefs: [FR-003]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-003]
+    obligationRefs: [EV003]
+    artifacts: [src/Rogue3/Entities.fsi, src/Rogue3/EvidenceCommands.fsi, src/Rogue3/Model.fsi, src/Rogue3/PerformanceEvidence.fsi, src/Rogue3/Program.fsi, src/Rogue3/Render.fsi]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["FR-003/AC-003. The surface is reduced, not restated. Counting non-private `val`/`type` declarations: the compiler-inferred signature (`--allsigs`) declares 568; the signatures that ship declare 446; 122 declarations (21.5%) were removed as accidental surface, and a further 257 implementation-private bindings are never declared at all. The largest reductions are EvidenceCommands 46 -> 20, Model 178 -> 142, Render 48 -> 30, PerformanceEvidence 33 -> 17 and Program 36 -> 22. This clears the acceptance bound of at most 450."]
+  - id: EV004
+    kind: verification
+    subject:
+      type: task
+      id: T004
+    taskRefs: [T004]
+    requirementRefs: [FR-004]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-004]
+    obligationRefs: [EV004]
+    artifacts: [tests/Rogue3.Tests/BehaviorTests.fs, tests/Rogue3.Tests/GovernanceTests.fs, tests/Rogue3.Tests/M11PlayabilityLegibilityTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["FR-004/AC-004. No `.fs` implementation file and no pre-existing test was edited by this item, so the existing suite is an untouched control: had any binding a real consumer names been hidden, those tests would fail to COMPILE. 277 pre-existing tests passed before the change and all 277 still pass after it (285 total with the 8 new gate tests), which is the direct evidence that only surface no consumer names was removed. The suite includes the M11 playability journeys driven through the production input route (`KeyChanged`/`Tick`), so the player-reachable behaviour is exercised against the signature-constrained build."]
+  - id: EV005
+    kind: verification
+    subject:
+      type: task
+      id: T005
+    taskRefs: [T005]
+    requirementRefs: [FR-005]
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV005]
+    artifacts: [tests/Rogue3.Tests/PublicApiSurfaceTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["FR-005/AC-005. NEGATIVE CONTROL, run live rather than reasoned about. Removing the single item `<Compile Include='Program.fsi' />` from `Rogue3.fsproj` leaves `dotnet build Rogue3.slnx -c Release` reporting **0 errors** -- the compiler cannot see the regression -- while 11 bindings silently return to the public API. The gate fails and names them: appCommandName, defaultCommand, hudRegionForSize, keyName, manualWindowOptionResults, subscriptions, toViewerWindowBehavior, viewerEffectsForModel, windowBehaviorArgsFromFile, windowOptionStatusText, windowOptionsReport. The project file was restored and the suite re-run green. Synthetic 'guard the guard' cases cover the compile-order scans in the same way."]
+  - id: EV006
+    kind: verification
+    subject:
+      type: task
+      id: T006
+    taskRefs: [T006]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV006]
+    artifacts: [".fsgg/capabilities.yml", docs/public-api-surface.md, src/Rogue3/Rogue3.fsproj]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["PC-001. This item DEFINES the `public-api` surface `.fsgg/capabilities.yml` declares at `src/**/*.fsi` (`owner: platform`, `maturity: block-on-ship`), which matched zero files before it. The change is Tier 1 and deliberately compatibility-REDUCING inside the assembly (122 declarations stop being public) while compatibility-PRESERVING for every consumer that exists, as EV004 measures. `docs/public-api-surface.md` records the resulting surface and separates contracted members from test/evidence-only consumers, which is acceptance criterion 1's inventory obligation. Round 1 of review corrected that table: the consumer scan had counted references appearing inside `//` and `///` comments -- the 'count code references, not grep hits' error `Rogue3.fsproj` records against #19/#28. Re-derived with line and nested block comments stripped: 236 declarations named by another product module, 126 named only by tests or scripts, 61 type vocabulary reached through inference, and 23 not named by any file other than the one that defines them (each of the 23 enumerated in the document). Round 2 corrected what that last column is CALLED: the scan compares each declaration against every consumer file EXCEPT its own, so it never measured 'named by no code anywhere' -- 15 of the 23 carry live intra-module call sites and exactly one, `Model.shotSpeed`, is named by nothing at all. The counts were unaffected; the enumeration now publishes each declaration's intra-module call-site count alongside it. `Rogue3.Program`'s product-consumer count is 0, not the 2 first published -- it is the last compile item and F# has no forward references, so no product module is able to name it."]
+  - id: EV007
+    kind: verification
+    subject:
+      type: task
+      id: T007
+    taskRefs: [T007]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV007]
+    artifacts: [src/Rogue3/Rogue3.fsproj, tests/Rogue3.Tests/Rogue3.Tests.fsproj]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["VO-001. `dotnet build Rogue3.slnx -c Release --no-incremental` succeeds with 0 errors and `dotnet test Rogue3.slnx -c Release` reports 284 passed / 0 failed / 0 skipped, recorded in the observed run below."]
+  - id: EV008
+    kind: verification
+    subject:
+      type: task
+      id: T008
+    taskRefs: [T008]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: []
+    obligationRefs: [EV008]
+    artifacts: [src/Rogue3/Entities.fsi, src/Rogue3/Model.fsi, src/Rogue3/Program.fsi, src/Rogue3/Render.fsi]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["PM-001. No migration is required and none is shipped. No `.fs` implementation, persisted format, save file, replay log or committed asset changes; `Determinism.encode` is reflective over `Model` and `Model`'s shape is untouched, so every existing replay and evidence digest remains valid -- which the unmodified M10 acceptance/determinism tests confirm in the observed run. A consumer reaching for a removed declaration fails to compile immediately rather than at runtime."]
+  - id: EV009
+    kind: verification
+    subject:
+      type: task
+      id: T009
+    taskRefs: [T009]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV009]
+    artifacts: [readiness/016-declare-public-api-signature-files/ship-verdict.json]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["GV-001. The SDD-owned generated views for this work item refresh from the current plan sources via `fsgg-sdd`; no generated view is hand-authored. The `--allsigs` output was an authoring INPUT and is NOT committed as a generated view, so no generator digest in this repository tracks it. `docs/api-surface/` holds the vendored baselines of the FS.GG dependency packages and is untouched."]
+  - id: EV010
+    kind: verification
+    subject:
+      type: task
+      id: T010
+    taskRefs: [T010]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-002]
+    obligationRefs: [EV010]
+    artifacts: [tests/Rogue3.Tests/PublicApiSurfaceTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["VO-002. Reflection over the built assembly, per module, comparing public static members against declared `val`s: 21 modules checked, 0 undeclared public members. The comparison normalises the `get_`/`set_` property accessors a module-level value compiles to and skips compiler-generated names containing `@`, so it compares F# binding names rather than IL artifacts."]
+  - id: EV011
+    kind: verification
+    subject:
+      type: task
+      id: T011
+    taskRefs: [T011]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-005]
+    obligationRefs: [EV011]
+    artifacts: [tests/Rogue3.Tests/PublicApiSurfaceTests.fs]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["VO-003. The negative control of EV005, recorded as its own obligation so the gate's green is legible as a measurement rather than as an absence. `dotnet build` = 0 errors while the gate = red, on the same tree, is the precise reason this gate reads the assembly and the project file instead of relying on compilation succeeding."]
+  - id: EV012
+    kind: verification
+    subject:
+      type: task
+      id: T012
+    taskRefs: [T012]
+    requirementRefs: []
+    acceptanceScenarioRefs: []
+    clarificationDecisionRefs: []
+    checklistResultRefs: []
+    planDecisionRefs: [PD-001]
+    obligationRefs: [EV012]
+    artifacts: [scripts/audit-binding-exceptions/item-96-public-api-signature-files.json]
+    sourceRefs: []
+    result: pass
+    synthetic: false
+    observedRun:
+      source: readiness/016-declare-public-api-signature-files/test-results/item96-full-release.trx
+      digest: "sha256:07d40fbe77bc406daa654b046bece191098ebfd488e605a81296aaa0f5f4fa6d"
+      outcome: passed
+      passed: 285
+      failed: 0
+      skipped: 0
+    notes: ["VO-004. `python3 scripts/check-audit-bindings.py` exits 0 and `--selftest` exits 0. The two project files this item edits (`src/Rogue3/Rogue3.fsproj`, `tests/Rogue3.Tests/Rogue3.Tests.fsproj`) carried 3 audit bindings, excused in this cycle's OWN ledger via `--grandfather --cycle item-96-public-api-signature-files`. That is the ledger's stated preferred remedy: rebinding a merged audit would rewrite what that audit records its critic as having verified. The checker was confirmed to exit 0 on a clean tree beforehand, so the 3 stale bindings are attributable to this change and to nothing else."]
+lifecycleNotes:
+  - "Next lifecycle action: verify."
