@@ -12,21 +12,26 @@
          first: `scripts/generate-audio-assets.fsx` #loads these two files directly with `dotnet fsi`,
          and a declaration a generator cannot read is a declaration the generator will re-type by
          hand. That hand-typed second list is the drift M12 exists to close. -->
+    <Compile Include="AudioCueIds.fsi" />
     <Compile Include="AudioCueIds.fs" />
+    <Compile Include="AudioSynthesis.fsi" />
     <Compile Include="AudioSynthesis.fs" />
     <!-- Feature 250: the collision-safe Vec2 helper (fs-gg-model-swap / fs-gg-game-core skills).
          Consumer-owned, adaptable source — compiled before Model.fs so the starter (and your own model)
          can express entity positions/velocities as Geometry.Vec2 without reusing Scene.Point/Rect field
          labels. The Exists guard keeps the build green if you delete the file AFTER swapping Model.fs off
          it (Rogue3.fsproj stays "durable"). -->
+    <Compile Include="Vec2.fsi" Condition="Exists('Vec2.fsi')" />
     <Compile Include="Vec2.fs" Condition="Exists('Vec2.fs')" />
     <!-- M10 (§13, §14.1): the product's canonical, non-truncating structural encoding — the single
          definition of "byte-identical" for floors, models and replays. Depends on nothing in the
          model, so it compiles first and is reused by Replay.fs and PerformanceEvidence.fs. -->
+    <Compile Include="Determinism.fsi" />
     <Compile Include="Determinism.fs" />
     <!-- Feature 246: the import-and-adapt collision helper (fs-gg-collision skill). Consumer-owned,
          adaptable source — compiled before Model.fs so your update can call Collision.step. The
          Exists guard keeps the build green if you delete the file (Rogue3.fsproj stays "durable"). -->
+    <Compile Include="Collision.fsi" Condition="Exists('Collision.fsi')" />
     <Compile Include="Collision.fs" Condition="Exists('Collision.fs')" />
     <!-- Issue #19 and #28: THREE of the scaffold's four import-and-adapt geometry helpers — Grids.fs
          (Feature 249, fs-gg-grids), LineDrawing.fs (Feature 248, fs-gg-line-drawing) and Visibility.fs
@@ -55,21 +60,33 @@
          typed Controls). Game-agnostic and opt-in: compiled before Model.fs so your update/view
          can wire it, and Exists-guarded so deleting it keeps the build green (Rogue3.fsproj stays
          "durable"). See the fs-gg-game-shell skill for the host wiring. -->
+    <Compile Include="GameShell.fsi" Condition="Exists('GameShell.fsi')" />
     <Compile Include="GameShell.fs" Condition="Exists('GameShell.fs')" />
+    <Compile Include="Entities.fsi" />
     <Compile Include="Entities.fs" />
+    <Compile Include="FloorGeneration.fsi" />
     <Compile Include="FloorGeneration.fs" />
+    <Compile Include="Model.fsi" />
     <Compile Include="Model.fs" />
     <!-- M10 (§13): seed + ordered input-log replay folded through the production `update`. -->
+    <Compile Include="Replay.fsi" />
     <Compile Include="Replay.fs" />
+    <Compile Include="ProfileStore.fsi" />
     <Compile Include="ProfileStore.fs" />
+    <Compile Include="Render.fsi" />
     <Compile Include="Render.fs" />
     <!-- Rendering#1071: the independent, runtime-owned gameplay-visual inventory and handle
          registry. Compiles after Model (its projections read gameplay state) and before View, which
          consumes the same projection the visual-coverage gate audits. Game-only inside the file. -->
+    <Compile Include="GameplayVisualInventory.fsi" />
     <Compile Include="GameplayVisualInventory.fs" />
+    <Compile Include="View.fsi" />
     <Compile Include="View.fs" />
+    <Compile Include="M7Ui.fsi" />
     <Compile Include="M7Ui.fs" />
+    <Compile Include="PerformanceEvidence.fsi" />
     <Compile Include="PerformanceEvidence.fs" />
+    <Compile Include="LayoutEvidence.fsi" />
     <Compile Include="LayoutEvidence.fs" />
     <!-- Issue #245: the rogue3-owned `Msg -> AudioEffect list` cue map and asset resolver. Compiles
          after Model.fs (it names your Msg cases and reads your Model) and before EvidenceCommands.fs
@@ -80,9 +97,13 @@
          behind its own `#if`, rather than pretending one cue map fits both. What it does NOT do is
          fork the seam: both variants have the same signature, and both `generatedHost` (game,
          sample-pack) and `interactiveHost` (app) call the same function from Init and Update. -->
+    <Compile Include="AudioCues.fsi" />
     <Compile Include="AudioCues.fs" />
+    <Compile Include="WindowOptions.fsi" />
     <Compile Include="WindowOptions.fs" />
+    <Compile Include="EvidenceCommands.fsi" />
     <Compile Include="EvidenceCommands.fs" />
+    <Compile Include="Program.fsi" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
