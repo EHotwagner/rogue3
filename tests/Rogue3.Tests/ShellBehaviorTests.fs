@@ -329,7 +329,7 @@ let shellDisplayTests =
                     $"{mode} must not request the work-area-derived WindowedFullscreen state that leaves the window half off screen and every pointer sample misrouted (#63)"
 
             // The restore path itself, not a hand-built record: encode a Borderless display, decode
-            // it into a fresh model the way `loadShellSettings` does, and take the seam from THAT.
+            // it into a fresh model the way the product's restore does, and take the seam from THAT.
             let borderlessModel, _ = update (SetDisplayMode Borderless) (init testConfig)
             let restored = decodeDisplay (encodeDisplay borderlessModel) (init testConfig)
 

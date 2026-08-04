@@ -380,16 +380,25 @@ let private shellSettingsPath =
 
 let private legacyShellSettingsPath = "readiness/game-shell-settings.json"
 
-let private persistShellSettings (model: Rogue3.GameShell.Model) : bool =
+/// The product's settings WRITER, with its destination injected — the counterpart of
+/// `restoreShellSettingsFrom` below and public for the same reason (#75): `shellSettingsPath` is a
+/// fixed per-user platform path, so a test that wants to drive the real writer has nowhere to put
+/// the bytes but the player's own profile directory. Injecting the path lets a test write with the
+/// production writer and read back with the production reader, which is what turns "the envelope
+/// round-trips" into "the restore path works".
+let persistShellSettingsTo (path: string) (model: Rogue3.GameShell.Model) : bool =
     try
-        let directory = Path.GetDirectoryName shellSettingsPath
+        let directory = Path.GetDirectoryName path
 
         if not (String.IsNullOrWhiteSpace directory) then
             Directory.CreateDirectory(directory |> string) |> ignore
 
-        File.WriteAllBytes(shellSettingsPath, Rogue3.GameShell.encodeSettings model)
+        File.WriteAllBytes(path, Rogue3.GameShell.encodeSettings model)
         true
     with _ -> false
+
+let private persistShellSettings (model: Rogue3.GameShell.Model) : bool =
+    persistShellSettingsTo shellSettingsPath model
 
 /// #63, third guard: RETIRE a restored `Borderless` rather than merely tolerating it.
 ///
@@ -430,31 +439,109 @@ let retireWithdrawnDisplayMode (shell: Rogue3.GameShell.Model) : Rogue3.GameShel
 /// green and quietly turned the third guard into dead code. Driving this seam over real
 /// `encodeSettings` bytes is what closes that.
 ///
-/// Residual gap, stated rather than papered over: `shellSettingsPath` is a fixed per-user platform
-/// path, so no test drives `loadShellSettings` itself without writing to the real profile
-/// directory. A change that bypassed this function inside `loadShellSettings` would still not be
-/// caught. Narrowing that further needs an injectable path, which is a wider change than #63.
+/// The residual gap #63 recorded here — "`shellSettingsPath` is a fixed per-user platform path, so
+/// no test drives the load seam itself without writing to the real profile directory" — is what #75
+/// closed, by taking the injectable path #63 called a wider change than it wanted. The load seam is
+/// now `restoreShellSettingsFrom` (drivable, every branch), composed by `restoredShellSettingsFrom`
+/// (drivable) and bound to the platform paths by `restoredShellSettings` (one line, text-pinned).
 let decodeShellSettings (bytes: byte[]) (fallback: Rogue3.GameShell.Model) : Rogue3.GameShell.Model =
     Rogue3.GameShell.decodeSettings bytes fallback |> retireWithdrawnDisplayMode
 
-let private loadShellSettings (model: Rogue3.GameShell.Model) : Rogue3.GameShell.Model =
+/// The product's whole settings RESTORE — primary path, legacy migration, and the total fallback —
+/// with its two paths and its migration write injected.
+///
+/// #75 made this public and parameterised. `decodeShellSettings` closed half of the residual gap
+/// #63 recorded: a test could drive the DECODER over real bytes, but nothing could drive the seam
+/// that decides WHICH bytes, whether the legacy file is migrated, or what an absent/corrupt file
+/// restores to. Those are precisely the branches a launch depends on, and #75 is a defect about
+/// what the launch does with what this function returns. Injecting the paths lets a test drive
+/// every branch against a temporary directory instead of the player's profile.
+///
+/// Still total: any IO failure anywhere returns the caller's fallback model rather than throwing
+/// into launch.
+let restoreShellSettingsFrom
+    (primaryPath: string)
+    (legacyPath: string)
+    (persist: Rogue3.GameShell.Model -> bool)
+    (model: Rogue3.GameShell.Model)
+    : Rogue3.GameShell.Model =
     let decode path fallback =
         try decodeShellSettings (File.ReadAllBytes path) fallback
         with _ -> fallback
 
     try
-        if File.Exists shellSettingsPath then
-            decode shellSettingsPath model
-        elif File.Exists legacyShellSettingsPath then
-            let migrated = decode legacyShellSettingsPath model
+        if File.Exists primaryPath then
+            decode primaryPath model
+        elif File.Exists legacyPath then
+            let migrated = decode legacyPath model
 
-            if persistShellSettings migrated then
-                try File.Delete legacyShellSettingsPath with _ -> ()
+            if persist migrated then
+                try File.Delete legacyPath with _ -> ()
 
             migrated
         else
             model
     with _ -> model
+
+/// The product's WHOLE production restore as a function of the two paths it reads: the fresh-install
+/// fallback, the primary-over-legacy precedence, and the migration write — which lands on
+/// `primaryPath`, because migration means "move the settings to where this product now reads them"
+/// and a migration that wrote anywhere else would silently repeat itself on every launch.
+///
+/// Parameterised because the first round of #75 was not enough. `restoreShellSettingsFrom` made the
+/// RESTORE drivable and left its INSTANTIATION — which paths, in which order, with which write —
+/// reachable only through a fixed per-user platform path. An independent critic then reverted the
+/// whole fix at that instantiation (`restoredShellSettings () = GameShell.init shellConfig`, which
+/// IS defect #75) and reported `./fake.sh build -t Test` exit 0 with `Failed: 0, Passed: 281`. The
+/// blind spot was structurally the same one #75 was: a value produced correctly in one place, and
+/// nothing checking that the place which consumes it asks for it.
+let restoredShellSettingsFrom (primaryPath: string) (legacyPath: string) : Rogue3.GameShell.Model =
+    restoreShellSettingsFrom primaryPath legacyPath (persistShellSettingsTo primaryPath) (Rogue3.GameShell.init shellConfig)
+
+/// #75: the shell state a LAUNCH starts from — the RESTORED settings, not `shellConfig.InitialDisplay`.
+///
+/// This is the same call `interactiveHostCore.Init` makes, so the model the menu shows and the
+/// request the window opens with are derived from the same read of the same file. It costs a second
+/// read of a few hundred bytes once per process, which is the price of not threading a mutable
+/// launch-time cache through `InteractiveAppHost.Init` (whose signature is `unit -> _`).
+///
+/// This one line is the entire part of the restore that no test can EXECUTE without writing into the
+/// player's own profile directory, so `GovernanceTests` pins its text instead — the same trade this
+/// change already makes for `Program.main`, and for the same reason. Everything it composes is
+/// driven behaviourally through `restoredShellSettingsFrom`.
+let restoredShellSettings () : Rogue3.GameShell.Model =
+    restoredShellSettingsFrom shellSettingsPath legacyShellSettingsPath
+
+/// #75: the SINGLE decision about which window state the process opens in, and the explicit ordering
+/// the issue asked for — an explicit `--window-*` flag OVERRIDES the persisted settings; with no
+/// flag the persisted display mode owns the window.
+///
+/// What this fixes. `Program.main` used to build the unflagged launch request from
+/// `shellConfig.InitialDisplay` — a literal, `{ 1280x720; Windowed }` — while `Init` restored the
+/// saved settings into the model and emitted only `ApplyLogicalCanvas`. So the saved RESOLUTION
+/// survived a relaunch and the saved MODE did not: a player who chose Fullscreen, quit and
+/// relaunched got a normal window whose settings screen still marked `> Fullscreen`. The mode was
+/// only ever applied by `viewerEffectsForShellEffect (DisplayChanged …)`, which nothing raises at
+/// boot.
+///
+/// Why the launch REQUEST rather than an `ApplyWindowOptions` from `Init`. Both were available.
+/// Emitting a startup-shaped request at frame zero is the pattern #63 found fragile and
+/// FS-GG/FS.GG.Rendering#1196 is open on; building the request the window is CREATED with needs no
+/// live mutation at all, and the window is never in the wrong state even briefly.
+///
+/// DELIBERATE ASYMMETRY, recorded rather than hidden. On the flagged path the window follows the
+/// flag and the shell model still carries the PERSISTED mode, so the settings screen can mark a mode
+/// the flagged window is not in. That is the ordering the issue chose: a `--window-*` flag is a
+/// one-shot operator override of the window, not an edit of the player's saved preference — and the
+/// startup vocabulary is wider than `DisplayMode` anyway (`maximized`/`minimized` have no
+/// `DisplayMode` to mark), so a flag cannot honestly rewrite the marker for its own value. The
+/// menu/window agreement #75 requires therefore holds on the unflagged launch, which is the launch
+/// a player performs.
+let launchWindowRequest (args: string list) (restored: Rogue3.GameShell.Model) : ViewerWindowBehaviorRequest =
+    if Rogue3.WindowOptions.windowFlagSupplied args then
+        Rogue3.WindowOptions.toViewerLaunchRequest (Rogue3.WindowOptions.parseWindowBehavior args)
+    else
+        Rogue3.GameShell.windowBehavior restored.Display
 
 /// Interpret one shell `Effect` at the host boundary: Exit closes the window; a display change
 /// re-applies the window behaviour AND persists; a keymap change persists. Persistence is
@@ -499,7 +586,10 @@ let pointerInteractionToMsg interaction =
 let private interactiveHostCore: InteractiveAppHost<ShellHostModel, ShellHostMsg> =
     { Init =
         fun () ->
-            let shell = loadShellSettings (Rogue3.GameShell.init shellConfig)
+            // #75: the SAME call `Program.main` builds the launch request from. It used to be a
+            // second, parallel composition of the same pieces, which is one more place for the menu
+            // and the window to disagree about which file they restored from.
+            let shell = restoredShellSettings ()
             let model = { Shell = shell; Play = initialModel; StatsOpen = false; HeldKeys = Set.empty }
             // Issue #458: the LOADED initial state still reaches the audio sink. `Started` announces
             // the initial play model through the SAME cue seam every transition uses. The shell host is
